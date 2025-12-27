@@ -6,6 +6,10 @@
  *
  * Note: listDocuments is not exposed as a tool - it's automatically injected by the system.
  */
+import { BaseExecutor, type BuiltinToolContext, type BuiltinToolResult } from '@lobechat/types';
+
+import { notebookService } from '@/services/notebook';
+
 import {
   type CreateDocumentArgs,
   type DeleteDocumentArgs,
@@ -13,10 +17,7 @@ import {
   NotebookApiName,
   NotebookIdentifier,
   type UpdateDocumentArgs,
-} from '@lobechat/builtin-tool-notebook';
-import { BaseExecutor, type BuiltinToolContext, type BuiltinToolResult } from '@lobechat/types';
-
-import { notebookService } from '@/services/notebook';
+} from '../types';
 
 class NotebookExecutor extends BaseExecutor<typeof NotebookApiName> {
   readonly identifier = NotebookIdentifier;
@@ -50,7 +51,7 @@ class NotebookExecutor extends BaseExecutor<typeof NotebookApiName> {
       });
 
       return {
-        content: `Document "${document.title}" created successfully`,
+        content: `📝 Document "${document.title}" created successfully`,
         state: { document },
         success: true,
       };
@@ -82,7 +83,7 @@ class NotebookExecutor extends BaseExecutor<typeof NotebookApiName> {
       const document = await notebookService.updateDocument(params);
 
       return {
-        content: `Document updated successfully`,
+        content: `✏️ Document updated successfully`,
         state: { document },
         success: true,
       };
@@ -153,7 +154,7 @@ class NotebookExecutor extends BaseExecutor<typeof NotebookApiName> {
       await notebookService.deleteDocument(params.id);
 
       return {
-        content: `Document deleted successfully`,
+        content: `🗑️ Document deleted successfully`,
         success: true,
       };
     } catch (e) {

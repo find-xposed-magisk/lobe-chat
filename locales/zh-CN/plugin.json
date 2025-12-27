@@ -92,6 +92,7 @@
   "builtins.lobe-page-agent.apiName.indentListItem": "缩进列表项",
   "builtins.lobe-page-agent.apiName.initPage": "开始书写内容",
   "builtins.lobe-page-agent.apiName.initPage.chars": "字",
+  "builtins.lobe-page-agent.apiName.initPage.creating": "文档创作中",
   "builtins.lobe-page-agent.apiName.initPage.lines": "行",
   "builtins.lobe-page-agent.apiName.initPage.result": "已创作文档",
   "builtins.lobe-page-agent.apiName.insertTableColumn": "插入表格列",

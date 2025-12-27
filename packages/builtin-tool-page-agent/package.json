@@ -5,11 +5,14 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./src/client/index.ts",
+    "./executor": "./src/executor/index.ts",
     "./executionRuntime": "./src/ExecutionRuntime/index.ts"
   },
   "main": "./src/index.ts",
   "devDependencies": {
-    "@lobechat/types": "workspace:*"
+    "@lobechat/types": "workspace:*",
+    "@lobehub/editor": "^3",
+    "lexical": "^0.39.0"
   },
   "peerDependencies": {
     "@lobehub/editor": "^3",

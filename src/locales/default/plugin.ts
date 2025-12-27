@@ -92,6 +92,7 @@ export default {
   'builtins.lobe-page-agent.apiName.indentListItem': 'Indent list item',
   'builtins.lobe-page-agent.apiName.initPage': 'Start writing content',
   'builtins.lobe-page-agent.apiName.initPage.chars': ' chars',
+  'builtins.lobe-page-agent.apiName.initPage.creating': 'Creating document',
   'builtins.lobe-page-agent.apiName.initPage.lines': ' lines',
   'builtins.lobe-page-agent.apiName.initPage.result': 'Document created',
   'builtins.lobe-page-agent.apiName.insertTableColumn': 'Insert table column',

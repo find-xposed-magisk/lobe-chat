@@ -47,16 +47,41 @@ export const InitPageInspector = memo<BuiltinInspectorProps<InitDocumentArgs, In
     const hasContent = displayLines > 0 || chars > 0;
 
     // During streaming without content, show init
-    if (isArgumentsStreaming && !hasContent) {
+    if (isArgumentsStreaming) {
+      if (!hasContent)
+        return (
+          <div className={cx(styles.root, shinyTextStyles.shinyText)}>
+            <span>{t('builtins.lobe-page-agent.apiName.initPage')}</span>
+          </div>
+        );
+
+      // During streaming with content, show "creating" title with shiny effect
       return (
-        <div className={cx(styles.root, shinyTextStyles.shinyText)}>
-          <span>{t('builtins.lobe-page-agent.apiName.initPage')}</span>
+        <div className={styles.root}>
+          <span className={shinyTextStyles.shinyText}>
+            {t('builtins.lobe-page-agent.apiName.initPage.creating')}
+          </span>
+          {displayLines > 0 && (
+            <span className={styles.lines}>
+              {' '}
+              <Icon icon={Plus} size={12} />
+              <AnimatedNumber value={displayLines} />
+              {t('builtins.lobe-page-agent.apiName.initPage.lines')}
+            </span>
+          )}
+          {chars > 0 && (
+            <span className={styles.chars}>
+              {' '}
+              <AnimatedNumber value={chars} />
+              {t('builtins.lobe-page-agent.apiName.initPage.chars')}
+            </span>
+          )}
         </div>
       );
     }
 
     return (
-      <div className={cx(styles.root, isArgumentsStreaming && shinyTextStyles.shinyText)}>
+      <div className={styles.root}>
         <span className={styles.title}>
           {t('builtins.lobe-page-agent.apiName.initPage.result')}
         </span>

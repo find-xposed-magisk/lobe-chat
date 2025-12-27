@@ -5,9 +5,9 @@ import debug from 'debug';
 import React, { memo, useEffect, useRef } from 'react';
 import { createStoreUpdater } from 'zustand-utils';
 
-import { pageAgentRuntime } from '@/store/chat/slices/builtinTool/actions/pageAgent';
 import { useFileStore } from '@/store/file';
 import { documentSelectors } from '@/store/file/slices/document/selectors';
+import { pageAgentRuntime } from '@/store/tool/slices/builtin/executors/lobe-page-agent';
 
 import { type PublicState, usePageEditorStore, useStoreApi } from './store';
 
@@ -192,6 +192,8 @@ const StoreUpdater = memo<StoreUpdaterProps>(
     // Connect editor to page agent runtime
     useEffect(() => {
       if (editor) {
+        // for easier debug , mount editor instance to window
+        window.__editor = editor;
         pageAgentRuntime.setEditor(editor);
       }
       return () => {

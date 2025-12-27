@@ -4,8 +4,8 @@ import { debounce } from 'es-toolkit/compat';
 import { type StateCreator } from 'zustand';
 
 import { documentService } from '@/services/document';
-import { pageAgentRuntime } from '@/store/chat/slices/builtinTool/actions/pageAgent';
 import { useFileStore } from '@/store/file';
+import { pageAgentRuntime } from '@/store/tool/slices/builtin/executors/lobe-page-agent';
 import { DocumentSourceType, type LobeDocument } from '@/types/document';
 
 import { type State, initialState } from './initialState';
