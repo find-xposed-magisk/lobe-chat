@@ -42,6 +42,26 @@ const setNavPanelSnapshot = (snapshot: NavPanelSnapshot) => {
 };
 
 export const styles = createStaticStyles(({ css, cssVar }) => ({
+  content: css`
+    position: relative;
+
+    overflow: hidden;
+    display: flex;
+
+    height: 100%;
+    min-height: 100%;
+    max-height: 100%;
+  `,
+  inner: css`
+    position: relative;
+    inset: 0;
+
+    overflow: hidden;
+    flex: 1;
+    flex-direction: column;
+
+    min-width: 240px;
+  `,
   panel: css`
     user-select: none;
     height: 100%;
@@ -110,6 +130,9 @@ const NavPanel = memo(() => {
     <>
       <DraggablePanel
         className={styles.panel}
+        classNames={{
+          content: styles.content,
+        }}
         defaultSize={{ height: '100%', width }}
         expand={expand}
         expandable={false}
@@ -127,6 +150,7 @@ const NavPanel = memo(() => {
         <AnimatePresence initial={false} mode="popLayout">
           <motion.div
             animate={{ opacity: 1, x: 0 }}
+            className={styles.inner}
             exit={{
               opacity: 0,
               x: '-20%',
@@ -136,14 +160,6 @@ const NavPanel = memo(() => {
               x: 0,
             }}
             key={activeContent.key}
-            style={{
-              flexDirection: 'column',
-              height: '100%',
-              inset: 0,
-              minWidth: 240,
-              overflow: 'hidden',
-              position: 'relative',
-            }}
             transition={{
               duration: 0.4,
               ease: [0.4, 0, 0.2, 1],

@@ -87,6 +87,7 @@ const Thinking = memo<ThinkingProps>((props) => {
       >
         <ScrollShadow
           className={styles.contentScroll}
+          offset={12}
           ref={contentRef as unknown as RefObject<HTMLDivElement>}
           size={12}
         >

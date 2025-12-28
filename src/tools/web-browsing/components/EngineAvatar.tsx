@@ -25,7 +25,8 @@ export const EngineAvatarGroup = memo<EngineAvatarGroupProps>(({ engines }) => {
         key: engine,
         title: engine,
       }))}
-      size={20}
+      shape={'circle'}
+      size={14}
     />
   );
 });

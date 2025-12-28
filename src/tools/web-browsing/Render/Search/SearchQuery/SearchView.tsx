@@ -1,4 +1,4 @@
-import { Flexbox, Icon, Skeleton, Text } from '@lobehub/ui';
+import { Block, Flexbox, Icon, Skeleton, Text } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
 import { SearchIcon } from 'lucide-react';
 import { memo } from 'react';
@@ -9,23 +9,11 @@ import { shinyTextStyles } from '@/styles';
 import { EngineAvatarGroup } from '../../../components/EngineAvatar';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
-  font: css`
-    font-size: 12px;
-    color: ${cssVar.colorTextTertiary};
-  `,
   query: css`
-    cursor: pointer;
-
     padding-block: 4px;
     padding-inline: 8px;
-    border-radius: 8px;
-
     font-size: 12px;
     color: ${cssVar.colorTextSecondary};
-
-    &:hover {
-      background: ${cssVar.colorFillTertiary};
-    }
   `,
 }));
 
@@ -48,23 +36,25 @@ const SearchBar = memo<SearchBarProps>(
         height={isMobile ? undefined : 32}
         horizontal={!isMobile}
       >
-        <Flexbox
+        <Block
           align={'center'}
           className={cx(styles.query, searching && shinyTextStyles.shinyText)}
+          clickable
           gap={8}
           horizontal
           onClick={() => {
             onEditingChange(true);
           }}
+          variant={'borderless'}
         >
           <Icon icon={SearchIcon} />
           {defaultQuery}
-        </Flexbox>
+        </Block>
 
         {searching ? (
           <Skeleton.Block active style={{ height: 20, width: 40 }} />
         ) : (
-          <Flexbox align={'center'} horizontal>
+          <Flexbox align={'center'} gap={4} horizontal>
             <EngineAvatarGroup engines={defaultEngines} />
             {!isMobile && (
               <Text style={{ fontSize: 12 }} type={'secondary'}>

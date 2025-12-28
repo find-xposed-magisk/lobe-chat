@@ -10,9 +10,6 @@ import { useTranslation } from 'react-i18next';
 import { shinyTextStyles } from '@/styles';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
-  content: css`
-    font-family: ${cssVar.fontFamilyCode};
-  `,
   root: css`
     overflow: hidden;
     display: -webkit-box;
@@ -45,7 +42,7 @@ export const SearchInspector = memo<BuiltinInspectorProps<SearchQuery>>(({ args,
       {query && (
         <>
           <Icon icon={ChevronRight} style={{ marginInline: 4 }} />
-          <span className={styles.content}>{query}</span>
+          <span>{query}</span>
         </>
       )}
     </div>
