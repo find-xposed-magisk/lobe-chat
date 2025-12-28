@@ -297,6 +297,8 @@
   "thread.divider": "子话题",
   "thread.threadMessageCount": "{{messageCount}} 条消息",
   "thread.title": "子话题",
+  "todoProgress.allCompleted": "已完成所有任务",
+  "todoProgress.title": "任务",
   "toggleWideScreen.off": "关闭宽屏模式",
   "toggleWideScreen.on": "开启宽屏模式",
   "tokenDetails.chats": "会话消息",

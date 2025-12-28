@@ -37,7 +37,7 @@ const styles = createStaticStyles(({ css }) => ({
 const DiffAllToolbar = memo(() => {
   const { t } = useTranslation('editor');
   const { isDarkMode } = useThemeMode();
-  const editor = usePageEditorStore((s) => s.editor);
+  const [editor, performSave] = usePageEditorStore((s) => [s.editor, s.performSave]);
   const [hasPendingDiffs, setHasPendingDiffs] = useState(false);
 
   // Listen to editor state changes to detect diff nodes
@@ -87,11 +87,11 @@ const DiffAllToolbar = memo(() => {
       >
         <Space>
           <Button
-            // danger
-            onClick={() => {
+            onClick={async () => {
               editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, {
                 action: DiffAction.Reject,
               });
+              await performSave({ force: true });
             }}
             size={'small'}
             type="text"
@@ -101,10 +101,11 @@ const DiffAllToolbar = memo(() => {
           </Button>
           <Button
             color={'default'}
-            onClick={() => {
+            onClick={async () => {
               editor.dispatchCommand(LITEXML_DIFFNODE_ALL_COMMAND, {
                 action: DiffAction.Accept,
               });
+              await performSave({ force: true });
             }}
             size={'small'}
             variant="filled"

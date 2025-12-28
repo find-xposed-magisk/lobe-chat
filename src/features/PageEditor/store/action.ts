@@ -24,7 +24,7 @@ export interface Action {
   ) => Promise<void>;
   handleTitleSubmit: () => Promise<void>;
   onEditorInit: () => void;
-  performSave: () => Promise<void>;
+  performSave: (options?: { force?: boolean }) => Promise<void>;
   setCurrentEmoji: (emoji: string | undefined) => void;
   setCurrentTitle: (title: string) => void;
 }
@@ -141,7 +141,7 @@ export const store: (initState?: Partial<State>) => StateCreator<Store> =
         }
       },
 
-      performSave: async () => {
+      performSave: async (options) => {
         const {
           editor,
           currentDocId,
@@ -156,8 +156,13 @@ export const store: (initState?: Partial<State>) => StateCreator<Store> =
 
         if (!editor) return;
 
-        // Skip save if no changes
-        if (!isDirty && currentDocId && !currentDocId.startsWith('temp-document-')) {
+        // Skip save if no changes (unless force is true)
+        if (
+          !options?.force &&
+          !isDirty &&
+          currentDocId &&
+          !currentDocId.startsWith('temp-document-')
+        ) {
           return;
         }
 
