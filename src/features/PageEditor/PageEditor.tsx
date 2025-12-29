@@ -3,7 +3,7 @@
 import { BUILTIN_AGENT_SLUGS } from '@lobechat/builtin-agents';
 import { Flexbox } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
-import { type FC, memo } from 'react';
+import { type FC, memo, useEffect } from 'react';
 
 import Loading from '@/components/Loading/BrandTextLoading';
 import WideScreenContainer from '@/features/WideScreenContainer';
@@ -33,10 +33,29 @@ interface PageEditorProps {
 const PageEditorCanvas = memo(() => {
   const editor = usePageEditorStore((s) => s.editor);
   const flushSave = usePageEditorStore((s) => s.flushSave);
+  const isDirty = usePageEditorStore((s) => s.isDirty);
 
   // Register Files scope and save document hotkey
   useRegisterFilesHotkeys();
   useSaveDocumentHotkey(flushSave);
+
+  // Warn user before leaving page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        // Prevent default and show browser confirmation dialog
+        e.preventDefault();
+        // Most modern browsers require returnValue to be set
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   return (
     <>
