@@ -58,6 +58,7 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
   navigationButton: css`
     position: relative;
     z-index: 2;
+
     &:not(:disabled) > * {
       color: #000 !important;
     }

@@ -8,6 +8,7 @@ import clerk from './clerk';
 import color from './color';
 import common from './common';
 import components from './components';
+import desktopOnboarding from './desktop-onboarding';
 import discover from './discover';
 import editor from './editor';
 import electron from './electron';
@@ -25,7 +26,6 @@ import migration from './migration';
 import modelProvider from './modelProvider';
 import models from './models';
 import oauth from './oauth';
-import desktopOnboarding from './desktop-onboarding';
 import onboarding from './onboarding';
 import plugin from './plugin';
 import portal from './portal';
@@ -49,6 +49,7 @@ const resources = {
   color,
   common,
   components,
+  'desktop-onboarding': desktopOnboarding,
   discover,
   editor,
   electron,
@@ -58,8 +59,8 @@ const resources = {
   hotkey,
   image,
   knowledgeBase,
-  labs,
 
+  labs,
   marketAuth,
   memory,
   metadata,
@@ -67,7 +68,6 @@ const resources = {
   modelProvider,
   models,
   oauth,
-  'desktop-onboarding': desktopOnboarding,
   onboarding,
   plugin,
   portal,

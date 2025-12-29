@@ -1,7 +1,7 @@
 'use client';
 
 import { ConfigProvider } from 'antd';
-import { createStaticStyles, cssVar, cx } from 'antd-style';
+import { createStaticStyles, cx } from 'antd-style';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useCallback, useEffect, useState } from 'react';
 

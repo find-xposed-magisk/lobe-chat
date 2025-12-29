@@ -30,13 +30,11 @@ export const useResourceExplorer = ({
 
   // Get state from Resource Manager store
   const [
-    mode,
     viewMode,
     currentViewItemId,
     isTransitioning,
     isMasonryReady,
     searchQuery,
-    setCurrentViewItemId,
     setCurrentFolderId,
     setIsTransitioning,
     setIsMasonryReady,
@@ -48,13 +46,11 @@ export const useResourceExplorer = ({
     sorter,
     sortType,
   ] = useResourceManagerStore((s) => [
-    s.mode,
     s.viewMode,
     s.currentViewItemId,
     s.isTransitioning,
     s.isMasonryReady,
     s.searchQuery,
-    s.setCurrentViewItemId,
     s.setCurrentFolderId,
     s.setIsTransitioning,
     s.setIsMasonryReady,

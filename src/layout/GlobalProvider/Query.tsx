@@ -22,7 +22,7 @@ const SWRMutateInitializer = ({ children }: PropsWithChildren) => {
 
   useWatchBroadcast('remoteServerConfigUpdated', () => {
     try {
-      const result = mutate((key) => true, undefined, { revalidate: true });
+      const result = mutate(() => true, undefined, { revalidate: true });
       void result?.catch?.(() => {});
     } catch {
       // Ignore: SWR cache may not be ready yet in early boot.

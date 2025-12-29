@@ -81,13 +81,13 @@ export interface Action {
    */
   setSelectedFileIds: (ids: string[]) => void;
   /**
-   * Set the field to sort files by
-   */
-  setSorter: (sorter: 'name' | 'createdAt' | 'size') => void;
-  /**
    * Set the sort direction
    */
   setSortType: (sortType: SortType) => void;
+  /**
+   * Set the field to sort files by
+   */
+  setSorter: (sorter: 'name' | 'createdAt' | 'size') => void;
   /**
    * Set the file explorer view mode
    */
@@ -109,7 +109,7 @@ export const store: CreateStore = (publicState) => (set, get) => ({
   },
 
   loadMoreKnowledgeItems: async () => {
-    const { fileListHasMore, fileListOffset } = get();
+    const { fileListHasMore } = get();
 
     // Don't load if there's no more data
     if (!fileListHasMore) return;
@@ -131,7 +131,6 @@ export const store: CreateStore = (publicState) => (set, get) => ({
     const { selectedFileIds, libraryId } = get();
     const { useFileStore } = await import('@/store/file');
     const { useKnowledgeBaseStore } = await import('@/store/knowledgeBase');
-    const { useAddFilesToKnowledgeBaseModal } = await import('@/features/LibraryModal');
     const { isChunkingUnsupported } = await import('@/utils/isChunkingUnsupported');
 
     const fileStore = useFileStore.getState();
@@ -267,12 +266,12 @@ export const store: CreateStore = (publicState) => (set, get) => ({
     set({ selectedFileIds });
   },
 
-  setSorter: (sorter) => {
-    set({ sorter });
-  },
-
   setSortType: (sortType) => {
     set({ sortType });
+  },
+
+  setSorter: (sorter) => {
+    set({ sorter });
   },
 
   setViewMode: (viewMode) => {

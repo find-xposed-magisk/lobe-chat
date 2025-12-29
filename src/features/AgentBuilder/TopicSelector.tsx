@@ -17,14 +17,15 @@ dayjs.extend(relativeTime);
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   time: css`
+    margin-inline-start: 6px;
     font-size: 12px;
     color: ${cssVar.colorTextTertiary};
-    margin-left: 6px;
   `,
   title: css`
+    overflow: hidden;
+
     font-size: 14px;
     font-weight: 500;
-    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   `,

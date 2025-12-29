@@ -9,7 +9,7 @@ import {
   useResourceManagerFetchKnowledgeItems,
   useResourceManagerStore,
 } from '@/app/[variants]/(main)/resource/features/store';
-import { selectors, sortFileList } from '@/app/[variants]/(main)/resource/features/store/selectors';
+import { sortFileList } from '@/app/[variants]/(main)/resource/features/store/selectors';
 
 import EmptyPlaceholder from './EmptyPlaceholder';
 import Header from './Header';
@@ -43,7 +43,6 @@ const ResourceExplorer = memo(() => {
     searchQuery,
     selectedFileIds,
     setSelectedFileIds,
-    pendingRenameItemId,
     loadMoreKnowledgeItems,
     fileListHasMore,
     sorter,
@@ -57,7 +56,6 @@ const ResourceExplorer = memo(() => {
     s.searchQuery,
     s.selectedFileIds,
     s.setSelectedFileIds,
-    s.pendingRenameItemId,
     s.loadMoreKnowledgeItems,
     s.fileListHasMore,
     s.sorter,

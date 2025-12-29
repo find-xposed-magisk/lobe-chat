@@ -3,7 +3,7 @@
 import { Center } from '@lobehub/ui';
 import { VirtuosoMasonry } from '@virtuoso.dev/masonry';
 import { cssVar } from 'antd-style';
-import { memo, useCallback, useMemo, useState } from 'react';
+import { type UIEvent, memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useResourceManagerStore } from '@/app/[variants]/(main)/resource/features/store';
@@ -54,7 +54,7 @@ const MasonryView = memo<MasonryViewProps>(
 
     // Handle scroll event to detect when near bottom
     const handleScroll = useCallback(
-      (e: React.UIEvent<HTMLDivElement>) => {
+      (e: UIEvent<HTMLDivElement>) => {
         const target = e.currentTarget;
         const scrollTop = target.scrollTop;
         const scrollHeight = target.scrollHeight;

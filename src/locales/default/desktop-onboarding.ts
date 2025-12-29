@@ -26,7 +26,8 @@ export default {
   'screen3.actions.granted': 'Access Granted',
   'screen3.actions.openSettings': 'Open Settings',
   'screen3.badge': 'Permissions',
-  'screen3.description': "Grant the following permissions to experience LobeHub's full capabilities",
+  'screen3.description':
+    "Grant the following permissions to experience LobeHub's full capabilities",
   'screen3.permissions.1.description':
     'Send system notifications for task completions, AI responses, and important updates when the app is running in background',
   'screen3.permissions.1.title': 'Notification Permission',
@@ -62,13 +63,15 @@ export default {
   'screen5.actions.connectToServer': 'Connect to Server',
   'screen5.actions.connecting': 'Connecting...',
   'screen5.actions.signInCloud': 'Sign in to LobeHub Cloud',
-  'screen5.actions.signingIn': 'Signing in...',
   'screen5.actions.signOut': 'Sign out',
+  'screen5.actions.signingIn': 'Signing in...',
   'screen5.actions.signingOut': 'Signing out...',
   'screen5.actions.tryAgain': 'Try Again',
   'screen5.badge': 'Sign in',
-  'screen5.description': 'Sign in to sync your AI agents, settings, and conversations across all devices.',
-  'screen5.errors.desktopOnlyOidc': 'OIDC authorization is only available in the desktop app runtime.',
+  'screen5.description':
+    'Sign in to sync your AI agents, settings, and conversations across all devices.',
+  'screen5.errors.desktopOnlyOidc':
+    'OIDC authorization is only available in the desktop app runtime.',
   'screen5.methods.cloud.description': 'Authorization by Official cloud-based version',
   'screen5.methods.cloud.name': 'LobeHub Cloud',
   'screen5.methods.selfhost.description': 'Connect to your own LobeHub server instance',
@@ -77,4 +80,3 @@ export default {
   'screen5.selfhost.endpointPlaceholder': 'Endpoint URL (Example: https://your-server.com)',
   'screen5.title': 'Connect Your Account',
 };
-

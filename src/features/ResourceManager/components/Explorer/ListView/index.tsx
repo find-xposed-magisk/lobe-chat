@@ -38,8 +38,8 @@ const styles = createStaticStyles(({ css }) => ({
   `,
   loadingIndicator: css`
     padding: 16px;
-    color: ${cssVar.colorTextDescription};
     font-size: 14px;
+    color: ${cssVar.colorTextDescription};
   `,
 }));
 
@@ -102,7 +102,7 @@ const ListView = memo(() => {
         const end = Math.max(lastSelectedIndex, clickedIndex);
         const rangeIds = data
           .slice(start, end + 1)
-          .filter((item) => item)
+          .filter(Boolean)
           .map((item) => item.id);
 
         const prevSet = new Set(selectFileIds);

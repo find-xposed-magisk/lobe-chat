@@ -53,13 +53,13 @@ export interface State {
    */
   selectedFileIds: string[];
   /**
-   * Field to sort files by
-   */
-  sorter: 'name' | 'createdAt' | 'size';
-  /**
    * Sort direction (ascending or descending)
    */
   sortType: SortType;
+  /**
+   * Field to sort files by
+   */
+  sorter: 'name' | 'createdAt' | 'size';
   /**
    * File explorer view mode (list or masonry)
    */
@@ -79,7 +79,7 @@ export const initialState: State = {
   pendingRenameItemId: null,
   searchQuery: null,
   selectedFileIds: [],
-  sorter: 'createdAt',
   sortType: SortType.Desc,
+  sorter: 'createdAt',
   viewMode: 'list',
 };
