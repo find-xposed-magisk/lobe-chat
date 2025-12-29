@@ -100,7 +100,10 @@ const ListView = memo(() => {
       if (shiftKey && lastSelectedIndex !== null && selectFileIds.length > 0 && data) {
         const start = Math.min(lastSelectedIndex, clickedIndex);
         const end = Math.max(lastSelectedIndex, clickedIndex);
-        const rangeIds = data.slice(start, end + 1).map((item) => item.id);
+        const rangeIds = data
+          .slice(start, end + 1)
+          .filter((item) => item)
+          .map((item) => item.id);
 
         const prevSet = new Set(selectFileIds);
         rangeIds.forEach((rangeId) => prevSet.add(rangeId));
@@ -150,7 +153,7 @@ const ListView = memo(() => {
     if (allSelected) {
       setSelectedFileIds([]);
     } else {
-      setSelectedFileIds(data?.map((item) => item.id) || []);
+      setSelectedFileIds(data?.filter((item) => item).map((item) => item.id) || []);
     }
   };
 
@@ -226,18 +229,25 @@ const ListView = memo(() => {
         style={{ flex: 1, overflow: 'hidden', position: 'relative' }}
       >
         <Virtuoso
-          data={data}
+          data={data || []}
+          defaultItemHeight={48}
           endReached={handleEndReached}
-          itemContent={(index, item) => (
-            <FileListItem
-              index={index}
-              key={item.id}
-              onSelectedChange={handleSelectionChange}
-              pendingRenameItemId={pendingRenameItemId}
-              selected={selectFileIds.includes(item.id)}
-              {...item}
-            />
-          )}
+          increaseViewportBy={{ bottom: 800, top: 1200 }}
+          initialItemCount={30}
+          itemContent={(index, item) => {
+            if (!item) return null;
+            return (
+              <FileListItem
+                index={index}
+                key={item.id}
+                onSelectedChange={handleSelectionChange}
+                pendingRenameItemId={pendingRenameItemId}
+                selected={selectFileIds.includes(item.id)}
+                {...item}
+              />
+            );
+          }}
+          overscan={600}
           ref={virtuosoRef}
           style={{ height: '100%' }}
         />

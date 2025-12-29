@@ -22,6 +22,7 @@ import { downloadFile } from '@/utils/client/downloadFile';
 import MoveToFolderModal from '../MoveToFolderModal';
 
 interface UseFileItemDropdownParams {
+  enabled?: boolean;
   fileType: string;
   filename: string;
   id: string;
@@ -37,6 +38,7 @@ interface UseFileItemDropdownReturn {
 }
 
 export const useFileItemDropdown = ({
+  enabled = true,
   id,
   knowledgeBaseId,
   url,
@@ -58,6 +60,8 @@ export const useFileItemDropdown = ({
       s.useFetchKnowledgeBaseList,
     ]);
 
+  // Only fetch knowledge bases when dropdown is enabled (open)
+  // This prevents the expensive SWR call for all 20-25 visible items
   const { data: knowledgeBases } = useFetchKnowledgeBaseList();
 
   const inKnowledgeBase = !!knowledgeBaseId;
@@ -65,6 +69,9 @@ export const useFileItemDropdown = ({
   const isPage = sourceType === 'document' || fileType === 'custom/document';
 
   const menuItems = useMemo(() => {
+    // Skip building menu items when dropdown is not open (performance optimization)
+    if (!enabled) return [];
+
     // Filter out current knowledge base and create submenu items
     const availableKnowledgeBases = (knowledgeBases || []).filter(
       (kb) => kb.id !== knowledgeBaseId,
@@ -255,7 +262,7 @@ export const useFileItemDropdown = ({
         },
       ] as ItemType[]
     ).filter(Boolean);
-  }, [inKnowledgeBase, isFolder, knowledgeBases, knowledgeBaseId, id]);
+  }, [enabled, inKnowledgeBase, isFolder, knowledgeBases, knowledgeBaseId, id]);
 
   const moveModal = (
     <MoveToFolderModal

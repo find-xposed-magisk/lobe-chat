@@ -104,10 +104,18 @@ export const createFileManageSlice: StateCreator<
         offset: fileListOffset,
       });
 
+      const updatedFileList = [...fileList, ...response.items];
+
+      // Update Zustand store
       set({
-        fileList: [...fileList, ...response.items],
+        fileList: updatedFileList,
         fileListHasMore: response.hasMore,
         fileListOffset: fileListOffset + response.items.length,
+      });
+
+      // Update SWR cache so the component sees the new items
+      await mutate([FETCH_ALL_KNOWLEDGE_KEY, queryListParams], updatedFileList, {
+        revalidate: false,
       });
     } catch (error) {
       console.error('Failed to load more knowledge items:', error);

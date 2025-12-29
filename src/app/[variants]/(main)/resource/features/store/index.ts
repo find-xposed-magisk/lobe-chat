@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import type { SWRResponse } from 'swr';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
@@ -31,17 +32,16 @@ export const useResourceManagerFetchKnowledgeItems = (
 ): SWRResponse<FileListItem[]> => {
   const result = useFileStore((s) => s.useFetchKnowledgeItems)(params);
 
-  // Sync pagination state from FileStore to ResourceManagerStore
-  const fileStore = useFileStore.getState();
-  const resourceManagerStore = useResourceManagerStore.getState();
+  // Sync pagination state from FileStore to ResourceManagerStore using subscription
+  // This ensures the sync happens reactively when FileStore updates, not just during render
+  const fileListHasMore = useFileStore((s) => s.fileListHasMore);
+  const fileListOffset = useFileStore((s) => s.fileListOffset);
 
-  if (
-    fileStore.fileListHasMore !== resourceManagerStore.fileListHasMore ||
-    fileStore.fileListOffset !== resourceManagerStore.fileListOffset
-  ) {
-    resourceManagerStore.setFileListHasMore?.(fileStore.fileListHasMore);
-    resourceManagerStore.setFileListOffset?.(fileStore.fileListOffset);
-  }
+  useEffect(() => {
+    const resourceManagerStore = useResourceManagerStore.getState();
+    resourceManagerStore.setFileListHasMore?.(fileListHasMore);
+    resourceManagerStore.setFileListOffset?.(fileListOffset);
+  }, [fileListHasMore, fileListOffset]);
 
   return result;
 };

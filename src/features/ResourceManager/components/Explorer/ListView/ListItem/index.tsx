@@ -1,4 +1,4 @@
-import { Button, Center, Checkbox, Flexbox, Icon, Tooltip } from '@lobehub/ui';
+import { Button, Center, Checkbox, Flexbox, Icon } from '@lobehub/ui';
 import { App, Input } from 'antd';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
 import dayjs from 'dayjs';
@@ -8,6 +8,7 @@ import { FileBoxIcon, FileText, FolderIcon } from 'lucide-react';
 import { type DragEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { shallow } from 'zustand/shallow';
 
 import {
   getTransparentDragImage,
@@ -130,19 +131,30 @@ const FileListItem = memo<FileListItemProps>(
     const navigate = useNavigate();
     const [, setSearchParams] = useSearchParams();
 
-    const [isCreatingFileParseTask, parseFiles, renameFolder] = useFileStore((s) => [
-      fileManagerSelectors.isCreatingFileParseTask(id)(s),
-      s.parseFilesToChunks,
-      s.renameFolder,
-    ]);
+    // Consolidate all FileStore subscriptions with shallow equality
+    const fileStoreState = useFileStore(
+      (s) => ({
+        isCreatingFileParseTask: fileManagerSelectors.isCreatingFileParseTask(id)(s),
+        parseFiles: s.parseFilesToChunks,
+        renameFolder: s.renameFolder,
+      }),
+      shallow,
+    );
 
-    const setPendingRenameItemId = useResourceManagerStore((s) => s.setPendingRenameItemId);
+    // Consolidate all ResourceManagerStore subscriptions with shallow equality
+    const resourceManagerState = useResourceManagerStore(
+      (s) => ({
+        libraryId: s.libraryId,
+        setCurrentViewItemId: s.setCurrentViewItemId,
+        setMode: s.setMode,
+        setPendingRenameItemId: s.setPendingRenameItemId,
+      }),
+      shallow,
+    );
 
     const [isRenaming, setIsRenaming] = useState(false);
     const [renamingValue, setRenamingValue] = useState(name);
     const inputRef = useRef<any>(null);
-
-    const libraryId = useResourceManagerStore((s) => s.libraryId);
     const isDragActive = useDragActive();
     const { setCurrentDrag } = useDragState();
     const [isDragging, setIsDragging] = useState(false);
@@ -176,7 +188,7 @@ const FileListItem = memo<FileListItemProps>(
     // Native HTML5 drag event handlers
     const handleDragStart = useCallback(
       (e: DragEvent) => {
-        if (!libraryId) {
+        if (!resourceManagerState.libraryId) {
           e.preventDefault();
           return;
         }
@@ -195,7 +207,7 @@ const FileListItem = memo<FileListItemProps>(
         }
         e.dataTransfer.effectAllowed = 'move';
       },
-      [libraryId, dragData, id, isFolder, setCurrentDrag],
+      [resourceManagerState.libraryId, dragData, id, isFolder, setCurrentDrag],
     );
 
     const handleDragEnd = useCallback(() => {
@@ -241,9 +253,6 @@ const FileListItem = memo<FileListItemProps>(
       }, 0);
     };
 
-    const setMode = useResourceManagerStore((s) => s.setMode);
-    const setCurrentViewItemId = useResourceManagerStore((s) => s.setCurrentViewItemId);
-
     const handleRenameConfirm = async () => {
       if (!renamingValue.trim()) {
         message.error(t('FileManager.actions.renameError'));
@@ -256,7 +265,7 @@ const FileListItem = memo<FileListItemProps>(
       }
 
       try {
-        await renameFolder(id, renamingValue.trim());
+        await fileStoreState.renameFolder(id, renamingValue.trim());
         message.success(t('FileManager.actions.renameSuccess'));
         setIsRenaming(false);
       } catch (error) {
@@ -270,14 +279,50 @@ const FileListItem = memo<FileListItemProps>(
       setRenamingValue(name);
     };
 
+    // Memoize click handler to prevent recreation on every render
+    const handleItemClick = useCallback(() => {
+      if (isFolder) {
+        // Navigate to folder using slug-based routing (Google Drive style)
+        const folderSlug = slug || id;
+
+        if (resourceManagerState.libraryId) {
+          navigate(`/resource/library/${resourceManagerState.libraryId}/${folderSlug}`);
+        }
+      } else if (isPage) {
+        resourceManagerState.setCurrentViewItemId(id);
+        resourceManagerState.setMode('page');
+        setSearchParams(
+          (prev) => {
+            const newParams = new URLSearchParams(prev);
+            newParams.set('file', id);
+            return newParams;
+          },
+          { replace: true },
+        );
+      } else {
+        // Set mode to file and store the file ID
+        resourceManagerState.setCurrentViewItemId(id);
+        resourceManagerState.setMode('editor');
+        // Also update URL query parameter for shareable links
+        setSearchParams(
+          (prev) => {
+            const newParams = new URLSearchParams(prev);
+            newParams.set('file', id);
+            return newParams;
+          },
+          { replace: true },
+        );
+      }
+    }, [isFolder, slug, id, resourceManagerState, navigate, isPage, setSearchParams]);
+
     // Auto-start renaming if this is the pending rename item
     useEffect(() => {
       if (pendingRenameItemId === id && isFolder && !isRenaming) {
         handleRenameStart();
         // Clear the pending rename item after triggering
-        setPendingRenameItemId(null);
+        resourceManagerState.setPendingRenameItemId(null);
       }
-    }, [pendingRenameItemId, id, isFolder]);
+    }, [pendingRenameItemId, id, isFolder, resourceManagerState]);
 
     return (
       <Flexbox
@@ -290,7 +335,7 @@ const FileListItem = memo<FileListItemProps>(
         )}
         data-drop-target-id={id}
         data-is-folder={String(isFolder)}
-        draggable={!!libraryId}
+        draggable={!!resourceManagerState.libraryId}
         height={48}
         horizontal
         onDragEnd={handleDragEnd}
@@ -309,40 +354,7 @@ const FileListItem = memo<FileListItemProps>(
           distribution={'space-between'}
           flex={1}
           horizontal
-          onClick={() => {
-            if (isFolder) {
-              // Navigate to folder using slug-based routing (Google Drive style)
-              const folderSlug = slug || id;
-
-              if (libraryId) {
-                navigate(`/resource/library/${libraryId}/${folderSlug}`);
-              }
-            } else if (isPage) {
-              setCurrentViewItemId(id);
-              setMode('page');
-              setSearchParams(
-                (prev) => {
-                  const newParams = new URLSearchParams(prev);
-                  newParams.set('file', id);
-                  return newParams;
-                },
-                { replace: true },
-              );
-            } else {
-              // Set mode to file and store the file ID
-              setCurrentViewItemId(id);
-              setMode('editor');
-              // Also update URL query parameter for shareable links
-              setSearchParams(
-                (prev) => {
-                  const newParams = new URLSearchParams(prev);
-                  newParams.set('file', id);
-                  return newParams;
-                },
-                { replace: true },
-              );
-            }
-          }}
+          onClick={handleItemClick}
         >
           <Flexbox align={'center'} className={styles.nameContainer} horizontal>
             <Center
@@ -410,35 +422,33 @@ const FileListItem = memo<FileListItemProps>(
             onPointerDown={(e) => e.stopPropagation()}
           >
             {!isFolder &&
-              (isCreatingFileParseTask || isNull(chunkingStatus) || !chunkingStatus ? (
-                <div className={isCreatingFileParseTask ? undefined : styles.hover}>
-                  <Tooltip
-                    styles={{
-                      root: { pointerEvents: 'none' },
+              (fileStoreState.isCreatingFileParseTask ||
+              isNull(chunkingStatus) ||
+              !chunkingStatus ? (
+                <div
+                  className={fileStoreState.isCreatingFileParseTask ? undefined : styles.hover}
+                  title={t(
+                    isSupportedForChunking
+                      ? 'FileManager.actions.chunkingTooltip'
+                      : 'FileManager.actions.chunkingUnsupported',
+                  )}
+                >
+                  <Button
+                    disabled={!isSupportedForChunking}
+                    icon={FileBoxIcon}
+                    loading={fileStoreState.isCreatingFileParseTask}
+                    onClick={() => {
+                      fileStoreState.parseFiles([id]);
                     }}
-                    title={t(
-                      isSupportedForChunking
-                        ? 'FileManager.actions.chunkingTooltip'
-                        : 'FileManager.actions.chunkingUnsupported',
-                    )}
+                    size={'small'}
+                    type={'text'}
                   >
-                    <Button
-                      disabled={!isSupportedForChunking}
-                      icon={FileBoxIcon}
-                      loading={isCreatingFileParseTask}
-                      onClick={() => {
-                        parseFiles([id]);
-                      }}
-                      size={'small'}
-                      type={'text'}
-                    >
-                      {t(
-                        isCreatingFileParseTask
-                          ? 'FileManager.actions.createChunkingTask'
-                          : 'FileManager.actions.chunking',
-                      )}
-                    </Button>
-                  </Tooltip>
+                    {t(
+                      fileStoreState.isCreatingFileParseTask
+                        ? 'FileManager.actions.createChunkingTask'
+                        : 'FileManager.actions.chunking',
+                    )}
+                  </Button>
                 </div>
               ) : (
                 <div style={{ cursor: 'default' }}>
@@ -458,7 +468,7 @@ const FileListItem = memo<FileListItemProps>(
                 fileType={fileType}
                 filename={name}
                 id={id}
-                knowledgeBaseId={libraryId}
+                knowledgeBaseId={resourceManagerState.libraryId}
                 onRenameStart={isFolder ? handleRenameStart : undefined}
                 sourceType={sourceType}
                 url={url}
