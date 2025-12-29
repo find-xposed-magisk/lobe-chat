@@ -50,7 +50,6 @@ export default defineConfig({
       '@/utils/server': resolve(__dirname, './src/utils/server'),
       '@/utils/identifier': resolve(__dirname, './src/utils/identifier'),
       '@/utils/electron': resolve(__dirname, './src/utils/electron'),
-      '@/utils/identifier': resolve(__dirname, './src/utils/identifier'),
       '@/utils': resolve(__dirname, './packages/utils/src'),
       '@/types': resolve(__dirname, './packages/types/src'),
       '@/const': resolve(__dirname, './packages/const/src'),
