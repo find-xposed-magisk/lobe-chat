@@ -249,6 +249,37 @@ describe('MessageModel Update Tests', () => {
         expect(updatedMessage[0].model).toBe('gpt-4');
         expect(updatedMessage[0].metadata).toEqual({ tps: 1 });
       });
+
+      it('should merge metadata with existing metadata instead of overwriting', async () => {
+        // Create test data with existing metadata
+        await serverDB.insert(messages).values({
+          id: 'msg-merge-metadata-update',
+          userId,
+          role: 'assistant',
+          content: 'original content',
+          metadata: { isSupervisor: true, collapsed: true },
+        });
+
+        // Call update method with new metadata
+        await messageModel.update('msg-merge-metadata-update', {
+          content: 'updated content',
+          metadata: { tps: 100, pinned: true },
+        });
+
+        // Verify message updated successfully and metadata is merged
+        const updatedMessage = await serverDB
+          .select()
+          .from(messages)
+          .where(eq(messages.id, 'msg-merge-metadata-update'));
+
+        expect(updatedMessage[0].content).toBe('updated content');
+        expect(updatedMessage[0].metadata).toEqual({
+          isSupervisor: true,
+          collapsed: true,
+          tps: 100,
+          pinned: true,
+        });
+      });
     });
   });
 

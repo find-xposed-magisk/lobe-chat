@@ -696,14 +696,18 @@ export class FlatListBuilder {
       }
     }
 
+    // Determine role: use 'supervisor' for supervisor messages, otherwise 'assistantGroup'
+    const isSupervisor = firstAssistant.metadata?.isSupervisor;
+    const role = isSupervisor ? 'supervisor' : 'assistantGroup';
+
     const result: Message = {
       ...firstAssistant,
       children,
       content: '',
-      role: 'assistantGroup' as any,
+      role: role as any,
     };
 
-    // Remove fields that should not be in assistantGroup
+    // Remove fields that should not be in assistantGroup/supervisor
     delete result.imageList;
     delete result.metadata;
     delete result.reasoning;
@@ -716,6 +720,11 @@ export class FlatListBuilder {
     // Add group-level metadata if it exists
     if (Object.keys(groupMetadata).length > 0) {
       result.metadata = groupMetadata;
+    }
+
+    // Preserve isSupervisor in metadata for supervisor messages
+    if (isSupervisor) {
+      result.metadata = { ...result.metadata, isSupervisor: true };
     }
 
     return result;

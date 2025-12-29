@@ -35,6 +35,10 @@ export interface SendMessageServerParams {
    */
   groupId?: string;
   newAssistantMessage: {
+    /**
+     * Message metadata (e.g., isSupervisor for group orchestration)
+     */
+    metadata?: Record<string, unknown>;
     model: string;
     provider: string;
   };
@@ -65,6 +69,7 @@ export const AiSendMessageServerSchema = z.object({
   agentId: z.string().optional(),
   groupId: z.string().optional(),
   newAssistantMessage: z.object({
+    metadata: z.record(z.unknown()).optional(),
     model: z.string().optional(),
     provider: z.string().optional(),
   }),

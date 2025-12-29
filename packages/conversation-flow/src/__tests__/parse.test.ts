@@ -110,12 +110,12 @@ describe('parse', () => {
       const result = parse(inputs.agentCouncil.withSupervisorReply);
 
       // The critical assertions:
-      // 1. flatList should have 4 items: user, assistantGroup(supervisor+tool), agentCouncil(3 agents), supervisor-summary
+      // 1. flatList should have 4 items: user, supervisor(+tool), agentCouncil(3 agents), supervisor-summary
       expect(result.flatList).toHaveLength(4);
       expect(result.flatList[0].role).toBe('user');
-      expect(result.flatList[1].role).toBe('assistantGroup');
+      expect(result.flatList[1].role).toBe('supervisor'); // supervisor with tools gets role='supervisor'
       expect(result.flatList[2].role).toBe('agentCouncil');
-      expect(result.flatList[3].role).toBe('assistant'); // supervisor final reply
+      expect(result.flatList[3].role).toBe('supervisor'); // supervisor final reply
       expect(result.flatList[3].id).toBe('msg-supervisor-summary');
 
       // 2. agentCouncil should have 3 members (not 4, supervisor summary is separate)
@@ -138,17 +138,17 @@ describe('parse', () => {
       const result = parse(inputs.agentGroup.speakDifferentAgent);
 
       // The critical assertions:
-      // 1. flatList should have 3 items: user, assistantGroup(supervisor+tool), agent-backend response
+      // 1. flatList should have 3 items: user, supervisor(+tool), agent-backend response
       expect(result.flatList).toHaveLength(3);
       expect(result.flatList[0].role).toBe('user');
-      expect(result.flatList[1].role).toBe('assistantGroup');
+      expect(result.flatList[1].role).toBe('supervisor'); // supervisor with tools gets role='supervisor'
       expect(result.flatList[2].role).toBe('assistant');
 
       // 2. The agent-backend response should be separate (different agentId)
       expect(result.flatList[2].id).toBe('msg-agent-backend-1');
       expect((result.flatList[2] as any).agentId).toBe('agent-backend');
 
-      // 3. The supervisor's assistantGroup should only contain supervisor messages
+      // 3. The supervisor's group should only contain supervisor messages
       expect((result.flatList[1] as any).agentId).toBe('supervisor');
 
       expect(serializeParseResult(result)).toEqual(outputs.agentGroup.speakDifferentAgent);

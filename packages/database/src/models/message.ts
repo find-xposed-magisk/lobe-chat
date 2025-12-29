@@ -1016,7 +1016,7 @@ export class MessageModel {
 
   update = async (
     id: string,
-    { imageList, ...message }: Partial<UpdateMessageParams>,
+    { imageList, metadata, ...message }: Partial<UpdateMessageParams>,
   ): Promise<{ success: boolean }> => {
     try {
       await this.db.transaction(async (trx) => {
@@ -1029,9 +1029,19 @@ export class MessageModel {
             );
         }
 
+        // 2. Handle metadata merge if provided
+        let mergedMetadata: Record<string, any> | undefined;
+        if (metadata) {
+          const [existingMessage] = await trx
+            .select({ metadata: messages.metadata })
+            .from(messages)
+            .where(and(eq(messages.id, id), eq(messages.userId, this.userId)));
+          mergedMetadata = merge(existingMessage?.metadata || {}, metadata);
+        }
+
         await trx
           .update(messages)
-          .set({ ...message })
+          .set({ ...message, ...(mergedMetadata && { metadata: mergedMetadata }) })
           .where(and(eq(messages.id, id), eq(messages.userId, this.userId)));
       });
 

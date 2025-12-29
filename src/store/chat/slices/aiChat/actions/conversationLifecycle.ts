@@ -18,6 +18,7 @@ import { markUserValidAction } from '@/business/client/markUserValidAction';
 import { aiChatService } from '@/services/aiChat';
 import { getAgentStoreState } from '@/store/agent';
 import { agentSelectors } from '@/store/agent/selectors';
+import { agentGroupByIdSelectors, getChatGroupStoreState } from '@/store/agentGroup';
 import { type ChatStore } from '@/store/chat/store';
 import { getFileStoreState } from '@/store/file/store';
 import { useGlobalStore } from '@/store/global';
@@ -98,7 +99,17 @@ export const conversationLifecycle: StateCreator<
     if (!agentId) return;
 
     // When creating new thread, override threadId to undefined (server will create it)
-    const operationContext = isCreatingNewThread ? { ...context, threadId: undefined } : context;
+    // Check if current agentId is the supervisor agent of the group
+    let isGroupSupervisor = false;
+    if (context.groupId) {
+      const group = agentGroupByIdSelectors.groupById(context.groupId)(getChatGroupStoreState());
+      isGroupSupervisor = group?.supervisorAgentId === agentId;
+    }
+    const operationContext = {
+      ...context,
+      ...(isCreatingNewThread && { threadId: undefined }),
+      ...(isGroupSupervisor && { isSupervisor: true }),
+    };
 
     const fileIdList = files?.map((f) => f.id);
 
@@ -228,7 +239,12 @@ export const conversationLifecycle: StateCreator<
           agentId: operationContext.agentId,
           // Pass groupId for group chat scenarios
           groupId: operationContext.groupId ?? undefined,
-          newAssistantMessage: { model, provider: provider! },
+          newAssistantMessage: {
+            // Pass isSupervisor metadata for group orchestration
+            metadata: operationContext.isSupervisor ? { isSupervisor: true } : undefined,
+            model,
+            provider: provider!,
+          },
         },
         abortController,
       );

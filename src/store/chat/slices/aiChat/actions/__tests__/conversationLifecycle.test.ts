@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { aiChatService } from '@/services/aiChat';
+import * as agentGroupStore from '@/store/agentGroup';
 import { getSessionStoreState } from '@/store/session';
 
 import { useChatStore } from '../../../../store';
@@ -179,6 +180,177 @@ describe('ConversationLifecycle actions', () => {
           expect.any(AbortController),
         );
         expect(result.current.internal_execAgentRuntime).toHaveBeenCalled();
+      });
+    });
+
+    describe('group chat supervisor metadata', () => {
+      it('should pass isSupervisor metadata when agentId matches supervisorAgentId', async () => {
+        const { result } = renderHook(() => useChatStore());
+
+        // Mock agentGroup store to return a group with specific supervisorAgentId
+        vi.spyOn(agentGroupStore, 'getChatGroupStoreState').mockReturnValue({
+          groupMap: {
+            'test-group-id': {
+              id: 'test-group-id',
+              supervisorAgentId: 'supervisor-agent-id',
+            },
+          },
+        } as any);
+
+        const sendMessageInServerSpy = vi
+          .spyOn(aiChatService, 'sendMessageInServer')
+          .mockResolvedValue({
+            messages: [
+              createMockMessage({ id: TEST_IDS.USER_MESSAGE_ID, role: 'user' }),
+              createMockMessage({ id: TEST_IDS.ASSISTANT_MESSAGE_ID, role: 'assistant' }),
+            ],
+            topics: [],
+            assistantMessageId: TEST_IDS.ASSISTANT_MESSAGE_ID,
+            userMessageId: TEST_IDS.USER_MESSAGE_ID,
+          } as any);
+
+        await act(async () => {
+          await result.current.sendMessage({
+            message: TEST_CONTENT.USER_MESSAGE,
+            context: {
+              agentId: 'supervisor-agent-id',
+              groupId: 'test-group-id',
+              topicId: null,
+              threadId: null,
+            },
+          });
+        });
+
+        // Should pass isSupervisor metadata when agentId matches supervisorAgentId
+        expect(sendMessageInServerSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            groupId: 'test-group-id',
+            newAssistantMessage: expect.objectContaining({
+              metadata: { isSupervisor: true },
+            }),
+          }),
+          expect.any(AbortController),
+        );
+      });
+
+      it('should NOT pass isSupervisor metadata when agentId is a sub-agent (not supervisor)', async () => {
+        const { result } = renderHook(() => useChatStore());
+
+        // Mock agentGroup store - sub-agent-id does NOT match supervisorAgentId
+        vi.spyOn(agentGroupStore, 'getChatGroupStoreState').mockReturnValue({
+          groupMap: {
+            'test-group-id': {
+              id: 'test-group-id',
+              supervisorAgentId: 'supervisor-agent-id', // Different from sub-agent-id
+            },
+          },
+        } as any);
+
+        const sendMessageInServerSpy = vi
+          .spyOn(aiChatService, 'sendMessageInServer')
+          .mockResolvedValue({
+            messages: [
+              createMockMessage({ id: TEST_IDS.USER_MESSAGE_ID, role: 'user' }),
+              createMockMessage({ id: TEST_IDS.ASSISTANT_MESSAGE_ID, role: 'assistant' }),
+            ],
+            topics: [],
+            assistantMessageId: TEST_IDS.ASSISTANT_MESSAGE_ID,
+            userMessageId: TEST_IDS.USER_MESSAGE_ID,
+          } as any);
+
+        await act(async () => {
+          await result.current.sendMessage({
+            message: TEST_CONTENT.USER_MESSAGE,
+            context: {
+              agentId: 'sub-agent-id',
+              groupId: 'test-group-id',
+              topicId: 'topic-id',
+              threadId: 'thread-id',
+            },
+          });
+        });
+
+        // Should NOT pass isSupervisor metadata since agentId doesn't match supervisorAgentId
+        expect(sendMessageInServerSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            groupId: 'test-group-id',
+            newAssistantMessage: expect.objectContaining({
+              metadata: undefined,
+            }),
+          }),
+          expect.any(AbortController),
+        );
+      });
+
+      it('should pass isSupervisor metadata when isSupervisor is explicitly set in context', async () => {
+        const { result } = renderHook(() => useChatStore());
+
+        const sendMessageInServerSpy = vi
+          .spyOn(aiChatService, 'sendMessageInServer')
+          .mockResolvedValue({
+            messages: [
+              createMockMessage({ id: TEST_IDS.USER_MESSAGE_ID, role: 'user' }),
+              createMockMessage({ id: TEST_IDS.ASSISTANT_MESSAGE_ID, role: 'assistant' }),
+            ],
+            topics: [],
+            assistantMessageId: TEST_IDS.ASSISTANT_MESSAGE_ID,
+            userMessageId: TEST_IDS.USER_MESSAGE_ID,
+          } as any);
+
+        await act(async () => {
+          await result.current.sendMessage({
+            message: TEST_CONTENT.USER_MESSAGE,
+            context: {
+              agentId: 'supervisor-agent-id',
+              isSupervisor: true,
+              topicId: null,
+              threadId: null,
+            },
+          });
+        });
+
+        // Should pass isSupervisor metadata when explicitly set in context
+        expect(sendMessageInServerSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            newAssistantMessage: expect.objectContaining({
+              metadata: { isSupervisor: true },
+            }),
+          }),
+          expect.any(AbortController),
+        );
+      });
+
+      it('should NOT pass isSupervisor metadata for regular agent chat (no groupId)', async () => {
+        const { result } = renderHook(() => useChatStore());
+
+        const sendMessageInServerSpy = vi
+          .spyOn(aiChatService, 'sendMessageInServer')
+          .mockResolvedValue({
+            messages: [
+              createMockMessage({ id: TEST_IDS.USER_MESSAGE_ID, role: 'user' }),
+              createMockMessage({ id: TEST_IDS.ASSISTANT_MESSAGE_ID, role: 'assistant' }),
+            ],
+            topics: [],
+            assistantMessageId: TEST_IDS.ASSISTANT_MESSAGE_ID,
+            userMessageId: TEST_IDS.USER_MESSAGE_ID,
+          } as any);
+
+        await act(async () => {
+          await result.current.sendMessage({
+            message: TEST_CONTENT.USER_MESSAGE,
+            context: createTestContext(),
+          });
+        });
+
+        // Should NOT pass isSupervisor metadata for regular agent chat
+        expect(sendMessageInServerSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            newAssistantMessage: expect.objectContaining({
+              metadata: undefined,
+            }),
+          }),
+          expect.any(AbortController),
+        );
       });
     });
   });

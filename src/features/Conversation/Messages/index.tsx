@@ -30,6 +30,7 @@ import {
 import AgentCouncilMessage from './AgentCouncil';
 import AssistantMessage from './Assistant';
 import AssistantGroupMessage from './AssistantGroup';
+import SupervisorMessage from './Supervisor';
 import TaskMessage from './Task';
 import ToolMessage from './Tool';
 import UserMessage from './User';
@@ -163,6 +164,18 @@ const MessageItem = memo<MessageItemProps>(
             />
           );
         }
+
+        case 'supervisor': {
+          return (
+            <SupervisorMessage
+              disableEditing={disableEditing}
+              id={id}
+              index={index}
+              isLatestItem={isLatestItem}
+            />
+          );
+        }
+
         case 'task': {
           return (
             <TaskMessage

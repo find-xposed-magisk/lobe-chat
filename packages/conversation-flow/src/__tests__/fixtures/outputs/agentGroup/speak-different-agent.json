@@ -32,7 +32,7 @@
     },
     {
       "id": "msg-supervisor-1",
-      "role": "assistantGroup",
+      "role": "supervisor",
       "agentId": "supervisor",
       "content": "",
       "parentId": "msg-user-1",
@@ -42,10 +42,16 @@
         "avatar": "supervisor",
         "title": "Supervisor"
       },
+      "metadata": {
+        "isSupervisor": true
+      },
       "children": [
         {
           "id": "msg-supervisor-1",
           "content": "I'll ask the backend developer to explain the API design.",
+          "metadata": {
+            "isSupervisor": true
+          },
           "tools": [
             {
               "apiName": "speak",
@@ -94,7 +100,7 @@
     },
     "msg-supervisor-1": {
       "id": "msg-supervisor-1",
-      "role": "assistant",
+      "role": "supervisor",
       "agentId": "supervisor",
       "content": "I'll ask the backend developer to explain the API design.",
       "parentId": "msg-user-1",
@@ -115,6 +121,9 @@
       "meta": {
         "avatar": "supervisor",
         "title": "Supervisor"
+      },
+      "metadata": {
+        "isSupervisor": true
       }
     },
     "msg-speak-tool-1": {

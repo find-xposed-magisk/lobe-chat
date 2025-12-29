@@ -156,14 +156,16 @@ export const aiChatRouter = router({
 
       // create assistant message
       log(
-        'creating assistant message with model: %s, provider: %s',
+        'creating assistant message with model: %s, provider: %s, metadata: %O',
         input.newAssistantMessage.model,
         input.newAssistantMessage.provider,
+        input.newAssistantMessage.metadata,
       );
       const assistantMessageItem = await ctx.messageModel.create({
         agentId: input.agentId,
         content: LOADING_FLAT,
         groupId: input.groupId,
+        metadata: input.newAssistantMessage.metadata,
         model: input.newAssistantMessage.model,
         parentId: messageId,
         provider: input.newAssistantMessage.provider,

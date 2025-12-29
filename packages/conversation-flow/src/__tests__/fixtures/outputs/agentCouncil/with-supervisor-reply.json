@@ -51,17 +51,23 @@
     },
     {
       "id": "msg-supervisor-1",
-      "role": "assistantGroup",
+      "role": "supervisor",
       "agentId": "supervisor",
       "content": "",
       "parentId": "msg-user-1",
       "createdAt": 1704067201000,
       "updatedAt": 1704067201000,
       "meta": {},
+      "metadata": {
+        "isSupervisor": true
+      },
       "children": [
         {
           "id": "msg-supervisor-1",
           "content": "",
+          "metadata": {
+            "isSupervisor": true
+          },
           "tools": [
             {
               "id": "call_broadcast_1",
@@ -142,7 +148,7 @@
     },
     {
       "id": "msg-supervisor-summary",
-      "role": "assistant",
+      "role": "supervisor",
       "agentId": "supervisor",
       "content": "## Summary\n\nBased on the discussion from our team:\n\n**Key Pros:**\n- Independent deployment and scaling\n- Technology flexibility\n- Clear service boundaries\n\n**Key Cons:**\n- Increased complexity in communication and infrastructure\n- Data consistency and monitoring challenges\n\nI recommend starting with a modular monolith and gradually extracting services as needed.",
       "parentId": "msg-agent-architect-1",
@@ -153,6 +159,9 @@
       "meta": {
         "avatar": "supervisor",
         "title": "Supervisor"
+      },
+      "metadata": {
+        "isSupervisor": true
       }
     }
   ],
@@ -168,13 +177,16 @@
     },
     "msg-supervisor-1": {
       "id": "msg-supervisor-1",
-      "role": "assistant",
+      "role": "supervisor",
       "agentId": "supervisor",
       "content": "",
       "parentId": "msg-user-1",
       "createdAt": 1704067201000,
       "updatedAt": 1704067201000,
       "meta": {},
+      "metadata": {
+        "isSupervisor": true
+      },
       "tools": [
         {
           "id": "call_broadcast_1",
@@ -248,7 +260,7 @@
     },
     "msg-supervisor-summary": {
       "id": "msg-supervisor-summary",
-      "role": "assistant",
+      "role": "supervisor",
       "agentId": "supervisor",
       "content": "## Summary\n\nBased on the discussion from our team:\n\n**Key Pros:**\n- Independent deployment and scaling\n- Technology flexibility\n- Clear service boundaries\n\n**Key Cons:**\n- Increased complexity in communication and infrastructure\n- Data consistency and monitoring challenges\n\nI recommend starting with a modular monolith and gradually extracting services as needed.",
       "parentId": "msg-agent-architect-1",
@@ -259,6 +271,9 @@
       "meta": {
         "avatar": "supervisor",
         "title": "Supervisor"
+      },
+      "metadata": {
+        "isSupervisor": true
       }
     }
   }

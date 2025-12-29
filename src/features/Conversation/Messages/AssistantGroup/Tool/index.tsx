@@ -4,12 +4,12 @@ import { Divider } from 'antd';
 import dynamic from 'next/dynamic';
 import { memo, useEffect, useState } from 'react';
 
-import Actions from '@/features/Conversation/Messages/AssistantGroup/Tool/Actions';
 import { useToolStore } from '@/store/tool';
 import { toolSelectors } from '@/store/tool/selectors';
 import { getBuiltinRender } from '@/tools/renders';
 import { getBuiltinStreaming } from '@/tools/streamings';
 
+import Actions from './Actions';
 import Inspectors from './Inspector';
 
 const Debug = dynamic(() => import('./Debug'), {
