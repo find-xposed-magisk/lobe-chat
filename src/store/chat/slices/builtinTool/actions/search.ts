@@ -1,10 +1,10 @@
+import { WebBrowsingApiName, WebBrowsingManifest } from '@lobechat/builtin-tool-web-browsing';
 import { type ChatToolPayload, type CreateMessageParams, type SearchQuery } from '@lobechat/types';
 import { nanoid } from '@lobechat/utils';
 import { type StateCreator } from 'zustand/vanilla';
 
 import { dbMessageSelectors } from '@/store/chat/selectors';
 import { type ChatStore } from '@/store/chat/store';
-import { WebBrowsingApiName, WebBrowsingManifest } from '@/tools/web-browsing';
 
 export interface SearchAction {
   saveSearchResult: (id: string) => Promise<void>;

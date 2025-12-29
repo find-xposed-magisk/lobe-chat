@@ -6,11 +6,11 @@ import { LocalSystemManifest } from '@lobechat/builtin-tool-local-system';
 import { MemoryManifest } from '@lobechat/builtin-tool-memory';
 import { NotebookManifest } from '@lobechat/builtin-tool-notebook';
 import { PageAgentManifest } from '@lobechat/builtin-tool-page-agent';
+import { WebBrowsingManifest } from '@lobechat/builtin-tool-web-browsing';
 
 import { ArtifactsManifest } from './artifacts';
 import { CodeInterpreterManifest } from './code-interpreter';
 import { KnowledgeBaseManifest } from './knowledge-base';
-import { WebBrowsingManifest } from './web-browsing';
 
 export const builtinToolIdentifiers: string[] = [
   AgentBuilderManifest.identifier,

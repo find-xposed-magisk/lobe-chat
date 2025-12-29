@@ -115,7 +115,7 @@ const Debug = memo<DebugProps>(
           ),
           icon: <Icon icon={HandIcon} />,
           key: 'intervention',
-          label: t('debug.pluginState'),
+          label: t('debug.intervention'),
         },
       ],
       [functionCall, isJsonResult, params, result?.content, result?.state, intervention, t],

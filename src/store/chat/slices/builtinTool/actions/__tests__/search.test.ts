@@ -1,10 +1,15 @@
+import { WebBrowsingApiName, WebBrowsingManifest } from '@lobechat/builtin-tool-web-browsing';
 import { SearchQuery } from '@lobechat/types';
 import { UIChatMessage } from '@lobechat/types';
 import { act, renderHook } from '@testing-library/react';
 import { Mock, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Import after mocks
+import { useChatStore } from '@/store/chat';
+import { dbMessageSelectors } from '@/store/chat/selectors';
+
 // Mock the tools module to avoid importing the problematic dependencies
-vi.mock('@/tools/web-browsing', () => ({
+vi.mock('@lobechat/builtin-tool-web-browsing', () => ({
   WebBrowsingApiName: {
     search: 'search',
     crawlSinglePage: 'crawlSinglePage',
@@ -14,11 +19,6 @@ vi.mock('@/tools/web-browsing', () => ({
     identifier: 'lobe-web-browsing',
   },
 }));
-
-// Import after mocks
-import { useChatStore } from '@/store/chat';
-import { dbMessageSelectors } from '@/store/chat/selectors';
-import { WebBrowsingApiName, WebBrowsingManifest } from '@/tools/web-browsing';
 
 vi.mock('@/store/chat/selectors', () => ({
   dbMessageSelectors: {

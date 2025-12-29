@@ -1,3 +1,4 @@
+import { WebBrowsingManifest } from '@lobechat/builtin-tool-web-browsing';
 import { LobeTool } from '@lobechat/types';
 import { UIChatMessage } from '@lobechat/types';
 import { ChatErrorType } from '@lobechat/types';
@@ -12,7 +13,6 @@ import * as toolEngineeringModule from '@/helpers/toolEngineering';
 import { agentSelectors, chatConfigByIdSelectors } from '@/store/agent/selectors';
 import { aiModelSelectors } from '@/store/aiInfra';
 import { useToolStore } from '@/store/tool';
-import { WebBrowsingManifest } from '@/tools/web-browsing';
 
 import { chatService } from './index';
 

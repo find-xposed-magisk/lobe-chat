@@ -1,10 +1,10 @@
+import { WebBrowsingManifest } from '@lobechat/builtin-tool-web-browsing';
+import { WebBrowsingExecutionRuntime } from '@lobechat/builtin-tool-web-browsing/executionRuntime';
 import { type ChatToolPayload } from '@lobechat/types';
 import { safeParseJSON } from '@lobechat/utils';
 import debug from 'debug';
 
 import { SearchService } from '@/server/services/search';
-import { WebBrowsingManifest } from '@/tools/web-browsing';
-import { WebBrowsingExecutionRuntime } from '@/tools/web-browsing/ExecutionRuntime';
 
 import { type IToolExecutor, type ToolExecutionContext, type ToolExecutionResult } from './types';
 

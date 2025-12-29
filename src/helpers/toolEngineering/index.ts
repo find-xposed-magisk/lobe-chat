@@ -1,6 +1,7 @@
 /**
  * Tools Engineering - Unified tools processing using ToolsEngine
  */
+import { WebBrowsingManifest } from '@lobechat/builtin-tool-web-browsing';
 import { ToolsEngine } from '@lobechat/context-engine';
 import type { PluginEnableChecker } from '@lobechat/context-engine';
 import { type ChatCompletionTool, type WorkingModel } from '@lobechat/types';
@@ -11,7 +12,6 @@ import { agentSelectors } from '@/store/agent/selectors';
 import { getToolStoreState } from '@/store/tool';
 import { klavisStoreSelectors, pluginSelectors } from '@/store/tool/selectors';
 import { KnowledgeBaseManifest } from '@/tools/knowledge-base';
-import { WebBrowsingManifest } from '@/tools/web-browsing';
 
 import { getSearchConfig } from '../getSearchConfig';
 import { isCanUseFC } from '../isCanUseFC';

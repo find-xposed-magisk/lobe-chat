@@ -9,6 +9,11 @@ import { GTDManifest, GTDRenders } from '@lobechat/builtin-tool-gtd/client';
 // local-system
 import { LocalSystemManifest } from '@lobechat/builtin-tool-local-system';
 import { NotebookManifest, NotebookRenders } from '@lobechat/builtin-tool-notebook/client';
+// web-browsing
+import {
+  WebBrowsingManifest,
+  WebBrowsingRenders,
+} from '@lobechat/builtin-tool-web-browsing/client';
 import { type BuiltinRender } from '@lobechat/types';
 
 // code-interpreter
@@ -18,9 +23,6 @@ import { CodeInterpreterRenders } from './code-interpreter/Render';
 import { KnowledgeBaseManifest } from './knowledge-base';
 import { KnowledgeBaseRenders } from './knowledge-base/Render';
 import { LocalSystemRenders } from './local-system/Render';
-// web-browsing
-import { WebBrowsingManifest } from './web-browsing';
-import { WebBrowsingRenders } from './web-browsing/Render';
 
 /**
  * Builtin tools renders registry
