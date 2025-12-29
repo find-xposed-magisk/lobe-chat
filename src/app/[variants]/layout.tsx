@@ -1,3 +1,4 @@
+import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { type ThemeAppearance } from 'antd-style';
 import { type ResolvingViewport } from 'next';
@@ -5,6 +6,7 @@ import Script from 'next/script';
 import { type ReactNode, Suspense } from 'react';
 import { isRtlLang } from 'rtl-detect';
 
+import BusinessGlobalProvider from '@/business/client/BusinessGlobalProvider';
 import Analytics from '@/components/Analytics';
 import { DEFAULT_LANG } from '@/const/locale';
 import { isDesktop } from '@/const/version';
@@ -29,6 +31,24 @@ const RootLayout = async ({ children, params }: RootLayoutProps) => {
 
   const direction = isRtlLang(locale) ? 'rtl' : 'ltr';
 
+  const renderContent = () => {
+    return (
+      <GlobalProvider
+        appearance={theme}
+        isMobile={isMobile}
+        locale={locale}
+        neutralColor={neutralColor}
+        primaryColor={primaryColor}
+        variants={variants}
+      >
+        <AuthProvider>{children}</AuthProvider>
+        <Suspense fallback={null}>
+          <PWAInstall />
+        </Suspense>
+      </GlobalProvider>
+    );
+  };
+
   return (
     <html dir={direction} lang={locale}>
       <head>
@@ -41,19 +61,11 @@ const RootLayout = async ({ children, params }: RootLayoutProps) => {
         )}
       </head>
       <body>
-        <GlobalProvider
-          appearance={theme}
-          isMobile={isMobile}
-          locale={locale}
-          neutralColor={neutralColor}
-          primaryColor={primaryColor}
-          variants={variants}
-        >
-          <AuthProvider>{children}</AuthProvider>
-          <Suspense fallback={null}>
-            <PWAInstall />
-          </Suspense>
-        </GlobalProvider>
+        {ENABLE_BUSINESS_FEATURES ? (
+          <BusinessGlobalProvider>{renderContent()}</BusinessGlobalProvider>
+        ) : (
+          renderContent()
+        )}
         <Suspense fallback={null}>
           <Analytics />
           {inVercel && <SpeedInsights />}
