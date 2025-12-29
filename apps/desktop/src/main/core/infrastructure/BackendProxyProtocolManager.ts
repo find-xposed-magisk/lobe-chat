@@ -1,5 +1,6 @@
-import type { Session } from 'electron';
+import { BrowserWindow, type Session } from 'electron';
 
+import { isDev } from '@/const/env';
 import { createLogger } from '@/utils/logger';
 
 interface BackendProxyProtocolManagerOptions {
@@ -29,6 +30,15 @@ interface BackendProxyProtocolManagerRemoteBaseOptions {
 export class BackendProxyProtocolManager {
   private readonly handledSessions = new WeakSet<Session>();
   private readonly logger = createLogger('core:BackendProxyProtocolManager');
+
+  private notifyAuthorizationRequired() {
+    const allWindows = BrowserWindow.getAllWindows();
+    for (const win of allWindows) {
+      if (!win.isDestroyed()) {
+        win.webContents.send('authorizationRequired');
+      }
+    }
+  }
 
   registerWithRemoteBaseUrl(
     session: Session,
@@ -85,7 +95,9 @@ export class BackendProxyProtocolManager {
 
         const headers = new Headers(request.headers);
         const token = await options.getAccessToken();
-        if (token) headers.set('Oidc-Auth', token);
+        if (token) {
+          headers.set('Oidc-Auth', token);
+        }
 
         // eslint-disable-next-line no-undef
         const requestInit: RequestInit & { duplex?: 'half' } = {
@@ -126,9 +138,17 @@ export class BackendProxyProtocolManager {
           responseHeaders.set('Access-Control-Allow-Credentials', 'true');
         }
 
+        if (isDev) {
+          responseHeaders.set('x-dev-oidc-auth', token);
+        }
+
         responseHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         responseHeaders.set('Access-Control-Allow-Headers', '*');
         responseHeaders.set('X-Src-Url', rewrittenUrl);
+
+        if (!token && upstreamResponse.status === 401) {
+          this.notifyAuthorizationRequired();
+        }
 
         return new Response(upstreamResponse.body, {
           headers: responseHeaders,
