@@ -6,7 +6,7 @@
  * InMemory implementations when Redis is not available (test environment).
  */
 import { LobeChatDatabase } from '@lobechat/database';
-import { agents, messages, topics } from '@lobechat/database/schemas';
+import { agents, messages, threads, topics } from '@lobechat/database/schemas';
 import { getTestDB } from '@lobechat/database/test-utils';
 import { and, eq } from 'drizzle-orm';
 import OpenAI from 'openai';
@@ -223,12 +223,30 @@ describe('execAgent', () => {
 
   describe('appContext handling', () => {
     it('should include threadId in operation when provided', async () => {
+      // First create a topic and thread
+      const [topic] = await serverDB
+        .insert(topics)
+        .values({
+          title: 'Test Topic',
+          userId,
+        })
+        .returning();
+
+      const [thread] = await serverDB
+        .insert(threads)
+        .values({
+          topicId: topic.id,
+          type: 'standalone',
+          userId,
+        })
+        .returning();
+
       const caller = aiAgentRouter.createCaller(createTestContext());
 
       const result = await caller.execAgent({
         agentId: testAgentId,
         appContext: {
-          threadId: 'test-thread-id',
+          threadId: thread.id,
         },
         prompt: 'Test prompt',
       });
