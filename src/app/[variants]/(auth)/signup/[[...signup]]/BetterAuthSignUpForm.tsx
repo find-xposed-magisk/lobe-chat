@@ -13,7 +13,7 @@ import { type SignUpFormValues, useSignUp } from './useSignUp';
 
 const BetterAuthSignUpForm = () => {
   const [form] = Form.useForm<SignUpFormValues>();
-  const { loading, onSubmit } = useSignUp();
+  const { loading, onSubmit, businessElement } = useSignUp();
 
   const { t } = useTranslation('auth');
   const searchParams = useSearchParams();
@@ -115,6 +115,9 @@ const BetterAuthSignUpForm = () => {
             size="large"
           />
         </Form.Item>
+
+        {businessElement}
+
         <Form.Item>
           <Button block htmlType="submit" loading={loading} size="large" type="primary">
             {t('betterAuth.signup.submit')}

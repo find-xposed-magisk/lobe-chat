@@ -6,8 +6,10 @@ export interface BusinessSignupFomData {}
 // eslint-disable-next-line unused-imports/no-unused-vars, @typescript-eslint/no-unused-vars
 export const useBusinessSignup = (form: any) => {
   return {
-    businessElements: [],
-    fetchOptions: {},
+    businessElement: null,
+    getFetchOptions: async () => {
+      return {};
+    },
     // eslint-disable-next-line unused-imports/no-unused-vars, @typescript-eslint/no-unused-vars
     preSocialSignupCheck: async (values: BusinessSignupFomData & BaseSignUpFormValues) => {
       return true;

@@ -19,7 +19,7 @@ export const useSignUp = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
-  const { fetchOptions, preSocialSignupCheck } = useBusinessSignup(form);
+  const { getFetchOptions, preSocialSignupCheck, businessElement } = useBusinessSignup(form);
 
   const handleSignUp = async (values: SignUpFormValues) => {
     setLoading(true);
@@ -35,7 +35,7 @@ export const useSignUp = () => {
       const { error } = await signUp.email({
         callbackURL: callbackUrl,
         email: values.email,
-        fetchOptions,
+        fetchOptions: await getFetchOptions(),
         name: username,
         password: values.password,
       });
@@ -73,5 +73,5 @@ export const useSignUp = () => {
     }
   };
 
-  return { loading, onSubmit: handleSignUp };
+  return { businessElement, loading, onSubmit: handleSignUp };
 };
