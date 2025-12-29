@@ -12,8 +12,8 @@ import { type StarterMode, useHomeStore } from '@/store/home';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   active: css`
-    border-color: ${cssVar.colorPrimary};
-    background: ${cssVar.colorPrimaryBg};
+    border-color: ${cssVar.colorFillSecondary} !important;
+    background: ${cssVar.colorBgElevated} !important;
   `,
   button: css`
     height: 40px;
@@ -119,7 +119,7 @@ const StarterList = memo(() => {
             disabled={item.disabled}
             icon={item.icon}
             iconProps={{
-              color: inputActiveMode === item.key ? cssVar.colorPrimary : cssVar.colorTextSecondary,
+              color: inputActiveMode === item.key ? cssVar.colorText : cssVar.colorTextSecondary,
               size: 18,
             }}
             key={item.key}
