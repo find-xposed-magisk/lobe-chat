@@ -6,6 +6,7 @@ import { sha256 } from 'js-sha256';
 import { serverDBEnv } from '@/config/db';
 import { FileModel } from '@/database/models/file';
 import { type FileItem } from '@/database/schemas';
+import { appEnv } from '@/envs/app';
 import { TempFileManager } from '@/server/utils/tempFileManager';
 
 import { type FileServiceImpl, createFileServiceModule } from './impls';
@@ -128,10 +129,10 @@ export class FileService {
       !isExist, // insertToGlobalFiles
     );
 
-    // Return unified proxy URL: /f/:id
+    // Return unified proxy URL: ${APP_URL}/f/:id
     return {
       fileId: id,
-      url: `/f/${id}`,
+      url: `${appEnv.APP_URL}/f/${id}`,
     };
   }
 

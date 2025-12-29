@@ -8,11 +8,18 @@ import { ChunkModel } from '@/database/models/chunk';
 import { DocumentModel } from '@/database/models/document';
 import { FileModel } from '@/database/models/file';
 import { KnowledgeRepo } from '@/database/repositories/knowledge';
+import { appEnv } from '@/envs/app';
 import { authedProcedure, router } from '@/libs/trpc/lambda';
 import { serverDatabase } from '@/libs/trpc/lambda/middleware';
 import { FileService } from '@/server/services/file';
 import { AsyncTaskStatus, AsyncTaskType } from '@/types/asyncTask';
 import { type FileListItem, QueryFileListSchema, UploadFileSchema } from '@/types/files';
+
+/**
+ * Generate file proxy URL
+ * Returns a unified proxy URL format: ${APP_URL}/f/:id
+ */
+const getFileProxyUrl = (fileId: string): string => `${appEnv.APP_URL}/f/${fileId}`;
 
 const fileProcedure = authedProcedure.use(serverDatabase).use(async (opts) => {
   const { ctx } = opts;
@@ -72,7 +79,7 @@ export const fileRouter = router({
         !isExist,
       );
 
-      return { id, url: await ctx.fileService.getFullFileUrl(input.url) };
+      return { id, url: getFileProxyUrl(id) };
     }),
   findById: fileProcedure
     .input(
@@ -98,7 +105,7 @@ export const fileRouter = router({
         size: item.size,
         source: item.source,
         updatedAt: item.updatedAt,
-        url: await ctx.fileService.getFullFileUrl(item.url),
+        url: getFileProxyUrl(item.id),
         userId: item.userId,
       };
     }),
@@ -140,7 +147,7 @@ export const fileRouter = router({
         size: item.size,
         sourceType: 'file' as const,
         updatedAt: item.updatedAt,
-        url: await ctx.fileService.getFullFileUrl(item.url!),
+        url: getFileProxyUrl(item.id),
       };
     }),
 
@@ -178,7 +185,7 @@ export const fileRouter = router({
         embeddingStatus: embeddingTask?.status as AsyncTaskStatus,
         finishEmbedding: embeddingTask?.status === AsyncTaskStatus.Success,
         sourceType: 'file' as const,
-        url: await ctx.fileService.getFullFileUrl(item.url!),
+        url: getFileProxyUrl(item.id),
       } as FileListItem;
       resultFiles.push(fileItem);
     }
@@ -243,7 +250,7 @@ export const fileRouter = router({
           embeddingError: embeddingTask?.error ?? null,
           embeddingStatus: embeddingTask?.status as AsyncTaskStatus,
           finishEmbedding: embeddingTask?.status === AsyncTaskStatus.Success,
-          url: await ctx.fileService.getFullFileUrl(item.url!),
+          url: getFileProxyUrl(item.id),
         } as FileListItem);
       } else {
         // Document item - no chunk processing needed, includes editorData
@@ -319,7 +326,7 @@ export const fileRouter = router({
           embeddingStatus: embeddingTask?.status as AsyncTaskStatus,
           finishEmbedding: embeddingTask?.status === AsyncTaskStatus.Success,
           sourceType: 'file' as const,
-          url: await ctx.fileService.getFullFileUrl(item.url!),
+          url: getFileProxyUrl(item.id),
         } as FileListItem);
       }
 
