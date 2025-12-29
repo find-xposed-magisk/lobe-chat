@@ -15,6 +15,7 @@
     { "rule": "typescript-sort-keys/interface", "severity": "off" }
   ],
   "eslint.validate": [
+    "json",
     "javascript",
     "javascriptreact",
     "typescript",
