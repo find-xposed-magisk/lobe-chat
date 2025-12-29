@@ -1,29 +1,41 @@
+import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
+import { form } from 'motion/react-m';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
+import {
+  BusinessSignupFomData,
+  useBusinessSignup,
+} from '@/business/client/hooks/useBusinessSignup';
 import { message } from '@/components/AntdStaticMethods';
 import { authEnv } from '@/envs/auth';
 import { signUp } from '@/libs/better-auth/auth-client';
 
-export interface SignUpFormValues {
-  email: string;
-  password: string;
-}
+import { BaseSignUpFormValues } from './types';
+
+export type SignUpFormValues = BaseSignUpFormValues & BusinessSignupFomData;
 
 export const useSignUp = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const { fetchOptions, preSocialSignupCheck } = useBusinessSignup(form);
 
   const handleSignUp = async (values: SignUpFormValues) => {
     setLoading(true);
     try {
+      if (ENABLE_BUSINESS_FEATURES && !(await preSocialSignupCheck(values))) {
+        setLoading(false);
+        return;
+      }
+
       const callbackUrl = searchParams.get('callbackUrl') || '/';
       const username = values.email.split('@')[0];
 
       const { error } = await signUp.email({
         callbackURL: callbackUrl,
         email: values.email,
+        fetchOptions,
         name: username,
         password: values.password,
       });

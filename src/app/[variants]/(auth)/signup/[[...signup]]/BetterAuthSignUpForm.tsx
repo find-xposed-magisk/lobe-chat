@@ -87,6 +87,34 @@ const BetterAuthSignUpForm = () => {
             size="large"
           />
         </Form.Item>
+        <Form.Item
+          dependencies={['password']}
+          name="confirmPassword"
+          rules={[
+            { message: t('betterAuth.errors.confirmPasswordRequired'), required: true },
+            ({ getFieldValue }) => ({
+              validator(_, value) {
+                if (!value || getFieldValue('password') === value) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(new Error(t('betterAuth.errors.passwordMismatch')));
+              },
+            }),
+          ]}
+        >
+          <Input.Password
+            placeholder={t('betterAuth.signup.confirmPasswordPlaceholder')}
+            prefix={
+              <Icon
+                icon={Lock}
+                style={{
+                  marginInline: 6,
+                }}
+              />
+            }
+            size="large"
+          />
+        </Form.Item>
         <Form.Item>
           <Button block htmlType="submit" loading={loading} size="large" type="primary">
             {t('betterAuth.signup.submit')}
