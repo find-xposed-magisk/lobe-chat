@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { oneLineEllipsis } from '@/styles';
 
-const Header = () => {
+const Title = () => {
   const { t } = useTranslation('portal');
 
   return (
@@ -15,4 +15,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default Title;

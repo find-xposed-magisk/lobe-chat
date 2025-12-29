@@ -10,7 +10,7 @@ import { pluginHelpers, useToolStore } from '@/store/tool';
 import { toolSelectors } from '@/store/tool/selectors';
 import { WebBrowsingManifest } from '@/tools/web-browsing';
 
-const Header = () => {
+const Title = () => {
   const [closeToolUI, toolUIIdentifier = ''] = useChatStore((s) => [
     s.closeToolUI,
     chatPortalSelectors.toolUIIdentifier(s),
@@ -42,4 +42,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default Title;

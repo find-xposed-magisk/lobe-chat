@@ -1,12 +1,10 @@
 'use client';
 
-import { Avatar, Center, Flexbox, Icon, Text } from '@lobehub/ui';
+import { Center, Empty, Flexbox } from '@lobehub/ui';
 import { Spin } from 'antd';
-import { cssVar } from 'antd-style';
 import { BookOpenIcon } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import Balancer from 'react-wrap-balancer';
 
 import { useFetchNotebookDocuments } from '@/hooks/useFetchNotebookDocuments';
 import { useChatStore } from '@/store/chat';
@@ -21,21 +19,8 @@ const NotebookBody = memo(() => {
   // Show message when no topic is selected
   if (!topicId) {
     return (
-      <Center
-        flex={1}
-        gap={8}
-        paddingBlock={24}
-        style={{ border: `1px dashed ${cssVar.colorSplit}`, borderRadius: 8, marginInline: 12 }}
-      >
-        <Avatar
-          avatar={<Icon icon={BookOpenIcon} size={'large'} />}
-          background={cssVar.colorFillTertiary}
-          shape={'square'}
-          size={48}
-        />
-        <Balancer>
-          <Text type={'secondary'}>{t('notebook.empty')}</Text>
-        </Balancer>
+      <Center flex={1} gap={8} paddingBlock={24}>
+        <Empty description={t('notebook.empty')} icon={BookOpenIcon} />
       </Center>
     );
   }
@@ -52,23 +37,8 @@ const NotebookBody = memo(() => {
   // Show empty state
   if (documents.length === 0) {
     return (
-      <Center
-        flex={1}
-        gap={8}
-        paddingBlock={24}
-        style={{ border: `1px dashed ${cssVar.colorSplit}`, borderRadius: 8, marginInline: 12 }}
-      >
-        <Avatar
-          avatar={<Icon icon={BookOpenIcon} size={'large'} />}
-          background={cssVar.colorFillTertiary}
-          shape={'square'}
-          size={48}
-        />
-        <Balancer>
-          <Text style={{ textAlign: 'center' }} type={'secondary'}>
-            {t('notebook.empty')}
-          </Text>
-        </Balancer>
+      <Center flex={1} gap={8} paddingBlock={24}>
+        <Empty description={t('notebook.empty')} icon={BookOpenIcon} />
       </Center>
     );
   }

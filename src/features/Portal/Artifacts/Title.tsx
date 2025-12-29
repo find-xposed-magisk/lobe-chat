@@ -10,7 +10,7 @@ import { chatPortalSelectors } from '@/store/chat/selectors';
 import { ArtifactDisplayMode } from '@/store/chat/slices/portal/initialState';
 import { oneLineEllipsis } from '@/styles';
 
-const Header = () => {
+const Title = () => {
   const { t } = useTranslation('portal');
 
   const [displayMode, artifactType, artifactTitle, isArtifactTagClosed, closeArtifact] =
@@ -72,4 +72,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default Title;

@@ -3,7 +3,7 @@ import { cssVar } from 'antd-style';
 import { ArrowLeftRight, XIcon } from 'lucide-react';
 import { memo } from 'react';
 
-import SidebarHeader from '@/components/SidebarHeader';
+import NavHeader from '@/features/NavHeader';
 import { useChatStore } from '@/store/chat';
 
 import Title from './Title';
@@ -17,8 +17,11 @@ const Header = memo(() => {
   ]);
 
   return (
-    <SidebarHeader
-      actions={
+    <NavHeader
+      left={<Title />}
+      paddingBlock={6}
+      paddingInline={8}
+      right={
         <Flexbox gap={4} horizontal>
           {hasPortal && (
             <ActionIcon
@@ -35,12 +38,10 @@ const Header = memo(() => {
           <ActionIcon icon={XIcon} onClick={closeThreadPortal} size={'small'} />
         </Flexbox>
       }
-      paddingBlock={6}
-      paddingInline={8}
+      showTogglePanelButton={false}
       style={{
         borderBottom: `1px solid ${cssVar.colorBorderSecondary}`,
       }}
-      title={<Title />}
     />
   );
 });

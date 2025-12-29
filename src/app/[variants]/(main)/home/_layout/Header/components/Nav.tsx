@@ -11,7 +11,9 @@ import { useGlobalStore } from '@/store/global';
 import { SidebarTabKey } from '@/store/global/initialState';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
 
-import NavItem, { type NavItemProps } from '../../../../../../../features/NavPanel/components/NavItem';
+import NavItem, {
+  type NavItemProps,
+} from '../../../../../../../features/NavPanel/components/NavItem';
 
 interface Item {
   hidden?: boolean | undefined;
@@ -46,7 +48,6 @@ const Nav = memo(() => {
         url: '/',
       },
       {
-        hidden: !showAiImage,
         icon: FilePenIcon,
         key: SidebarTabKey.Pages,
         title: t('tab.pages'),

@@ -1,8 +1,7 @@
 'use client';
 
-import { DraggablePanel, DraggablePanelContainer, type DraggablePanelProps } from '@lobehub/ui';
-import { Flexbox } from '@lobehub/ui';
-import { createStaticStyles, useResponsive } from 'antd-style';
+import { DraggablePanel, type DraggablePanelProps } from '@lobehub/ui';
+import { createStaticStyles } from 'antd-style';
 import isEqual from 'fast-deep-equal';
 import { type PropsWithChildren, memo, useState } from 'react';
 
@@ -18,25 +17,26 @@ import { systemStatusSelectors } from '@/store/global/selectors';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   content: css`
+    position: relative;
+
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: 100% !important;
+
+    height: 100%;
+    min-height: 100%;
+    max-height: 100%;
+
+    background: ${cssVar.colorBgContainer};
   `,
   drawer: css`
     z-index: 10;
     height: 100%;
     background: ${cssVar.colorBgContainer};
   `,
-  panel: css`
-    overflow: hidden;
-    height: 100%;
-    background: ${cssVar.colorBgContainer};
-  `,
 }));
 
 const PortalPanel = memo(({ children }: PropsWithChildren) => {
-  const { md = true } = useResponsive();
-
   const [showPortal, showToolUI, showArtifactUI, showThread] = useChatStore((s) => [
     chatPortalSelectors.showPortal(s),
     chatPortalSelectors.showPluginUI(s),
@@ -70,32 +70,18 @@ const PortalPanel = memo(({ children }: PropsWithChildren) => {
       }}
       defaultSize={{ width: tmpWidth }}
       expand={showPortal}
+      expandable={false}
       maxWidth={CHAT_PORTAL_MAX_WIDTH}
       minWidth={
-        (showArtifactUI || showToolUI || showThread) && md
-          ? CHAT_PORTAL_TOOL_UI_WIDTH
-          : CHAT_PORTAL_WIDTH
+        showArtifactUI || showToolUI || showThread ? CHAT_PORTAL_TOOL_UI_WIDTH : CHAT_PORTAL_WIDTH
       }
-      mode={md ? 'fixed' : 'float'}
       onSizeChange={handleSizeChange}
       placement={'right'}
       showHandleWhenCollapsed={false}
       showHandleWideArea={false}
       size={{ height: '100%', width: portalWidth }}
-      styles={{
-        handle: { display: 'none' },
-      }}
     >
-      <DraggablePanelContainer
-        style={{
-          flex: 'none',
-          height: '100%',
-          maxHeight: '100vh',
-          minWidth: CHAT_PORTAL_WIDTH,
-        }}
-      >
-        <Flexbox className={styles.panel}>{children}</Flexbox>
-      </DraggablePanelContainer>
+      {children}
     </DraggablePanel>
   );
 });

@@ -6,7 +6,7 @@ import { chatPortalSelectors } from '@/store/chat/selectors';
 import { useFileStore } from '@/store/file';
 import { oneLineEllipsis } from '@/styles';
 
-const Header = () => {
+const Title = () => {
   const [closeFilePreview, previewFileId] = useChatStore((s) => [
     s.closeFilePreview,
     chatPortalSelectors.previewFileId(s),
@@ -31,4 +31,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default Title;
