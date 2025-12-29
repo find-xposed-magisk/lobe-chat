@@ -46,8 +46,8 @@ const Header = memo(() => {
               )}
             </>
           )}
-          {/* Auto Save Status */}
-          <AutoSaveHint />
+          {/* Auto Save Status - hide while loading */}
+          {!isLoadingContent && <AutoSaveHint />}
         </>
       }
       right={
