@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import EmojiPicker from '@/components/EmojiPicker';
 import { useGlobalStore } from '@/store/global';
 import { globalGeneralSelectors } from '@/store/global/selectors';
+import { truncateByWeightedLength } from '@/utils/textLength';
 
 import { usePageEditorStore } from '../store';
 
@@ -87,7 +88,8 @@ const Title = memo(() => {
       <TextArea
         autoSize={{ minRows: 1 }}
         onChange={(e) => {
-          setCurrentTitle(e.target.value);
+          const truncated = truncateByWeightedLength(e.target.value, 100);
+          setCurrentTitle(truncated);
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
