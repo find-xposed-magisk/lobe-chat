@@ -37,13 +37,9 @@ const styles = createStaticStyles(({ css }) => {
       &:hover {
         background: ${cssVar.colorFillTertiary};
 
-        .res-actions {
+        .file-list-item-hover {
           opacity: 1;
         }
-      }
-
-      .chunk-tag {
-        opacity: 1;
       }
     `,
 
@@ -62,7 +58,7 @@ const styles = createStaticStyles(({ css }) => {
     `,
 
     hover: cx(
-      'res-actions',
+      'file-list-item-hover',
       css`
         opacity: 0;
       `,
@@ -134,13 +130,13 @@ const FileListItem = memo<FileListItemProps>(
     const navigate = useNavigate();
     const [, setSearchParams] = useSearchParams();
 
-    const [isCreatingFileParseTask, parseFiles, renameFolder, setPendingRenameItemId] =
-      useFileStore((s) => [
-        fileManagerSelectors.isCreatingFileParseTask(id)(s),
-        s.parseFilesToChunks,
-        s.renameFolder,
-        s.setPendingRenameItemId,
-      ]);
+    const [isCreatingFileParseTask, parseFiles, renameFolder] = useFileStore((s) => [
+      fileManagerSelectors.isCreatingFileParseTask(id)(s),
+      s.parseFilesToChunks,
+      s.renameFolder,
+    ]);
+
+    const setPendingRenameItemId = useResourceManagerStore((s) => s.setPendingRenameItemId);
 
     const [isRenaming, setIsRenaming] = useState(false);
     const [renamingValue, setRenamingValue] = useState(name);
