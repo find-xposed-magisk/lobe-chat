@@ -1,3 +1,4 @@
+import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import { Form } from 'antd';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -5,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { CheckUserResponseData } from '@/app/(backend)/api/auth/check-user/route';
 import type { ResolveUsernameResponseData } from '@/app/(backend)/api/auth/resolve-username/route';
+import { useBusinessSignin } from '@/business/client/hooks/useBusinessSignin';
 import { message } from '@/components/AntdStaticMethods';
 import { getAuthConfig } from '@/envs/auth';
 import { requestPasswordReset, signIn } from '@/libs/better-auth/auth-client';
@@ -37,6 +39,7 @@ export const useSignIn = () => {
   const [email, setEmail] = useState('');
   const serverConfigInit = useServerConfigStore((s) => s.serverConfigInit);
   const oAuthSSOProviders = useServerConfigStore((s) => s.serverConfig.oAuthSSOProviders) || [];
+  const { ssoProviders, preSocialSigninCheck, additionalData } = useBusinessSignin();
 
   useEffect(() => {
     const emailParam = searchParams.get('email');
@@ -182,10 +185,23 @@ export const useSignIn = () => {
     setSocialLoading(provider);
     const normalizedProvider = normalizeProviderId(provider);
     try {
+      if (ENABLE_BUSINESS_FEATURES && !(await preSocialSigninCheck())) {
+        setSocialLoading(null);
+        return;
+      }
+
       const callbackUrl = searchParams.get('callbackUrl') || '/';
       const result = isBuiltinProvider(normalizedProvider)
-        ? await signIn.social({ callbackURL: callbackUrl, provider: normalizedProvider })
-        : await signIn.oauth2({ callbackURL: callbackUrl, providerId: normalizedProvider });
+        ? await signIn.social({
+            additionalData,
+            callbackURL: callbackUrl,
+            provider: normalizedProvider,
+          })
+        : await signIn.oauth2({
+            additionalData,
+            callbackURL: callbackUrl,
+            providerId: normalizedProvider,
+          });
       if (result?.error) throw result.error;
     } catch (error) {
       console.error(`${normalizedProvider} sign in error:`, error);
@@ -231,8 +247,8 @@ export const useSignIn = () => {
     handleSignIn,
     handleSocialSignIn,
     loading,
-    oAuthSSOProviders,
-    serverConfigInit,
+    oAuthSSOProviders: ENABLE_BUSINESS_FEATURES ? ssoProviders : oAuthSSOProviders,
+    serverConfigInit: ENABLE_BUSINESS_FEATURES ? true : serverConfigInit,
     socialLoading,
     step,
   };
