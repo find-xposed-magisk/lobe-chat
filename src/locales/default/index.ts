@@ -31,6 +31,7 @@ import portal from './portal';
 import providers from './providers';
 import ragEval from './ragEval';
 import setting from './setting';
+import spend from './spend';
 import subscription from './subscription';
 import thread from './thread';
 import tool from './tool';
@@ -71,6 +72,7 @@ const resources = {
   providers,
   ragEval,
   setting,
+  spend,
   subscription,
   thread,
   tool,
