@@ -1,6 +1,8 @@
 export const useBusinessSignin = () => {
   return {
-    additionalData: {},
+    getAdditionalData: async () => {
+      return {};
+    },
     preSocialSigninCheck: async () => {
       return true;
     },

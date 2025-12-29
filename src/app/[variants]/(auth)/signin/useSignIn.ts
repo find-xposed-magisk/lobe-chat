@@ -39,7 +39,7 @@ export const useSignIn = () => {
   const [email, setEmail] = useState('');
   const serverConfigInit = useServerConfigStore((s) => s.serverConfigInit);
   const oAuthSSOProviders = useServerConfigStore((s) => s.serverConfig.oAuthSSOProviders) || [];
-  const { ssoProviders, preSocialSigninCheck, additionalData } = useBusinessSignin();
+  const { ssoProviders, preSocialSigninCheck, getAdditionalData } = useBusinessSignin();
 
   useEffect(() => {
     const emailParam = searchParams.get('email');
@@ -191,6 +191,7 @@ export const useSignIn = () => {
       }
 
       const callbackUrl = searchParams.get('callbackUrl') || '/';
+      const additionalData = await getAdditionalData();
       const result = isBuiltinProvider(normalizedProvider)
         ? await signIn.social({
             additionalData,
