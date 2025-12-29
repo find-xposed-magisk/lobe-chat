@@ -30,9 +30,6 @@ export const FILE_DATE_WIDTH = 160;
 export const FILE_SIZE_WIDTH = 140;
 
 const styles = createStaticStyles(({ css }) => {
-  const hover = css`
-    opacity: 0;
-  `;
   return {
     container: css`
       cursor: pointer;
@@ -40,7 +37,7 @@ const styles = createStaticStyles(({ css }) => {
       &:hover {
         background: ${cssVar.colorFillTertiary};
 
-        .${cx(hover)} {
+        .res-actions {
           opacity: 1;
         }
       }
@@ -64,7 +61,12 @@ const styles = createStaticStyles(({ css }) => {
       opacity: 0.5;
     `,
 
-    hover,
+    hover: cx(
+      'res-actions',
+      css`
+        opacity: 0;
+      `,
+    ),
     item: css`
       padding-block: 0;
       padding-inline: 0 24px;
