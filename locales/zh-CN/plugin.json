@@ -51,6 +51,8 @@
   "builtins.lobe-group-management.apiName.speak": "指定成员发言",
   "builtins.lobe-group-management.apiName.summarize": "总结对话",
   "builtins.lobe-group-management.apiName.vote": "发起投票",
+  "builtins.lobe-group-management.inspector.broadcast.title": "以下 Agent 发言：",
+  "builtins.lobe-group-management.inspector.speak.title": "指定 Agent 发言：",
   "builtins.lobe-group-management.title": "群组协调",
   "builtins.lobe-gtd.apiName.clearTodos": "清除待办",
   "builtins.lobe-gtd.apiName.clearTodos.modeAll": "全部",

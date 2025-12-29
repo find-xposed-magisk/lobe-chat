@@ -106,6 +106,7 @@ const Tool = memo<GroupToolProps>(
         allowExpand={hasCustomRender}
         expand={isToolRenderExpand}
         itemKey={id}
+        onExpandChange={setShowPluginRender}
         paddingBlock={4}
         paddingInline={4}
         title={

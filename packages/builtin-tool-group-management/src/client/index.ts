@@ -1,5 +1,11 @@
+// Inspector components (title/header area)
+export { GroupManagementInspectors } from './Inspector';
+
+// Streaming components (real-time feedback)
+export { GroupManagementStreamings } from './Streaming';
+
 // Render components (read-only snapshots)
-export { ExecuteTaskRender, GroupManagementRenders } from './Render';
+export { BroadcastRender, ExecuteTaskRender, GroupManagementRenders, SpeakRender } from './Render';
 
 // Intervention components (interactive editing)
 export { ExecuteTaskIntervention, GroupManagementInterventions } from './Intervention';

@@ -150,7 +150,7 @@
       "id": "msg-supervisor-summary",
       "role": "supervisor",
       "agentId": "supervisor",
-      "content": "## Summary\n\nBased on the discussion from our team:\n\n**Key Pros:**\n- Independent deployment and scaling\n- Technology flexibility\n- Clear service boundaries\n\n**Key Cons:**\n- Increased complexity in communication and infrastructure\n- Data consistency and monitoring challenges\n\nI recommend starting with a modular monolith and gradually extracting services as needed.",
+      "content": "",
       "parentId": "msg-agent-architect-1",
       "model": "gpt-4",
       "provider": "openai",
@@ -162,7 +162,16 @@
       },
       "metadata": {
         "isSupervisor": true
-      }
+      },
+      "children": [
+        {
+          "id": "msg-supervisor-summary",
+          "content": "## Summary\n\nBased on the discussion from our team:\n\n**Key Pros:**\n- Independent deployment and scaling\n- Technology flexibility\n- Clear service boundaries\n\n**Key Cons:**\n- Increased complexity in communication and infrastructure\n- Data consistency and monitoring challenges\n\nI recommend starting with a modular monolith and gradually extracting services as needed.",
+          "metadata": {
+            "isSupervisor": true
+          }
+        }
+      ]
     }
   ],
   "messageMap": {

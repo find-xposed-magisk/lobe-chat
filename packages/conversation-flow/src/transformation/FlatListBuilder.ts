@@ -154,6 +154,22 @@ export class FlatListBuilder {
         continue;
       }
 
+      // Priority 2b: Supervisor message without tools (content-only)
+      // Transform to supervisor role with content in children array
+      if (
+        message.role === 'assistant' &&
+        message.metadata?.isSupervisor &&
+        (!message.tools || message.tools.length === 0)
+      ) {
+        const supervisorMessage = this.createSupervisorContentMessage(message);
+        flatList.push(supervisorMessage);
+        processedIds.add(message.id);
+
+        // Continue with children
+        this.buildFlatListRecursive(message.id, flatList, processedIds, allMessages);
+        continue;
+      }
+
       // Priority 3a: Compare mode from user message metadata
       const childMessages = this.childrenMap.get(message.id) ?? [];
       if (this.isCompareMode(message) && childMessages.length > 1) {
@@ -746,5 +762,89 @@ export class FlatListBuilder {
         count,
       },
     } as Message;
+  }
+
+  /**
+   * Create supervisor virtual message for content-only supervisor messages
+   * Moves content to children array similar to assistantGroup
+   */
+  private createSupervisorContentMessage(message: Message): Message {
+    // Prefer top-level usage/performance fields, fall back to metadata
+    const { usage: metaUsage, performance: metaPerformance } =
+      this.messageTransformer.splitMetadata(message.metadata);
+    const msgUsage = message.usage || metaUsage;
+    const msgPerformance = message.performance || metaPerformance;
+
+    // Extract non-usage/performance metadata fields
+    const otherMetadata: Record<string, any> = {};
+    if (message.metadata) {
+      const usagePerformanceFields = new Set([
+        'acceptedPredictionTokens',
+        'cost',
+        'duration',
+        'inputAudioTokens',
+        'inputCacheMissTokens',
+        'inputCachedTokens',
+        'inputCitationTokens',
+        'inputImageTokens',
+        'inputTextTokens',
+        'inputWriteCacheTokens',
+        'latency',
+        'outputAudioTokens',
+        'outputImageTokens',
+        'outputReasoningTokens',
+        'outputTextTokens',
+        'rejectedPredictionTokens',
+        'totalInputTokens',
+        'totalOutputTokens',
+        'totalTokens',
+        'tps',
+        'ttft',
+      ]);
+
+      Object.entries(message.metadata).forEach(([key, value]) => {
+        if (!usagePerformanceFields.has(key)) {
+          otherMetadata[key] = value;
+        }
+      });
+    }
+
+    // Create the child content block
+    const childBlock: any = {
+      content: message.content || '',
+      id: message.id,
+    };
+
+    if (message.error) childBlock.error = message.error;
+    if (message.fileList && message.fileList.length > 0) childBlock.fileList = message.fileList;
+    if (message.imageList && message.imageList.length > 0) childBlock.imageList = message.imageList;
+    if (msgPerformance) childBlock.performance = msgPerformance;
+    if (message.reasoning) childBlock.reasoning = message.reasoning;
+    if (msgUsage) childBlock.usage = msgUsage;
+    if (Object.keys(otherMetadata).length > 0) {
+      childBlock.metadata = otherMetadata;
+    }
+
+    const result: Message = {
+      ...message,
+      children: [childBlock],
+      content: '',
+      role: 'supervisor' as any,
+    };
+
+    // Remove fields that should not be in supervisor message
+    delete result.imageList;
+    delete result.metadata;
+    delete result.reasoning;
+    delete result.tools;
+
+    // Add aggregated fields if they exist
+    if (msgPerformance) result.performance = msgPerformance;
+    if (msgUsage) result.usage = msgUsage;
+
+    // Preserve isSupervisor in metadata
+    result.metadata = { isSupervisor: true, ...otherMetadata };
+
+    return result;
   }
 }

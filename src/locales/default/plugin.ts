@@ -51,6 +51,8 @@ export default {
   'builtins.lobe-group-management.apiName.speak': 'Designated member speaks',
   'builtins.lobe-group-management.apiName.summarize': 'Summarize conversation',
   'builtins.lobe-group-management.apiName.vote': 'Start vote',
+  'builtins.lobe-group-management.inspector.broadcast.title': 'Following Agents speak:',
+  'builtins.lobe-group-management.inspector.speak.title': 'Designated Agent speaks:',
   'builtins.lobe-group-management.title': 'Group Coordinator',
   'builtins.lobe-gtd.apiName.clearTodos': 'Clear todos',
   'builtins.lobe-gtd.apiName.clearTodos.modeAll': 'all',
