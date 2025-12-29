@@ -4,6 +4,7 @@ import { Cloud, Server } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
+import { isDesktop } from '@/const/version';
 import { useElectronStore } from '@/store/electron';
 import { setDesktopAutoOidcFirstOpenHandled } from '@/utils/electron/autoOidc';
 
@@ -359,7 +360,7 @@ export const Screen5 = ({ onScreenConfigChange }: Screen5Props) => {
   // 处理云端登录
   const handleCloudLogin = async () => {
     // Desktop runtime guard
-    if (process.env.NEXT_PUBLIC_IS_DESKTOP_APP !== '1') {
+    if (!isDesktop) {
       setRemoteError('OIDC authorization is only available in the desktop app runtime.');
       setCloudLoginStatus('error');
       return;
@@ -379,7 +380,7 @@ export const Screen5 = ({ onScreenConfigChange }: Screen5Props) => {
   // 处理自建服务器连接
   const handleSelfhostConnect = async () => {
     // Desktop runtime guard
-    if (process.env.NEXT_PUBLIC_IS_DESKTOP_APP !== '1') {
+    if (!isDesktop) {
       setRemoteError('OIDC authorization is only available in the desktop app runtime.');
       setSelfhostLoginStatus('error');
       return;
