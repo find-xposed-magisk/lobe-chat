@@ -43,6 +43,13 @@ const errorHandlingLink: TRPCLink<LambdaRouter> = () => {
                   // Desktop app doesn't have the web auth routes like `/signin`,
                   // so skip the login redirect/notification there.
                   if (!isDesktop) {
+                    const { getUserStoreState } = await import('@/store/user/store');
+                    const { isSignedIn, logout } = getUserStoreState();
+                    // If user is still marked as signed in but got 401,
+                    // session is invalid - clear client state first
+                    if (isSignedIn) {
+                      await logout();
+                    }
                     const { loginRequired } =
                       await import('@/components/Error/loginRequiredNotification');
                     loginRequired.redirect();
