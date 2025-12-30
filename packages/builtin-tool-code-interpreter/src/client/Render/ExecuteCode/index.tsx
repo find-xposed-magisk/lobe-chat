@@ -7,29 +7,10 @@ import { memo } from 'react';
 
 import { type ExecuteCodeState } from '../../../types';
 
-const styles = createStaticStyles(({ css, cssVar }) => ({
+const styles = createStaticStyles(({ css }) => ({
   container: css`
     overflow: hidden;
     padding-inline: 8px 0;
-  `,
-  head: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
-  `,
-  header: css`
-    .action-icon {
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-
-    &:hover {
-      .action-icon {
-        opacity: 1;
-      }
-    }
-  `,
-  statusIcon: css`
-    font-size: 12px;
   `,
 }));
 

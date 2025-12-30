@@ -8,14 +8,10 @@ import { memo, useCallback } from 'react';
 
 import { type ExportFileState } from '../../../types';
 
-const styles = createStaticStyles(({ css, cssVar }) => ({
+const styles = createStaticStyles(({ css }) => ({
   container: css`
     overflow: hidden;
     padding-inline: 8px 0;
-  `,
-  filename: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
   `,
   statusIcon: css`
     font-size: 12px;
@@ -66,7 +62,7 @@ const ExportFile = memo<BuiltinRenderProps<ExportFileParams, ExportFileState>>(
           ) : (
             <CloseCircleFilled className={styles.statusIcon} style={{ color: cssVar.colorError }} />
           )}
-          <Text className={styles.filename}>
+          <Text as={'span'} code fontSize={12}>
             {isSuccess
               ? `Exported: ${pluginState?.filename || args.path}`
               : `Failed to export ${args.path}`}

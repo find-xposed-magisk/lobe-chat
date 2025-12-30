@@ -8,14 +8,10 @@ import { memo } from 'react';
 
 import { type WriteLocalFileState } from '../../../types';
 
-const styles = createStaticStyles(({ css, cssVar }) => ({
+const styles = createStaticStyles(({ css }) => ({
   container: css`
     overflow: hidden;
     padding-inline: 8px 0;
-  `,
-  path: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
   `,
   statusIcon: css`
     font-size: 12px;
@@ -43,11 +39,11 @@ const WriteFile = memo<BuiltinRenderProps<WriteLocalFileParams, WriteLocalFileSt
           ) : (
             <CloseCircleFilled className={styles.statusIcon} style={{ color: cssVar.colorError }} />
           )}
-          <Text className={styles.path}>
+          <Text as={'span'} code fontSize={12}>
             {isSuccess ? `✅ Written to ${args.path}` : `❌ Failed to write ${args.path}`}
           </Text>
           {pluginState?.bytesWritten !== undefined && (
-            <Text className={styles.path} type={'secondary'}>
+            <Text as={'span'} code fontSize={12} type={'secondary'}>
               ({pluginState.bytesWritten} bytes)
             </Text>
           )}

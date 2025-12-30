@@ -9,7 +9,7 @@ import { memo, useState } from 'react';
 
 import { type EditLocalFileState } from '../../../types';
 
-const styles = createStaticStyles(({ css, cssVar }) => ({
+const styles = createStaticStyles(({ css }) => ({
   container: css`
     overflow: hidden;
     padding-inline: 8px 0;
@@ -25,14 +25,6 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
         opacity: 1;
       }
     }
-  `,
-  path: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
-  `,
-  stats: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 11px;
   `,
   statusIcon: css`
     font-size: 12px;
@@ -72,11 +64,11 @@ const EditLocalFile = memo<BuiltinRenderProps<EditLocalFileParams, EditLocalFile
                 style={{ color: cssVar.colorError }}
               />
             )}
-            <Text className={styles.path}>
+            <Text as={'span'} code fontSize={12}>
               {pluginState?.replacements || 0} replacement(s) in {args.path}
             </Text>
             {statsText && (
-              <Text className={styles.stats} type={'secondary'}>
+              <Text as={'span'} code fontSize={11} type={'secondary'}>
                 ({statsText})
               </Text>
             )}

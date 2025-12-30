@@ -7,19 +7,10 @@ import { memo } from 'react';
 
 import { type ReadLocalFileState } from '../../../types';
 
-const styles = createStaticStyles(({ css, cssVar }) => ({
+const styles = createStaticStyles(({ css }) => ({
   container: css`
     overflow: hidden;
     padding-inline: 8px 0;
-  `,
-  fileInfo: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
-    color: ${cssVar.colorTextSecondary};
-  `,
-  path: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
   `,
 }));
 
@@ -84,11 +75,11 @@ const ReadLocalFile = memo<BuiltinRenderProps<ReadLocalFileParams, ReadLocalFile
       <Flexbox className={styles.container} gap={8}>
         {/* File path and info */}
         <Flexbox align={'center'} horizontal justify={'space-between'}>
-          <Text className={styles.path} ellipsis>
+          <Text as={'span'} code ellipsis fontSize={12}>
             📄 {args.path}
           </Text>
           {lineInfo && (
-            <Text className={styles.fileInfo} type={'secondary'}>
+            <Text as={'span'} code fontSize={12} type={'secondary'}>
               {lineInfo}
             </Text>
           )}

@@ -1,31 +1,18 @@
 'use client';
 
+import type { ModifyNodesArgs } from '@lobechat/editor-runtime';
 import type { BuiltinInspectorProps } from '@lobechat/types';
-import { Icon } from '@lobehub/ui';
-import { createStaticStyles, cx } from 'antd-style';
+import { Icon, Text } from '@lobehub/ui';
+import { createStaticStyles, cssVar, cx } from 'antd-style';
 import { DiffIcon, Minus, Plus } from 'lucide-react';
 import { type ReactNode, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { shinyTextStyles } from '@/styles';
 
-import type { ModifyNodesArgs } from '@lobechat/editor-runtime';
-
 import type { ModifyNodesState } from '../../../types';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
-  insert: css`
-    font-family: ${cssVar.fontFamilyCode};
-    color: ${cssVar.colorSuccess};
-  `,
-  modify: css`
-    font-family: ${cssVar.fontFamilyCode};
-    color: ${cssVar.colorWarning};
-  `,
-  remove: css`
-    font-family: ${cssVar.fontFamilyCode};
-    color: ${cssVar.colorError};
-  `,
   root: css`
     overflow: hidden;
     display: -webkit-box;
@@ -89,26 +76,26 @@ export const ModifyNodesInspector = memo<BuiltinInspectorProps<ModifyNodesArgs, 
     const statsParts: ReactNode[] = [];
     if (counts.insert > 0) {
       statsParts.push(
-        <span className={styles.insert} key="insert">
+        <Text as={'span'} code color={cssVar.colorSuccess} fontSize={12} key="insert">
           <Icon icon={Plus} size={12} />
           {counts.insert}
-        </span>,
+        </Text>,
       );
     }
     if (counts.modify > 0) {
       statsParts.push(
-        <span className={styles.modify} key="modify">
+        <Text as={'span'} code color={cssVar.colorWarning} fontSize={12} key="modify">
           <Icon icon={DiffIcon} size={12} />
           {counts.modify}
-        </span>,
+        </Text>,
       );
     }
     if (counts.remove > 0) {
       statsParts.push(
-        <span className={styles.remove} key="remove">
+        <Text as={'span'} code color={cssVar.colorError} fontSize={12} key="remove">
           <Icon icon={Minus} size={12} />
           {counts.remove}
-        </span>,
+        </Text>,
       );
     }
 

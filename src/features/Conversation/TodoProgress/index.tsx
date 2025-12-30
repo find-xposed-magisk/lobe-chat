@@ -32,10 +32,6 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     background: ${cssVar.colorBgElevated};
 
     transition: all 0.2s ${cssVar.motionEaseInOut};
-
-    &:hover {
-      background: ${cssVar.colorFillTertiary};
-    }
   `,
   count: css`
     font-family: ${cssVar.fontFamilyCode};

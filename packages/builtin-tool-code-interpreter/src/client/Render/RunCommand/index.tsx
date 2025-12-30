@@ -9,14 +9,10 @@ import { memo, useState } from 'react';
 
 import { type RunCommandState } from '../../../types';
 
-const styles = createStaticStyles(({ css, cssVar }) => ({
+const styles = createStaticStyles(({ css }) => ({
   container: css`
     overflow: hidden;
     padding-inline: 8px 0;
-  `,
-  head: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
   `,
   header: css`
     .action-icon {
@@ -69,11 +65,11 @@ const RunCommand = memo<BuiltinRenderProps<RunCommandParams, RunCommandState>>(
                   style={{ color: cssVar.colorError }}
                 />
               )}
-              <Text className={styles.head} ellipsis style={{ maxWidth: 300 }}>
+              <Text as={'span'} code ellipsis fontSize={12} style={{ maxWidth: 300 }}>
                 {args.command}
               </Text>
             </Flexbox>
-            <Text className={styles.head} type={'secondary'}>
+            <Text as={'span'} code fontSize={12} type={'secondary'}>
               {statusMessage}
             </Text>
           </Flexbox>

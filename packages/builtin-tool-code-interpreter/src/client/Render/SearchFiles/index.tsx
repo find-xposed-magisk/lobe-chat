@@ -26,20 +26,11 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
       background: ${cssVar.colorFillTertiary};
     }
   `,
-  fileName: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
-  `,
   folderIcon: css`
     color: ${cssVar.colorWarning};
   `,
   header: css`
     font-size: 12px;
-  `,
-  path: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 11px;
-    color: ${cssVar.colorTextTertiary};
   `,
 }));
 
@@ -65,7 +56,9 @@ const SearchFiles = memo<BuiltinRenderProps<SearchLocalFilesParams, SearchLocalF
             🔍 Search in {args.directory}
             {args.keyword && ` for "${args.keyword}"`}
           </Text>
-          <Text className={styles.path}>{pluginState.totalCount} results</Text>
+          <Text as={'span'} code fontSize={11} type={'secondary'}>
+            {pluginState.totalCount} results
+          </Text>
         </Flexbox>
 
         {/* Results list */}
@@ -87,8 +80,12 @@ const SearchFiles = memo<BuiltinRenderProps<SearchLocalFilesParams, SearchLocalF
                       <File className={styles.fileIcon} size={14} />
                     )}
                     <Flexbox gap={2}>
-                      <Text className={styles.fileName}>{file.name}</Text>
-                      <Text className={styles.path}>{file.path}</Text>
+                      <Text as={'span'} code fontSize={12}>
+                        {file.name}
+                      </Text>
+                      <Text as={'span'} code fontSize={11} type={'secondary'}>
+                        {file.path}
+                      </Text>
                     </Flexbox>
                   </Flexbox>
                 </Flexbox>

@@ -25,10 +25,6 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     padding-inline: 8px;
     border-radius: 4px;
   `,
-  path: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 11px;
-  `,
   statusIcon: css`
     font-size: 12px;
   `,
@@ -85,15 +81,15 @@ const MoveLocalFiles = memo<BuiltinRenderProps<MoveLocalFilesParams, MoveLocalFi
                 ) : (
                   <CloseCircleFilled style={{ color: cssVar.colorError, fontSize: 12 }} />
                 )}
-                <Text className={styles.path} ellipsis style={{ maxWidth: 200 }}>
+                <Text as={'span'} code ellipsis fontSize={11} style={{ maxWidth: 200 }}>
                   {result.source}
                 </Text>
                 <ArrowRight className={styles.arrow} size={12} />
-                <Text className={styles.path} ellipsis style={{ maxWidth: 200 }}>
+                <Text as={'span'} code ellipsis fontSize={11} style={{ maxWidth: 200 }}>
                   {result.destination}
                 </Text>
                 {result.error && (
-                  <Text className={styles.path} type={'danger'}>
+                  <Text as={'span'} code fontSize={11} type={'danger'}>
                     ({result.error})
                   </Text>
                 )}

@@ -47,10 +47,7 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     padding: 8px;
     border-radius: 6px;
 
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
     line-height: 1.5;
-    color: ${cssVar.colorTextSecondary};
   `,
   title: css`
     overflow: hidden;
@@ -99,7 +96,14 @@ const FileCard = memo<FileCardProps>(({ file, FileIcon, labels }) => {
           <div className={styles.title}>{file.filename}</div>
         </Flexbox>
         {file.preview && (
-          <Text className={styles.preview} ellipsis={{ rows: 4 }}>
+          <Text
+            as={'span'}
+            className={styles.preview}
+            code
+            ellipsis={{ rows: 4 }}
+            fontSize={12}
+            type={'secondary'}
+          >
             {file.preview}...
           </Text>
         )}

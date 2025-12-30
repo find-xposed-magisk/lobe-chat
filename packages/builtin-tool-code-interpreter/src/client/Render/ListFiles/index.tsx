@@ -26,21 +26,8 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
       background: ${cssVar.colorFillTertiary};
     }
   `,
-  fileName: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
-  `,
   folderIcon: css`
     color: ${cssVar.colorWarning};
-  `,
-  path: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 12px;
-  `,
-  size: css`
-    font-family: ${cssVar.fontFamilyCode};
-    font-size: 11px;
-    color: ${cssVar.colorTextTertiary};
   `,
 }));
 
@@ -76,10 +63,10 @@ const ListFiles = memo<BuiltinRenderProps<ListLocalFilesParams, ListLocalFilesSt
       <Flexbox className={styles.container} gap={8}>
         {/* Directory path */}
         <Flexbox align={'center'} horizontal justify={'space-between'}>
-          <Text className={styles.path} ellipsis>
+          <Text as={'span'} code ellipsis fontSize={12}>
             📁 {args.directoryPath}
           </Text>
-          <Text className={styles.size} type={'secondary'}>
+          <Text as={'span'} code fontSize={11} type={'secondary'}>
             {pluginState.files.length} items
           </Text>
         </Flexbox>
@@ -101,10 +88,14 @@ const ListFiles = memo<BuiltinRenderProps<ListLocalFilesParams, ListLocalFilesSt
                   ) : (
                     <File className={styles.fileIcon} size={14} />
                   )}
-                  <Text className={styles.fileName}>{file.name}</Text>
+                  <Text as={'span'} code fontSize={12}>
+                    {file.name}
+                  </Text>
                 </Flexbox>
                 {!file.isDirectory && file.size !== undefined && (
-                  <Text className={styles.size}>{formatSize(file.size)}</Text>
+                  <Text as={'span'} code fontSize={11} type={'secondary'}>
+                    {formatSize(file.size)}
+                  </Text>
                 )}
               </Flexbox>
             ))}

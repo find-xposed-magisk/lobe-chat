@@ -2,7 +2,7 @@
 
 import type { ReplaceTextArgs } from '@lobechat/editor-runtime';
 import type { BuiltinInspectorProps } from '@lobechat/types';
-import { Icon } from '@lobehub/ui';
+import { Icon, Text } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
 import { ArrowRight } from 'lucide-react';
 import { memo } from 'react';
@@ -27,10 +27,6 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
 
-    color: ${cssVar.colorTextSecondary};
-  `,
-  stats: css`
-    font-family: ${cssVar.fontFamilyCode};
     color: ${cssVar.colorTextSecondary};
   `,
   title: css`
@@ -69,10 +65,10 @@ export const ReplaceTextInspector = memo<BuiltinInspectorProps<ReplaceTextArgs, 
               {to || t('builtins.lobe-page-agent.apiName.replaceText.empty')}
             </span>
             {count > 0 && (
-              <span className={styles.stats}>
+              <Text as={'span'} code fontSize={12} type={'secondary'}>
                 {' '}
                 ({t('builtins.lobe-page-agent.apiName.replaceText.count', { count })})
-              </span>
+              </Text>
             )}
           </>
         )}
