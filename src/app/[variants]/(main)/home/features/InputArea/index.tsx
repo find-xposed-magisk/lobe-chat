@@ -44,6 +44,7 @@ const InputArea = () => {
       <DragUploadZone onUploadFiles={handleUploadFiles}>
         <ChatInputProvider
           agentId={inboxAgentId}
+          allowExpand={false}
           chatInputEditorRef={(instance) => {
             if (!instance) return;
             useChatStore.setState({ mainInputEditor: instance });

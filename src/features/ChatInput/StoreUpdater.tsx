@@ -22,6 +22,7 @@ const StoreUpdater = memo<StoreUpdaterProps>(
     onMarkdownContentChange,
     sendMenu,
     mentionItems,
+    allowExpand,
   }) => {
     const storeApi = useStoreApi();
     const useStoreUpdater = createStoreUpdater(storeApi);
@@ -33,6 +34,7 @@ const StoreUpdater = memo<StoreUpdaterProps>(
     useStoreUpdater('mentionItems', mentionItems);
     useStoreUpdater('leftActions', leftActions!);
     useStoreUpdater('rightActions', rightActions!);
+    useStoreUpdater('allowExpand', allowExpand);
 
     useStoreUpdater('sendButtonProps', sendButtonProps);
     useStoreUpdater('onSend', onSend);
