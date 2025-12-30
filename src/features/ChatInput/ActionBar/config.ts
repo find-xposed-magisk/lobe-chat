@@ -1,7 +1,6 @@
 import AgentMode from './AgentMode';
 import Clear from './Clear';
 import History from './History';
-import Knowledge from './Knowledge';
 import Mention from './Mention';
 import Model from './Model';
 import Params from './Params';
@@ -18,7 +17,6 @@ export const actionMap = {
   clear: Clear,
   fileUpload: Upload,
   history: History,
-  knowledgeBase: Knowledge,
   mainToken: MainToken,
   mention: Mention,
   model: Model,

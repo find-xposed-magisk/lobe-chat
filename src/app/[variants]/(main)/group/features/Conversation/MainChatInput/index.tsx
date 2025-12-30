@@ -13,10 +13,8 @@ const leftActions: ActionKeys[] = [
   'search',
   'typo',
   'fileUpload',
-  'knowledgeBase',
-  'tools',
   '---',
-  'clear',
+  ['tools', 'params', 'clear'],
   'mainToken',
 ];
 

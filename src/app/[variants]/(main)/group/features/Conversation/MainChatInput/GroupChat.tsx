@@ -21,13 +21,12 @@ import { useSendMenuItems } from './useSendMenuItems';
 const leftActions: ActionKeys[] = [
   'typo',
   'fileUpload',
-  'knowledgeBase',
   '---',
-  ['stt', 'clear'],
+  ['tools', 'params', 'clear'],
   'mainToken',
 ];
 
-const dmLeftActions: ActionKeys[] = ['typo', 'fileUpload', 'knowledgeBase', '---', ['stt']];
+const dmLeftActions: ActionKeys[] = ['typo', 'fileUpload', '---', ['stt']];
 
 const rightActions: ActionKeys[] = [];
 
