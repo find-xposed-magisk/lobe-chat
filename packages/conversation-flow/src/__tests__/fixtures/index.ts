@@ -7,6 +7,7 @@ import { assistantGroup as assistantGroupInputs } from './inputs/assistantGroup'
 import { branch as branchInputs } from './inputs/branch';
 import { compare as compareInputs } from './inputs/compare';
 import linearConversationInput from './inputs/linear-conversation.json';
+import { tasks as tasksInputs } from './inputs/tasks';
 // Output fixtures
 import { agentCouncil as agentCouncilOutputs } from './outputs/agentCouncil';
 import { agentGroup as agentGroupOutputs } from './outputs/agentGroup';
@@ -15,6 +16,7 @@ import { assistantGroup as assistantGroupOutputs } from './outputs/assistantGrou
 import { branch as branchOutputs } from './outputs/branch';
 import { compare as compareOutputs } from './outputs/compare';
 import linearConversationOutput from './outputs/linear-conversation.json';
+import { tasks as tasksOutputs } from './outputs/tasks';
 
 /**
  * Serialized parse result type
@@ -36,6 +38,7 @@ export const inputs = {
   branch: branchInputs,
   compare: compareInputs,
   linearConversation: linearConversationInput as Message[],
+  tasks: tasksInputs,
 };
 
 /**
@@ -49,4 +52,5 @@ export const outputs = {
   branch: branchOutputs,
   compare: compareOutputs,
   linearConversation: linearConversationOutput as unknown as SerializedParseResult,
+  tasks: tasksOutputs,
 };

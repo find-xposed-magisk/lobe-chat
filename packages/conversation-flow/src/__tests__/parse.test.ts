@@ -155,6 +155,47 @@ describe('parse', () => {
     });
   });
 
+  describe('Tasks Aggregation', () => {
+    it('should aggregate multiple task messages with same parentId', () => {
+      const result = parse(inputs.tasks.simple);
+
+      // The critical assertions:
+      // 1. flatList should have 4 items: user, assistantGroup(+tool), tasks(2 tasks), assistant-summary
+      expect(result.flatList).toHaveLength(4);
+      expect(result.flatList[0].role).toBe('user');
+      expect(result.flatList[1].role).toBe('assistantGroup');
+      expect(result.flatList[2].role).toBe('tasks');
+      expect(result.flatList[3].role).toBe('assistant');
+
+      // 2. tasks virtual message should have 2 children
+      expect((result.flatList[2] as any).children).toHaveLength(2);
+
+      // 3. contextTree should have tasks node
+      const tasksNode = result.contextTree.find((node) => node.type === 'tasks');
+      expect(tasksNode).toBeDefined();
+      expect((tasksNode as any).children).toHaveLength(2);
+
+      expect(serializeParseResult(result)).toEqual(outputs.tasks.simple);
+    });
+
+    it('should aggregate three task messages with summary', () => {
+      const result = parse(inputs.tasks.withSummary);
+
+      // The critical assertions:
+      // 1. flatList should have 4 items: user, assistantGroup(+tool), tasks(3 tasks), assistant-summary
+      expect(result.flatList).toHaveLength(4);
+      expect(result.flatList[0].role).toBe('user');
+      expect(result.flatList[1].role).toBe('assistantGroup');
+      expect(result.flatList[2].role).toBe('tasks');
+      expect(result.flatList[3].role).toBe('assistant');
+
+      // 2. tasks virtual message should have 3 children
+      expect((result.flatList[2] as any).children).toHaveLength(3);
+
+      expect(serializeParseResult(result)).toEqual(outputs.tasks.withSummary);
+    });
+  });
+
   describe('Performance', () => {
     it('should parse 10000 items within 100ms', () => {
       // Generate 10000 messages as flat siblings (no deep nesting to avoid stack overflow)

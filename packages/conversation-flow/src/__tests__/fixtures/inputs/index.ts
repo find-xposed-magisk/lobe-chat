@@ -6,6 +6,7 @@ import { assistantGroup } from './assistantGroup';
 import { branch } from './branch';
 import { compare } from './compare';
 import linearConversation from './linear-conversation.json';
+import { tasks } from './tasks';
 
 export const inputs = {
   agentCouncil,
@@ -15,4 +16,5 @@ export const inputs = {
   branch,
   compare,
   linearConversation: linearConversation as Message[],
+  tasks,
 };
