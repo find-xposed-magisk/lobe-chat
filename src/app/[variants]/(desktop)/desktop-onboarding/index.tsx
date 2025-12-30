@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { OnboardingContainerWithTheme } from '@/features/DesktopOnboarding/OnboardingContainer';
+import DesktopOnboardingComponent from '@/features/DesktopOnboarding';
 import {
   getDesktopOnboardingCompleted,
   setDesktopOnboardingCompleted,
@@ -41,7 +41,7 @@ const DesktopOnboarding = () => {
   }, []);
 
   return (
-    <OnboardingContainerWithTheme
+    <DesktopOnboardingComponent
       onComplete={() => {
         setDesktopOnboardingCompleted();
         // Use hard reload instead of SPA navigation to ensure the app boots with the new desktop state.
