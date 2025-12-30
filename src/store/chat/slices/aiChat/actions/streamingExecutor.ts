@@ -10,10 +10,8 @@ import {
 import { PageAgentIdentifier } from '@lobechat/builtin-tool-page-agent';
 import { isDesktop } from '@lobechat/const';
 import {
-  type ChatImageItem,
   type ChatToolPayload,
   type ConversationContext,
-  type MessageContentPart,
   type MessageMapScope,
   type MessageToolCall,
   type ModelUsage,
@@ -22,11 +20,8 @@ import {
   TraceNameMap,
   type UIChatMessage,
 } from '@lobechat/types';
-import { serializePartsForStorage } from '@lobechat/utils';
 import debug from 'debug';
-import { throttle } from 'es-toolkit/compat';
 import { t } from 'i18next';
-import pMap from 'p-map';
 import { type StateCreator } from 'zustand/vanilla';
 
 import { createAgentToolsEngine } from '@/helpers/toolEngineering';
@@ -41,9 +36,10 @@ import { toolInterventionSelectors } from '@/store/user/selectors';
 import { getUserStoreState } from '@/store/user/store';
 
 import { topicSelectors } from '../../../selectors';
-import { cleanSpeakerTag } from '../../../utils/cleanSpeakerTag';
 import { messageMapKey } from '../../../utils/messageMapKey';
 import { selectTodosFromMessages } from '../../message/selectors/dbMessage';
+import { StreamingHandler } from './StreamingHandler';
+import type { StreamChunk } from './types/streaming';
 
 const log = debug('lobe-store:streaming-executor');
 
@@ -352,41 +348,84 @@ export const streamingExecutor: StateCreator<
     const finalAgentConfig = agentConfig || resolved.agentConfig;
     const chatConfig = resolved.chatConfig;
 
-    let isFunctionCall = false;
-    let tools: ChatToolPayload[] | undefined;
-    let tool_calls: MessageToolCall[] | undefined;
-    let finalUsage;
-    let msgTraceId: string | undefined;
-    let output = '';
+    let finalUsage: ModelUsage | undefined;
+    let finalToolCalls: MessageToolCall[] | undefined;
 
-    let thinkingContent = '';
-    let thinkingStartAt: number;
-    let thinkingDuration: number | undefined;
-    let reasoningOperationId: string | undefined;
-    let finishType: string | undefined;
-    // to upload image
-    const uploadTasks: Map<string, Promise<{ id?: string; url?: string }>> = new Map();
-
-    // Multimodal content parts
-    let contentParts: MessageContentPart[] = [];
-    let reasoningParts: MessageContentPart[] = [];
-    const contentImageUploads: Map<number, Promise<string>> = new Map();
-    const reasoningImageUploads: Map<number, Promise<string>> = new Map();
-
-    // Throttle tool_calls updates to prevent excessive re-renders (max once per 300ms)
-    const throttledUpdateToolCalls = throttle(
-      (toolCalls: MessageToolCall[]) => {
-        internal_dispatchMessage(
-          {
-            id: messageId,
-            type: 'updateMessage',
-            value: { tools: get().internal_transformToolCalls(toolCalls) },
-          },
-          { operationId },
-        );
+    // Create streaming handler with callbacks
+    const handler = new StreamingHandler(
+      { messageId, operationId, agentId, groupId, topicId },
+      {
+        onContentUpdate: (content, reasoning) => {
+          internal_dispatchMessage(
+            {
+              id: messageId,
+              type: 'updateMessage',
+              value: { content, reasoning },
+            },
+            { operationId },
+          );
+        },
+        onReasoningUpdate: (reasoning) => {
+          internal_dispatchMessage(
+            {
+              id: messageId,
+              type: 'updateMessage',
+              value: { reasoning },
+            },
+            { operationId },
+          );
+        },
+        onToolCallsUpdate: (tools) => {
+          internal_dispatchMessage(
+            {
+              id: messageId,
+              type: 'updateMessage',
+              value: { tools },
+            },
+            { operationId },
+          );
+        },
+        onGroundingUpdate: (grounding) => {
+          internal_dispatchMessage(
+            {
+              id: messageId,
+              type: 'updateMessage',
+              value: { search: grounding },
+            },
+            { operationId },
+          );
+        },
+        onImagesUpdate: (images) => {
+          internal_dispatchMessage(
+            {
+              id: messageId,
+              type: 'updateMessage',
+              value: { imageList: images },
+            },
+            { operationId },
+          );
+        },
+        onReasoningStart: () => {
+          const { operationId: reasoningOpId } = get().startOperation({
+            type: 'reasoning',
+            context: { ...fetchContext, messageId },
+            parentOperationId: operationId,
+          });
+          get().associateMessageWithOperation(messageId, reasoningOpId);
+          return reasoningOpId;
+        },
+        onReasoningComplete: (opId) => get().completeOperation(opId),
+        uploadBase64Image: (data) =>
+          getFileStoreState()
+            .uploadBase64FileWithProgress(data)
+            .then((file) => ({
+              id: file?.id,
+              url: file?.url,
+              alt: file?.filename || file?.id,
+            })),
+        transformToolCalls: get().internal_transformToolCalls,
+        toggleToolCallingStreaming: internal_toggleToolCallingStreaming,
       },
-      300,
-      { leading: true, trailing: true },
     );
 
     const historySummary = chatConfig.enableCompressHistory
@@ -432,7 +471,6 @@ export const streamingExecutor: StateCreator<
       ) => {
         // if there is traceId, update it
         if (traceId) {
-          msgTraceId = traceId;
           messageService.updateMessage(
             messageId,
             { traceId, observationId: observationId ?? undefined },
@@ -440,454 +478,65 @@ export const streamingExecutor: StateCreator<
           );
         }
 
-        // 等待所有图片上传完成
-        let finalImages: ChatImageItem[] = [];
-
-        if (uploadTasks.size > 0) {
-          try {
-            // 等待所有上传任务完成
-            const uploadResults = await pMap(Array.from(uploadTasks.values()), (task) => task, {
-              concurrency: 5,
-            });
-
-            // 使用上传后的 S3 URL 替换原始图像数据
-            finalImages = uploadResults.filter((i) => !!i.url) as ChatImageItem[];
-          } catch (error) {
-            console.error('Error waiting for image uploads:', error);
-          }
-        }
-
-        // Wait for all multimodal image uploads to complete
-        // Note: Arrays are already updated in-place when uploads complete
-        // Use Promise.allSettled to continue even if some uploads fail
-        await Promise.allSettled([
-          ...Array.from(contentImageUploads.values()),
-          ...Array.from(reasoningImageUploads.values()),
-        ]);
-
-        let parsedToolCalls = toolCalls;
-        if (parsedToolCalls && parsedToolCalls.length > 0) {
-          // Flush any pending throttled updates before finalizing
-          throttledUpdateToolCalls.flush();
-          internal_toggleToolCallingStreaming(messageId, undefined);
-
-          tool_calls = toolCalls;
-
-          parsedToolCalls = parsedToolCalls.map((item) => ({
-            ...item,
-            function: {
-              ...item.function,
-              arguments: !!item.function.arguments ? item.function.arguments : '{}',
-            },
-          }));
-
-          tools = get().internal_transformToolCalls(parsedToolCalls);
-
-          isFunctionCall = true;
-        }
-
-        finalUsage = usage;
-        finishType = type;
-
-        log(
-          '[internal_fetchAIChatMessage] onFinish: messageId=%s, finishType=%s, operationId=%s',
-          messageId,
+        // Handle finish using StreamingHandler
+        const result = await handler.handleFinish({
+          traceId,
+          observationId,
+          toolCalls,
+          reasoning,
+          grounding,
+          usage,
+          speed,
           type,
-          operationId,
-        );
+        });
 
-        // Check if there are any image parts
-        const hasContentImages = contentParts.some((part) => part.type === 'image');
-        const hasReasoningImages = reasoningParts.some((part) => part.type === 'image');
-
-        // Determine final content
-        // If has images, serialize contentParts; otherwise use accumulated output text
-        const finalContent = hasContentImages ? serializePartsForStorage(contentParts) : output;
-
-        const finalDuration =
-          thinkingDuration && !isNaN(thinkingDuration) ? thinkingDuration : undefined;
-
-        // Determine final reasoning content
-        // Priority: reasoningParts (multimodal) > thinkingContent (from reasoning_part text) > reasoning (from old reasoning event)
-        let finalReasoning: any = undefined;
-        if (hasReasoningImages) {
-          // Has images, use multimodal format
-          finalReasoning = {
-            content: serializePartsForStorage(reasoningParts),
-            duration: finalDuration,
-            isMultimodal: true,
-          };
-        } else if (thinkingContent) {
-          // Has text from reasoning_part but no images
-          finalReasoning = {
-            content: thinkingContent,
-            duration: finalDuration,
-          };
-        } else if (reasoning?.content) {
-          // Fallback to old reasoning event content
-          finalReasoning = {
-            ...reasoning,
-            duration: finalDuration,
-          };
-        }
+        // Store for return value
+        finalUsage = result.usage;
+        finalToolCalls = result.toolCalls;
 
         // update the content after fetch result
         await optimisticUpdateMessageContent(
           messageId,
-          finalContent,
+          result.content,
           {
-            tools,
-            reasoning: finalReasoning,
-            search: !!grounding?.citations ? grounding : undefined,
-            imageList: finalImages.length > 0 ? finalImages : undefined,
+            tools: result.tools,
+            reasoning: result.metadata.reasoning,
+            search: result.metadata.search,
+            imageList: result.metadata.imageList,
             metadata: {
-              ...usage,
-              ...speed,
-              performance: speed,
-              usage,
-              finishType: type,
-              ...(hasContentImages && { isMultimodal: true }),
+              ...result.metadata.usage,
+              ...result.metadata.performance,
+              performance: result.metadata.performance,
+              usage: result.metadata.usage,
+              finishType: result.metadata.finishType,
+              ...(result.metadata.isMultimodal && { isMultimodal: true }),
             },
           },
           { operationId },
         );
       },
       onMessageHandle: async (chunk) => {
-        switch (chunk.type) {
-          case 'grounding': {
-            // if there is no citations, then stop
-            if (
-              !chunk.grounding ||
-              !chunk.grounding.citations ||
-              chunk.grounding.citations.length <= 0
-            )
-              return;
-
-            internal_dispatchMessage(
-              {
-                id: messageId,
-                type: 'updateMessage',
-                value: {
-                  search: {
-                    citations: chunk.grounding.citations,
-                    searchQueries: chunk.grounding.searchQueries,
-                  },
-                },
-              },
-              { operationId },
-            );
-            break;
-          }
-
-          case 'base64_image': {
-            internal_dispatchMessage(
-              {
-                id: messageId,
-                type: 'updateMessage',
-                value: {
-                  imageList: chunk.images.map((i) => ({ id: i.id, url: i.data, alt: i.id })),
-                },
-              },
-              { operationId },
-            );
-            const image = chunk.image;
-
-            const task = getFileStoreState()
-              .uploadBase64FileWithProgress(image.data)
-              .then((value) => ({
-                id: value?.id,
-                url: value?.url,
-                alt: value?.filename || value?.id,
-              }));
-
-            uploadTasks.set(image.id, task);
-
-            break;
-          }
-
-          case 'text': {
-            output += chunk.text;
-
-            // Clean speaker tag that may be reproduced by model in group chat
-            // The tag is injected at message start to identify sender, but models may copy it
-            output = cleanSpeakerTag(output);
-
-            // if there is no duration, it means the end of reasoning
-            if (!thinkingDuration) {
-              thinkingDuration = Date.now() - thinkingStartAt;
-
-              // Complete reasoning operation if it exists
-              if (reasoningOperationId) {
-                get().completeOperation(reasoningOperationId);
-                reasoningOperationId = undefined;
-              }
-            }
-
-            log(
-              '[text stream] messageId=%s, output length=%d, operationId=%s',
-              messageId,
-              output.length,
-              operationId,
-            );
-
-            internal_dispatchMessage(
-              {
-                id: messageId,
-                type: 'updateMessage',
-                value: {
-                  content: output,
-                  reasoning: !!thinkingContent
-                    ? { content: thinkingContent, duration: thinkingDuration }
-                    : undefined,
-                },
-              },
-              { operationId },
-            );
-            break;
-          }
-
-          case 'reasoning': {
-            // if there is no thinkingStartAt, it means the start of reasoning
-            if (!thinkingStartAt) {
-              thinkingStartAt = Date.now();
-
-              // Create reasoning operation
-              const { operationId: reasoningOpId } = get().startOperation({
-                type: 'reasoning',
-                context: { ...fetchContext, messageId },
-                parentOperationId: operationId,
-              });
-              reasoningOperationId = reasoningOpId;
-
-              // Associate message with reasoning operation
-              get().associateMessageWithOperation(messageId, reasoningOperationId);
-            }
-
-            thinkingContent += chunk.text;
-
-            internal_dispatchMessage(
-              {
-                id: messageId,
-                type: 'updateMessage',
-                value: { reasoning: { content: thinkingContent } },
-              },
-              { operationId },
-            );
-            break;
-          }
-
-          case 'reasoning_part': {
-            // Start reasoning if not started
-            if (!thinkingStartAt) {
-              thinkingStartAt = Date.now();
-
-              const { operationId: reasoningOpId } = get().startOperation({
-                type: 'reasoning',
-                context: { ...fetchContext, messageId },
-                parentOperationId: operationId,
-              });
-              reasoningOperationId = reasoningOpId;
-              get().associateMessageWithOperation(messageId, reasoningOperationId);
-            }
-
-            const { partType, content: partContent, mimeType } = chunk;
-
-            if (partType === 'text') {
-              const lastPart = reasoningParts.at(-1);
-
-              // If last part is also text, merge chunks together
-              if (lastPart?.type === 'text') {
-                reasoningParts = [
-                  ...reasoningParts.slice(0, -1),
-                  { type: 'text', text: lastPart.text + partContent },
-                ];
-              } else {
-                // Create new text part (first chunk, may contain thoughtSignature)
-                reasoningParts = [...reasoningParts, { type: 'text', text: partContent }];
-              }
-              thinkingContent += partContent;
-            } else if (partType === 'image') {
-              // Image part - create new array to avoid mutation
-              const tempImage = `data:${mimeType};base64,${partContent}`;
-              const partIndex = reasoningParts.length;
-              const newPart: MessageContentPart = { type: 'image', image: tempImage };
-              reasoningParts = [...reasoningParts, newPart];
-
-              // Start upload task and update array when done
-              const uploadTask = getFileStoreState()
-                .uploadBase64FileWithProgress(tempImage)
-                .then((file) => {
-                  const url = file?.url || tempImage;
-                  // Replace the part at index by creating a new array
-                  const updatedParts = [...reasoningParts];
-                  updatedParts[partIndex] = { type: 'image', image: url };
-                  reasoningParts = updatedParts;
-                  return url;
-                })
-                .catch((error) => {
-                  console.error('[reasoning_part] Image upload failed:', error);
-                  return tempImage;
-                });
-
-              reasoningImageUploads.set(partIndex, uploadTask);
-            }
-
-            // Real-time update with display format
-            // Check if there are any image parts to determine if it's multimodal
-            const hasReasoningImages = reasoningParts.some((part) => part.type === 'image');
-
-            internal_dispatchMessage(
-              {
-                id: messageId,
-                type: 'updateMessage',
-                value: {
-                  reasoning: hasReasoningImages
-                    ? { tempDisplayContent: reasoningParts, isMultimodal: true }
-                    : { content: thinkingContent },
-                },
-              },
-              { operationId },
-            );
-            break;
-          }
-
-          case 'content_part': {
-            const { partType, content: partContent, mimeType } = chunk;
-
-            // End reasoning when content starts
-            if (!thinkingDuration && reasoningOperationId) {
-              thinkingDuration = Date.now() - thinkingStartAt;
-              get().completeOperation(reasoningOperationId);
-              reasoningOperationId = undefined;
-            }
-
-            if (partType === 'text') {
-              const lastPart = contentParts.at(-1);
-
-              // If last part is also text, merge chunks together
-              if (lastPart?.type === 'text') {
-                contentParts = [
-                  ...contentParts.slice(0, -1),
-                  { type: 'text', text: lastPart.text + partContent },
-                ];
-              } else {
-                // Create new text part (first chunk, may contain thoughtSignature)
-                contentParts = [...contentParts, { type: 'text', text: partContent }];
-              }
-              output += partContent;
-
-              // Clean speaker tag that may be reproduced by model in group chat
-              output = cleanSpeakerTag(output);
-            } else if (partType === 'image') {
-              // Image part - create new array to avoid mutation
-              const tempImage = `data:${mimeType};base64,${partContent}`;
-              const partIndex = contentParts.length;
-              const newPart: MessageContentPart = {
-                type: 'image',
-                image: tempImage,
-              };
-              contentParts = [...contentParts, newPart];
-
-              // Start upload task and update array when done
-              const uploadTask = getFileStoreState()
-                .uploadBase64FileWithProgress(tempImage)
-                .then((file) => {
-                  const url = file?.url || tempImage;
-                  // Replace the part at index by creating a new array
-                  const updatedParts = [...contentParts];
-                  updatedParts[partIndex] = {
-                    type: 'image',
-                    image: url,
-                  };
-                  contentParts = updatedParts;
-                  return url;
-                })
-                .catch((error) => {
-                  console.error('[content_part] Image upload failed:', error);
-                  return tempImage;
-                });
-
-              contentImageUploads.set(partIndex, uploadTask);
-            }
-
-            // Real-time update with display format
-            // Check if there are any image parts to determine if it's multimodal
-            const hasContentImages = contentParts.some((part) => part.type === 'image');
-
-            const hasReasoningImages = reasoningParts.some((part) => part.type === 'image');
-
-            internal_dispatchMessage(
-              {
-                id: messageId,
-                type: 'updateMessage',
-                value: {
-                  content: output,
-                  reasoning: hasReasoningImages
-                    ? {
-                        tempDisplayContent: reasoningParts,
-                        isMultimodal: true,
-                        duration: thinkingDuration,
-                      }
-                    : !!thinkingContent
-                      ? { content: thinkingContent, duration: thinkingDuration }
-                      : undefined,
-                  ...(hasContentImages && {
-                    metadata: {
-                      isMultimodal: true,
-                      tempDisplayContent: serializePartsForStorage(contentParts),
-                    },
-                  }),
-                },
-              },
-              { operationId },
-            );
-            break;
-          }
-
-          // is this message is just a tool call
-          case 'tool_calls': {
-            internal_toggleToolCallingStreaming(messageId, chunk.isAnimationActives);
-            throttledUpdateToolCalls(chunk.tool_calls);
-            isFunctionCall = true;
-
-            // Complete reasoning operation if it exists
-            if (!thinkingDuration && reasoningOperationId) {
-              thinkingDuration = Date.now() - thinkingStartAt;
-              get().completeOperation(reasoningOperationId);
-              reasoningOperationId = undefined;
-            }
-            break;
-          }
-
-          case 'stop': {
-            // Complete reasoning operation when receiving stop signal
-            if (!thinkingDuration && reasoningOperationId) {
-              thinkingDuration = Date.now() - thinkingStartAt;
-              get().completeOperation(reasoningOperationId);
-              reasoningOperationId = undefined;
-            }
-            break;
-          }
-        }
+        // Delegate chunk handling to StreamingHandler
+        handler.handleChunk(chunk as StreamChunk);
       },
     });
 
     log(
       '[internal_fetchAIChatMessage] completed: messageId=%s, finishType=%s, isFunctionCall=%s, operationId=%s',
       messageId,
-      finishType,
-      isFunctionCall,
+      handler.getFinishType(),
+      handler.getIsFunctionCall(),
       operationId,
     );
 
     return {
-      isFunctionCall,
-      traceId: msgTraceId,
-      content: output,
-      tools,
+      isFunctionCall: handler.getIsFunctionCall(),
+      traceId: handler.getTraceId(),
+      content: handler.getOutput(),
+      tools: handler.getTools(),
       usage: finalUsage,
-      tool_calls,
-      finishType,
+      tool_calls: finalToolCalls,
+      finishType: handler.getFinishType(),
     };
   },
 
