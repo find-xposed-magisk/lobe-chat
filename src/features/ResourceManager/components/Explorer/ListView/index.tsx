@@ -2,6 +2,7 @@
 
 import { Center, Checkbox, Flexbox } from '@lobehub/ui';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
+import debug from 'debug';
 import { type DragEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
@@ -16,6 +17,8 @@ import {
 import { sortFileList } from '@/app/[variants]/(main)/resource/features/store/selectors';
 
 import FileListItem, { FILE_DATE_WIDTH, FILE_SIZE_WIDTH } from './ListItem';
+
+const log = debug('resource-manager:list-view');
 
 const styles = createStaticStyles(({ css }) => ({
   dropZone: css`
@@ -159,7 +162,7 @@ const ListView = memo(() => {
 
   // Handle automatic load more when reaching the end
   const handleEndReached = useCallback(async () => {
-    console.log('handleEndReached', fileListHasMore, isLoadingMore);
+    log('handleEndReached', fileListHasMore, isLoadingMore);
 
     if (!fileListHasMore || isLoadingMore) return;
 
