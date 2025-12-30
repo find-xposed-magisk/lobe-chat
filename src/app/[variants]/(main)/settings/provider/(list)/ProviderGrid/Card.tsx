@@ -1,3 +1,4 @@
+import { BRANDING_PROVIDER } from '@lobechat/business-const';
 import { ProviderCombine, ProviderIcon } from '@lobehub/icons';
 import { Avatar, Flexbox, Skeleton, Text } from '@lobehub/ui';
 import { Divider } from 'antd';
@@ -5,6 +6,7 @@ import { cssVar, cx, useThemeMode } from 'antd-style';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { BrandingProviderCard } from '@/business/client/features/BrandingProviderCard';
 import { type AiProviderListItem } from '@/types/aiProvider';
 
 import EnableSwitch from './EnableSwitch';
@@ -30,9 +32,9 @@ const ProviderCard = memo<ProviderCardProps>(
         </Flexbox>
       );
 
-    /* ↓ cloud slot ↓ */
-
-    /* ↑ cloud slot ↑ */
+    if (id === BRANDING_PROVIDER) {
+      return <BrandingProviderCard />;
+    }
 
     return (
       <Flexbox className={cx(isDarkMode ? styles.containerDark : styles.containerLight)} gap={24}>

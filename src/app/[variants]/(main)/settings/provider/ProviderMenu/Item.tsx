@@ -1,9 +1,12 @@
+import { BRANDING_PROVIDER } from '@lobechat/business-const';
 import { ProviderIcon } from '@lobehub/icons';
 import { Avatar, Center } from '@lobehub/ui';
 import { Badge } from 'antd';
 import { memo, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 
+import { ProductLogo } from '@/components/Branding/ProductLogo';
+import { isCustomBranding } from '@/const/version';
 import NavItem from '@/features/NavPanel/components/NavItem';
 import { type AiProviderListItem, AiProviderSourceEnum } from '@/types/aiProvider';
 
@@ -35,6 +38,8 @@ const ProviderItem = memo<ProviderItemProps>(
           size={22}
           style={{ borderRadius: 4 }}
         />
+      ) : isCustomBranding && id === BRANDING_PROVIDER ? (
+        <ProductLogo size={24} type={'flat'} />
       ) : (
         <ProviderIcon
           provider={id}
