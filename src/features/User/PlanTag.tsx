@@ -1,3 +1,4 @@
+import { Plans } from '@lobechat/types';
 import { Tag } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
 import { memo } from 'react';
@@ -8,7 +9,6 @@ import urlJoin from 'url-join';
 import { OFFICIAL_URL } from '@/const/url';
 import { isDesktop } from '@/const/version';
 import PlanIcon from '@/features/PlanIcon';
-import { Plans } from '@/types/subscription';
 
 export enum PlanType {
   Preview = 'preview',

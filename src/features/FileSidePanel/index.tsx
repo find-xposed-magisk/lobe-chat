@@ -1,10 +1,12 @@
 'use client';
 
+import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import { DraggablePanel, DraggablePanelContainer, type DraggablePanelProps } from '@lobehub/ui';
 import { createStaticStyles, cssVar, useResponsive } from 'antd-style';
 import isEqual from 'fast-deep-equal';
 import { type PropsWithChildren, memo, useEffect, useState } from 'react';
 
+import UsageFooter from '@/business/client/features/FileSidePanel/UsageFooter';
 import { FOLDER_WIDTH } from '@/const/layoutTokens';
 import { useGlobalStore } from '@/store/global';
 import { systemStatusSelectors } from '@/store/global/selectors';
@@ -69,6 +71,7 @@ const FileSidePanel = memo<PropsWithChildren>(({ children }) => {
         }}
       >
         {children}
+        {ENABLE_BUSINESS_FEATURES && <UsageFooter />}
       </DraggablePanelContainer>
     </DraggablePanel>
   );

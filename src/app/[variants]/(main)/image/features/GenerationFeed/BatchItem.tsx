@@ -13,6 +13,7 @@ import { type RuntimeImageGenParams } from 'model-bank';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import useRenderBusinessBatchItem from '@/business/client/hooks/useRenderBusinessBatchItem';
 import APIKeyForm from '@/components/InvalidAPIKey';
 import { useImageStore } from '@/store/image';
 import { AsyncTaskErrorType } from '@/types/asyncTask';
@@ -71,6 +72,7 @@ export const GenerationBatchItem = memo<GenerationBatchItemProps>(({ batch }) =>
   const removeGenerationBatch = useImageStore((s) => s.removeGenerationBatch);
   const recreateImage = useImageStore((s) => s.recreateImage);
   const reuseSettings = useImageStore((s) => s.reuseSettings);
+  const { shouldRenderBusinessBatchItem, businessBatchItem } = useRenderBusinessBatchItem(batch);
 
   const time = useMemo(() => {
     return dayjs(batch.createdAt).format('YYYY-MM-DD HH:mm:ss');
@@ -131,6 +133,10 @@ export const GenerationBatchItem = memo<GenerationBatchItemProps>(({ batch }) =>
         provider={batch.provider}
       />
     );
+  }
+
+  if (shouldRenderBusinessBatchItem) {
+    return businessBatchItem;
   }
 
   // Calculate total number of reference images

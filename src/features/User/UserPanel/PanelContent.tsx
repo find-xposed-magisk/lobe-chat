@@ -1,9 +1,11 @@
+import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import { enableBetterAuth, enableNextAuth } from '@lobechat/const';
 import { Flexbox } from '@lobehub/ui';
 import { useRouter } from 'next/navigation';
 import { memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import BusinessPanelContent from '@/business/client/features/User/BusinessPanelContent';
 import BrandWatermark from '@/components/BrandWatermark';
 import Menu from '@/components/Menu';
 import { isDesktop } from '@/const/version';
@@ -60,7 +62,7 @@ const PanelContent = memo<{ closePopover: () => void }>(({ closePopover }) => {
       {isDesktop || isLoginWithAuth ? (
         <>
           <UserInfo avatarProps={{ clickable: false }} />
-
+          {ENABLE_BUSINESS_FEATURES && <BusinessPanelContent />}
           <Link style={{ color: 'inherit' }} to={'/settings/stats'}>
             <DataStatistics />
           </Link>

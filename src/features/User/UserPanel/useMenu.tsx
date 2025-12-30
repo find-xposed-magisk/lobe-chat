@@ -8,6 +8,7 @@ import { type PropsWithChildren, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
+import useBusinessMenuItems from '@/business/client/features/User/useBusinessMenuItems';
 import type { MenuProps } from '@/components/Menu';
 import { DEFAULT_DESKTOP_HOTKEY_CONFIG } from '@/const/desktop';
 import { OFFICIAL_URL } from '@/const/url';
@@ -50,6 +51,7 @@ export const useMenu = () => {
     authSelectors.isLogin(s),
     authSelectors.isLoginWithAuth(s),
   ]);
+  const businessMenuItems = useBusinessMenuItems(isLogin);
 
   const settings: MenuProps['items'] = [
     {
@@ -67,10 +69,6 @@ export const useMenu = () => {
       ),
     },
   ];
-
-  /* ↓ cloud slot ↓ */
-
-  /* ↑ cloud slot ↑ */
 
   const pwa: MenuProps['items'] = [
     {
@@ -119,9 +117,7 @@ export const useMenu = () => {
     },
 
     ...(isLogin ? settings : []),
-    /* ↓ cloud slot ↓ */
-
-    /* ↑ cloud slot ↑ */
+    ...businessMenuItems,
     ...(canInstall ? pwa : []),
     ...data,
     ...(!hideDocs ? helps : []),

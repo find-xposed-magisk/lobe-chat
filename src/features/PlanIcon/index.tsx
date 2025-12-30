@@ -1,10 +1,9 @@
+import { Plans } from '@lobechat/types';
 import { Center, Flexbox, Icon, Tag } from '@lobehub/ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { Atom, Box, CircleSlash, Sparkle, Zap } from 'lucide-react';
 import { type CSSProperties, type MouseEvent, memo } from 'react';
 import { useTranslation } from 'react-i18next';
-
-import { Plans } from '@/types/subscription';
 
 export const themes = {
   [Plans.Free]: {
