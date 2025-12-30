@@ -16,6 +16,7 @@ const ChatItem = memo<ChatItemProps>(
   ({
     onAvatarClick,
     avatarProps,
+    customAvatarRender,
     actions,
     className,
     loading,
@@ -71,16 +72,19 @@ const ChatItem = memo<ChatItemProps>(
           direction={isUser ? 'horizontal-reverse' : 'horizontal'}
           gap={8}
         >
-          {showAvatar && (
-            <Avatar
-              alt={avatarProps?.alt || avatar.title || 'avatar'}
-              loading={loading}
-              onClick={onAvatarClick}
-              shape={'square'}
-              {...avatarProps}
-              avatar={avatar}
-            />
-          )}
+          {showAvatar &&
+            (customAvatarRender ? (
+              customAvatarRender(avatar)
+            ) : (
+              <Avatar
+                alt={avatarProps?.alt || avatar.title || 'avatar'}
+                loading={loading}
+                onClick={onAvatarClick}
+                shape={'square'}
+                {...avatarProps}
+                avatar={avatar}
+              />
+            ))}
           <Title avatar={avatar} showTitle={showTitle} time={time} titleAddon={titleAddon} />
         </Flexbox>
         <Flexbox

@@ -10,6 +10,7 @@ export interface ChatItemProps extends Omit<FlexboxProps, 'children' | 'onChange
   avatarProps?: AvatarProps;
   belowMessage?: ReactNode;
   children?: ReactNode;
+  customAvatarRender?: (avatar: MetaData) => ReactNode;
   customErrorRender?: (error: AlertProps) => ReactNode;
   /**
    * @description Whether the chat item is disabled

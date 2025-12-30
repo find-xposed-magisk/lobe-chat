@@ -102,6 +102,7 @@ const VideoItem = memo<SearchResultProps>(
                       key: engine,
                       title: engine,
                     }))}
+                    shape={'circle'}
                     size={20}
                   />
                   <Flexbox className={styles.title}>{title}</Flexbox>

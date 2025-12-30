@@ -1,11 +1,16 @@
 'use client';
 
+import { Tag } from '@lobehub/ui';
 import isEqual from 'fast-deep-equal';
 import { type MouseEventHandler, memo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { MESSAGE_ACTION_BAR_PORTAL_ATTRIBUTES } from '@/const/messageActionPortal';
 import { ChatItem } from '@/features/Conversation/ChatItem';
 import { useNewScreen } from '@/features/Conversation/Messages/components/useNewScreen';
+import GroupAvatar from '@/features/GroupAvatar';
+import { useAgentGroupStore } from '@/store/agentGroup';
+import { agentGroupSelectors } from '@/store/agentGroup/selectors';
 
 import { useAgentMeta } from '../../hooks';
 import { dataSelectors, messageStateSelectors, useConversationStore } from '../../store';
@@ -31,11 +36,22 @@ interface GroupMessageProps {
 }
 
 const GroupMessage = memo<GroupMessageProps>(({ id, index, disableEditing, isLatestItem }) => {
+  const { t } = useTranslation('chat');
+
   // Get message and actionsConfig from ConversationStore
   const item = useConversationStore(dataSelectors.getDisplayMessageById(id), isEqual)!;
 
   const { agentId, usage, createdAt, children, performance, model, provider, branch } = item;
   const avatar = useAgentMeta(agentId);
+
+  // Get group member avatars for GroupAvatar
+  const memberAvatars = useAgentGroupStore(
+    (s) => agentGroupSelectors.currentGroupMemberAvatars(s),
+    isEqual,
+  );
+
+  // Get group meta for title
+  const groupMeta = useAgentGroupStore(agentGroupSelectors.currentGroupMeta);
 
   // Get editing state from ConversationStore
   const creating = useConversationStore(messageStateSelectors.isMessageCreating(id));
@@ -75,12 +91,17 @@ const GroupMessage = memo<GroupMessageProps>(({ id, index, disableEditing, isLat
           </>
         )
       }
-      avatar={avatar}
+      avatar={{
+        ...avatar,
+        title: groupMeta.title,
+      }}
+      customAvatarRender={() => <GroupAvatar avatars={memberAvatars} />}
       newScreen={newScreen}
       onMouseEnter={onMouseEnter}
       placement={'left'}
       showTitle
       time={createdAt}
+      titleAddon={<Tag>{t('supervisor.label')}</Tag>}
     >
       {children && children.length > 0 && (
         <Group blocks={children} disableEditing={disableEditing} id={id} messageIndex={index} />

@@ -78,7 +78,7 @@ export const BroadcastInspector = memo<BuiltinInspectorProps<BroadcastParams>>(
         <span className={styles.title}>
           {t('builtins.lobe-group-management.inspector.broadcast.title')}
         </span>
-        {avatarItems.length > 0 && <Avatar.Group items={avatarItems} shape={'square'} size={24} />}
+        {avatarItems.length > 0 && <Avatar.Group items={avatarItems} shape={'circle'} size={24} />}
       </Flexbox>
     );
   },
