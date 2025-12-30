@@ -210,7 +210,12 @@ describe('createAuthSlice', () => {
       const originalLocation = window.location;
       Object.defineProperty(window, 'location', {
         configurable: true,
-        value: { ...originalLocation, href: '', toString: () => 'http://localhost/chat' },
+        value: {
+          ...originalLocation,
+          href: '',
+          pathname: '/chat',
+          toString: () => 'http://localhost/chat',
+        },
         writable: true,
       });
 
@@ -234,6 +239,18 @@ describe('createAuthSlice', () => {
       enableNextAuth.value = true;
       useUserStore.setState({ oAuthSSOProviders: ['github'] });
 
+      const originalLocation = window.location;
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: {
+          ...originalLocation,
+          href: '',
+          pathname: '/chat',
+          toString: () => 'http://localhost/chat',
+        },
+        writable: true,
+      });
+
       const { result } = renderHook(() => useUserStore());
 
       await act(async () => {
@@ -243,6 +260,12 @@ describe('createAuthSlice', () => {
       const { signIn } = await import('next-auth/react');
 
       expect(signIn).toHaveBeenCalledWith('github');
+
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: originalLocation,
+        writable: true,
+      });
     });
   });
 

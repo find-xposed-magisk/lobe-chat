@@ -446,10 +446,16 @@ describe('Generation Actions', () => {
 
       const store = createStore({ context });
 
-      // Set displayMessages after store creation
+      // Set displayMessages and dbMessages after store creation
+      // dbMessages is used to calculate children count for branch index
       act(() => {
         store.setState({
           displayMessages: [{ id: 'msg-1', role: 'user', content: 'Hello', branch: { count: 2 } }],
+          dbMessages: [
+            { id: 'msg-1', role: 'user', content: 'Hello' },
+            { id: 'child-1', role: 'assistant', content: 'Response 1', parentId: 'msg-1' },
+            { id: 'child-2', role: 'assistant', content: 'Response 2', parentId: 'msg-1' },
+          ],
         } as any);
       });
 
@@ -464,6 +470,7 @@ describe('Generation Actions', () => {
       });
 
       // Should pass operationId to switchMessageBranch
+      // nextBranchIndex = childrenCount = 2 (two assistant messages with parentId: 'msg-1')
       expect(mockSwitchMessageBranch).toHaveBeenCalledWith('msg-1', 2, {
         operationId: 'test-op-id',
       });
