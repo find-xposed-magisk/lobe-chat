@@ -7,9 +7,9 @@ import {
 import { isDesktop } from '@/const/version';
 import { ErrorBoundary, type RouteConfig, dynamicElement, redirectElement } from '@/utils/router';
 
+import DesktopOnboarding from '../(desktop)/desktop-onboarding';
 import DesktopMainLayout from '../(main)/_layout';
 import DesktopChatLayout from '../(main)/chat/_layout';
-import DesktopOnboarding from '../(main)/desktop-onboarding';
 import DesktopGroupLayout from '../(main)/group/_layout';
 import DesktopImageLayout from '../(main)/image/_layout';
 import DesktopMemoryLayout from '../(main)/memory/_layout';
