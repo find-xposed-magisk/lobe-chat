@@ -53,7 +53,7 @@ const TelemetryStep = memo<TelemetryStepProps>(({ onNext }) => {
             cursorCharacter={<LoadingDots size={28} variant={'pulse'} />}
             cursorFade={false}
             deletePauseDuration={1000}
-            deletingSpeed={44}
+            deletingSpeed={32}
             hideCursorWhileTyping={'afterTyping'}
             pauseDuration={16_000}
             sentences={[
@@ -61,7 +61,7 @@ const TelemetryStep = memo<TelemetryStepProps>(({ onNext }) => {
               t('telemetry.title2'),
               t('telemetry.title3'),
             ]}
-            typingSpeed={88}
+            typingSpeed={64}
           />
         </Text>
         <Text as={'p'}>{t('telemetry.desc')}</Text>

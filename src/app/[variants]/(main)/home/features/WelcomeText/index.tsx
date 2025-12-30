@@ -26,11 +26,11 @@ const WelcomeText = memo(() => {
         cursorCharacter={<LoadingDots color={cssVar.colorText} size={20} variant={'pulse'} />}
         cursorFade={false}
         deletePauseDuration={1000}
-        deletingSpeed={44}
+        deletingSpeed={32}
         hideCursorWhileTyping={'afterTyping'}
         pauseDuration={16_000}
         sentences={sentences}
-        typingSpeed={88}
+        typingSpeed={64}
       />
     </Center>
   );

@@ -19,11 +19,11 @@ const LobeMessage = memo<LobeMessageProps>(({ sentences, fontSize = 24, ...rest 
           cursorCharacter={<LoadingDots size={fontSize} variant={'pulse'} />}
           cursorFade={false}
           deletePauseDuration={1000}
-          deletingSpeed={44}
+          deletingSpeed={32}
           hideCursorWhileTyping={'afterTyping'}
           pauseDuration={16_000}
           sentences={sentences}
-          typingSpeed={88}
+          typingSpeed={64}
         />
       </Text>
     </Flexbox>
