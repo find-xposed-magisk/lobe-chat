@@ -77,7 +77,7 @@ export const GTDManifest: BuiltinToolManifest = {
             type: 'array',
           },
         },
-        required: ['items'],
+        required: ['adds'],
         type: 'object',
       },
     },

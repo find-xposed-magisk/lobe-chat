@@ -9,16 +9,11 @@ import { useTranslation } from 'react-i18next';
 
 import { useAgentGroupStore } from '@/store/agentGroup';
 import { agentGroupSelectors } from '@/store/agentGroup/selectors';
-import { shinyTextStyles } from '@/styles';
+import { highlightTextStyles, shinyTextStyles } from '@/styles';
 
 import type { SpeakParams } from '../../../types';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
-  agentName: css`
-    padding-block-end: 1px;
-    color: ${cssVar.colorText};
-    background: linear-gradient(to top, ${cssVar.colorPrimaryBg} 40%, transparent 40%);
-  `,
   root: css`
     overflow: hidden;
     display: flex;
@@ -76,7 +71,7 @@ export const SpeakInspector = memo<BuiltinInspectorProps<SpeakParams>>(
             title={agent.title || undefined}
           />
         )}
-        {agentName && <span className={styles.agentName}>{agentName}</span>}
+        {agentName && <span className={highlightTextStyles.primary}>{agentName}</span>}
       </Flexbox>
     );
   },

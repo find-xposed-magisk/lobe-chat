@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReplaceTextArgs } from '@lobechat/editor-runtime';
 import type { BuiltinInspectorProps } from '@lobechat/types';
 import { Icon } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
@@ -7,9 +8,7 @@ import { ArrowRight } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { shinyTextStyles } from '@/styles';
-
-import type { ReplaceTextArgs } from '@lobechat/editor-runtime';
+import { highlightTextStyles, shinyTextStyles } from '@/styles';
 
 import type { ReplaceTextState } from '../../../types';
 
@@ -21,11 +20,6 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
   from: css`
     color: ${cssVar.colorTextSecondary};
     text-decoration: line-through;
-  `,
-  highlight: css`
-    padding-block-end: 1px;
-    color: ${cssVar.colorText};
-    background: linear-gradient(to top, ${cssVar.gold3} 40%, transparent 40%);
   `,
   root: css`
     overflow: hidden;
@@ -71,7 +65,7 @@ export const ReplaceTextInspector = memo<BuiltinInspectorProps<ReplaceTextArgs, 
           <>
             <span className={styles.from}>{from}</span>
             <Icon className={styles.arrow} icon={ArrowRight} size={12} />
-            <span className={styles.highlight}>
+            <span className={highlightTextStyles.gold}>
               {to || t('builtins.lobe-page-agent.apiName.replaceText.empty')}
             </span>
             {count > 0 && (

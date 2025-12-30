@@ -5,16 +5,11 @@ import { createStaticStyles, cx } from 'antd-style';
 import { memo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { shinyTextStyles } from '@/styles';
+import { highlightTextStyles, shinyTextStyles } from '@/styles';
 
 import type { ExecTaskParams, ExecTaskState } from '../../../types';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
-  description: css`
-    padding-block-end: 1px;
-    color: ${cssVar.colorText};
-    background: linear-gradient(to top, ${cssVar.colorInfoBg} 40%, transparent 40%);
-  `,
   root: css`
     overflow: hidden;
     display: -webkit-box;
@@ -43,7 +38,7 @@ export const ExecTaskInspector = memo<BuiltinInspectorProps<ExecTaskParams, Exec
       <div className={cx(styles.root, isArgumentsStreaming && shinyTextStyles.shinyText)}>
         {description ? (
           <Trans
-            components={{ desc: <span className={styles.description} /> }}
+            components={{ desc: <span className={highlightTextStyles.primary} /> }}
             i18nKey="builtins.lobe-gtd.apiName.execTask.result"
             ns="plugin"
             values={{ description }}

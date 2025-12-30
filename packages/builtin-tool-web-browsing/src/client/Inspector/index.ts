@@ -11,5 +11,3 @@ export const WebBrowsingInspectors = {
   [WebBrowsingApiName.crawlSinglePage]: CrawlSinglePageInspector,
   [WebBrowsingApiName.search]: SearchInspector,
 };
-
-export { CrawlMultiPagesInspector, CrawlSinglePageInspector, SearchInspector };
