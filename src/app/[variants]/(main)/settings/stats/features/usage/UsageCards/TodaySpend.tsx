@@ -1,6 +1,5 @@
 'use client';
 
-import { cssVar } from 'antd-style';
 import dayjs from 'dayjs';
 import isToday from 'dayjs/plugin/isToday';
 import isYesterday from 'dayjs/plugin/isYesterday';
@@ -14,7 +13,7 @@ import TitleWithPercentage from '@/components/StatisticCard/TitleWithPercentage'
 import { type UsageLog } from '@/types/usage/usageRecord';
 import { formatNumber } from '@/utils/format';
 
-import { type UsageChartProps } from '../../Client';
+import { type UsageChartProps } from '../../../types';
 
 dayjs.extend(utc);
 dayjs.extend(isToday);
@@ -44,7 +43,6 @@ const TodaySpend = memo<UsageChartProps>(({ data, isLoading }) => {
 
   return (
     <StatisticCard
-      highlight={cssVar.green}
       loading={isLoading}
       statistic={{
         description: <Statistic title={t('usage.cards.today.yesterday')} value={yesterday} />,

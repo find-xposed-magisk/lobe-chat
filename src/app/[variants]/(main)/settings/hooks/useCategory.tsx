@@ -1,7 +1,6 @@
 import { isDesktop } from '@lobechat/const';
 import { Avatar } from '@lobehub/ui';
 import {
-  BadgeCentIcon,
   Brain,
   BrainCircuit,
   ChartColumnBigIcon,
@@ -79,11 +78,6 @@ export const useCategory = () => {
         icon: KeyIcon,
         key: SettingsTabs.APIKey,
         label: tAuth('tab.apikey'),
-      },
-      {
-        icon: BadgeCentIcon,
-        key: SettingsTabs.Usage,
-        label: tAuth('tab.usage'),
       },
     ].filter(Boolean) as CategoryItem[];
 

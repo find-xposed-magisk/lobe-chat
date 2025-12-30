@@ -1,5 +1,5 @@
 import { BarList } from '@lobehub/charts';
-import { ActionIcon, Flexbox, FormGroup, Icon, Modal } from '@lobehub/ui';
+import { ActionIcon, Icon, Modal } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
 import { MaximizeIcon, MessageSquareIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -8,11 +8,12 @@ import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
-import { FORM_STYLE } from '@/const/layoutTokens';
 import { INBOX_SESSION_ID } from '@/const/session';
 import { useClientDataSWR } from '@/libs/swr';
 import { topicService } from '@/services/topic';
 import { type TopicRankItem } from '@/types/topic';
+
+import StatsFormGroup from '../components/StatsFormGroup';
 
 export const TopicsRank = memo<{ mobile?: boolean }>(({ mobile }) => {
   const [open, setOpen] = useState(false);
@@ -47,7 +48,7 @@ export const TopicsRank = memo<{ mobile?: boolean }>(({ mobile }) => {
 
   return (
     <>
-      <FormGroup
+      <StatsFormGroup
         extra={
           showExtra && (
             <ActionIcon
@@ -57,25 +58,22 @@ export const TopicsRank = memo<{ mobile?: boolean }>(({ mobile }) => {
             />
           )
         }
-        style={FORM_STYLE.style}
+        fontSize={16}
         title={t('stats.topicsRank.title')}
-        variant={'borderless'}
       >
-        <Flexbox paddingBlock={16}>
-          <BarList
-            data={data?.slice(0, 5).map((item) => mapData(item)) || []}
-            height={220}
-            leftLabel={t('stats.topicsRank.left')}
-            loading={isLoading || !data}
-            noDataText={{
-              desc: t('stats.empty.desc'),
-              title: t('stats.empty.title'),
-            }}
-            onValueChange={(item) => navigate(item.link)}
-            rightLabel={t('stats.topicsRank.right')}
-          />
-        </Flexbox>
-      </FormGroup>
+        <BarList
+          data={data?.slice(0, 5).map((item) => mapData(item)) || []}
+          height={220}
+          leftLabel={t('stats.topicsRank.left')}
+          loading={isLoading || !data}
+          noDataText={{
+            desc: t('stats.empty.desc'),
+            title: t('stats.empty.title'),
+          }}
+          onValueChange={(item) => navigate(item.link)}
+          rightLabel={t('stats.topicsRank.right')}
+        />
+      </StatsFormGroup>
       {showExtra && (
         <Modal
           footer={null}

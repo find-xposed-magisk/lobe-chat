@@ -1,14 +1,15 @@
 import { type ModelRankItem } from '@lobechat/types';
 import { BarList } from '@lobehub/charts';
 import { ModelIcon } from '@lobehub/icons';
-import { ActionIcon, Flexbox, FormGroup, Modal } from '@lobehub/ui';
+import { ActionIcon, Modal } from '@lobehub/ui';
 import { MaximizeIcon } from 'lucide-react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { FORM_STYLE } from '@/const/layoutTokens';
 import { useClientDataSWR } from '@/libs/swr';
 import { messageService } from '@/services/message';
+
+import StatsFormGroup from '../components/StatsFormGroup';
 
 export const TopicsRank = memo(() => {
   const [open, setOpen] = useState(false);
@@ -31,7 +32,7 @@ export const TopicsRank = memo(() => {
 
   return (
     <>
-      <FormGroup
+      <StatsFormGroup
         extra={
           showExtra ? (
             <ActionIcon
@@ -41,24 +42,21 @@ export const TopicsRank = memo(() => {
             />
           ) : undefined
         }
-        style={FORM_STYLE.style}
+        fontSize={16}
         title={t('stats.modelsRank.title')}
-        variant={'borderless'}
       >
-        <Flexbox horizontal paddingBlock={16}>
-          <BarList
-            data={data?.slice(0, 5).map((item) => mapData(item)) || []}
-            height={220}
-            leftLabel={t('stats.modelsRank.left')}
-            loading={isLoading || !data}
-            noDataText={{
-              desc: t('stats.empty.desc'),
-              title: t('stats.empty.title'),
-            }}
-            rightLabel={t('stats.modelsRank.right')}
-          />
-        </Flexbox>
-      </FormGroup>
+        <BarList
+          data={data?.slice(0, 5).map((item) => mapData(item)) || []}
+          height={220}
+          leftLabel={t('stats.modelsRank.left')}
+          loading={isLoading || !data}
+          noDataText={{
+            desc: t('stats.empty.desc'),
+            title: t('stats.empty.title'),
+          }}
+          rightLabel={t('stats.modelsRank.right')}
+        />
+      </StatsFormGroup>
       {showExtra && (
         <Modal
           footer={null}

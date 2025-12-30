@@ -9,7 +9,7 @@ import InlineTable from '@/components/InlineTable';
 import { type UsageLog } from '@/types/usage/usageRecord';
 import { formatPrice } from '@/utils/format';
 
-import { GroupBy, type UsageChartProps } from '../../../Client';
+import { GroupBy, type UsageChartProps } from '../../../../types';
 
 interface WeightGroup {
   id: string;

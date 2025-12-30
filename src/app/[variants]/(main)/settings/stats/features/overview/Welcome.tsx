@@ -11,7 +11,7 @@ import { useUserStore } from '@/store/user';
 import { userProfileSelectors } from '@/store/user/selectors';
 import { formatIntergerNumber } from '@/utils/format';
 
-import TimeLabel from './TimeLabel';
+import TimeLabel from '../components/TimeLabel';
 
 const formatEnglishNumber = (number: number) => {
   if (number === 1) return '1st';
@@ -42,28 +42,26 @@ const Welcome = memo<{ mobile?: boolean }>(({ mobile }) => {
           fontWeight: 500,
         }}
       >
-        <div>
-          <Trans
-            components={{
-              span:
-                isLoading || !data ? (
-                  <Skeleton.Button active style={{ height: 24, minWidth: 40, width: 40 }} />
-                ) : (
-                  <span style={{ fontWeight: 'bold' }} />
-                ),
-            }}
-            i18nKey="stats.welcome"
-            ns={'auth'}
-            values={{
-              appName: BRANDING_NAME,
-              days:
-                i18n.language === 'en-US'
-                  ? formatEnglishNumber(Number(data?.duration || 1))
-                  : formatIntergerNumber(Number(data?.duration || 1)),
-              name: nickname || username,
-            }}
-          />
-        </div>
+        <Trans
+          components={{
+            span:
+              isLoading || !data ? (
+                <Skeleton.Button active style={{ height: 24, minWidth: 40, width: 40 }} />
+              ) : (
+                <span style={{ fontWeight: 'bold' }} />
+              ),
+          }}
+          i18nKey="stats.welcome"
+          ns={'auth'}
+          values={{
+            appName: BRANDING_NAME,
+            days:
+              i18n.language === 'en-US'
+                ? formatEnglishNumber(Number(data?.duration || 1))
+                : formatIntergerNumber(Number(data?.duration || 1)),
+            name: nickname || username,
+          }}
+        />
         {!mobile && <FluentEmoji emoji={'🫶'} size={32} type={'anim'} />}
       </Flexbox>
       <Flexbox

@@ -1,6 +1,5 @@
 'use client';
 
-import { cssVar } from 'antd-style';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,7 +9,7 @@ import TitleWithPercentage from '@/components/StatisticCard/TitleWithPercentage'
 import { type UsageLog } from '@/types/usage/usageRecord';
 import { formatNumber } from '@/utils/format';
 
-import { type UsageChartProps } from '../../Client';
+import { type UsageChartProps } from '../../../types';
 
 const computeMonth = (
   data: UsageLog[],
@@ -36,7 +35,6 @@ const MonthSpend = memo<UsageChartProps>(({ data, isLoading }) => {
 
   return (
     <StatisticCard
-      highlight={cssVar.blue}
       loading={isLoading}
       statistic={{
         description: <Statistic title={t('usage.cards.month.modelCalls')} value={calls} />,

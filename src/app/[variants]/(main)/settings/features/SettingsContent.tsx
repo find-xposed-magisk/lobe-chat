@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { Fragment } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import Loading from '@/components/Loading/BrandTextLoading';
 import NavHeader from '@/features/NavHeader';
@@ -52,9 +53,6 @@ const componentMap = {
   [SettingsTabs.Security]: dynamic(() => import('../security'), {
     loading: () => <Loading debugId="Settings > Security" />,
   }),
-  [SettingsTabs.Usage]: dynamic(() => import('../usage'), {
-    loading: () => <Loading debugId="Settings > Usage" />,
-  }),
 };
 
 interface SettingsContentProps {
@@ -63,6 +61,9 @@ interface SettingsContentProps {
 }
 
 const SettingsContent = ({ mobile, activeTab }: SettingsContentProps) => {
+  const location = useLocation();
+  const isStats = location.pathname.startsWith('/settings/stats');
+
   const renderComponent = (tab: string) => {
     const Component = componentMap[tab as keyof typeof componentMap] || componentMap.common;
     if (!Component) return null;
@@ -76,7 +77,6 @@ const SettingsContent = ({ mobile, activeTab }: SettingsContentProps) => {
         SettingsTabs.Profile,
         SettingsTabs.Stats,
         SettingsTabs.Security,
-        SettingsTabs.Usage,
       ].includes(tab as any)
     ) {
       componentProps.mobile = mobile;
@@ -99,7 +99,11 @@ const SettingsContent = ({ mobile, activeTab }: SettingsContentProps) => {
         return (
           <Fragment key={tabKey}>
             <NavHeader />
-            <SettingContainer maxWidth={1024} padding={24}>
+            <SettingContainer
+              maxWidth={1024}
+              padding={24}
+              variant={isStats ? 'secondary' : undefined}
+            >
               {content}
             </SettingContainer>
           </Fragment>

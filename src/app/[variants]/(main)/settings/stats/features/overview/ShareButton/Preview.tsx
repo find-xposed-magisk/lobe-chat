@@ -1,13 +1,13 @@
 import { OFFICIAL_URL, imageUrl } from '@lobechat/const';
-import { Center, Flexbox, Grid , lobeStaticStylish } from '@lobehub/ui';
-import { createStaticStyles, cx , responsive } from 'antd-style';
+import { Center, Flexbox, Grid, lobeStaticStylish } from '@lobehub/ui';
+import { createStaticStyles, cx, responsive } from 'antd-style';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ProductLogo } from '@/components/Branding';
 import UserAvatar from '@/features/User/UserAvatar';
 
-import AiHeatmaps from '../AiHeatmaps';
+import AiHeatmaps from '../../visualization/AiHeatmaps';
 import TotalMessages from '../TotalMessages';
 import TotalWords from '../TotalWords';
 
@@ -100,6 +100,7 @@ const Preview = memo(() => {
           <Flexbox align={'center'} horizontal>
             <UserAvatar
               className={styles.avatar}
+              shape={'circle'}
               size={48}
               style={{
                 marginRight: -12,

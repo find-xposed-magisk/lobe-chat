@@ -5,7 +5,6 @@ import {
 import { Text } from '@lobehub/ui';
 import { Spin } from 'antd';
 import { createStaticStyles, cx, responsive, useResponsive, useThemeMode } from 'antd-style';
-import { adjustHue } from 'polished';
 import { type CSSProperties, memo, useMemo } from 'react';
 
 const prefixCls = 'ant';
@@ -49,7 +48,7 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
         position: relative;
         width: 100%;
         padding-block-end: 16px;
-        padding-inline: 24px;
+        padding-inline: 16px;
         .${prefixCls}-pro-statistic-card-chart {
           position: relative;
           width: 100%;
@@ -68,12 +67,12 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
 
     .${prefixCls}-pro-card-loading-content {
       padding-block: 16px;
-      padding-inline: 24px;
+      padding-inline: 16px;
     }
 
     .${prefixCls}-pro-card-header {
-      padding-block-start: 16px;
-      padding-inline: 24px;
+      padding-block-start: 8px;
+      padding-inline: 16px;
 
       .${prefixCls}-pro-card-title {
         line-height: 32px;
@@ -188,7 +187,7 @@ const StatisticCard = memo<StatisticCardProps>(
       () =>
         highlight
           ? ({
-              '--highlight-adjusted': adjustHue(-30, highlight),
+              '--highlight-adjusted': highlight,
               '--highlight-color': highlight,
             } as CSSProperties)
           : {},

@@ -10,7 +10,7 @@ import TitleWithPercentage from '@/components/StatisticCard/TitleWithPercentage'
 import { type UsageLog } from '@/types/usage/usageRecord';
 import { formatNumber } from '@/utils/format';
 
-import { GroupBy, type UsageChartProps } from '../../../Client';
+import { GroupBy, type UsageChartProps } from '../../../../types';
 import ModelTable from './ModelTable';
 
 const computeList = (data: UsageLog[], groupBy: GroupBy): string[] => {

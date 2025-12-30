@@ -1,16 +1,17 @@
 import { ProviderIcon } from '@lobehub/icons';
 import { Flexbox, Tag, Text } from '@lobehub/ui';
-import { Table, type TableColumnType } from 'antd';
+import { type TableColumnType } from 'antd';
 import { cssVar } from 'antd-style';
 import { memo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import InlineTable from '@/components/InlineTable';
 import { parseAsInteger, useQueryParam } from '@/hooks/useQueryParam';
 import { useClientDataSWR } from '@/libs/swr';
 import { usageService } from '@/services/usage';
 import { formatDate, formatNumber } from '@/utils/format';
 
-import { type UsageChartProps } from '../Client';
+import { type UsageChartProps } from '../../types';
 
 const UsageTable = memo<UsageChartProps>(({ dateStrings }) => {
   const { t } = useTranslation('auth');
@@ -115,10 +116,9 @@ const UsageTable = memo<UsageChartProps>(({ dateStrings }) => {
   ];
 
   return (
-    <Table
+    <InlineTable
       columns={columns}
       dataSource={data}
-      key="id"
       loading={isLoading}
       pagination={{
         current: currentPage,
@@ -131,6 +131,7 @@ const UsageTable = memo<UsageChartProps>(({ dateStrings }) => {
         },
         pageSize,
       }}
+      rowKey={(record) => record.id || `${record.model}-${record.createdAt}-${record.provider}`}
       size="small"
     />
   );

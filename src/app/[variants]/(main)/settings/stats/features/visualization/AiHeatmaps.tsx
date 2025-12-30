@@ -1,14 +1,15 @@
 import { Heatmaps, type HeatmapsProps } from '@lobehub/charts';
-import { Flexbox, FormGroup, Icon, Tag } from '@lobehub/ui';
+import { Flexbox, Icon, Tag } from '@lobehub/ui';
 import { cssVar, useTheme } from 'antd-style';
 import { FlameIcon } from 'lucide-react';
 import { readableColor } from 'polished';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { FORM_STYLE } from '@/const/layoutTokens';
 import { useClientDataSWR } from '@/libs/swr';
 import { messageService } from '@/services/message';
+
+import StatsFormGroup from '../components/StatsFormGroup';
 
 const AiHeatmaps = memo<
   Omit<HeatmapsProps, 'data' | 'ref'> & { inShare?: boolean; mobile?: boolean }
@@ -114,14 +115,9 @@ const AiHeatmaps = memo<
   }
 
   return (
-    <FormGroup
-      extra={tags}
-      style={FORM_STYLE.style}
-      title={t('stats.lastYearActivity')}
-      variant={'borderless'}
-    >
-      <Flexbox paddingBlock={24}>{content}</Flexbox>
-    </FormGroup>
+    <StatsFormGroup extra={tags} fontSize={16} title={t('stats.lastYearActivity')}>
+      {content}
+    </StatsFormGroup>
   );
 });
 

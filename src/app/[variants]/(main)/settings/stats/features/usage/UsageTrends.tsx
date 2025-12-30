@@ -1,14 +1,14 @@
 import { type BarChartProps } from '@lobehub/charts';
-import { Segmented } from '@lobehub/ui';
+import { Segmented, Skeleton } from '@lobehub/ui';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import StatisticCard from '@/components/StatisticCard';
 import { type UsageLog } from '@/types/usage/usageRecord';
 import { formatNumber } from '@/utils/format';
 
-import { GroupBy, type UsageChartProps } from '../Client';
-import { UsageBarChart } from './components/UsageBarChart';
+import { GroupBy, type UsageChartProps } from '../../types';
+import StatsFormGroup from '../components/StatsFormGroup';
+import { UsageBarChart } from '../components/UsageBarChart';
 
 const groupByType = (
   data: UsageLog[],
@@ -79,16 +79,17 @@ const UsageTrends = memo<UsageChartProps>(({ isLoading, data, groupBy }) => {
     'token',
     groupBy || GroupBy.Model,
   );
+
+  const charts =
+    data &&
+    (type === ShowType.Spend ? (
+      <UsageBarChart categories={spendCate} data={spendData} index="day" />
+    ) : (
+      <UsageBarChart categories={tokenCate} data={tokenData} index="day" />
+    ));
+
   return (
-    <StatisticCard
-      chart={
-        data &&
-        (type === ShowType.Spend ? (
-          <UsageBarChart categories={spendCate} data={spendData} index="day" />
-        ) : (
-          <UsageBarChart categories={tokenCate} data={tokenData} index="day" />
-        ))
-      }
+    <StatsFormGroup
       extra={
         <Segmented
           onChange={(value) => setType(value as ShowType)}
@@ -99,8 +100,9 @@ const UsageTrends = memo<UsageChartProps>(({ isLoading, data, groupBy }) => {
           value={type}
         />
       }
-      loading={isLoading}
-    />
+    >
+      {isLoading ? <Skeleton.Block height={280} /> : charts}
+    </StatsFormGroup>
   );
 });
 
