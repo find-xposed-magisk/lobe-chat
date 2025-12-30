@@ -81,10 +81,12 @@ export const createOnboardingSlice: StateCreator<
 
     while (get().stepUpdateQueue.length > 0) {
       const step = get().stepUpdateQueue[0];
+      const finishedAt = onboardingSelectors.finishedAt(get());
 
       try {
         await userService.updateOnboarding({
           currentStep: step,
+          finishedAt,
           version: CURRENT_ONBOARDING_VERSION,
         });
       } catch (error) {
@@ -125,8 +127,10 @@ export const createOnboardingSlice: StateCreator<
     // Optimistic update
     set({ localOnboardingStep: step }, false, 'setOnboardingStep/optimistic');
 
+    const finishedAt = onboardingSelectors.finishedAt(get());
     await userService.updateOnboarding({
       currentStep: step,
+      finishedAt,
       version: CURRENT_ONBOARDING_VERSION,
     });
 

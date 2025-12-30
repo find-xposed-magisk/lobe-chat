@@ -1,6 +1,6 @@
 'use client';
 
-import { BRANDING_NAME } from '@lobechat/business-const';
+import { BRANDING_NAME, ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import { DEFAULT_SETTINGS } from '@lobechat/config';
 import { Button, Form, type FormGroupItemType, Icon } from '@lobehub/ui';
 import { App, Switch } from 'antd';
@@ -83,6 +83,24 @@ const AdvancedActions = () => {
     title: t('analytics.title'),
   };
 
+  const renderExportButtonFormItem = () => {
+    return {
+      children: (
+        <Button
+          icon={<Icon icon={HardDriveUpload} />}
+          onClick={() => {
+            configService.exportAll();
+          }}
+        >
+          {t('storage.actions.export.button')}
+        </Button>
+      ),
+      label: t('storage.actions.export.title'),
+      layout: 'horizontal',
+      minWidth: undefined,
+    } as const;
+  };
+
   const system: FormGroupItemType = {
     children: [
       {
@@ -97,21 +115,7 @@ const AdvancedActions = () => {
         layout: 'horizontal',
         minWidth: undefined,
       },
-      {
-        children: (
-          <Button
-            icon={<Icon icon={HardDriveUpload} />}
-            onClick={() => {
-              configService.exportAll();
-            }}
-          >
-            {t('storage.actions.export.button')}
-          </Button>
-        ),
-        label: t('storage.actions.export.title'),
-        layout: 'horizontal',
-        minWidth: undefined,
-      },
+      ...(ENABLE_BUSINESS_FEATURES ? [renderExportButtonFormItem()] : []),
       {
         children: (
           <Button danger onClick={handleClear} type={'primary'}>
