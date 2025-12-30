@@ -1,4 +1,8 @@
 import {
+  CodeInterpreterIdentifier,
+  CodeInterpreterInspectors,
+} from '@lobechat/builtin-tool-code-interpreter/client';
+import {
   GroupManagementInspectors,
   GroupManagementManifest,
 } from '@lobechat/builtin-tool-group-management/client';
@@ -11,8 +15,6 @@ import {
 } from '@lobechat/builtin-tool-web-browsing/client';
 import { type BuiltinInspector } from '@lobechat/types';
 
-import { CodeInterpreterInspectors } from './code-interpreter/Inspector';
-import { CodeInterpreterIdentifier } from './code-interpreter/index';
 import { LocalSystemInspectors } from './local-system/Inspector';
 
 /**

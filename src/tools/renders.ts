@@ -1,6 +1,9 @@
 // agent-builder
 import { AgentBuilderManifest } from '@lobechat/builtin-tool-agent-builder';
 import { AgentBuilderRenders } from '@lobechat/builtin-tool-agent-builder/client';
+// code-interpreter
+import { CodeInterpreterManifest } from '@lobechat/builtin-tool-code-interpreter';
+import { CodeInterpreterRenders } from '@lobechat/builtin-tool-code-interpreter/client';
 // group-management
 import { GroupManagementManifest } from '@lobechat/builtin-tool-group-management';
 import { GroupManagementRenders } from '@lobechat/builtin-tool-group-management/client';
@@ -16,9 +19,6 @@ import {
 } from '@lobechat/builtin-tool-web-browsing/client';
 import { type BuiltinRender } from '@lobechat/types';
 
-// code-interpreter
-import { CodeInterpreterManifest } from './code-interpreter';
-import { CodeInterpreterRenders } from './code-interpreter/Render';
 // knowledge-base
 import { KnowledgeBaseManifest } from './knowledge-base';
 import { KnowledgeBaseRenders } from './knowledge-base/Render';

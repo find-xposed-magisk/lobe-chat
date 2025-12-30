@@ -1,4 +1,8 @@
 import {
+  CodeInterpreterIdentifier,
+  CodeInterpreterStreamings,
+} from '@lobechat/builtin-tool-code-interpreter/client';
+import {
   GroupManagementManifest,
   GroupManagementStreamings,
 } from '@lobechat/builtin-tool-group-management/client';
@@ -6,8 +10,6 @@ import { GTDManifest, GTDStreamings } from '@lobechat/builtin-tool-gtd/client';
 import { LocalSystemManifest } from '@lobechat/builtin-tool-local-system';
 import { type BuiltinStreaming } from '@lobechat/types';
 
-import { CodeInterpreterIdentifier } from './code-interpreter';
-import { CodeInterpreterStreamings } from './code-interpreter/Streaming';
 import { LocalSystemStreamings } from './local-system/Streaming';
 
 /**

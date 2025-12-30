@@ -1,3 +1,4 @@
+import { CodeInterpreterIdentifier } from '@lobechat/builtin-tool-code-interpreter';
 import {
   type CodeInterpreterFileItem,
   type CodeInterpreterParams,
@@ -15,7 +16,6 @@ import { pythonService } from '@/services/python';
 import { dbMessageSelectors } from '@/store/chat/selectors';
 import { type ChatStore } from '@/store/chat/store';
 import { useFileStore } from '@/store/file';
-import { CodeInterpreterIdentifier } from '@/tools/code-interpreter';
 import { setNamespace } from '@/utils/storeDebug';
 
 const n = setNamespace('codeInterpreter');

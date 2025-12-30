@@ -1,4 +1,5 @@
 import { AgentBuilderManifest } from '@lobechat/builtin-tool-agent-builder';
+import { CodeInterpreterManifest } from '@lobechat/builtin-tool-code-interpreter';
 import { GroupAgentBuilderManifest } from '@lobechat/builtin-tool-group-agent-builder';
 import { GroupManagementManifest } from '@lobechat/builtin-tool-group-management';
 import { GTDManifest } from '@lobechat/builtin-tool-gtd';
@@ -9,7 +10,6 @@ import { PageAgentManifest } from '@lobechat/builtin-tool-page-agent';
 import { WebBrowsingManifest } from '@lobechat/builtin-tool-web-browsing';
 
 import { ArtifactsManifest } from './artifacts';
-import { CodeInterpreterManifest } from './code-interpreter';
 import { KnowledgeBaseManifest } from './knowledge-base';
 
 export const builtinToolIdentifiers: string[] = [

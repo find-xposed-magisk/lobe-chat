@@ -1,4 +1,5 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix, typescript-sort-keys/interface */
+import { CodeInterpreterIdentifier, type ExportFileState } from '@lobechat/builtin-tool-code-interpreter';
 import { GroupAgentBuilderIdentifier } from '@lobechat/builtin-tool-group-agent-builder';
 import { type ChatToolPayload, type RuntimeStepContext } from '@lobechat/types';
 import { PluginErrorType } from '@lobehub/chat-plugin-sdk';
@@ -16,8 +17,6 @@ import { AI_RUNTIME_OPERATION_TYPES } from '@/store/chat/slices/operation';
 import { type ChatStore } from '@/store/chat/store';
 import { useToolStore } from '@/store/tool';
 import { hasExecutor } from '@/store/tool/slices/builtin/executors';
-import { CodeInterpreterIdentifier } from '@/tools/code-interpreter';
-import { type ExportFileState } from '@/tools/code-interpreter/type';
 import { safeParseJSON } from '@/utils/safeParseJSON';
 
 import { dbMessageSelectors } from '../../message/selectors';
@@ -289,7 +288,7 @@ export const pluginTypes: StateCreator<
     try {
       // Import ExecutionRuntime dynamically to avoid circular dependencies
       const { CodeInterpreterExecutionRuntime } =
-        await import('@/tools/code-interpreter/ExecutionRuntime');
+        await import('@lobechat/builtin-tool-code-interpreter/executionRuntime');
 
       // Create runtime with context
       const runtime = new CodeInterpreterExecutionRuntime({
