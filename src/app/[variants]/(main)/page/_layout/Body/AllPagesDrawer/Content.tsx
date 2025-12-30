@@ -76,7 +76,7 @@ const Content = memo<ContentProps>(({ searchKeyword }) => {
     >
       {displayPages.map((page) => (
         <Flexbox gap={1} key={page.id} padding={'4px 8px'}>
-          <Item documentId={page.id} />
+          <Item pageId={page.id} />
         </Flexbox>
       ))}
       {showLoading && (

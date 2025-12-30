@@ -1,7 +1,7 @@
 import { Avatar, type MenuProps } from '@lobehub/ui';
 import { Dropdown } from '@lobehub/ui';
 import { FileTextIcon } from 'lucide-react';
-import { type CSSProperties, memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import NavItem from '@/features/NavPanel/components/NavItem';
@@ -13,41 +13,40 @@ import { useDropdownMenu } from './useDropdownMenu';
 
 interface DocumentItemProps {
   className?: string;
-  documentId: string;
-  style?: CSSProperties;
+  pageId: string;
 }
 
-const PageListItem = memo<DocumentItemProps>(({ documentId, style, className }) => {
+const PageListItem = memo<DocumentItemProps>(({ pageId, className }) => {
   const { t } = useTranslation('file');
   const [editing, selectedPageId, document] = useFileStore(
     useCallback(
       (s) => {
-        const doc = documentSelectors.getDocumentById(documentId)(s);
-        return [s.renamingPageId === documentId, s.selectedPageId, doc] as const;
+        const doc = documentSelectors.getDocumentById(pageId)(s);
+        return [s.renamingPageId === pageId, s.selectedPageId, doc] as const;
       },
-      [documentId],
+      [pageId],
     ),
   );
 
   const selectPage = useFileStore((s) => s.selectPage);
   const setRenamingPageId = useFileStore((s) => s.setRenamingPageId);
 
-  const active = selectedPageId === documentId;
+  const active = selectedPageId === pageId;
   const title = document?.title || t('pageList.untitled');
   const emoji = document?.metadata?.emoji;
 
   const toggleEditing = useCallback(
     (visible?: boolean) => {
-      setRenamingPageId(visible ? documentId : null);
+      setRenamingPageId(visible ? pageId : null);
     },
-    [documentId, setRenamingPageId],
+    [pageId, setRenamingPageId],
   );
 
   const handleClick = useCallback(() => {
     if (!editing) {
-      selectPage(documentId);
+      selectPage(pageId);
     }
-  }, [editing, selectPage, documentId]);
+  }, [editing, selectPage, pageId]);
 
   // Icon with emoji support
   const icon = useMemo(() => {
@@ -59,7 +58,7 @@ const PageListItem = memo<DocumentItemProps>(({ documentId, style, className }) 
 
   const dropdownMenu: MenuProps['items'] = useDropdownMenu({
     documentContent: document?.content || undefined,
-    documentId,
+    pageId,
     toggleEditing,
   });
 
@@ -77,15 +76,14 @@ const PageListItem = memo<DocumentItemProps>(({ documentId, style, className }) 
           className={className}
           disabled={editing}
           icon={icon}
-          key={documentId}
+          key={pageId}
           onClick={handleClick}
-          style={style}
           title={title}
         />
       </Dropdown>
       <Editing
         currentEmoji={emoji}
-        documentId={documentId}
+        documentId={pageId}
         title={title}
         toggleEditing={toggleEditing}
       />

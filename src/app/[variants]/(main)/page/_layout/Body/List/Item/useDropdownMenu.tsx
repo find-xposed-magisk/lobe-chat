@@ -8,13 +8,13 @@ import { useFileStore } from '@/store/file';
 
 interface ActionProps {
   documentContent?: string;
-  documentId: string;
+  pageId: string;
   toggleEditing: (visible?: boolean) => void;
 }
 
 export const useDropdownMenu = ({
   documentContent,
-  documentId,
+  pageId,
   toggleEditing,
 }: ActionProps): MenuProps['items'] => {
   const { t } = useTranslation(['common', 'file']);
@@ -30,7 +30,7 @@ export const useDropdownMenu = ({
       okText: t('delete'),
       onOk: async () => {
         try {
-          await removeDocument(documentId);
+          await removeDocument(pageId);
           message.success(t('pageEditor.deleteSuccess', { ns: 'file' }));
         } catch (error) {
           console.error('Failed to delete page:', error);
@@ -53,7 +53,7 @@ export const useDropdownMenu = ({
 
   const handleDuplicate = async () => {
     try {
-      await duplicateDocument(documentId);
+      await duplicateDocument(pageId);
     } catch (error) {
       console.error('Failed to duplicate page:', error);
     }
