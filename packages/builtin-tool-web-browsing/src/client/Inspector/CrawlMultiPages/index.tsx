@@ -1,25 +1,20 @@
 'use client';
 
 import { type BuiltinInspectorProps } from '@lobechat/types';
-import { Icon } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
-import { ChevronRight } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { shinyTextStyles } from '@/styles';
+import { highlightTextStyles, shinyTextStyles } from '@/styles';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
-  content: css`
-    font-family: ${cssVar.fontFamilyCode};
-  `,
   root: css`
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
 
-    color: ${cssVar.colorTextDescription};
+    color: ${cssVar.colorTextSecondary};
   `,
 }));
 
@@ -28,41 +23,35 @@ interface CrawlMultiPagesParams {
 }
 
 export const CrawlMultiPagesInspector = memo<BuiltinInspectorProps<CrawlMultiPagesParams>>(
-  ({ args, isLoading }) => {
+  ({ args, partialArgs, isArgumentsStreaming }) => {
     const { t } = useTranslation('plugin');
+
+    const urls = args?.urls || partialArgs?.urls;
 
     // Show count and first domain for context
     let displayText = '';
-    if (args?.urls && args.urls.length > 0) {
-      const count = args.urls.length;
+    if (urls && urls.length > 0) {
+      const count = urls.length;
       try {
-        const firstUrl = new URL(args.urls[0]);
+        const firstUrl = new URL(urls[0]);
         displayText = count > 1 ? `${firstUrl.hostname} +${count - 1}` : firstUrl.hostname;
       } catch {
         displayText = `${count} pages`;
       }
     }
 
-    // When loading, show "联网搜索 > 读取多个页面内容"
-    if (isLoading) {
+    if (isArgumentsStreaming && !displayText) {
       return (
         <div className={cx(styles.root, shinyTextStyles.shinyText)}>
-          <span>{t('builtins.lobe-web-browsing.title')}</span>
-          <Icon icon={ChevronRight} style={{ marginInline: 4 }} />
           <span>{t('builtins.lobe-web-browsing.apiName.crawlMultiPages')}</span>
         </div>
       );
     }
 
     return (
-      <div className={styles.root}>
-        <span>{t('builtins.lobe-web-browsing.apiName.crawlMultiPages')}</span>
-        {displayText && (
-          <>
-            <Icon icon={ChevronRight} style={{ marginInline: 4 }} />
-            <span className={styles.content}>{displayText}</span>
-          </>
-        )}
+      <div className={cx(styles.root, isArgumentsStreaming && shinyTextStyles.shinyText)}>
+        <span>{t('builtins.lobe-web-browsing.apiName.crawlMultiPages')}: </span>
+        {displayText && <span className={highlightTextStyles.gold}>{displayText}</span>}
       </div>
     );
   },

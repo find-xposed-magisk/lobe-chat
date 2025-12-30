@@ -35,7 +35,7 @@ export const SearchInspector = memo<BuiltinInspectorProps<SearchQuery>>(
     return (
       <div className={cx(styles.root, isArgumentsStreaming && shinyTextStyles.shinyText)}>
         <span>{t('builtins.lobe-web-browsing.apiName.search')}: </span>
-        {query && <span className={highlightTextStyles.info}>{query}</span>}
+        {query && <span className={highlightTextStyles.gold}>{query}</span>}
       </div>
     );
   },

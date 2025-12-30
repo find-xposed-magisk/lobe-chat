@@ -22,18 +22,22 @@ export const oneLineEllipsis = lineEllipsis(1);
 export const highlightTextStyles = createStaticStyles(({ css, cssVar }) => ({
   gold: css`
     padding-block-end: 1px;
-    background: linear-gradient(to top, ${cssVar.gold3} 40%, transparent 40%);
+    color: ${cssVar.colorText};
+    background: linear-gradient(to top, ${cssVar.gold4} 40%, transparent 40%);
   `,
   info: css`
     padding-block-end: 1px;
+    color: ${cssVar.colorText};
     background: linear-gradient(to top, ${cssVar.colorInfoBg} 40%, transparent 40%);
   `,
   primary: css`
     padding-block-end: 1px;
+    color: ${cssVar.colorText};
     background: linear-gradient(to top, ${cssVar.colorPrimaryBg} 40%, transparent 40%);
   `,
   warning: css`
     padding-block-end: 1px;
+    color: ${cssVar.colorText};
     background: linear-gradient(to top, ${cssVar.colorWarningBg} 40%, transparent 40%);
   `,
 }));
