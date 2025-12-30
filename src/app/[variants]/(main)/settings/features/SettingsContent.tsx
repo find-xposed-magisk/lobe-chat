@@ -1,5 +1,6 @@
 'use client';
 
+import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import dynamic from 'next/dynamic';
 import { Fragment } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -56,6 +57,40 @@ const componentMap = {
   [SettingsTabs.Security]: dynamic(() => import('../security'), {
     loading: () => <Loading debugId="Settings > Security" />,
   }),
+  ...(ENABLE_BUSINESS_FEATURES
+    ? ({
+        [SettingsTabs.Plans]: dynamic(
+          () => import('@/business/client/BusinessSettingPages/Plans'),
+          {
+            loading: () => <Loading debugId="Settings > Plans" />,
+          },
+        ),
+        [SettingsTabs.Funds]: dynamic(
+          () => import('@/business/client/BusinessSettingPages/Funds'),
+          {
+            loading: () => <Loading debugId="Settings > Funds" />,
+          },
+        ),
+        [SettingsTabs.Usage]: dynamic(
+          () => import('@/business/client/BusinessSettingPages/Usage'),
+          {
+            loading: () => <Loading debugId="Settings > Usage" />,
+          },
+        ),
+        [SettingsTabs.Billing]: dynamic(
+          () => import('@/business/client/BusinessSettingPages/Billing'),
+          {
+            loading: () => <Loading debugId="Settings > Billing" />,
+          },
+        ),
+        [SettingsTabs.Referral]: dynamic(
+          () => import('@/business/client/BusinessSettingPages/Referral'),
+          {
+            loading: () => <Loading debugId="Settings > Referral" />,
+          },
+        ),
+      } as const)
+    : []),
 };
 
 interface SettingsContentProps {
@@ -80,6 +115,15 @@ const SettingsContent = ({ mobile, activeTab }: SettingsContentProps) => {
         SettingsTabs.Profile,
         SettingsTabs.Stats,
         SettingsTabs.Security,
+        ...(ENABLE_BUSINESS_FEATURES
+          ? [
+              SettingsTabs.Plans,
+              SettingsTabs.Funds,
+              SettingsTabs.Usage,
+              SettingsTabs.Billing,
+              SettingsTabs.Referral,
+            ]
+          : []),
       ].includes(tab as any)
     ) {
       componentProps.mobile = mobile;

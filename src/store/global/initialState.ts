@@ -52,7 +52,13 @@ export enum SettingsTabs {
   Stats = 'stats',
   Storage = 'storage',
   TTS = 'tts',
+
+  // business
+  Plans = 'plans',
+  Funds = 'funds',
   Usage = 'usage',
+  Billing = 'billing',
+  Referral = 'referral',
 }
 
 /**

@@ -1,22 +1,29 @@
+import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import { isDesktop } from '@lobechat/const';
 import { Avatar } from '@lobehub/ui';
 import {
   Brain,
   BrainCircuit,
   ChartColumnBigIcon,
+  Coins,
+  CreditCard,
   Database,
   EthernetPort,
+  Gift,
   Image as ImageIcon,
   Info,
   KeyIcon,
   KeyboardIcon,
+  Map,
   MessageSquareTextIcon,
   Mic2,
   PaletteIcon,
+  PieChart,
   ShieldCheck,
   Sparkles,
   UserCircle,
 } from 'lucide-react';
+import { label } from 'motion/react-m';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -47,6 +54,7 @@ export interface CategoryGroup {
 export const useCategory = () => {
   const { t } = useTranslation('setting');
   const { t: tAuth } = useTranslation('auth');
+  const { t: tSubscription } = useTranslation('subscription');
   const mobile = useServerConfigStore((s) => s.isMobile);
   const { enableSTT, hideDocs, showAiImage, showApiKeyManage } =
     useServerConfigStore(featureFlagsSelectors);
@@ -80,6 +88,35 @@ export const useCategory = () => {
         key: SettingsTabs.APIKey,
         label: tAuth('tab.apikey'),
       },
+      ...(ENABLE_BUSINESS_FEATURES
+        ? [
+            {
+              icon: Map,
+              key: SettingsTabs.Plans,
+              label: tSubscription('tab.plans'),
+            },
+            {
+              icon: Coins,
+              key: SettingsTabs.Funds,
+              label: tSubscription('tab.funds'),
+            },
+            {
+              icon: PieChart,
+              key: SettingsTabs.Usage,
+              label: tSubscription('tab.usage'),
+            },
+            {
+              icon: CreditCard,
+              key: SettingsTabs.Billing,
+              label: tSubscription('tab.billing'),
+            },
+            {
+              icon: Gift,
+              key: SettingsTabs.Referral,
+              label: tSubscription('tab.referral'),
+            },
+          ]
+        : []),
     ].filter(Boolean) as CategoryItem[];
 
     groups.push({
