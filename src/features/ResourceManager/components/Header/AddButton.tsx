@@ -4,7 +4,6 @@ import { FILE_URL } from '@lobechat/business-const';
 import { Notion } from '@lobehub/icons';
 import { Button, Dropdown, Icon, type MenuProps } from '@lobehub/ui';
 import { Upload } from 'antd';
-import { css, cx } from 'antd-style';
 import { FilePenLine, FileUp, FolderIcon, FolderUp, Link, Plus } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,15 +17,6 @@ import { DocumentSourceType } from '@/types/document';
 
 import useNotionImport from './hooks/useNotionImport';
 import useUploadFolder from './hooks/useUploadFolder';
-
-const hotArea = css`
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-color: transparent;
-  }
-`;
 
 const AddButton = () => {
   const { t } = useTranslation('file');
@@ -144,18 +134,14 @@ const AddButton = () => {
             multiple={true}
             showUploadList={false}
           >
-            <div className={cx(hotArea)}>{t('header.actions.uploadFile')}</div>
+            <div>{t('header.actions.uploadFile')}</div>
           </Upload>
         ),
       },
       {
         icon: <Icon icon={FolderUp} />,
         key: 'upload-folder',
-        label: (
-          <label className={cx(hotArea)} htmlFor="folder-upload-input">
-            {t('header.actions.uploadFolder')}
-          </label>
-        ),
+        label: <label htmlFor="folder-upload-input">{t('header.actions.uploadFolder')}</label>,
       },
       {
         type: 'divider',
@@ -210,8 +196,6 @@ const AddButton = () => {
             // Prevent default button behavior that might interfere with dropdown
             e.stopPropagation();
           }}
-          size={'small'}
-          style={{ borderRadius: 8, fontSize: 13, height: 32, paddingRight: 12 }}
           type="primary"
         >
           {t('addLibrary')}

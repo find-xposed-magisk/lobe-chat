@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { useFolderPath } from '@/app/[variants]/(main)/resource/features/hooks/useFolderPath';
@@ -134,7 +134,7 @@ export const useResourceExplorer = ({
   }, [handleBackToList, setSearchParams]);
 
   // Effects - Folder navigation
-  React.useEffect(() => {
+  useEffect(() => {
     if (!currentFolderSlug) {
       setCurrentFolderId(null);
     } else if (folderBreadcrumb && folderBreadcrumb.length > 0) {
