@@ -8,6 +8,7 @@ import type {
   Message,
   MessageGroupMetadata,
   MessageNode,
+  TasksNode,
 } from '../types';
 import type { BranchResolver } from './BranchResolver';
 import type { MessageCollector } from './MessageCollector';
@@ -17,7 +18,7 @@ import type { MessageCollector } from './MessageCollector';
  *
  * Handles:
  * 1. Tree traversal with priority-based node type detection
- * 2. Creating different types of ContextNodes (Message, Branch, Compare, AssistantGroup, AgentCouncil)
+ * 2. Creating different types of ContextNodes (Message, Branch, Compare, AssistantGroup, AgentCouncil, Tasks)
  * 3. Linear array output of the tree structure
  */
 export class ContextTreeBuilder {
@@ -106,6 +107,23 @@ export class ContextTreeBuilder {
       if (lastChild && lastChild.children.length > 0) {
         // Process the first child of the last agent (supervisor's reply)
         this.transformToLinear(lastChild.children[0], contextTree);
+      }
+      return;
+    }
+
+    // Priority 3b: Tasks aggregation (multiple task children with same parent)
+    if (this.isTasksNode(idNode)) {
+      const tasksNode = this.createTasksNode(message, idNode);
+      contextTree.push(tasksNode);
+
+      // Continue with non-task children (e.g., final summary from assistant)
+      const nonTaskChildren = idNode.children.filter((child) => {
+        const childMsg = this.messageMap.get(child.id);
+        return childMsg?.role !== 'task';
+      });
+
+      for (const nonTaskChild of nonTaskChildren) {
+        this.transformToLinear(nonTaskChild, contextTree);
       }
       return;
     }
@@ -346,5 +364,46 @@ export class ContextTreeBuilder {
     const agentCouncilId = `agentCouncil-${message.id}-${memberIds}`;
 
     return { id: agentCouncilId, members, messageId: message.id, type: 'agentCouncil' };
+  }
+
+  /**
+   * Check if this node has multiple task children (tasks aggregation pattern)
+   */
+  private isTasksNode(idNode: IdNode): boolean {
+    if (idNode.children.length < 2) return false;
+
+    const taskChildren = idNode.children.filter((child) => {
+      const childMsg = this.messageMap.get(child.id);
+      return childMsg?.role === 'task';
+    });
+
+    return taskChildren.length > 1;
+  }
+
+  /**
+   * Create TasksNode from multiple task children
+   */
+  private createTasksNode(message: Message, idNode: IdNode): TasksNode {
+    // Filter only task children and create message nodes for them
+    const taskChildren = idNode.children.filter((child) => {
+      const childMsg = this.messageMap.get(child.id);
+      return childMsg?.role === 'task';
+    });
+
+    const children: ContextNode[] = taskChildren.map((child) => ({
+      id: child.id,
+      type: 'message' as const,
+    }));
+
+    // Generate ID by joining parent message id and all task message ids
+    const taskIds = taskChildren.map((child) => child.id).join('-');
+    const tasksId = `tasks-${message.id}-${taskIds}`;
+
+    return {
+      children,
+      id: tasksId,
+      messageId: message.id,
+      type: 'tasks',
+    };
   }
 }

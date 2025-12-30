@@ -99,7 +99,7 @@
       "extra": {
         "parentMessageId": "msg-tool-1"
       },
-      "children": [
+      "tasks": [
         {
           "id": "msg-task-llm",
           "role": "task",

@@ -87,7 +87,7 @@ const TaskMessage = memo<TaskMessageProps>(({ id, index, disableEditing, isLates
       placement={'left'}
       showTitle
       time={createdAt}
-      titleAddon={<Tag>{t('task.asyncTask')}</Tag>}
+      titleAddon={<Tag>{t('task.subtask')}</Tag>}
     >
       <TaskDetailPanel
         content={content}

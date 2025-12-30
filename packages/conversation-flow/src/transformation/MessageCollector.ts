@@ -65,6 +65,12 @@ export class MessageCollector {
 
       const nextMessages = allMessages.filter((m) => m.parentId === toolMsg.id);
 
+      // Stop if there are multiple task children - they should be aggregated as Tasks, not part of AssistantGroup
+      const taskChildren = nextMessages.filter((m) => m.role === 'task');
+      if (taskChildren.length > 1) {
+        continue;
+      }
+
       for (const nextMsg of nextMessages) {
         // Only continue if the next assistant has the SAME agentId
         // Different agentId means it's a different agent responding (e.g., via speak tool)
@@ -136,6 +142,15 @@ export class MessageCollector {
         continue;
       }
 
+      // Stop if there are multiple task children - they should be aggregated as Tasks, not part of AssistantGroup
+      const taskChildren = toolNode.children.filter((child) => {
+        const childMsg = this.messageMap.get(child.id);
+        return childMsg?.role === 'task';
+      });
+      if (taskChildren.length > 1) {
+        continue;
+      }
+
       // Check if tool has an assistant child
       if (toolNode.children.length > 0) {
         const nextChild = toolNode.children[0];
@@ -166,6 +181,18 @@ export class MessageCollector {
       return lastNode;
     }
 
+    // Check if lastNode is a tool with multiple task children
+    // In this case, return the tool node itself so ContextTreeBuilder can process tasks
+    if (lastMsg?.role === 'tool') {
+      const taskChildren = lastNode.children.filter((child) => {
+        const childMsg = this.messageMap.get(child.id);
+        return childMsg?.role === 'task';
+      });
+      if (taskChildren.length > 1) {
+        return lastNode;
+      }
+    }
+
     // Otherwise, return the first child of the last node
     if (lastNode.children.length > 0) {
       return lastNode.children[0];
@@ -194,6 +221,15 @@ export class MessageCollector {
 
       // Stop if tool message has agentCouncil mode - its children belong to AgentCouncil
       if ((toolMsg?.metadata as any)?.agentCouncil === true) {
+        continue;
+      }
+
+      // Stop if there are multiple task children - they should be aggregated as Tasks, not part of AssistantGroup
+      const taskNodes = toolNode.children.filter((child) => {
+        const childMsg = this.messageMap.get(child.id);
+        return childMsg?.role === 'task';
+      });
+      if (taskNodes.length > 1) {
         continue;
       }
 

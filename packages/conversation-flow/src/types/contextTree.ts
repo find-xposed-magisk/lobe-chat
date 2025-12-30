@@ -12,7 +12,7 @@ interface BaseNode {
   /** Unique identifier for this node */
   id: string;
   /** Type discriminator */
-  type: 'message' | 'assistantGroup' | 'compare' | 'branch' | 'agentCouncil';
+  type: 'message' | 'assistantGroup' | 'compare' | 'branch' | 'agentCouncil' | 'tasks';
 }
 
 /**
@@ -72,6 +72,18 @@ export interface AgentCouncilNode extends BaseNode {
 }
 
 /**
+ * Tasks node - aggregates multiple async task messages with the same parentId
+ * Created when multiple role='task' messages share the same parent (typically a tool message)
+ */
+export interface TasksNode extends BaseNode {
+  /** Child task message nodes */
+  children: ContextNode[];
+  /** The parent message ID that triggered the tasks (typically a tool message) */
+  messageId: string;
+  type: 'tasks';
+}
+
+/**
  * Union type of all display nodes
  */
 export type ContextNode =
@@ -79,4 +91,5 @@ export type ContextNode =
   | AssistantGroupNode
   | CompareNode
   | BranchNode
-  | AgentCouncilNode;
+  | AgentCouncilNode
+  | TasksNode;

@@ -15,15 +15,16 @@ import {
   PlaceholderVariablesProcessor,
   SupervisorRoleRestoreProcessor,
   TaskMessageProcessor,
+  TasksFlattenProcessor,
   ToolCallProcessor,
   ToolMessageReorder,
 } from '../../processors';
 import {
   AgentBuilderContextInjector,
-  GroupAgentBuilderContextInjector,
-  GroupContextInjector,
   GTDPlanInjector,
   GTDTodoInjector,
+  GroupAgentBuilderContextInjector,
+  GroupContextInjector,
   HistorySummaryProvider,
   KnowledgeInjector,
   PageEditorContextInjector,
@@ -181,9 +182,7 @@ export class MessagesEngine {
       ...(isUserMemoryEnabled ? [new UserMemoryInjector(userMemory)] : []),
 
       // 4.5. GTD Plan injection (conditionally added, after user memory, before knowledge)
-      ...(isGTDPlanEnabled
-        ? [new GTDPlanInjector({ enabled: true, plan: gtd.plan })]
-        : []),
+      ...(isGTDPlanEnabled ? [new GTDPlanInjector({ enabled: true, plan: gtd.plan })] : []),
 
       // 5. Knowledge injection (full content for agent files + metadata for knowledge bases)
       new KnowledgeInjector({
@@ -210,13 +209,13 @@ export class MessagesEngine {
       // 8. Tool system role injection (conditionally added)
       ...(toolsConfig?.manifests && toolsConfig.manifests.length > 0
         ? [
-          new ToolSystemRoleProvider({
-            isCanUseFC: capabilities?.isCanUseFC || (() => true),
-            manifests: toolsConfig.manifests,
-            model,
-            provider,
-          }),
-        ]
+            new ToolSystemRoleProvider({
+              isCanUseFC: capabilities?.isCanUseFC || (() => true),
+              manifests: toolsConfig.manifests,
+              model,
+              provider,
+            }),
+          ]
         : []),
 
       // 9. History summary injection
@@ -233,22 +232,20 @@ export class MessagesEngine {
           ? pageContentContext
           : initialContext?.pageEditor
             ? {
-              markdown: initialContext.pageEditor.markdown,
-              metadata: {
-                charCount: initialContext.pageEditor.metadata.charCount,
-                lineCount: initialContext.pageEditor.metadata.lineCount,
-                title: initialContext.pageEditor.metadata.title,
-              },
-              // Use latest XML from stepContext if available, otherwise fallback to initial XML
-              xml: stepContext?.stepPageEditor?.xml || initialContext.pageEditor.xml,
-            }
+                markdown: initialContext.pageEditor.markdown,
+                metadata: {
+                  charCount: initialContext.pageEditor.metadata.charCount,
+                  lineCount: initialContext.pageEditor.metadata.lineCount,
+                  title: initialContext.pageEditor.metadata.title,
+                },
+                // Use latest XML from stepContext if available, otherwise fallback to initial XML
+                xml: stepContext?.stepPageEditor?.xml || initialContext.pageEditor.xml,
+              }
             : undefined,
       }),
 
       // 10.5. GTD Todo injection (conditionally added, at end of last user message)
-      ...(isGTDTodoEnabled
-        ? [new GTDTodoInjector({ enabled: true, todos: gtd.todos })]
-        : []),
+      ...(isGTDTodoEnabled ? [new GTDTodoInjector({ enabled: true, todos: gtd.todos })] : []),
 
       // =============================================
       // Phase 3: Message Transformation
@@ -268,7 +265,10 @@ export class MessagesEngine {
       // 13. Group message flatten (convert role=assistantGroup to standard assistant + tool messages)
       new GroupMessageFlattenProcessor(),
 
-      // 14. Task message processing (convert role=task to assistant with instruction + content)
+      // 14. Tasks message flatten (convert role=tasks to individual task messages)
+      new TasksFlattenProcessor(),
+
+      // 15. Task message processing (convert role=task to assistant with instruction + content)
       new TaskMessageProcessor(),
 
       // 15. Supervisor role restore (convert role=supervisor back to role=assistant for model)
@@ -277,10 +277,10 @@ export class MessagesEngine {
       // 16. Group message sender identity injection (for multi-agent chat)
       ...(isAgentGroupEnabled
         ? [
-          new GroupMessageSenderProcessor({
-            agentMap: agentGroup.agentMap!,
-          }),
-        ]
+            new GroupMessageSenderProcessor({
+              agentMap: agentGroup.agentMap!,
+            }),
+          ]
         : []),
 
       // =============================================

@@ -70,6 +70,40 @@ export class FlatListBuilder {
         }
         return;
       }
+
+      // Pre-loop check: Tasks aggregation (multiple task messages with same parentId)
+      // This handles the case when multiple async tasks are spawned from the same tool message
+      if (parentMessage && children.length > 0) {
+        const taskChildren = children.filter((childId) => {
+          const child = this.messageMap.get(childId);
+          return child?.role === 'task';
+        });
+
+        if (taskChildren.length > 1) {
+          // Get non-task children (e.g., summary assistant message)
+          const nonTaskChildren = children.filter((childId) => {
+            const child = this.messageMap.get(childId);
+            return child?.role !== 'task';
+          });
+
+          // Create tasks virtual message
+          const tasksMessage = this.createTasksMessage(parentMessage, taskChildren, processedIds);
+          flatList.push(tasksMessage);
+
+          // Continue with non-task children (e.g., final summary from assistant)
+          for (const nonTaskChildId of nonTaskChildren) {
+            if (!processedIds.has(nonTaskChildId)) {
+              const nonTaskChild = this.messageMap.get(nonTaskChildId);
+              if (nonTaskChild) {
+                flatList.push(nonTaskChild);
+                processedIds.add(nonTaskChildId);
+                this.buildFlatListRecursive(nonTaskChildId, flatList, processedIds, allMessages);
+              }
+            }
+          }
+          return;
+        }
+      }
     }
 
     for (const childId of children) {
@@ -846,5 +880,55 @@ export class FlatListBuilder {
     result.metadata = { isSupervisor: true, ...otherMetadata };
 
     return result;
+  }
+
+  /**
+   * Create tasks virtual message from multiple task children
+   * Aggregates task messages with the same parentId into a single tasks message
+   */
+  private createTasksMessage(
+    parentMessage: Message,
+    taskChildIds: string[],
+    processedIds: Set<string>,
+  ): Message {
+    const taskMessages: Message[] = [];
+
+    for (const taskId of taskChildIds) {
+      const taskMessage = this.messageMap.get(taskId);
+      if (taskMessage) {
+        taskMessages.push(taskMessage);
+        processedIds.add(taskId);
+      }
+    }
+
+    // Sort by createdAt to maintain order
+    taskMessages.sort((a, b) => a.createdAt - b.createdAt);
+
+    // Generate ID with parent message id and all task message ids
+    const taskIdsStr = taskMessages.map((t) => t.id).join('-');
+    const tasksId = `tasks-${parentMessage.id}-${taskIdsStr}`;
+
+    // Calculate timestamps from task messages
+    const createdAt =
+      taskMessages.length > 0
+        ? Math.min(...taskMessages.map((m) => m.createdAt))
+        : parentMessage.createdAt;
+    const updatedAt =
+      taskMessages.length > 0
+        ? Math.max(...taskMessages.map((m) => m.updatedAt))
+        : parentMessage.updatedAt;
+
+    return {
+      content: '',
+      createdAt,
+      extra: {
+        parentMessageId: parentMessage.id,
+      },
+      id: tasksId,
+      meta: parentMessage.meta || {},
+      role: 'tasks' as any,
+      tasks: taskMessages as any,
+      updatedAt,
+    } as Message;
   }
 }

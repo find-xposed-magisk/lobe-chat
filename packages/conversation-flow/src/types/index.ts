@@ -17,6 +17,7 @@ export type {
   CompareNode,
   ContextNode,
   MessageNode,
+  TasksNode,
 } from './contextTree';
 
 // Flat Message List Types

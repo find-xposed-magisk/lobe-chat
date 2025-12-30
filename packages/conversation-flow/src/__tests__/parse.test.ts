@@ -167,8 +167,8 @@ describe('parse', () => {
       expect(result.flatList[2].role).toBe('tasks');
       expect(result.flatList[3].role).toBe('assistant');
 
-      // 2. tasks virtual message should have 2 children
-      expect((result.flatList[2] as any).children).toHaveLength(2);
+      // 2. tasks virtual message should have 2 task messages
+      expect((result.flatList[2] as any).tasks).toHaveLength(2);
 
       // 3. contextTree should have tasks node
       const tasksNode = result.contextTree.find((node) => node.type === 'tasks');
@@ -189,8 +189,8 @@ describe('parse', () => {
       expect(result.flatList[2].role).toBe('tasks');
       expect(result.flatList[3].role).toBe('assistant');
 
-      // 2. tasks virtual message should have 3 children
-      expect((result.flatList[2] as any).children).toHaveLength(3);
+      // 2. tasks virtual message should have 3 task messages
+      expect((result.flatList[2] as any).tasks).toHaveLength(3);
 
       expect(serializeParseResult(result)).toEqual(outputs.tasks.withSummary);
     });

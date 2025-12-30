@@ -14,6 +14,7 @@ export {
 } from './PlaceholderVariables';
 export { SupervisorRoleRestoreProcessor } from './SupervisorRoleRestore';
 export { TaskMessageProcessor } from './TaskMessage';
+export { TasksFlattenProcessor } from './TasksFlatten';
 export { ToolCallProcessor } from './ToolCall';
 export { ToolMessageReorder } from './ToolMessageReorder';
 

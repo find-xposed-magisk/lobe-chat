@@ -25,6 +25,7 @@ export type UIMessageRoleType =
   | 'assistant'
   | 'tool'
   | 'task'
+  | 'tasks'
   | 'supervisor'
   | 'assistantGroup'
   | 'agentCouncil'
@@ -176,6 +177,11 @@ export interface UIChatMessage {
    * Retrieved from the associated Thread via sourceMessageId
    */
   taskDetail?: TaskDetail;
+  /**
+   * Task messages for role='tasks' virtual message
+   * Contains aggregated task messages with same parentId
+   */
+  tasks?: UIChatMessage[];
   threadId?: string | null;
   tool_call_id?: string;
   tools?: ChatToolPayload[];

@@ -32,6 +32,7 @@ import AssistantMessage from './Assistant';
 import AssistantGroupMessage from './AssistantGroup';
 import SupervisorMessage from './Supervisor';
 import TaskMessage from './Task';
+import TasksMessage from './Tasks';
 import ToolMessage from './Tool';
 import UserMessage from './User';
 
@@ -185,6 +186,9 @@ const MessageItem = memo<MessageItemProps>(
               isLatestItem={isLatestItem}
             />
           );
+        }
+        case 'tasks': {
+          return <TasksMessage id={id} index={index} />;
         }
 
         case 'agentCouncil': {
