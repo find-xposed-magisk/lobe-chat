@@ -57,6 +57,7 @@ const resources = {
   file,
   home,
   hotkey,
+
   image,
   knowledgeBase,
 
