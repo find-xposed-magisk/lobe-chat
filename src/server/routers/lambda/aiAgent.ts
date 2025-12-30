@@ -148,6 +148,8 @@ const ExecSubAgentTaskSchema = z.object({
   parentMessageId: z.string(),
   /** Timeout in milliseconds (optional) */
   timeout: z.number().optional(),
+  /** Task title (shown in UI, used as thread title) */
+  title: z.string().optional(),
   /** The Topic ID */
   topicId: z.string(),
 });
@@ -432,7 +434,7 @@ export const aiAgentRouter = router({
   execSubAgentTask: aiAgentProcedure
     .input(ExecSubAgentTaskSchema)
     .mutation(async ({ input, ctx }) => {
-      const { agentId, groupId, instruction, parentMessageId, topicId, timeout } = input;
+      const { agentId, groupId, instruction, parentMessageId, title, topicId, timeout } = input;
 
       log('execSubAgentTask: agentId=%s, groupId=%s', agentId, groupId);
 
@@ -443,6 +445,7 @@ export const aiAgentRouter = router({
           instruction,
           parentMessageId,
           timeout,
+          title,
           topicId,
         });
       } catch (error: any) {

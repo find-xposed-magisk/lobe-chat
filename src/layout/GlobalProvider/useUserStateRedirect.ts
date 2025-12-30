@@ -1,9 +1,8 @@
 'use client';
 
+import { OFFICIAL_URL } from '@lobechat/const';
 import { usePathname } from 'next/navigation';
 import { useCallback } from 'react';
-
-import { OFFICIAL_URL } from '@lobechat/const';
 
 import { isDesktop } from '@/const/version';
 import { getDesktopOnboardingCompleted } from '@/features/DesktopOnboarding/storage';

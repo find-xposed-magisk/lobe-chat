@@ -5,7 +5,7 @@ import { Block, Checkbox } from '@lobehub/ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { memo } from 'react';
 
-import type { TodoItem, TodoList as TodoListType } from '../../types';
+import type { TodoItem, TodoList as TodoListType } from '../../../types';
 
 export interface TodoListRenderState {
   todos?: TodoListType;

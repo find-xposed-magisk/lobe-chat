@@ -443,7 +443,7 @@ export class AiAgentService {
    * 3. Store operationId in Thread metadata
    */
   async execSubAgentTask(params: ExecSubAgentTaskParams): Promise<ExecSubAgentTaskResult> {
-    const { groupId, topicId, parentMessageId, agentId, instruction } = params;
+    const { groupId, topicId, parentMessageId, agentId, instruction, title } = params;
 
     log(
       'execSubAgentTask: agentId=%s, groupId=%s, topicId=%s, instruction=%s',
@@ -458,6 +458,7 @@ export class AiAgentService {
       agentId,
       groupId,
       sourceMessageId: parentMessageId,
+      title,
       topicId,
       type: ThreadType.Isolation,
     });

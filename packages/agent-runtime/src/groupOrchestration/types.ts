@@ -50,6 +50,8 @@ export interface SupervisorInstructionExecAsyncTask {
     agentId: string;
     task: string;
     timeout?: number;
+    /** Task title (shown in UI, used as thread title) */
+    title?: string;
     toolMessageId: string;
   };
   type: 'exec_async_task';
@@ -64,6 +66,8 @@ export interface SupervisorInstructionBatchExecAsyncTasks {
       agentId: string;
       task: string;
       timeout?: number;
+      /** Task title (shown in UI, used as thread title) */
+      title?: string;
     }>;
     toolMessageId: string;
   };

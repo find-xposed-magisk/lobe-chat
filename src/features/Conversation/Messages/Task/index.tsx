@@ -1,8 +1,10 @@
 'use client';
 
 import { LOADING_FLAT } from '@lobechat/const';
+import { Tag } from '@lobehub/ui';
 import isEqual from 'fast-deep-equal';
 import { memo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ChatItem } from '@/features/Conversation/ChatItem';
 import { useNewScreen } from '@/features/Conversation/Messages/components/useNewScreen';
@@ -25,7 +27,9 @@ interface TaskMessageProps {
   isLatestItem?: boolean;
 }
 
-const AssistantMessage = memo<TaskMessageProps>(({ id, index, disableEditing, isLatestItem }) => {
+const TaskMessage = memo<TaskMessageProps>(({ id, index, disableEditing, isLatestItem }) => {
+  const { t } = useTranslation('chat');
+
   // Get message and actionsConfig from ConversationStore
   const item = useConversationStore(dataSelectors.getDisplayMessageById(id), isEqual)!;
   const actionsConfig = useConversationStore((s) => s.actionsBar?.assistant);
@@ -59,13 +63,16 @@ const AssistantMessage = memo<TaskMessageProps>(({ id, index, disableEditing, is
 
   const onDoubleClick = useDoubleClickEdit({ disableEditing, error, id, role });
 
+  // Use taskTitle from metadata if available, otherwise fall back to avatar title
+  const title = metadata?.taskTitle || avatar?.title;
+
   return (
     <ChatItem
       aboveMessage={null}
       actions={
         <AssistantActionsBar actionsConfig={actionsConfig} data={item} id={id} index={index} />
       }
-      avatar={avatar}
+      avatar={{ ...avatar, title }}
       customErrorRender={(error) => <ErrorMessageExtra data={item} error={error} />}
       editing={editing}
       error={
@@ -80,6 +87,7 @@ const AssistantMessage = memo<TaskMessageProps>(({ id, index, disableEditing, is
       placement={'left'}
       showTitle
       time={createdAt}
+      titleAddon={<Tag>{t('task.asyncTask')}</Tag>}
     >
       <TaskDetailPanel
         content={content}
@@ -91,6 +99,6 @@ const AssistantMessage = memo<TaskMessageProps>(({ id, index, disableEditing, is
   );
 }, isEqual);
 
-AssistantMessage.displayName = 'AssistantMessage';
+TaskMessage.displayName = 'AssistantMessage';
 
-export default AssistantMessage;
+export default TaskMessage;

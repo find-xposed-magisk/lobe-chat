@@ -175,6 +175,40 @@ describe('GroupOrchestrationSupervisor', () => {
           agentId: 'agent-1',
           task: 'Analyze data',
           timeout: 30000,
+          title: undefined,
+          toolMessageId: 'tool-msg-1',
+        },
+      });
+    });
+
+    it('should include title in exec_async_task instruction when provided', async () => {
+      const supervisor = new GroupOrchestrationSupervisor(defaultConfig);
+      const state = createMockState();
+
+      const result: ExecutorResult = {
+        type: 'supervisor_decided',
+        payload: {
+          decision: 'execute_task',
+          params: {
+            agentId: 'agent-1',
+            task: 'Analyze data',
+            timeout: 30000,
+            title: 'Data Analysis Task',
+            toolMessageId: 'tool-msg-1',
+          },
+          skipCallSupervisor: false,
+        },
+      };
+
+      const instruction = await supervisor.decide(result, state);
+
+      expect(instruction).toEqual({
+        type: 'exec_async_task',
+        payload: {
+          agentId: 'agent-1',
+          task: 'Analyze data',
+          timeout: 30000,
+          title: 'Data Analysis Task',
           toolMessageId: 'tool-msg-1',
         },
       });

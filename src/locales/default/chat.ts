@@ -318,6 +318,7 @@ export default {
   'task.activity.gotResult': 'Tool result received',
   'task.activity.toolCalling': 'Calling {{toolName}}...',
   'task.activity.toolResult': '{{toolName}} result received',
+  'task.asyncTask': 'Async Task',
   'task.metrics.stepsShort': 'steps',
   'task.metrics.toolCallsShort': 'tool uses',
   'task.status.initializing': 'Initializing task...',

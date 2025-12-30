@@ -26,6 +26,8 @@ export interface ExecSubAgentTaskParams {
   instruction: string;
   parentMessageId: string;
   timeout?: number;
+  /** Task title (shown in UI, used as thread title) */
+  title?: string;
   topicId: string;
 }
 

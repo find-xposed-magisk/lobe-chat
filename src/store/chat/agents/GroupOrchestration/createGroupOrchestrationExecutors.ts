@@ -373,7 +373,7 @@ export const createGroupOrchestrationExecutors = (
      * Returns: task_completed result
      */
     exec_async_task: async (instruction, state): Promise<GroupOrchestrationExecutorOutput> => {
-      const { agentId, task, timeout, toolMessageId } = (
+      const { agentId, task, timeout, title, toolMessageId } = (
         instruction as SupervisorInstructionExecAsyncTask
       ).payload;
 
@@ -403,7 +403,7 @@ export const createGroupOrchestrationExecutors = (
             agentId,
             content: '',
             groupId,
-            metadata: { instruction: task },
+            metadata: { instruction: task, taskTitle: title },
             parentId: toolMessageId,
             role: 'task',
             topicId,
@@ -432,6 +432,7 @@ export const createGroupOrchestrationExecutors = (
           groupId,
           instruction: task,
           parentMessageId: taskMessageId,
+          title,
           topicId,
         });
 

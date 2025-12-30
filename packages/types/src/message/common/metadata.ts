@@ -146,4 +146,5 @@ export interface MessageMetadata extends ModelUsage, ModelPerformance {
    * Thread's sourceMessageId links back to this message for status tracking
    */
   instruction?: string;
+  taskTitle?: string;
 }

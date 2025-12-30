@@ -7,7 +7,7 @@ import { memo } from 'react';
 
 import { useChatStore } from '@/store/chat';
 
-import type { Plan } from '../../types';
+import type { Plan } from '../../../types';
 
 const MAX_CONTENT_HEIGHT = 100;
 

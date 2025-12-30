@@ -262,6 +262,8 @@ export interface ExecSubAgentTaskParams {
   parentMessageId: string;
   /** Timeout in milliseconds (optional) */
   timeout?: number;
+  /** Task title (shown in UI, used as thread title) */
+  title?: string;
   /** The Topic ID */
   topicId: string;
 }

@@ -99,6 +99,7 @@ export class GroupOrchestrationSupervisor implements IGroupOrchestrationSupervis
                 agentId: params.agentId as string,
                 task: params.task as string,
                 timeout: params.timeout as number | undefined,
+                title: params.title as string | undefined,
                 toolMessageId: params.toolMessageId as string,
               },
               type: 'exec_async_task',

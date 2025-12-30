@@ -7,23 +7,28 @@ import { ListTodo } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { shinyTextStyles } from '@/styles';
+import { highlightTextStyles, shinyTextStyles } from '@/styles';
 
 import type { ExecTasksParams, ExecTasksState } from '../../../types';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   count: css`
-    font-family: ${cssVar.fontFamilyCode};
-    color: ${cssVar.colorInfo};
+    flex-shrink: 0;
+    color: ${cssVar.colorTextSecondary};
+  `,
+  description: css`
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   `,
   root: css`
     overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 1;
+    display: flex;
+    gap: 4px;
+    align-items: center;
   `,
   title: css`
-    margin-inline-end: 8px;
+    flex-shrink: 0;
     color: ${cssVar.colorText};
   `,
 }));
@@ -34,6 +39,7 @@ export const ExecTasksInspector = memo<BuiltinInspectorProps<ExecTasksParams, Ex
 
     const tasks = args?.tasks || partialArgs?.tasks || [];
     const count = tasks.length;
+    const firstTask = tasks[0];
 
     if (isArgumentsStreaming && count === 0) {
       return (
@@ -44,12 +50,19 @@ export const ExecTasksInspector = memo<BuiltinInspectorProps<ExecTasksParams, Ex
     }
 
     return (
-      <div className={cx(styles.root, isArgumentsStreaming && shinyTextStyles.shinyText)}>
-        <span className={styles.title}>{t('builtins.lobe-gtd.apiName.execTasks')}</span>
-        {count > 0 && (
+      <div className={styles.root}>
+        <span className={cx(styles.title, isArgumentsStreaming && shinyTextStyles.shinyText)}>
+          {t('builtins.lobe-gtd.apiName.execTasks')}:
+        </span>
+        {firstTask?.description && (
+          <span className={cx(styles.description, highlightTextStyles.primary)}>
+            {firstTask.description}
+          </span>
+        )}
+        {count > 1 && (
           <span className={styles.count}>
-            <Icon icon={ListTodo} size={12} />
-            {count}
+            {' '}
+            <Icon icon={ListTodo} size={12} /> {count}
           </span>
         )}
       </div>

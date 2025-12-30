@@ -910,8 +910,6 @@ export const createAgentExecutors = (context: {
         };
       }
 
-
-
       const taskLogId = `${sessionLogId}:task`;
 
       try {
@@ -920,7 +918,7 @@ export const createAgentExecutors = (context: {
           {
             agentId,
             content: '',
-            metadata: { instruction: task.instruction },
+            metadata: { instruction: task.instruction, taskTitle: task.description },
             parentId: parentMessageId,
             role: 'task',
             topicId,
@@ -962,6 +960,7 @@ export const createAgentExecutors = (context: {
           agentId,
           instruction: task.instruction,
           parentMessageId: taskMessageId,
+          title: task.description,
           topicId,
         });
 
@@ -1307,6 +1306,7 @@ export const createAgentExecutors = (context: {
               agentId,
               instruction: task.instruction,
               parentMessageId: taskMessageId,
+              title: task.description,
               topicId,
             });
 
