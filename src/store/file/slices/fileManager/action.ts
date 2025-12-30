@@ -104,13 +104,16 @@ export const createFileManageSlice: StateCreator<
         offset: fileListOffset,
       });
 
-      const updatedFileList = [...fileList, ...response.items];
+      // Deduplicate items by ID to prevent duplicate items at page boundaries
+      const existingIds = new Set(fileList.map((item) => item.id));
+      const newItems = response.items.filter((item) => !existingIds.has(item.id));
+      const updatedFileList = [...fileList, ...newItems];
 
       // Update Zustand store
       set({
         fileList: updatedFileList,
         fileListHasMore: response.hasMore,
-        fileListOffset: fileListOffset + response.items.length,
+        fileListOffset: fileListOffset + newItems.length,
       });
 
       // Update SWR cache so the component sees the new items
@@ -441,24 +444,21 @@ export const createFileManageSlice: StateCreator<
     ),
 
   useFetchKnowledgeItems: (params) =>
-    useClientDataSWR<FileListItem[]>(
-      [FETCH_ALL_KNOWLEDGE_KEY, params],
-      async () => {
-        const response = await serverFileService.getKnowledgeItems({
-          ...params,
-          limit: params.limit ?? 50,
-          offset: 0,
-        });
+    useClientDataSWR<FileListItem[]>([FETCH_ALL_KNOWLEDGE_KEY, params], async () => {
+      const response = await serverFileService.getKnowledgeItems({
+        ...params,
+        limit: params.limit ?? 50,
+        offset: 0,
+      });
 
-        // Update store immediately with response data (no duplicate fetch!)
-        set({
-          fileList: response.items,
-          fileListHasMore: response.hasMore,
-          fileListOffset: response.items.length,
-          queryListParams: params,
-        });
+      // Update store immediately with response data (no duplicate fetch!)
+      set({
+        fileList: response.items,
+        fileListHasMore: response.hasMore,
+        fileListOffset: response.items.length,
+        queryListParams: params,
+      });
 
-        return response.items;
-      },
-    ),
+      return response.items;
+    }),
 });

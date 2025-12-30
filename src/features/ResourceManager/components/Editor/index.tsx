@@ -22,14 +22,9 @@ import FileContent from './FileContent';
 const FileEditor = memo(() => {
   const { t } = useTranslation('common');
 
-  const [currentViewItemId, category, setMode, setCurrentViewItemId, libraryId] =
-    useResourceManagerStore((s) => [
-      s.currentViewItemId,
-      s.category,
-      s.setMode,
-      s.setCurrentViewItemId,
-      s.libraryId,
-    ]);
+  const [currentViewItemId, category, setMode, setCurrentViewItemId] = useResourceManagerStore(
+    (s) => [s.currentViewItemId, s.category, s.setMode, s.setCurrentViewItemId],
+  );
 
   const fileDetail = useFileStore(fileManagerSelectors.getFileById(currentViewItemId));
 
@@ -44,15 +39,10 @@ const FileEditor = memo(() => {
                 setMode('explorer');
                 setCurrentViewItemId(undefined);
               }}
-              size={'small'}
               title={t('back')}
             />
             <Flexbox align={'center'} style={{ marginLeft: 8 }}>
-              <Breadcrumb
-                category={category}
-                fileName={fileDetail?.name}
-                knowledgeBaseId={libraryId}
-              />
+              <Breadcrumb category={category} fileName={fileDetail?.name} />
             </Flexbox>
           </Flexbox>
         }

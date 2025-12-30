@@ -35,6 +35,7 @@ export default {
   'FileManager.actions.moveSuccess': 'File moved successfully',
   'FileManager.actions.moveToFolder': 'Move to...',
   'FileManager.actions.moveToRoot': 'Move to root directory',
+  'FileManager.actions.moving': 'Moving...',
   'FileManager.actions.removeFromKnowledgeBase': 'Remove from Library',
   'FileManager.actions.removeFromKnowledgeBaseSuccess': 'File removed successfully.',
   'FileManager.actions.rename': 'Rename',

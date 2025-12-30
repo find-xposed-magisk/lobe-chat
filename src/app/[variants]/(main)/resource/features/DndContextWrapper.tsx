@@ -142,13 +142,23 @@ export const DndContextWrapper = memo<PropsWithChildren>(({ children }) => {
         return;
       }
 
+      // Save current drag data before clearing state
+      const draggedItemId = currentDrag.id;
+      const draggedItemData = currentDrag.data;
+
+      // Clear drag state immediately for better UX
+      setCurrentDrag(null);
+
+      // Show loading toast
+      const hideLoading = message.loading(t('FileManager.actions.moving'), 0);
+
       try {
         // Track source folder IDs before moving
         const sourceFolderIds = new Set<string | null>();
 
         const pools = itemsToMove.map((id) => {
           const item = fileList.find((f) => f.id === id);
-          const itemData = item || (id === currentDrag.id ? currentDrag.data : null);
+          const itemData = item || (id === draggedItemId ? draggedItemData : null);
 
           if (!itemData) return Promise.resolve();
 
@@ -179,6 +189,8 @@ export const DndContextWrapper = memo<PropsWithChildren>(({ children }) => {
           await clearTreeFolderCache(libraryId);
         }
 
+        // Hide loading and show success
+        hideLoading();
         message.success(t('FileManager.actions.moveSuccess'));
 
         if (isDraggingSelection) {
@@ -186,9 +198,9 @@ export const DndContextWrapper = memo<PropsWithChildren>(({ children }) => {
         }
       } catch (error) {
         console.error('Failed to move file:', error);
+        // Hide loading and show error
+        hideLoading();
         message.error(t('FileManager.actions.moveError'));
-      } finally {
-        setCurrentDrag(null);
       }
     };
 
@@ -196,16 +208,24 @@ export const DndContextWrapper = memo<PropsWithChildren>(({ children }) => {
       event.preventDefault();
     };
 
+    const handleDragEnd = () => {
+      // Always clear drag state when drag ends, regardless of drop success
+      // This ensures the overlay disappears immediately
+      setCurrentDrag(null);
+    };
+
     document.addEventListener('dragstart', handleDragStart);
     document.addEventListener('drag', handleDrag);
     document.addEventListener('drop', handleDrop);
     document.addEventListener('dragover', handleDragOver);
+    document.addEventListener('dragend', handleDragEnd);
 
     return () => {
       document.removeEventListener('dragstart', handleDragStart);
       document.removeEventListener('drag', handleDrag);
       document.removeEventListener('drop', handleDrop);
       document.removeEventListener('dragover', handleDragOver);
+      document.removeEventListener('dragend', handleDragEnd);
     };
   }, [
     currentDrag,

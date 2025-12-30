@@ -246,8 +246,19 @@ export const store: CreateStore = (publicState) => (set, get) => ({
     set({ isTransitioning });
   },
 
-  setLibraryId: (libraryId) => {
+  setLibraryId: async (libraryId) => {
     set({ libraryId });
+
+    // Reset pagination state when switching libraries to prevent showing stale data
+    set({
+      fileListHasMore: false,
+      fileListOffset: 0,
+    });
+
+    // Invalidate SWR cache to prevent showing stale data from previous library
+    const { useFileStore } = await import('@/store/file');
+    const fileStore = useFileStore.getState();
+    await fileStore.refreshFileList();
   },
 
   setMode: (mode) => {
