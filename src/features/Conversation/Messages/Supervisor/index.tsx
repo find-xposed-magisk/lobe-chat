@@ -78,23 +78,18 @@ const GroupMessage = memo<GroupMessageProps>(({ id, index, disableEditing, isLat
   return (
     <ChatItem
       actions={
-        !disableEditing && (
-          <>
-            {branch && (
-              <MessageBranch
-                activeBranchIndex={branch.activeBranchIndex}
-                count={branch.count}
-                messageId={id}
-              />
-            )}
-            {actionBarHolder}
-          </>
-        )
+        <>
+          {branch && (
+            <MessageBranch
+              activeBranchIndex={branch.activeBranchIndex}
+              count={branch.count}
+              messageId={id}
+            />
+          )}
+          {actionBarHolder}
+        </>
       }
-      avatar={{
-        ...avatar,
-        title: groupMeta.title,
-      }}
+      avatar={{ ...avatar, title: groupMeta.title }}
       customAvatarRender={() => <GroupAvatar avatars={memberAvatars} />}
       newScreen={newScreen}
       onMouseEnter={onMouseEnter}

@@ -9,14 +9,19 @@ import { useMarkdown } from '../../AssistantGroup/useMarkdown';
 
 interface ContentBlockProps {
   content: string;
+  hasTools?: boolean;
   id: string;
 }
 
-const MessageContent = memo<ContentBlockProps>(({ content, id }) => {
+const MessageContent = memo<ContentBlockProps>(({ content, id, hasTools }) => {
   const message = normalizeThinkTags(processWithArtifact(content));
   const markdownProps = useMarkdown(id);
 
-  if (!content || content === LOADING_FLAT) return <BubblesLoading />;
+  if (!content || content === LOADING_FLAT) {
+    if (hasTools) return null;
+
+    return <BubblesLoading />;
+  }
 
   return content && <MarkdownMessage {...markdownProps}>{message}</MarkdownMessage>;
 });

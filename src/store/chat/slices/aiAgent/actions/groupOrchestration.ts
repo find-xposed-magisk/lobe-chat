@@ -270,7 +270,7 @@ export const groupOrchestrationSlice: StateCreator<
     // 1. Create Orchestration Operation
     const { operationId } = get().startOperation({
       type: 'execAgentRuntime',
-      context: { groupId, topicId, agentId: supervisorAgentId },
+      context: { groupId, topicId, agentId: supervisorAgentId, scope: 'group' },
       label: `Group Orchestration (${initialResult.type})`,
     });
 

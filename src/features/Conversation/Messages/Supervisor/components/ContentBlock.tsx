@@ -33,7 +33,7 @@ const ContentBlock = memo<AssistantContentBlock>(({ id, tools, content, reasonin
       {showReasoning && <Reasoning {...reasoning} id={id} />}
 
       {/* Content - markdown text */}
-      <MessageContent content={content} id={id} />
+      <MessageContent content={content} hasTools={hasTools} id={id} />
 
       {/* Tools */}
       {hasTools && <Tools messageId={id} tools={tools} />}
