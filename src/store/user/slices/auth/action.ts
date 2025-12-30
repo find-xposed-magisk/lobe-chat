@@ -108,6 +108,16 @@ export const createAuthSlice: StateCreator<
     }
   },
   openLogin: async () => {
+    // Skip if already on a login page
+    const pathname = location.pathname;
+    if (
+      pathname.startsWith('/signin') ||
+      pathname.startsWith('/signup') ||
+      pathname.startsWith('/login')
+    ) {
+      return;
+    }
+
     if (enableClerk) {
       const redirectUrl = location.toString();
       get().clerkSignIn?.({
