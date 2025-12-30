@@ -50,6 +50,7 @@ describe('agentGroupRouter', () => {
     };
 
     chatGroupServiceMock = {
+      deleteGroup: vi.fn(),
       getGroupDetail: vi.fn(),
       getGroups: vi.fn(),
       mergeAgentsDefaultConfig: vi.fn((_, agents) => agents),
@@ -181,12 +182,15 @@ describe('agentGroupRouter', () => {
 
   describe('deleteGroup', () => {
     it('should delete a group by id', async () => {
-      chatGroupModelMock.delete.mockResolvedValue({ id: 'group-1' });
+      chatGroupServiceMock.deleteGroup.mockResolvedValue({
+        deletedVirtualAgentIds: [],
+        group: { id: 'group-1' },
+      });
 
       const caller = agentGroupRouter.createCaller(mockCtx);
       await caller.deleteGroup({ id: 'group-1' });
 
-      expect(chatGroupModelMock.delete).toHaveBeenCalledWith('group-1');
+      expect(chatGroupServiceMock.deleteGroup).toHaveBeenCalledWith('group-1');
     });
   });
 

@@ -467,7 +467,7 @@ describe('exec_task executor', () => {
         {
           agentId: 'agent_1',
           content: '',
-          metadata: { instruction: 'Do something important' },
+          metadata: { instruction: 'Do something important', taskTitle: 'Test task' },
           parentId: 'msg_parent',
           role: 'task',
           topicId: 'topic_1',
