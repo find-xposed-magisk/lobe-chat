@@ -203,7 +203,7 @@ const AddButton = () => {
 
   return (
     <>
-      <Dropdown menu={{ items }} placement="bottomRight" trigger={['hover', 'click']}>
+      <Dropdown menu={{ items }} placement="bottomRight" trigger={['hover']}>
         <Button
           icon={Plus}
           onClick={(e) => {
