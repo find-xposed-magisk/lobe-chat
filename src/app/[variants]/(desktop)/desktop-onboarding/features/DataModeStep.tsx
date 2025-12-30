@@ -6,9 +6,10 @@ import { HeartHandshake, Undo2Icon } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import LobeMessage from '@/app/[variants]/onboarding/components/LobeMessage';
 import { useUserStore } from '@/store/user';
 import { userGeneralSettingsSelectors } from '@/store/user/selectors';
+
+import LobeMessage from '../components/LobeMessage';
 
 type DataMode = 'share' | 'privacy';
 

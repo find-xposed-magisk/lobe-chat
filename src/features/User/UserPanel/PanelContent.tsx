@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { clearDesktopOnboardingCompleted } from '@/app/[variants]/(desktop)/desktop-onboarding/storage';
 import BusinessPanelContent from '@/business/client/features/User/BusinessPanelContent';
 import BrandWatermark from '@/components/BrandWatermark';
 import Menu from '@/components/Menu';
 import { isDesktop } from '@/const/version';
-import { clearDesktopOnboardingCompleted } from '@/features/DesktopOnboarding/storage';
 import { useUserStore } from '@/store/user';
 import { authSelectors } from '@/store/user/selectors';
 

@@ -4,7 +4,7 @@ import { useWatchBroadcast } from '@lobechat/electron-client-ipc';
 import { memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { clearDesktopOnboardingCompleted } from '@/features/DesktopOnboarding/storage';
+import { clearDesktopOnboardingCompleted } from '@/app/[variants]/(desktop)/desktop-onboarding/storage';
 
 const DesktopNavigationBridge = memo(() => {
   const navigate = useNavigate();

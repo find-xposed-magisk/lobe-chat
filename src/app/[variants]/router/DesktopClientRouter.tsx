@@ -3,8 +3,8 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, useNavigate } from 'react-router-dom';
 
+import { getDesktopOnboardingCompleted } from '@/app/[variants]/(desktop)/desktop-onboarding/storage';
 import { isDesktop } from '@/const/version';
-import { getDesktopOnboardingCompleted } from '@/features/DesktopOnboarding/storage';
 import { renderRoutes } from '@/utils/router';
 
 import { desktopRoutes } from './desktopRouter.config';

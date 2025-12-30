@@ -8,7 +8,7 @@ import type { FC, PropsWithChildren } from 'react';
 import LangButton from '@/features/User/UserPanel/LangButton';
 import ThemeButton from '@/features/User/UserPanel/ThemeButton';
 
-import { styles } from './styles/container';
+import { styles } from './style';
 
 const OnboardingContainer: FC<PropsWithChildren> = ({ children }) => {
   const { isDarkMode } = useThemeMode();

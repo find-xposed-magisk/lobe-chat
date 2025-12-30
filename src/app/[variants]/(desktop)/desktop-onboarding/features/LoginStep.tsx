@@ -8,10 +8,11 @@ import { Cloud, Server, Undo2Icon } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import LobeMessage from '@/app/[variants]/onboarding/components/LobeMessage';
 import { isDesktop } from '@/const/version';
 import { useElectronStore } from '@/store/electron';
 import { setDesktopAutoOidcFirstOpenHandled } from '@/utils/electron/autoOidc';
+
+import LobeMessage from '../components/LobeMessage';
 
 // 登录方式类型
 type LoginMethod = 'cloud' | 'selfhost';
@@ -177,15 +178,15 @@ const LoginStep = memo<LoginStepProps>(({ onBack, onNext }) => {
     if (cloudLoginStatus === 'success') {
       return (
         <Button
-            block
-            disabled={isSigningOut || isConnectingServer}
-            icon={Cloud}
-            onClick={handleSignOut}
-            size={'large'}
-            type={'default'}
-          >
-            {isSigningOut ? t('screen5.actions.signingOut') : t('screen5.actions.signOut')}
-          </Button>
+          block
+          disabled={isSigningOut || isConnectingServer}
+          icon={Cloud}
+          onClick={handleSignOut}
+          size={'large'}
+          type={'default'}
+        >
+          {isSigningOut ? t('screen5.actions.signingOut') : t('screen5.actions.signOut')}
+        </Button>
       );
     }
 
@@ -213,18 +214,18 @@ const LoginStep = memo<LoginStepProps>(({ onBack, onNext }) => {
 
     return (
       <Button
-          block
-          disabled={cloudLoginStatus === 'loading' || isConnectingServer}
-          icon={Cloud}
-          loading={cloudLoginStatus === 'loading'}
-          onClick={handleCloudLogin}
-          size={'large'}
-          type={'primary'}
-        >
-          {cloudLoginStatus === 'loading'
-            ? t('screen5.actions.signingIn')
-            : t('screen5.actions.signInCloud')}
-        </Button>
+        block
+        disabled={cloudLoginStatus === 'loading' || isConnectingServer}
+        icon={Cloud}
+        loading={cloudLoginStatus === 'loading'}
+        onClick={handleCloudLogin}
+        size={'large'}
+        type={'primary'}
+      >
+        {cloudLoginStatus === 'loading'
+          ? t('screen5.actions.signingIn')
+          : t('screen5.actions.signInCloud')}
+      </Button>
     );
   };
 
