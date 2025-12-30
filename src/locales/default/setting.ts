@@ -549,6 +549,7 @@ export default {
   'tab.about': 'About',
   'tab.agent': 'Agent Service',
   'tab.apikey': 'API Key Management',
+  'tab.chatAppearance': 'Chat Appearance',
   'tab.common': 'Appearance',
   'tab.experiment': 'Experiment',
   'tab.hotkey': 'Hotkeys',

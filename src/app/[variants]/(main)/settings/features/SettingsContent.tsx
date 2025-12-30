@@ -13,6 +13,9 @@ const componentMap = {
   [SettingsTabs.Common]: dynamic(() => import('../common'), {
     loading: () => <Loading debugId="Settings > Common" />,
   }),
+  [SettingsTabs.ChatAppearance]: dynamic(() => import('../chat-appearance'), {
+    loading: () => <Loading debugId="Settings > ChatAppearance" />,
+  }),
   [SettingsTabs.Provider]: dynamic(() => import('../provider'), {
     loading: () => <Loading debugId="Settings > Provider" />,
   }),

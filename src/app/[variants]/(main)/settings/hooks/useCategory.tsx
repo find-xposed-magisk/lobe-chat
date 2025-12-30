@@ -10,6 +10,7 @@ import {
   Info,
   KeyIcon,
   KeyboardIcon,
+  MessageSquareTextIcon,
   Mic2,
   PaletteIcon,
   ShieldCheck,
@@ -93,6 +94,11 @@ export const useCategory = () => {
         icon: PaletteIcon,
         key: SettingsTabs.Common,
         label: t('tab.common'),
+      },
+      {
+        icon: MessageSquareTextIcon,
+        key: SettingsTabs.ChatAppearance,
+        label: t('tab.chatAppearance'),
       },
       !mobile && {
         icon: KeyboardIcon,
