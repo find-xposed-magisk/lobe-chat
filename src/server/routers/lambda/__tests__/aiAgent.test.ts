@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { LobeChatDatabase } from '@lobechat/database';
-import { agents, agentsToSessions, sessions, topics } from '@lobechat/database/schemas';
+import { agents, agentsToSessions, sessions, threads, topics } from '@lobechat/database/schemas';
 import { getTestDB } from '@lobechat/database/test-utils';
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -268,20 +268,43 @@ describe('AI Agent Router Integration Tests', () => {
           }) as any,
       );
 
+      // Create a topic first (required for thread)
+      const [topic] = await serverDB
+        .insert(topics)
+        .values({
+          title: 'Test Topic',
+          agentId: testAgentId,
+          sessionId: testSessionId,
+          userId,
+        })
+        .returning();
+
+      // Create a thread (required by foreign key constraint on messages)
+      const [thread] = await serverDB
+        .insert(threads)
+        .values({
+          topicId: topic.id,
+          agentId: testAgentId,
+          userId,
+          type: 'isolation',
+        })
+        .returning();
+
       const caller = aiAgentRouter.createCaller(createTestContext());
 
       await caller.execAgent({
         agentId: testAgentId,
         prompt: 'Test prompt',
         appContext: {
-          threadId: 'test-thread-id',
+          threadId: thread.id,
+          topicId: topic.id,
         },
       });
 
       expect(mockCreateOperation).toHaveBeenCalledWith(
         expect.objectContaining({
           appContext: expect.objectContaining({
-            threadId: 'test-thread-id',
+            threadId: thread.id,
           }),
         }),
       );

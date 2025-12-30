@@ -18,7 +18,6 @@ import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { isDesktop } from '@/const/index';
-import { useAgentGroupStore } from '@/store/agentGroup';
 import { useGlobalStore } from '@/store/global';
 import { useHomeStore } from '@/store/home';
 import { useSessionStore } from '@/store/session';
@@ -59,8 +58,10 @@ const Actions = memo<ActionProps>(({ group, id, openCreateGroupModal, parentType
       ];
     });
 
-  const deleteGroup = useAgentGroupStore((s) => s.deleteGroup);
-  const pinAgentGroup = useHomeStore((s) => s.pinAgentGroup);
+  const [pinAgentGroup, removeAgentGroup] = useHomeStore((s) => [
+    s.pinAgentGroup,
+    s.removeAgentGroup,
+  ]);
 
   const { modal, message } = App.useApp();
 
@@ -162,7 +163,7 @@ const Actions = memo<ActionProps>(({ group, id, openCreateGroupModal, parentType
                 okButtonProps: { danger: true },
                 onOk: async () => {
                   if (parentType === 'group') {
-                    await deleteGroup(id);
+                    await removeAgentGroup(id);
                     message.success(t('confirmRemoveGroupSuccess'));
                   } else {
                     await removeSession(id);

@@ -32,7 +32,7 @@
   "chatList.longMessageDetail": "查看详情",
   "clearCurrentMessages": "清空当前会话消息",
   "confirmClearCurrentMessages": "确认清空当前会话消息吗？清空后无法恢复",
-  "confirmRemoveChatGroupItemAlert": "确认删除该群组吗？成员不会受影响",
+  "confirmRemoveChatGroupItemAlert": "确认删除该群组吗？群组专有助理将会被同样删除，外部助理不受影响",
   "confirmRemoveGroupItemAlert": "确认删除该分组吗？分组内的助理会移回默认列表",
   "confirmRemoveGroupSuccess": "群组已删除",
   "confirmRemoveSessionItemAlert": "确认删除该助理吗？删除后无法恢复",

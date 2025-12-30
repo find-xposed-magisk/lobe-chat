@@ -18,7 +18,6 @@ import {
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useAgentGroupStore } from '@/store/agentGroup';
 import { useGlobalStore } from '@/store/global';
 import { useHomeStore } from '@/store/home';
 import { homeAgentListSelectors } from '@/store/home/selectors';
@@ -40,11 +39,15 @@ export const useSessionItemMenuItems = () => {
   const openAgentInNewWindow = useGlobalStore((s) => s.openAgentInNewWindow);
   const sessionCustomGroups = useHomeStore(homeAgentListSelectors.agentGroups, isEqual);
 
-  const [pinAgent, pinAgentGroup, duplicateAgent, updateAgentGroup, removeAgent] = useHomeStore(
-    (s) => [s.pinAgent, s.pinAgentGroup, s.duplicateAgent, s.updateAgentGroup, s.removeAgent],
-  );
-
-  const deleteGroup = useAgentGroupStore((s) => s.deleteGroup);
+  const [pinAgent, pinAgentGroup, duplicateAgent, updateAgentGroup, removeAgent, removeAgentGroup] =
+    useHomeStore((s) => [
+      s.pinAgent,
+      s.pinAgentGroup,
+      s.duplicateAgent,
+      s.updateAgentGroup,
+      s.removeAgent,
+      s.removeAgentGroup,
+    ]);
 
   /**
    * Pin/Unpin menu item
@@ -206,7 +209,7 @@ export const useSessionItemMenuItems = () => {
             okButtonProps: { danger: true },
             onOk: async () => {
               if (parentType === 'group') {
-                await deleteGroup(id);
+                await removeAgentGroup(id);
                 message.success(t('confirmRemoveGroupSuccess'));
               } else {
                 await removeAgent(id);
@@ -221,7 +224,7 @@ export const useSessionItemMenuItems = () => {
         },
       };
     },
-    [t, modal, styles.modalRoot, deleteGroup, message, removeAgent],
+    [t, modal, styles.modalRoot, removeAgentGroup, message, removeAgent],
   );
 
   return {

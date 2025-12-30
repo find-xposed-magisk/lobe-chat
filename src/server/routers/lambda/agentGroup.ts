@@ -9,7 +9,7 @@ import { insertChatGroupSchema } from '@/database/schemas/chatGroup';
 import { type ChatGroupConfig } from '@/database/types/chatGroup';
 import { authedProcedure, router } from '@/libs/trpc/lambda';
 import { serverDatabase } from '@/libs/trpc/lambda/middleware';
-import { ChatGroupService } from '@/server/services/chatGroup';
+import { AgentGroupService } from '@/server/services/agentGroup';
 
 const agentGroupProcedure = authedProcedure.use(serverDatabase).use(async (opts) => {
   const { ctx } = opts;
@@ -17,9 +17,9 @@ const agentGroupProcedure = authedProcedure.use(serverDatabase).use(async (opts)
   return opts.next({
     ctx: {
       agentGroupRepo: new AgentGroupRepository(ctx.serverDB, ctx.userId),
+      agentGroupService: new AgentGroupService(ctx.serverDB, ctx.userId),
       agentModel: new AgentModel(ctx.serverDB, ctx.userId),
       chatGroupModel: new ChatGroupModel(ctx.serverDB, ctx.userId),
-      chatGroupService: new ChatGroupService(ctx.serverDB, ctx.userId),
       userModel: new UserModel(ctx.serverDB, ctx.userId),
     },
   });
@@ -62,7 +62,7 @@ export const agentGroupRouter = router({
     .mutation(async ({ input, ctx }) => {
       const { group, supervisorAgentId } = await ctx.agentGroupRepo.createGroupWithSupervisor({
         ...input,
-        config: ctx.chatGroupService.normalizeGroupConfig(input.config as ChatGroupConfig | null),
+        config: ctx.agentGroupService.normalizeGroupConfig(input.config as ChatGroupConfig | null),
       });
 
       return { group, supervisorAgentId };
@@ -110,7 +110,7 @@ export const agentGroupRouter = router({
       const { group, supervisorAgentId } = await ctx.agentGroupRepo.createGroupWithSupervisor(
         {
           ...input.groupConfig,
-          config: ctx.chatGroupService.normalizeGroupConfig(
+          config: ctx.agentGroupService.normalizeGroupConfig(
             input.groupConfig.config as ChatGroupConfig | null,
           ),
         },
@@ -123,7 +123,7 @@ export const agentGroupRouter = router({
   deleteGroup: agentGroupProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      return ctx.chatGroupModel.delete(input.id);
+      return ctx.agentGroupService.deleteGroup(input.id);
     }),
 
   getGroup: agentGroupProcedure
@@ -143,26 +143,26 @@ export const agentGroupRouter = router({
     .query(async ({ input, ctx }) => {
       const [defaultAgentConfig, detail] = await Promise.all([
         ctx.userModel.getUserSettingsDefaultAgentConfig(),
-        ctx.chatGroupService.getGroupDetail(input.id),
+        ctx.agentGroupService.getGroupDetail(input.id),
       ]);
 
       if (!detail) return null;
 
       return {
         ...detail,
-        agents: ctx.chatGroupService.mergeAgentsDefaultConfig(defaultAgentConfig, detail.agents),
+        agents: ctx.agentGroupService.mergeAgentsDefaultConfig(defaultAgentConfig, detail.agents),
       };
     }),
 
   getGroups: agentGroupProcedure.query(async ({ ctx }) => {
     const [defaultAgentConfig, groups] = await Promise.all([
       ctx.userModel.getUserSettingsDefaultAgentConfig(),
-      ctx.chatGroupService.getGroups(),
+      ctx.agentGroupService.getGroups(),
     ]);
 
     return groups.map((group) => ({
       ...group,
-      agents: ctx.chatGroupService.mergeAgentsDefaultConfig(defaultAgentConfig, group.agents),
+      agents: ctx.agentGroupService.mergeAgentsDefaultConfig(defaultAgentConfig, group.agents),
     }));
   }),
 
@@ -217,7 +217,7 @@ export const agentGroupRouter = router({
     .mutation(async ({ input, ctx }) => {
       return ctx.chatGroupModel.update(input.id, {
         ...input.value,
-        config: ctx.chatGroupService.normalizeGroupConfig(
+        config: ctx.agentGroupService.normalizeGroupConfig(
           input.value.config as ChatGroupConfig | null,
         ),
       });

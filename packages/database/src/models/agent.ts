@@ -271,6 +271,19 @@ export class AgentModel {
     });
   };
 
+  /**
+   * Batch delete agents by IDs.
+   * This is a simpler delete that only removes the agent records.
+   * Use this for virtual agents that don't have associated sessions.
+   */
+  batchDelete = async (agentIds: string[]) => {
+    if (agentIds.length === 0) return;
+
+    return this.db
+      .delete(agents)
+      .where(and(eq(agents.userId, this.userId), inArray(agents.id, agentIds)));
+  };
+
   toggleFile = async (agentId: string, fileId: string, enabled?: boolean) => {
     return this.db
       .update(agentsFiles)

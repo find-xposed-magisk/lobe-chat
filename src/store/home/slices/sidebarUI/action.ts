@@ -33,6 +33,10 @@ export interface SidebarUIAction {
    */
   removeAgent: (agentId: string) => Promise<void>;
   /**
+   * Remove an agent group (group chat)
+   */
+  removeAgentGroup: (groupId: string) => Promise<void>;
+  /**
    * Update agent's group
    */
   updateAgentGroup: (agentId: string, groupId: string | null) => Promise<void>;
@@ -121,6 +125,12 @@ export const createSidebarUISlice: StateCreator<
 
   removeAgent: async (agentId) => {
     await agentService.removeAgent(agentId);
+    await get().refreshAgentList();
+  },
+
+  removeAgentGroup: async (groupId) => {
+    // Delete the group
+    await chatGroupService.deleteGroup(groupId);
     await get().refreshAgentList();
   },
 

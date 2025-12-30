@@ -1170,6 +1170,139 @@ describe('AgentModel', () => {
     });
   });
 
+  describe('batchDelete', () => {
+    it('should batch delete multiple agents', async () => {
+      // Create multiple agents
+      const [agent1] = await serverDB
+        .insert(agents)
+        .values({ userId, title: 'Agent 1' })
+        .returning();
+      const [agent2] = await serverDB
+        .insert(agents)
+        .values({ userId, title: 'Agent 2' })
+        .returning();
+      const [agent3] = await serverDB
+        .insert(agents)
+        .values({ userId, title: 'Agent 3' })
+        .returning();
+
+      // Batch delete agent1 and agent2
+      await agentModel.batchDelete([agent1.id, agent2.id]);
+
+      // Verify agent1 and agent2 are deleted
+      const deletedAgent1 = await serverDB.query.agents.findFirst({
+        where: eq(agents.id, agent1.id),
+      });
+      const deletedAgent2 = await serverDB.query.agents.findFirst({
+        where: eq(agents.id, agent2.id),
+      });
+      expect(deletedAgent1).toBeUndefined();
+      expect(deletedAgent2).toBeUndefined();
+
+      // Verify agent3 still exists
+      const remainingAgent = await serverDB.query.agents.findFirst({
+        where: eq(agents.id, agent3.id),
+      });
+      expect(remainingAgent).toBeDefined();
+      expect(remainingAgent?.title).toBe('Agent 3');
+    });
+
+    it('should return early for empty array input', async () => {
+      // Create an agent to ensure the test has something to potentially delete
+      const [agent] = await serverDB
+        .insert(agents)
+        .values({ userId, title: 'Test Agent' })
+        .returning();
+
+      // Call batchDelete with empty array
+      const result = await agentModel.batchDelete([]);
+
+      // Should return undefined (early return)
+      expect(result).toBeUndefined();
+
+      // Verify agent still exists
+      const existingAgent = await serverDB.query.agents.findFirst({
+        where: eq(agents.id, agent.id),
+      });
+      expect(existingAgent).toBeDefined();
+    });
+
+    it('should not delete another user agents', async () => {
+      // Create agents for user1
+      const [agent1] = await serverDB
+        .insert(agents)
+        .values({ userId, title: 'User1 Agent 1' })
+        .returning();
+      const [agent2] = await serverDB
+        .insert(agents)
+        .values({ userId, title: 'User1 Agent 2' })
+        .returning();
+
+      // Try to batch delete with user2's model
+      await agentModel2.batchDelete([agent1.id, agent2.id]);
+
+      // Verify agents still exist
+      const existingAgent1 = await serverDB.query.agents.findFirst({
+        where: eq(agents.id, agent1.id),
+      });
+      const existingAgent2 = await serverDB.query.agents.findFirst({
+        where: eq(agents.id, agent2.id),
+      });
+      expect(existingAgent1).toBeDefined();
+      expect(existingAgent2).toBeDefined();
+    });
+
+    it('should handle mixed valid and invalid agent IDs', async () => {
+      // Create an agent
+      const [agent] = await serverDB
+        .insert(agents)
+        .values({ userId, title: 'Valid Agent' })
+        .returning();
+
+      // Batch delete with one valid and one invalid ID
+      await agentModel.batchDelete([agent.id, 'non-existent-id']);
+
+      // Verify valid agent is deleted
+      const deletedAgent = await serverDB.query.agents.findFirst({
+        where: eq(agents.id, agent.id),
+      });
+      expect(deletedAgent).toBeUndefined();
+    });
+
+    it('should delete agent along with associated files and knowledge bases (cascade)', async () => {
+      // Create agent with files and knowledge bases
+      const [agent] = await serverDB
+        .insert(agents)
+        .values({ userId, title: 'Agent with knowledge' })
+        .returning();
+      await serverDB.insert(agentsFiles).values({ agentId: agent.id, fileId: '1', userId });
+      await serverDB
+        .insert(agentsKnowledgeBases)
+        .values({ agentId: agent.id, knowledgeBaseId: 'kb1', userId });
+
+      // Batch delete the agent
+      await agentModel.batchDelete([agent.id]);
+
+      // Verify agent is deleted
+      const deletedAgent = await serverDB.query.agents.findFirst({
+        where: eq(agents.id, agent.id),
+      });
+      expect(deletedAgent).toBeUndefined();
+
+      // Verify agentsFiles are deleted (cascade)
+      const remainingFiles = await serverDB.query.agentsFiles.findMany({
+        where: eq(agentsFiles.agentId, agent.id),
+      });
+      expect(remainingFiles).toHaveLength(0);
+
+      // Verify agentsKnowledgeBases are deleted (cascade)
+      const remainingKBs = await serverDB.query.agentsKnowledgeBases.findMany({
+        where: eq(agentsKnowledgeBases.agentId, agent.id),
+      });
+      expect(remainingKBs).toHaveLength(0);
+    });
+  });
+
   describe('queryAgents', () => {
     it('should return non-virtual agents for the user', async () => {
       // Create non-virtual agents

@@ -6,7 +6,7 @@ import * as AgentModelModule from '@/database/models/agent';
 import * as ChatGroupModelModule from '@/database/models/chatGroup';
 import * as UserModelModule from '@/database/models/user';
 import * as AgentGroupRepoModule from '@/database/repositories/agentGroup';
-import * as ChatGroupServiceModule from '@/server/services/chatGroup';
+import * as ChatGroupServiceModule from '@/server/services/agentGroup';
 
 import { agentGroupRouter } from '../agentGroup';
 
@@ -67,7 +67,7 @@ describe('agentGroupRouter', () => {
       () => agentGroupRepoMock as any,
     );
     vi.spyOn(UserModelModule, 'UserModel').mockImplementation(() => userModelMock as any);
-    vi.spyOn(ChatGroupServiceModule, 'ChatGroupService').mockImplementation(
+    vi.spyOn(ChatGroupServiceModule, 'AgentGroupService').mockImplementation(
       () => chatGroupServiceMock as any,
     );
 
