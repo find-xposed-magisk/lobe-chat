@@ -10,7 +10,7 @@ export async function getSubscriptionPlan(userId: string): Promise<Plans> {
 }
 
 export async function getIsInWaitList(userId: string): Promise<boolean> {
-  return true;
+  return false;
 }
 
 export async function initNewUserForBusiness(
