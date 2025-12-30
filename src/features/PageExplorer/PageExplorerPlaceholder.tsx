@@ -13,6 +13,7 @@ import NavHeader from '@/features/NavHeader';
 import useNotionImport from '@/features/ResourceManager/components/Header/hooks/useNotionImport';
 import { useFileStore } from '@/store/file';
 import { DocumentSourceType } from '@/types/document';
+import { standardizeIdentifier } from '@/utils/identifier';
 
 const ICON_SIZE = 80;
 
@@ -177,10 +178,10 @@ const PageExplorerPlaceholder = memo<PageExplorerPlaceholderProps>(
         }
         // For PDF and DOCX files, upload to server and parse
         else if (fileExtension === 'pdf' || fileExtension === 'docx') {
-          // Create optimistic document first
           const fileName = file.name.replace(/\.(pdf|docx)$/i, '');
+
+          // Create optimistic document but don't select it yet
           const tempPageId = createOptimisticDocument(fileName);
-          setSelectedPageId(tempPageId, false);
 
           try {
             // Upload file to server
@@ -219,15 +220,20 @@ const PageExplorerPlaceholder = memo<PageExplorerPlaceholderProps>(
               updatedAt: parsedDocument.updatedAt ? new Date(parsedDocument.updatedAt) : new Date(),
             };
 
-            // Replace optimistic with real document
+            // Replace optimistic with real document in the store
             replaceTempDocumentWithReal(tempPageId, realPage);
-            // Update selected page ID to the real page
-            setSelectedPageId(parsedDocument.id);
+
+            // Update selected page ID in store (with full ID including prefix)
+            setSelectedPageId(parsedDocument.id, false);
+
+            // Update URL with stripped ID (without prefix)
+            const cleanId = standardizeIdentifier(parsedDocument.id);
+            const newPath = cleanId ? `/page/${cleanId}` : '/page';
+            window.history.replaceState({}, '', newPath);
           } catch (error) {
             console.error('Failed to upload and parse file:', error);
             // Remove temp document on error
             useFileStore.getState().removeTempDocument(tempPageId);
-            setSelectedPageId(null);
             throw error;
           }
         }
