@@ -13,18 +13,23 @@ import { fileManagerSelectors, useFileStore } from '@/store/file';
 import Breadcrumb from '../Explorer/Header/Breadcrumb';
 import FileContent from './FileContent';
 
+interface FileEditorProps {
+  onBack?: () => void;
+}
+
 /**
  * View or Edit a file
  *
  * It's a un-reusable component for business logic only.
  * So we depend on context, not props.
  */
-const FileEditor = memo(() => {
+const FileEditor = memo<FileEditorProps>(({ onBack }) => {
   const { t } = useTranslation('common');
 
-  const [currentViewItemId, category, setMode, setCurrentViewItemId] = useResourceManagerStore(
-    (s) => [s.currentViewItemId, s.category, s.setMode, s.setCurrentViewItemId],
-  );
+  const [currentViewItemId, category] = useResourceManagerStore((s) => [
+    s.currentViewItemId,
+    s.category,
+  ]);
 
   const fileDetail = useFileStore(fileManagerSelectors.getFileById(currentViewItemId));
 
@@ -33,14 +38,7 @@ const FileEditor = memo(() => {
       <NavHeader
         left={
           <Flexbox align={'center'} gap={4} horizontal style={{ minHeight: 32 }}>
-            <ActionIcon
-              icon={ArrowLeftIcon}
-              onClick={() => {
-                setMode('explorer');
-                setCurrentViewItemId(undefined);
-              }}
-              title={t('back')}
-            />
+            <ActionIcon icon={ArrowLeftIcon} onClick={onBack} title={t('back')} />
             <Flexbox align={'center'} style={{ marginLeft: 8 }}>
               <Breadcrumb category={category} fileName={fileDetail?.name} />
             </Flexbox>

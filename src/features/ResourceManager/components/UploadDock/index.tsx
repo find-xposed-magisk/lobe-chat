@@ -106,9 +106,10 @@ const UploadDock = memo(() => {
         style={{
           background: cssVar.colorBgContainer,
           borderBottom: expand ? `1px solid ${cssVar.colorSplit}` : undefined,
-          borderBottomLeftRadius: expand ? 0 : undefined,
-          borderBottomRightRadius: expand ? 0 : undefined,
-          borderRadius: 8,
+          borderBottomLeftRadius: expand ? 0 : 8,
+          borderBottomRightRadius: expand ? 0 : 8,
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
           cursor: 'pointer',
           paddingBlock: 8,
           paddingInline: '24px 12px',
@@ -136,7 +137,8 @@ const UploadDock = memo(() => {
           justify={'space-between'}
           style={{
             background: `color-mix(in srgb, ${cssVar.colorBgLayout} 95%, white)`,
-            borderRadius: 8,
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 8,
             height: 400,
           }}
         >

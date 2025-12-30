@@ -82,7 +82,7 @@ const ResourceManager = memo(() => {
             }}
             width={'100%'}
           >
-            <Editor />
+            <Editor onBack={handleBack} />
           </Flexbox>
         )}
 
