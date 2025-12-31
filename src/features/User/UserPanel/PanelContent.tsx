@@ -62,10 +62,10 @@ const PanelContent = memo<{ closePopover: () => void }>(({ closePopover }) => {
       {isDesktop || isLoginWithAuth ? (
         <>
           <UserInfo avatarProps={{ clickable: false }} />
-          {ENABLE_BUSINESS_FEATURES && <BusinessPanelContent />}
           <Link style={{ color: 'inherit' }} to={'/settings/stats'}>
             <DataStatistics />
           </Link>
+          {ENABLE_BUSINESS_FEATURES && <BusinessPanelContent />}
         </>
       ) : (
         <UserLoginOrSignup onClick={handleSignIn} />
