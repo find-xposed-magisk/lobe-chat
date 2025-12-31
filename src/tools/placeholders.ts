@@ -1,12 +1,12 @@
-import { BuiltinPlaceholder } from '@lobechat/types';
+import { LocalSystemApiName, LocalSystemManifest } from '@lobechat/builtin-tool-local-system';
+import {
+  WebBrowsingManifest,
+  WebBrowsingPlaceholders,
+} from '@lobechat/builtin-tool-web-browsing/client';
+import { type BuiltinPlaceholder } from '@lobechat/types';
 
-import { LocalSystemApiName, LocalSystemManifest } from './local-system';
 import { ListFiles as LocalSystemListFiles } from './local-system/Placeholder/ListFiles';
 import LocalSystemSearchFiles from './local-system/Placeholder/SearchFiles';
-import { WebBrowsingApiName, WebBrowsingManifest } from './web-browsing';
-import CrawlMultiPages from './web-browsing/Placeholder/CrawlMultiPages';
-import CrawlSinglePage from './web-browsing/Placeholder/CrawlSinglePage';
-import { Search } from './web-browsing/Placeholder/Search';
 
 /**
  * Builtin tools placeholders registry
@@ -17,11 +17,7 @@ export const BuiltinToolPlaceholders: Record<string, Record<string, any>> = {
     [LocalSystemApiName.searchLocalFiles]: LocalSystemSearchFiles,
     [LocalSystemApiName.listLocalFiles]: LocalSystemListFiles,
   },
-  [WebBrowsingManifest.identifier]: {
-    [WebBrowsingApiName.search]: Search,
-    [WebBrowsingApiName.crawlSinglePage]: CrawlSinglePage,
-    [WebBrowsingApiName.crawlMultiPages]: CrawlMultiPages,
-  },
+  [WebBrowsingManifest.identifier]: WebBrowsingPlaceholders as Record<string, any>,
 };
 
 /**

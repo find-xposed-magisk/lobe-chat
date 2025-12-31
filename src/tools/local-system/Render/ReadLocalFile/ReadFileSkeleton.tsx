@@ -1,13 +1,12 @@
-import { Skeleton } from 'antd';
-import { createStyles } from 'antd-style';
+import { Flexbox, Skeleton } from '@lobehub/ui';
+import { createStaticStyles } from 'antd-style';
 import React, { memo } from 'react';
-import { Flexbox } from 'react-layout-kit';
 
-const useStyles = createStyles(({ css, token }) => ({
+const styles = createStaticStyles(({ css, cssVar }) => ({
   container: css`
     padding: 8px;
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadiusLG}px;
+    border: 1px solid ${cssVar.colorBorderSecondary};
+    border-radius: ${cssVar.borderRadiusLG};
   `,
 
   meta: css`
@@ -16,23 +15,21 @@ const useStyles = createStyles(({ css, token }) => ({
 }));
 
 const ReadFileSkeleton = memo(() => {
-  const { styles } = useStyles();
-
   return (
     <Flexbox className={styles.container} gap={2}>
       <Flexbox align={'center'} gap={24} horizontal justify={'space-between'}>
         <Flexbox align={'center'} flex={1} gap={8} horizontal style={{ overflow: 'hidden' }}>
-          <Skeleton.Node active style={{ flex: 1, height: 16, width: 20 }} />
+          <Skeleton.Block active style={{ flex: 1, height: 16, width: 20 }} />
 
-          <Skeleton.Node active style={{ flex: 1, height: 16, minWidth: 100 }} />
+          <Skeleton.Block active style={{ flex: 1, height: 16, minWidth: 100 }} />
         </Flexbox>
         <Flexbox align={'center'} className={styles.meta} gap={16}>
-          <Skeleton.Node active style={{ height: 16, maxWidth: 40 }} />
+          <Skeleton.Block active style={{ height: 16, maxWidth: 40 }} />
         </Flexbox>
       </Flexbox>
 
       {/* Path */}
-      <Skeleton.Node active style={{ height: 16, width: '100%' }} />
+      <Skeleton.Block active style={{ height: 16, width: '100%' }} />
     </Flexbox>
   );
 });

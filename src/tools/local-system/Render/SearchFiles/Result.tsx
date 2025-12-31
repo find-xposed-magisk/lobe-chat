@@ -1,13 +1,12 @@
-import { ChatMessagePluginError } from '@lobechat/types';
-import { Skeleton } from 'antd';
+import { type FileResult } from '@lobechat/builtin-tool-local-system';
+import { type ChatMessagePluginError } from '@lobechat/types';
+import { Flexbox, Skeleton } from '@lobehub/ui';
 import { memo } from 'react';
-import { Flexbox } from 'react-layout-kit';
 
 import { useChatStore } from '@/store/chat';
 import { chatToolSelectors } from '@/store/chat/selectors';
 
 import FileItem from '../../components/FileItem';
-import { FileResult } from '../../type';
 
 interface SearchFilesProps {
   messageId: string;

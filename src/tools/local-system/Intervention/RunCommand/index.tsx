@@ -1,8 +1,7 @@
-import { RunCommandParams } from '@lobechat/electron-client-ipc';
-import { BuiltinInterventionProps } from '@lobechat/types';
-import { Highlighter, Text } from '@lobehub/ui';
+import { type RunCommandParams } from '@lobechat/electron-client-ipc';
+import { type BuiltinInterventionProps } from '@lobechat/types';
+import { Flexbox, Highlighter, Text } from '@lobehub/ui';
 import { memo } from 'react';
-import { Flexbox } from 'react-layout-kit';
 
 const formatTimeout = (ms?: number) => {
   if (!ms) return null;

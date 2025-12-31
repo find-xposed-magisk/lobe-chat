@@ -1,6 +1,19 @@
-import { BuiltinIntervention } from '@lobechat/types';
+import {
+  AgentBuilderInterventions,
+  AgentBuilderManifest,
+} from '@lobechat/builtin-tool-agent-builder/client';
+import { CloudSandboxManifest } from '@lobechat/builtin-tool-cloud-sandbox';
+import { CloudSandboxInterventions } from '@lobechat/builtin-tool-cloud-sandbox/client';
+import {
+  GroupManagementInterventions,
+  GroupManagementManifest,
+} from '@lobechat/builtin-tool-group-management/client';
+import { GTDInterventions, GTDManifest } from '@lobechat/builtin-tool-gtd/client';
+import { LocalSystemManifest } from '@lobechat/builtin-tool-local-system';
+import { NotebookManifest } from '@lobechat/builtin-tool-notebook';
+import { NotebookInterventions } from '@lobechat/builtin-tool-notebook/client';
+import { type BuiltinIntervention } from '@lobechat/types';
 
-import { LocalSystemManifest } from './local-system';
 import { LocalSystemInterventions } from './local-system/Intervention';
 
 /**
@@ -9,7 +22,12 @@ import { LocalSystemInterventions } from './local-system/Intervention';
  * Only register APIs that have custom intervention UI
  */
 export const BuiltinToolInterventions: Record<string, Record<string, any>> = {
+  [AgentBuilderManifest.identifier]: AgentBuilderInterventions,
+  [CloudSandboxManifest.identifier]: CloudSandboxInterventions,
+  [GroupManagementManifest.identifier]: GroupManagementInterventions,
+  [GTDManifest.identifier]: GTDInterventions,
   [LocalSystemManifest.identifier]: LocalSystemInterventions,
+  [NotebookManifest.identifier]: NotebookInterventions,
 };
 
 /**
