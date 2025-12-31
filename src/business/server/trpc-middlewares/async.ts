@@ -7,3 +7,7 @@ export const checkEmbeddingUsage = asyncTrpc.middleware(async (opts) => {
 export const checkBudgetsUsage = asyncTrpc.middleware(async (opts) => {
   return opts.next();
 });
+
+export const createImageBusinessMiddleware = asyncTrpc.middleware(async (opts) => {
+  return opts.next();
+});
