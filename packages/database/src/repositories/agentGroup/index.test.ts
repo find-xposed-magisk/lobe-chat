@@ -519,4 +519,251 @@ describe('AgentGroupRepository', () => {
       expect(result.agents).toEqual([expect.objectContaining({ role: 'supervisor' })]);
     });
   });
+
+  describe('checkAgentsBeforeRemoval', () => {
+    beforeEach(async () => {
+      // Create a group
+      await serverDB.insert(chatGroups).values({
+        id: 'check-removal-group',
+        title: 'Check Removal Group',
+        userId,
+      });
+
+      // Create virtual and non-virtual agents
+      await serverDB.insert(agents).values([
+        {
+          avatar: 'virtual-avatar.png',
+          description: 'Virtual agent description',
+          id: 'virtual-agent',
+          title: 'Virtual Agent',
+          userId,
+          virtual: true,
+        },
+        {
+          avatar: 'regular-avatar.png',
+          description: 'Regular agent description',
+          id: 'regular-agent',
+          title: 'Regular Agent',
+          userId,
+          virtual: false,
+        },
+        {
+          id: 'another-regular',
+          title: 'Another Regular',
+          userId,
+          virtual: false,
+        },
+      ]);
+
+      // Link agents to group
+      await serverDB.insert(chatGroupsAgents).values([
+        { agentId: 'virtual-agent', chatGroupId: 'check-removal-group', order: 0, userId },
+        { agentId: 'regular-agent', chatGroupId: 'check-removal-group', order: 1, userId },
+        { agentId: 'another-regular', chatGroupId: 'check-removal-group', order: 2, userId },
+      ]);
+    });
+
+    it('should separate virtual and non-virtual agents', async () => {
+      const result = await agentGroupRepo.checkAgentsBeforeRemoval('check-removal-group', [
+        'virtual-agent',
+        'regular-agent',
+        'another-regular',
+      ]);
+
+      expect(result.virtualAgents).toHaveLength(1);
+      expect(result.virtualAgents).toEqual([
+        expect.objectContaining({
+          avatar: 'virtual-avatar.png',
+          description: 'Virtual agent description',
+          id: 'virtual-agent',
+          title: 'Virtual Agent',
+        }),
+      ]);
+
+      expect(result.nonVirtualAgentIds).toHaveLength(2);
+      expect(result.nonVirtualAgentIds).toEqual(
+        expect.arrayContaining(['regular-agent', 'another-regular']),
+      );
+    });
+
+    it('should return empty arrays for empty input', async () => {
+      const result = await agentGroupRepo.checkAgentsBeforeRemoval('check-removal-group', []);
+
+      expect(result.virtualAgents).toEqual([]);
+      expect(result.nonVirtualAgentIds).toEqual([]);
+    });
+
+    it('should only return virtual agents when all are virtual', async () => {
+      const result = await agentGroupRepo.checkAgentsBeforeRemoval('check-removal-group', [
+        'virtual-agent',
+      ]);
+
+      expect(result.virtualAgents).toHaveLength(1);
+      expect(result.virtualAgents[0].id).toBe('virtual-agent');
+      expect(result.nonVirtualAgentIds).toEqual([]);
+    });
+
+    it('should only return non-virtual agents when none are virtual', async () => {
+      const result = await agentGroupRepo.checkAgentsBeforeRemoval('check-removal-group', [
+        'regular-agent',
+        'another-regular',
+      ]);
+
+      expect(result.virtualAgents).toEqual([]);
+      expect(result.nonVirtualAgentIds).toEqual(
+        expect.arrayContaining(['regular-agent', 'another-regular']),
+      );
+    });
+
+    it('should not include agents belonging to other users', async () => {
+      // Create agent for other user
+      await serverDB.insert(agents).values({
+        id: 'other-user-agent',
+        title: 'Other User Agent',
+        userId: otherUserId,
+        virtual: true,
+      });
+
+      const result = await agentGroupRepo.checkAgentsBeforeRemoval('check-removal-group', [
+        'virtual-agent',
+        'other-user-agent',
+      ]);
+
+      // Should only include current user's virtual agent
+      expect(result.virtualAgents).toHaveLength(1);
+      expect(result.virtualAgents[0].id).toBe('virtual-agent');
+      expect(result.nonVirtualAgentIds).toEqual([]);
+    });
+  });
+
+  describe('removeAgentsFromGroup', () => {
+    beforeEach(async () => {
+      // Create a group
+      await serverDB.insert(chatGroups).values({
+        id: 'remove-group',
+        title: 'Remove Group',
+        userId,
+      });
+
+      // Create virtual and non-virtual agents
+      await serverDB.insert(agents).values([
+        { id: 'remove-virtual', title: 'Virtual to Remove', userId, virtual: true },
+        { id: 'remove-regular', title: 'Regular to Remove', userId, virtual: false },
+        { id: 'keep-agent', title: 'Keep Agent', userId, virtual: false },
+      ]);
+
+      // Link agents to group
+      await serverDB.insert(chatGroupsAgents).values([
+        { agentId: 'remove-virtual', chatGroupId: 'remove-group', order: 0, userId },
+        { agentId: 'remove-regular', chatGroupId: 'remove-group', order: 1, userId },
+        { agentId: 'keep-agent', chatGroupId: 'remove-group', order: 2, userId },
+      ]);
+    });
+
+    it('should remove agents from group and delete virtual agents', async () => {
+      const result = await agentGroupRepo.removeAgentsFromGroup('remove-group', [
+        'remove-virtual',
+        'remove-regular',
+      ]);
+
+      expect(result.removedFromGroup).toBe(2);
+      expect(result.deletedVirtualAgentIds).toEqual(['remove-virtual']);
+
+      // Verify agents were removed from group
+      const groupAgents = await serverDB.query.chatGroupsAgents.findMany({
+        where: (cga, { eq }) => eq(cga.chatGroupId, 'remove-group'),
+      });
+      expect(groupAgents).toHaveLength(1);
+      expect(groupAgents[0].agentId).toBe('keep-agent');
+
+      // Verify virtual agent was deleted
+      const deletedVirtual = await serverDB.query.agents.findFirst({
+        where: (a, { eq }) => eq(a.id, 'remove-virtual'),
+      });
+      expect(deletedVirtual).toBeUndefined();
+
+      // Verify regular agent still exists (just removed from group)
+      const regularAgent = await serverDB.query.agents.findFirst({
+        where: (a, { eq }) => eq(a.id, 'remove-regular'),
+      });
+      expect(regularAgent).toBeDefined();
+    });
+
+    it('should not delete virtual agents when deleteVirtualAgents is false', async () => {
+      const result = await agentGroupRepo.removeAgentsFromGroup(
+        'remove-group',
+        ['remove-virtual'],
+        false,
+      );
+
+      expect(result.removedFromGroup).toBe(1);
+      expect(result.deletedVirtualAgentIds).toEqual([]);
+
+      // Verify virtual agent still exists
+      const virtualAgent = await serverDB.query.agents.findFirst({
+        where: (a, { eq }) => eq(a.id, 'remove-virtual'),
+      });
+      expect(virtualAgent).toBeDefined();
+    });
+
+    it('should return empty result for empty input', async () => {
+      const result = await agentGroupRepo.removeAgentsFromGroup('remove-group', []);
+
+      expect(result.removedFromGroup).toBe(0);
+      expect(result.deletedVirtualAgentIds).toEqual([]);
+    });
+
+    it('should remove only non-virtual agents correctly', async () => {
+      const result = await agentGroupRepo.removeAgentsFromGroup('remove-group', ['remove-regular']);
+
+      expect(result.removedFromGroup).toBe(1);
+      expect(result.deletedVirtualAgentIds).toEqual([]);
+
+      // Verify agent was removed from group
+      const groupAgents = await serverDB.query.chatGroupsAgents.findMany({
+        where: (cga, { eq }) => eq(cga.chatGroupId, 'remove-group'),
+      });
+      expect(groupAgents).toHaveLength(2);
+      expect(groupAgents.map((g) => g.agentId)).not.toContain('remove-regular');
+
+      // Verify agent still exists
+      const agent = await serverDB.query.agents.findFirst({
+        where: (a, { eq }) => eq(a.id, 'remove-regular'),
+      });
+      expect(agent).toBeDefined();
+    });
+
+    it('should handle multiple virtual agents', async () => {
+      // Add another virtual agent
+      await serverDB.insert(agents).values({
+        id: 'remove-virtual-2',
+        title: 'Virtual 2 to Remove',
+        userId,
+        virtual: true,
+      });
+      await serverDB.insert(chatGroupsAgents).values({
+        agentId: 'remove-virtual-2',
+        chatGroupId: 'remove-group',
+        order: 3,
+        userId,
+      });
+
+      const result = await agentGroupRepo.removeAgentsFromGroup('remove-group', [
+        'remove-virtual',
+        'remove-virtual-2',
+      ]);
+
+      expect(result.removedFromGroup).toBe(2);
+      expect(result.deletedVirtualAgentIds).toEqual(
+        expect.arrayContaining(['remove-virtual', 'remove-virtual-2']),
+      );
+
+      // Verify both virtual agents were deleted
+      const virtualAgents = await serverDB.query.agents.findMany({
+        where: (a, { and, eq, inArray }) =>
+          and(eq(a.userId, userId), inArray(a.id, ['remove-virtual', 'remove-virtual-2'])),
+      });
+      expect(virtualAgents).toHaveLength(0);
+    });
+  });
 });
