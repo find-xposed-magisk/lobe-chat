@@ -5,15 +5,14 @@ import { ActionIcon, Dropdown, Icon, type MenuProps } from '@lobehub/ui';
 import { Flexbox } from '@lobehub/ui';
 import { DiscordIcon } from '@lobehub/ui/icons';
 import { Book, CircleHelp, Feather, FileClockIcon, FlaskConical, Github, Mail } from 'lucide-react';
-import { lazy, memo, Suspense, useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import ChangelogModal from '@/components/ChangelogModal';
 import LabsModal from '@/components/LabsModal';
-
-const FeedbackModal = lazy(() => import('@/components/FeedbackModal'));
 import { DOCUMENTS_REFER_URL, GITHUB, mailTo } from '@/const/url';
 import ThemeButton from '@/features/User/UserPanel/ThemeButton';
+import { useFeedbackModal } from '@/hooks/useFeedbackModal';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
 
 const Footer = memo(() => {
@@ -22,8 +21,8 @@ const Footer = memo(() => {
   const [isLabsModalOpen, setIsLabsModalOpen] = useState(false);
   const [shouldLoadChangelog, setShouldLoadChangelog] = useState(false);
   const [isChangelogModalOpen, setIsChangelogModalOpen] = useState(false);
-  const [shouldLoadFeedback, setShouldLoadFeedback] = useState(false);
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+
+  const { open: openFeedbackModal } = useFeedbackModal();
 
   const handleOpenLabsModal = () => {
     setIsLabsModalOpen(true);
@@ -43,12 +42,7 @@ const Footer = memo(() => {
   };
 
   const handleOpenFeedbackModal = () => {
-    setShouldLoadFeedback(true);
-    setIsFeedbackModalOpen(true);
-  };
-
-  const handleCloseFeedbackModal = () => {
-    setIsFeedbackModalOpen(false);
+    openFeedbackModal();
   };
 
   const helpMenuItems: MenuProps['items'] = useMemo(
@@ -132,11 +126,6 @@ const Footer = memo(() => {
         open={isChangelogModalOpen}
         shouldLoad={shouldLoadChangelog}
       />
-      {shouldLoadFeedback && (
-        <Suspense fallback={null}>
-          <FeedbackModal onClose={handleCloseFeedbackModal} open={isFeedbackModalOpen} />
-        </Suspense>
-      )}
     </>
   );
 });

@@ -116,7 +116,7 @@ export default {
   'cmdk.askLobeAI': 'Ask Lobe AI',
   'cmdk.community': 'Community',
   'cmdk.communitySupport': 'Community Support',
-  'cmdk.contactViaEmail': 'Contact us via email',
+  'cmdk.contactViaEmail': 'Contact Us',
   'cmdk.context.agent': 'Agent',
   'cmdk.context.community': 'Community',
   'cmdk.context.general': 'General',

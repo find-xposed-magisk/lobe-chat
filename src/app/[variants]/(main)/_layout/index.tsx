@@ -3,7 +3,7 @@
 import { Flexbox } from '@lobehub/ui';
 import { cx } from 'antd-style';
 import dynamic from 'next/dynamic';
-import { type FC, Suspense } from 'react';
+import { type FC, Suspense, lazy } from 'react';
 import { HotkeysProvider } from 'react-hotkeys-hook';
 import { Outlet } from 'react-router-dom';
 
@@ -15,11 +15,14 @@ import DesktopNavigationBridge from '@/features/DesktopNavigationBridge';
 import TitleBar, { TITLE_BAR_HEIGHT } from '@/features/ElectronTitlebar';
 import HotkeyHelperPanel from '@/features/HotkeyHelperPanel';
 import NavPanel from '@/features/NavPanel';
+import { useFeedbackModal } from '@/hooks/useFeedbackModal';
 import { usePlatform } from '@/hooks/usePlatform';
 import { MarketAuthProvider } from '@/layout/AuthProvider/MarketAuth';
 import CmdkLazy from '@/layout/GlobalProvider/CmdkLazy';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
 import { HotkeyScopeEnum } from '@/types/hotkey';
+
+const FeedbackModal = lazy(() => import('@/components/FeedbackModal'));
 
 import DesktopHome from '../home';
 import DesktopHomeLayout from '../home/_layout';
@@ -33,6 +36,7 @@ const CloudBanner = dynamic(() => import('@/features/AlertBanner/CloudBanner'));
 const Layout: FC = () => {
   const { isPWA } = usePlatform();
   const { showCloudPromotion } = useServerConfigStore(featureFlagsSelectors);
+  const { isOpen: isFeedbackModalOpen, close: closeFeedbackModal } = useFeedbackModal();
 
   return (
     <HotkeysProvider initiallyActiveScopes={[HotkeyScopeEnum.Global]}>
@@ -72,6 +76,11 @@ const Layout: FC = () => {
         <HotkeyHelperPanel />
         <RegisterHotkeys />
         <CmdkLazy />
+        {isFeedbackModalOpen && (
+          <Suspense fallback={null}>
+            <FeedbackModal onClose={closeFeedbackModal} open={isFeedbackModalOpen} />
+          </Suspense>
+        )}
       </Suspense>
     </HotkeysProvider>
   );

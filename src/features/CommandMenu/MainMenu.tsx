@@ -19,6 +19,7 @@ import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FEEDBACK } from '@/const/url';
+import { useFeedbackModal } from '@/hooks/useFeedbackModal';
 
 import { useCommandMenuContext } from './CommandMenuContext';
 import ContextCommands from './ContextCommands';
@@ -28,6 +29,7 @@ import { useCommandMenu } from './useCommandMenu';
 const MainMenu = memo(() => {
   const { pathname, menuContext, setPages, pages } = useCommandMenuContext();
   const { t } = useTranslation('common');
+  const { open: openFeedbackModal } = useFeedbackModal();
 
   const {
     handleCreateSession,
@@ -154,7 +156,7 @@ const MainMenu = memo(() => {
         <CommandItem
           icon={<MailIcon />}
           keywords={['feedback', 'issue', 'bug', 'problem']}
-          onSelect={() => handleExternalLink(FEEDBACK)}
+          onSelect={openFeedbackModal}
           value="contact-via-email"
         >
           {t('cmdk.contactViaEmail')}
