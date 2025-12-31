@@ -1,7 +1,7 @@
 /**
  * API names for Cloud Sandbox tool
  */
-export const CodeInterpreterApiName = {
+export const CloudSandboxApiName = {
   editLocalFile: 'editLocalFile',
   executeCode: 'executeCode',
   exportFile: 'exportFile',
@@ -18,8 +18,8 @@ export const CodeInterpreterApiName = {
   writeLocalFile: 'writeLocalFile',
 } as const;
 
-export type CodeInterpreterApiNameType =
-  (typeof CodeInterpreterApiName)[keyof typeof CodeInterpreterApiName];
+export type CloudSandboxApiNameType =
+  (typeof CloudSandboxApiName)[keyof typeof CloudSandboxApiName];
 
 // ==================== File Operations ====================
 

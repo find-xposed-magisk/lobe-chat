@@ -1,5 +1,5 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix, typescript-sort-keys/interface */
-import { CodeInterpreterIdentifier, type ExportFileState } from '@lobechat/builtin-tool-code-interpreter';
+import { CloudSandboxIdentifier, type ExportFileState } from '@lobechat/builtin-tool-cloud-sandbox';
 import { GroupAgentBuilderIdentifier } from '@lobechat/builtin-tool-group-agent-builder';
 import { type ChatToolPayload, type RuntimeStepContext } from '@lobechat/types';
 import { PluginErrorType } from '@lobehub/chat-plugin-sdk';
@@ -137,7 +137,7 @@ export const pluginTypes: StateCreator<
     }
 
     // Check if this is Cloud Code Interpreter - route to specific handler
-    if (payload.identifier === CodeInterpreterIdentifier) {
+    if (payload.identifier === CloudSandboxIdentifier) {
       return await get().invokeCloudCodeInterpreterTool(id, payload);
     }
 
@@ -287,11 +287,11 @@ export const pluginTypes: StateCreator<
 
     try {
       // Import ExecutionRuntime dynamically to avoid circular dependencies
-      const { CodeInterpreterExecutionRuntime } =
-        await import('@lobechat/builtin-tool-code-interpreter/executionRuntime');
+      const { CloudSandboxExecutionRuntime } =
+        await import('@lobechat/builtin-tool-cloud-sandbox/executionRuntime');
 
       // Create runtime with context
-      const runtime = new CodeInterpreterExecutionRuntime({
+      const runtime = new CloudSandboxExecutionRuntime({
         topicId: message?.topicId || 'default',
         userId: 'current-user', // TODO: Get actual userId from auth context
       });

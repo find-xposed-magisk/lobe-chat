@@ -1,5 +1,5 @@
 import { AgentBuilderManifest } from '@lobechat/builtin-tool-agent-builder';
-import { CodeInterpreterManifest } from '@lobechat/builtin-tool-code-interpreter';
+import { CloudSandboxManifest } from '@lobechat/builtin-tool-cloud-sandbox';
 import { GroupAgentBuilderManifest } from '@lobechat/builtin-tool-group-agent-builder';
 import { GroupManagementManifest } from '@lobechat/builtin-tool-group-management';
 import { GTDManifest } from '@lobechat/builtin-tool-gtd';
@@ -38,8 +38,8 @@ export const builtinTools: LobeBuiltinTool[] = [
     type: 'builtin',
   },
   {
-    identifier: CodeInterpreterManifest.identifier,
-    manifest: CodeInterpreterManifest,
+    identifier: CloudSandboxManifest.identifier,
+    manifest: CloudSandboxManifest,
     type: 'builtin',
   },
   {

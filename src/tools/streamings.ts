@@ -1,7 +1,7 @@
 import {
-  CodeInterpreterIdentifier,
-  CodeInterpreterStreamings,
-} from '@lobechat/builtin-tool-code-interpreter/client';
+  CloudSandboxIdentifier,
+  CloudSandboxStreamings,
+} from '@lobechat/builtin-tool-cloud-sandbox/client';
 import {
   GroupManagementManifest,
   GroupManagementStreamings,
@@ -21,7 +21,7 @@ import { LocalSystemStreamings } from './local-system/Streaming';
  * The component should fetch streaming content from store internally.
  */
 const BuiltinToolStreamings: Record<string, Record<string, BuiltinStreaming>> = {
-  [CodeInterpreterIdentifier]: CodeInterpreterStreamings as Record<string, BuiltinStreaming>,
+  [CloudSandboxIdentifier]: CloudSandboxStreamings as Record<string, BuiltinStreaming>,
   [GroupManagementManifest.identifier]: GroupManagementStreamings as Record<
     string,
     BuiltinStreaming

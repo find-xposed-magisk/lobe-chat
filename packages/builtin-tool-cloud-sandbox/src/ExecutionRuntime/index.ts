@@ -115,7 +115,7 @@ interface ExecuteCodeParams {
   language?: 'javascript' | 'python' | 'typescript';
 }
 
-export class CodeInterpreterExecutionRuntime {
+export class CloudSandboxExecutionRuntime {
   private context: ExecutionContext;
 
   constructor(context: ExecutionContext) {
@@ -501,9 +501,7 @@ export class CodeInterpreterExecutionRuntime {
     const result = await codeInterpreterService.callTool(toolName, params, this.context);
 
     if (!result.success) {
-      throw new Error(
-        (result as any).error?.message || `Cloud Sandbox tool ${toolName} failed`,
-      );
+      throw new Error((result as any).error?.message || `Cloud Sandbox tool ${toolName} failed`);
     }
 
     return result;

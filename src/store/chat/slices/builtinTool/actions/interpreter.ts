@@ -1,4 +1,4 @@
-import { CodeInterpreterIdentifier } from '@lobechat/builtin-tool-code-interpreter';
+import { CloudSandboxIdentifier } from '@lobechat/builtin-tool-cloud-sandbox';
 import {
   type CodeInterpreterFileItem,
   type CodeInterpreterParams,
@@ -79,7 +79,7 @@ export const codeInterpreterSlice: StateCreator<
           files.push(new File([blob], image.alt));
         }
         for (const tool of message.tools ?? []) {
-          if (tool.identifier === CodeInterpreterIdentifier) {
+          if (tool.identifier === CloudSandboxIdentifier) {
             const message = dbMessageSelectors.getDbMessageByToolCallId(tool.id)(get());
             if (message?.content) {
               const content = JSON.parse(message.content) as CodeInterpreterResponse;

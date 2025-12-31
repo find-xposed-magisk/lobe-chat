@@ -43,13 +43,13 @@ export const ExecuteCodeInspector = memo<
     if (!description)
       return (
         <div className={cx(styles.root, shinyTextStyles.shinyText)}>
-          <span>{t('builtins.lobe-cloud-code-interpreter.apiName.executeCode')}</span>
+          <span>{t('builtins.lobe-cloud-sandbox.apiName.executeCode')}</span>
         </div>
       );
 
     return (
       <div className={cx(styles.root, shinyTextStyles.shinyText)}>
-        <span>{t('builtins.lobe-cloud-code-interpreter.apiName.executeCode')}: </span>
+        <span>{t('builtins.lobe-cloud-sandbox.apiName.executeCode')}: </span>
         <span className={highlightTextStyles.gold}>{description}</span>
       </div>
     );
@@ -58,7 +58,7 @@ export const ExecuteCodeInspector = memo<
   return (
     <div className={cx(styles.root, isLoading && shinyTextStyles.shinyText)}>
       <span style={{ marginInlineStart: 2 }}>
-        <span>{t('builtins.lobe-cloud-code-interpreter.apiName.executeCode')}: </span>
+        <span>{t('builtins.lobe-cloud-sandbox.apiName.executeCode')}: </span>
         {description && <span className={highlightTextStyles.primary}>{description}</span>}
         {isLoading ? null : pluginState?.success ? (
           <Check className={styles.statusIcon} color={cssVar.colorSuccess} size={14} />

@@ -1,18 +1,18 @@
 import type { BuiltinToolManifest } from '@lobechat/types';
 
 import { systemPrompt } from './systemRole';
-import { CodeInterpreterApiName } from './types';
+import { CloudSandboxApiName } from './types';
 
-export const CodeInterpreterIdentifier = 'lobe-cloud-sandbox';
+export const CloudSandboxIdentifier = 'lobe-cloud-sandbox';
 
 /* eslint-disable sort-keys-fix/sort-keys-fix */
-export const CodeInterpreterManifest: BuiltinToolManifest = {
+export const CloudSandboxManifest: BuiltinToolManifest = {
   api: [
     {
       description:
         'Execute code directly in the sandbox environment. Supports Python, JavaScript, and TypeScript. Returns execution output, errors, and exit code.',
       humanIntervention: 'required',
-      name: CodeInterpreterApiName.executeCode,
+      name: CloudSandboxApiName.executeCode,
       parameters: {
         properties: {
           description: {
@@ -37,7 +37,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
     {
       description:
         'List files and folders in a specified directory. Input should be a path. Output is a JSON array of file/folder names.',
-      name: CodeInterpreterApiName.listLocalFiles,
+      name: CloudSandboxApiName.listLocalFiles,
       parameters: {
         properties: {
           directoryPath: {
@@ -52,7 +52,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
     {
       description:
         'Read the content of a specific file. Input should be the file path. Output is the file content as a string.',
-      name: CodeInterpreterApiName.readLocalFile,
+      name: CloudSandboxApiName.readLocalFile,
       parameters: {
         properties: {
           endLine: {
@@ -74,7 +74,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
     },
     {
       description: 'Search for files within the sandbox based on keywords and filter options.',
-      name: CodeInterpreterApiName.searchLocalFiles,
+      name: CloudSandboxApiName.searchLocalFiles,
       parameters: {
         properties: {
           directory: {
@@ -106,7 +106,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
       description:
         'Moves or renames multiple files/directories. Input is an array of operations with source and destination paths.',
       humanIntervention: 'required',
-      name: CodeInterpreterApiName.moveLocalFiles,
+      name: CloudSandboxApiName.moveLocalFiles,
       parameters: {
         properties: {
           operations: {
@@ -135,7 +135,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
     {
       description:
         'Rename a file or folder in its current location. Input should be the current full path and the new name.',
-      name: CodeInterpreterApiName.renameLocalFile,
+      name: CloudSandboxApiName.renameLocalFile,
       parameters: {
         properties: {
           newName: {
@@ -155,7 +155,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
       description:
         'Write content to a specific file. Input should be the file path and content. Overwrites existing file or creates a new one.',
       humanIntervention: 'required',
-      name: CodeInterpreterApiName.writeLocalFile,
+      name: CloudSandboxApiName.writeLocalFile,
       parameters: {
         properties: {
           content: {
@@ -179,7 +179,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
       description:
         'Perform exact string replacements in files. Must read the file first before editing.',
       humanIntervention: 'required',
-      name: CodeInterpreterApiName.editLocalFile,
+      name: CloudSandboxApiName.editLocalFile,
       parameters: {
         properties: {
           all: {
@@ -207,7 +207,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
       description:
         'Execute a shell command and return its output. Supports both synchronous and background execution with timeout control.',
       humanIntervention: 'required',
-      name: CodeInterpreterApiName.runCommand,
+      name: CloudSandboxApiName.runCommand,
       parameters: {
         properties: {
           description: {
@@ -235,7 +235,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
     {
       description:
         'Retrieve output from a running or completed background shell command. Returns only new output since the last check.',
-      name: CodeInterpreterApiName.getCommandOutput,
+      name: CloudSandboxApiName.getCommandOutput,
       parameters: {
         properties: {
           commandId: {
@@ -249,7 +249,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
     },
     {
       description: 'Kill a running background shell command by its ID.',
-      name: CodeInterpreterApiName.killCommand,
+      name: CloudSandboxApiName.killCommand,
       parameters: {
         properties: {
           commandId: {
@@ -264,7 +264,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
     {
       description:
         'Search for content within files using regex patterns. Supports various output modes and filtering options.',
-      name: CodeInterpreterApiName.grepContent,
+      name: CloudSandboxApiName.grepContent,
       parameters: {
         properties: {
           directory: {
@@ -291,7 +291,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
     {
       description:
         'Find files matching glob patterns. Supports standard glob syntax like "**/*.js" or "src/**/*.ts".',
-      name: CodeInterpreterApiName.globLocalFiles,
+      name: CloudSandboxApiName.globLocalFiles,
       parameters: {
         properties: {
           directory: {
@@ -310,7 +310,7 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
     {
       description:
         'Export a file from the sandbox to cloud storage. The file will be uploaded to a pre-signed URL and can be downloaded by the user.',
-      name: CodeInterpreterApiName.exportFile,
+      name: CloudSandboxApiName.exportFile,
       parameters: {
         properties: {
           path: {
@@ -324,14 +324,13 @@ export const CodeInterpreterManifest: BuiltinToolManifest = {
       },
     },
   ],
-  identifier: CodeInterpreterIdentifier,
+  identifier: CloudSandboxIdentifier,
   meta: {
-    avatar:
-      '💻',
+    avatar: '💻',
     title: 'Cloud Sandbox',
   },
   systemRole: systemPrompt,
   type: 'builtin',
 };
 
-export { CodeInterpreterApiName } from './types';
+export { CloudSandboxApiName } from './types';

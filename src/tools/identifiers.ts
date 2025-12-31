@@ -1,5 +1,5 @@
 import { AgentBuilderManifest } from '@lobechat/builtin-tool-agent-builder';
-import { CodeInterpreterManifest } from '@lobechat/builtin-tool-code-interpreter';
+import { CloudSandboxManifest } from '@lobechat/builtin-tool-cloud-sandbox';
 import { GroupAgentBuilderManifest } from '@lobechat/builtin-tool-group-agent-builder';
 import { GroupManagementManifest } from '@lobechat/builtin-tool-group-management';
 import { GTDManifest } from '@lobechat/builtin-tool-gtd';
@@ -18,7 +18,7 @@ export const builtinToolIdentifiers: string[] = [
   LocalSystemManifest.identifier,
   WebBrowsingManifest.identifier,
   KnowledgeBaseManifest.identifier,
-  CodeInterpreterManifest.identifier,
+  CloudSandboxManifest.identifier,
   PageAgentManifest.identifier,
   GroupAgentBuilderManifest.identifier,
   GroupManagementManifest.identifier,

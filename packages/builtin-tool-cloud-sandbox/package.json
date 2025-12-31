@@ -1,5 +1,5 @@
 {
-  "name": "@lobechat/builtin-tool-code-interpreter",
+  "name": "@lobechat/builtin-tool-cloud-sandbox",
   "version": "1.0.0",
   "private": true,
   "exports": {

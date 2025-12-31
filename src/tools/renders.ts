@@ -1,9 +1,9 @@
 // agent-builder
 import { AgentBuilderManifest } from '@lobechat/builtin-tool-agent-builder';
 import { AgentBuilderRenders } from '@lobechat/builtin-tool-agent-builder/client';
-// code-interpreter
-import { CodeInterpreterManifest } from '@lobechat/builtin-tool-code-interpreter';
-import { CodeInterpreterRenders } from '@lobechat/builtin-tool-code-interpreter/client';
+// cloud-sandbox
+import { CloudSandboxManifest } from '@lobechat/builtin-tool-cloud-sandbox';
+import { CloudSandboxRenders } from '@lobechat/builtin-tool-cloud-sandbox/client';
 // group-management
 import { GroupManagementManifest } from '@lobechat/builtin-tool-group-management';
 import { GroupManagementRenders } from '@lobechat/builtin-tool-group-management/client';
@@ -30,7 +30,7 @@ import { LocalSystemRenders } from './local-system/Render';
  */
 const BuiltinToolsRenders: Record<string, Record<string, BuiltinRender>> = {
   [AgentBuilderManifest.identifier]: AgentBuilderRenders as Record<string, BuiltinRender>,
-  [CodeInterpreterManifest.identifier]: CodeInterpreterRenders as Record<string, BuiltinRender>,
+  [CloudSandboxManifest.identifier]: CloudSandboxRenders as Record<string, BuiltinRender>,
   [GroupManagementManifest.identifier]: GroupManagementRenders as Record<string, BuiltinRender>,
   [GTDManifest.identifier]: GTDRenders as Record<string, BuiltinRender>,
   [NotebookManifest.identifier]: NotebookRenders as Record<string, BuiltinRender>,

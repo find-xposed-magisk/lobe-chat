@@ -1,7 +1,7 @@
 import {
-  CodeInterpreterIdentifier,
-  CodeInterpreterInspectors,
-} from '@lobechat/builtin-tool-code-interpreter/client';
+  CloudSandboxIdentifier,
+  CloudSandboxInspectors,
+} from '@lobechat/builtin-tool-cloud-sandbox/client';
 import {
   GroupManagementInspectors,
   GroupManagementManifest,
@@ -25,7 +25,7 @@ import { LocalSystemInspectors } from './local-system/Inspector';
  * of tool calls in the conversation UI.
  */
 const BuiltinToolInspectors: Record<string, Record<string, BuiltinInspector>> = {
-  [CodeInterpreterIdentifier]: CodeInterpreterInspectors as Record<string, BuiltinInspector>,
+  [CloudSandboxIdentifier]: CloudSandboxInspectors as Record<string, BuiltinInspector>,
   [GroupManagementManifest.identifier]: GroupManagementInspectors as Record<
     string,
     BuiltinInspector

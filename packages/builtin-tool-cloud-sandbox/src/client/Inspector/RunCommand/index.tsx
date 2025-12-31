@@ -42,13 +42,13 @@ export const RunCommandInspector = memo<BuiltinInspectorProps<RunCommandParams, 
       if (!description)
         return (
           <div className={cx(styles.root, shinyTextStyles.shinyText)}>
-            <span>{t('builtins.lobe-cloud-code-interpreter.apiName.runCommand')}</span>
+            <span>{t('builtins.lobe-cloud-sandbox.apiName.runCommand')}</span>
           </div>
         );
 
       return (
         <div className={cx(styles.root, shinyTextStyles.shinyText)}>
-          <span>{t('builtins.lobe-cloud-code-interpreter.apiName.runCommand')}: </span>
+          <span>{t('builtins.lobe-cloud-sandbox.apiName.runCommand')}: </span>
           <span className={highlightTextStyles.primary}>{description}</span>
         </div>
       );
@@ -57,7 +57,7 @@ export const RunCommandInspector = memo<BuiltinInspectorProps<RunCommandParams, 
     return (
       <div className={cx(styles.root, isLoading && shinyTextStyles.shinyText)}>
         <span style={{ marginInlineStart: 2 }}>
-          <span>{t('builtins.lobe-cloud-code-interpreter.apiName.runCommand')}: </span>
+          <span>{t('builtins.lobe-cloud-sandbox.apiName.runCommand')}: </span>
           {description && <span className={highlightTextStyles.primary}>{description}</span>}
           {isLoading ? null : pluginState?.success && pluginState?.exitCode === 0 ? (
             <Check className={styles.statusIcon} color={cssVar.colorSuccess} size={14} />
