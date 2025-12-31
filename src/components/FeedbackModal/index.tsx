@@ -65,7 +65,18 @@ const FeedbackModal = memo<FeedbackModalProps>(({ onClose, open }) => {
       const values = await form.validateFields();
       setLoading(true);
 
+      // Collect client information
+      const clientInfo = {
+        language: navigator.language,
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+      };
+
       await lambdaClient.feedback.submitFeedback.mutate({
+        clientInfo,
         message: values.message,
         screenshotUrl: screenshotUrl || undefined,
         title: values.title,

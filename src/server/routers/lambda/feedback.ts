@@ -6,6 +6,16 @@ import { authedProcedure, router } from '@/libs/trpc/lambda';
 import { serverDatabase } from '@/libs/trpc/lambda/middleware';
 
 const submitFeedbackSchema = z.object({
+  clientInfo: z
+    .object({
+      language: z.string().optional(),
+      screenResolution: z.string().optional(),
+      timezone: z.string().optional(),
+      url: z.string().optional(),
+      userAgent: z.string().optional(),
+      viewport: z.string().optional(),
+    })
+    .optional(),
   message: z.string().min(1).max(5000),
   screenshotUrl: z.string().url().optional(),
   title: z.string().min(1).max(200),
@@ -112,13 +122,35 @@ export const feedbackRouter = router({
     // 1. Get user email
     const userState = await ctx.userModel.getUserState(async () => ({}));
 
-    // 2. Build description with email and screenshot
+    // 2. Build description with email, screenshot, and client info
     let description = input.message;
+
+    // Add user email
     if (userState.email) {
       description += `\n\n---\n**Submitted by**: ${userState.email}`;
     }
+
+    // Add screenshot
     if (input.screenshotUrl) {
       description += `\n\n**Screenshot**: ${input.screenshotUrl}`;
+    }
+
+    // Add client information as a table
+    if (input.clientInfo) {
+      description += '\n\n## System Information\n\n';
+      description += '| Property | Value |\n';
+      description += '|----------|-------|\n';
+      if (input.clientInfo.url) description += `| URL | ${input.clientInfo.url} |\n`;
+      if (input.clientInfo.userAgent)
+        description += `| User Agent | ${input.clientInfo.userAgent} |\n`;
+      if (input.clientInfo.language)
+        description += `| Language | ${input.clientInfo.language} |\n`;
+      if (input.clientInfo.timezone)
+        description += `| Timezone | ${input.clientInfo.timezone} |\n`;
+      if (input.clientInfo.screenResolution)
+        description += `| Screen | ${input.clientInfo.screenResolution} |\n`;
+      if (input.clientInfo.viewport)
+        description += `| Viewport | ${input.clientInfo.viewport} |\n`;
     }
 
     // 3. Get label ID if configured

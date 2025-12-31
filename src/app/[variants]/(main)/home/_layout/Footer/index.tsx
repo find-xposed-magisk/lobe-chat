@@ -5,12 +5,13 @@ import { ActionIcon, Dropdown, Icon, type MenuProps } from '@lobehub/ui';
 import { Flexbox } from '@lobehub/ui';
 import { DiscordIcon } from '@lobehub/ui/icons';
 import { Book, CircleHelp, Feather, FileClockIcon, FlaskConical, Github, Mail } from 'lucide-react';
-import { memo, useMemo, useState } from 'react';
+import { lazy, memo, Suspense, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import ChangelogModal from '@/components/ChangelogModal';
-import FeedbackModal from '@/components/FeedbackModal';
 import LabsModal from '@/components/LabsModal';
+
+const FeedbackModal = lazy(() => import('@/components/FeedbackModal'));
 import { DOCUMENTS_REFER_URL, GITHUB, mailTo } from '@/const/url';
 import ThemeButton from '@/features/User/UserPanel/ThemeButton';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
@@ -21,6 +22,7 @@ const Footer = memo(() => {
   const [isLabsModalOpen, setIsLabsModalOpen] = useState(false);
   const [shouldLoadChangelog, setShouldLoadChangelog] = useState(false);
   const [isChangelogModalOpen, setIsChangelogModalOpen] = useState(false);
+  const [shouldLoadFeedback, setShouldLoadFeedback] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   const handleOpenLabsModal = () => {
@@ -41,6 +43,7 @@ const Footer = memo(() => {
   };
 
   const handleOpenFeedbackModal = () => {
+    setShouldLoadFeedback(true);
     setIsFeedbackModalOpen(true);
   };
 
@@ -129,7 +132,11 @@ const Footer = memo(() => {
         open={isChangelogModalOpen}
         shouldLoad={shouldLoadChangelog}
       />
-      <FeedbackModal onClose={handleCloseFeedbackModal} open={isFeedbackModalOpen} />
+      {shouldLoadFeedback && (
+        <Suspense fallback={null}>
+          <FeedbackModal onClose={handleCloseFeedbackModal} open={isFeedbackModalOpen} />
+        </Suspense>
+      )}
     </>
   );
 });
