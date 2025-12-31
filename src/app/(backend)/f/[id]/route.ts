@@ -41,12 +41,13 @@ export const GET = async (_req: Request, segmentData: { params: Params }) => {
     const redisConfig = getRedisConfig();
     const redisClient = isRedisEnabled(redisConfig) ? await initializeRedis(redisConfig) : null;
 
+    const cacheKey = buildCacheKey(id);
     if (redisClient) {
-      const cached = await redisClient.get(buildCacheKey(id));
-      if (cached) {
-        const { redirectUrl } = JSON.parse(cached) as CachedFileData;
+      // Upstash Redis auto-deserializes JSON, so cached is already an object
+      const cached = (await redisClient.get(cacheKey)) as CachedFileData | null;
+      if (cached?.redirectUrl) {
         log('Cache hit for file: %s', id);
-        return Response.redirect(redirectUrl, 302);
+        return Response.redirect(cached.redirectUrl, 302);
       }
       log('Cache miss for file: %s', id);
     }
@@ -73,8 +74,7 @@ export const GET = async (_req: Request, segmentData: { params: Params }) => {
 
     // Cache the presigned URL in Redis
     if (redisClient) {
-      const cacheData: CachedFileData = { redirectUrl };
-      await redisClient.set(buildCacheKey(id), JSON.stringify(cacheData), {
+      await redisClient.set(cacheKey, JSON.stringify({ redirectUrl }), {
         ex: PRESIGNED_URL_CACHE_TTL,
       });
       log('Cached presigned URL for file: %s (TTL: %ds)', id, PRESIGNED_URL_CACHE_TTL);
