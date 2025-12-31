@@ -2,7 +2,6 @@ import { type LobeChatDatabase } from '@lobechat/database';
 import { TRPCError } from '@trpc/server';
 import debug from 'debug';
 
-import { serverDBEnv } from '@/config/db';
 import { UserModel } from '@/database/models/user';
 
 import { asyncTrpc } from './init';
@@ -13,11 +12,9 @@ export const asyncAuth = asyncTrpc.middleware(async (opts) => {
   const { ctx } = opts;
 
   log('Async auth middleware called for userId: %s', ctx.userId);
-  log('Secret validation: %s', ctx.secret === serverDBEnv.KEY_VAULTS_SECRET);
 
-  if (ctx.secret !== serverDBEnv.KEY_VAULTS_SECRET || !ctx.userId) {
-    log('Async auth failed - invalid secret or missing userId');
-    log('Has secret: %s, Has userId: %s', !!ctx.secret, !!ctx.userId);
+  if (!ctx.userId) {
+    log('Async auth failed - missing userId');
     throw new TRPCError({ code: 'UNAUTHORIZED' });
   }
 

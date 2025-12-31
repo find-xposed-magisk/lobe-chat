@@ -4,13 +4,13 @@ import debug from 'debug';
 import { type NextRequest } from 'next/server';
 
 import { LOBE_CHAT_AUTH_HEADER } from '@/const/auth';
+import { validateInternalJWT } from '@/libs/trpc/utils/internalJwt';
 import { KeyVaultsGateKeeper } from '@/server/modules/KeyVaultsEncrypt';
 
 const log = debug('lobe-async:context');
 
 export interface AsyncAuthContext {
   jwtPayload: ClientSecretPayload;
-  secret: string;
   serverDB?: LobeChatDatabase;
   userId?: string | null;
 }
@@ -21,11 +21,9 @@ export interface AsyncAuthContext {
  */
 export const createAsyncContextInner = async (params?: {
   jwtPayload?: ClientSecretPayload;
-  secret?: string;
   userId?: string | null;
 }): Promise<AsyncAuthContext> => ({
   jwtPayload: params?.jwtPayload || {},
-  secret: params?.secret || '',
   userId: params?.userId,
 });
 
@@ -52,8 +50,14 @@ export const createAsyncRouteContext = async (request: NextRequest): Promise<Asy
     throw new Error('No LobeChat authorization header found');
   }
 
-  const secret = authorization?.split(' ')[1];
-  log('Secret extracted from authorization header: %s', !!secret);
+  // Validate JWT token to verify request is from lambda
+  log('Validating internal JWT token');
+  const isValid = await validateInternalJWT(authorization);
+  if (!isValid) {
+    log('JWT validation failed');
+    throw new Error('Invalid JWT token');
+  }
+  log('JWT validation successful');
 
   try {
     log('Initializing KeyVaultsGateKeeper');
@@ -71,7 +75,7 @@ export const createAsyncRouteContext = async (request: NextRequest): Promise<Asy
       Object.keys(payload || {}),
     );
 
-    return createAsyncContextInner({ jwtPayload: payload, secret, userId });
+    return createAsyncContextInner({ jwtPayload: payload, userId });
   } catch (error) {
     log('Error creating async route context: %O', error);
     throw error;
