@@ -1,14 +1,14 @@
 {
-  "agentSelection.empty": "Nessun assistente disponibile al momento",
-  "agentSelection.noAvailable": "Attualmente non ci sono assistenti da aggiungere",
-  "agentSelection.noSelected": "Nessun assistente selezionato",
-  "agentSelection.search": "Nessun assistente corrispondente trovato",
-  "project.create": "Crea nuovo progetto",
-  "project.deleteConfirm": "Stai per eliminare questo progetto. Una volta eliminato, non potrà essere recuperato. Conferma la tua azione.",
-  "starter.createAgent": "Crea assistente",
-  "starter.createGroup": "Crea un gruppo",
-  "starter.deepResearch": "Ricerca approfondita",
-  "starter.developing": "In fase di sviluppo",
-  "starter.image": "Illustrazione",
-  "starter.write": "Scrittura"
+  "agentSelection.empty": "Nessun agente disponibile",
+  "agentSelection.noAvailable": "Al momento non è possibile aggiungere agenti",
+  "agentSelection.noSelected": "Nessun agente selezionato",
+  "agentSelection.search": "Nessun agente corrispondente trovato",
+  "project.create": "Nuovo progetto",
+  "project.deleteConfirm": "Questo progetto verrà eliminato e non potrà essere recuperato. Conferma per continuare.",
+  "starter.createAgent": "Crea Agente",
+  "starter.createGroup": "Crea Gruppo",
+  "starter.deepResearch": "Ricerca Approfondita",
+  "starter.developing": "Prossimamente",
+  "starter.image": "Immagine",
+  "starter.write": "Scrivi"
 }

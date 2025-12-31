@@ -183,6 +183,7 @@ IMPORTANT:
 - Never use <span> tags in content. Use plain text directly with inline formatting tags (<b>, <i>, <u>, <s>)
 - Batch operations are more efficient and apply all changes atomically
 - CRITICAL: If the text content in litexml contains double quote characters (", ", "), you MUST escape them as \\" to avoid breaking JSON parsing. For example: '<p id="abc">He said \\"hello\\"</p>' or '<p id="abc">这是\\"开放\\"的时代</p>'
+- CRITICAL: When inserting content with multiple top-level elements (e.g., multiple <h3>, <p>, <ul> elements), you MUST wrap them in a <root> element. Without a single root wrapper, XML parsing will fail. For example: '<root><h3>Title</h3><p>Paragraph 1</p><ul><li>Item</li></ul></root>'
 
 ## Page Metadata
 

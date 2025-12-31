@@ -21,5 +21,5 @@
   "plugins.description": "搜索、图表、学术工具、图像/视频/语音生成、工作流——为您的智能体添加技能。",
   "plugins.title": "技能社区",
   "welcome.description": "{{appName}} 为 ChatGPT、Claude、Gemini 和 OLLaMA 提供最佳的用户界面体验。",
-  "welcome.title": "欢迎使用 {{appName}} — 协作智能体平台"
+  "welcome.title": "欢迎使用 {{appName}} · Agent 协同平台"
 }

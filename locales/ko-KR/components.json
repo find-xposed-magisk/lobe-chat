@@ -29,6 +29,7 @@
   "FileManager.actions.moveSuccess": "파일이 성공적으로 이동되었습니다",
   "FileManager.actions.moveToFolder": "다음으로 이동...",
   "FileManager.actions.moveToRoot": "루트 디렉터리로 이동",
+  "FileManager.actions.moving": "이동 중...",
   "FileManager.actions.removeFromKnowledgeBase": "지식 베이스에서 제거",
   "FileManager.actions.removeFromKnowledgeBaseSuccess": "파일이 성공적으로 제거되었습니다.",
   "FileManager.actions.rename": "이름 변경",

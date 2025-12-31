@@ -2,7 +2,7 @@
   "changelog.description": "持續追蹤 {{appName}} 的新功能和改進",
   "changelog.title": "更新日誌",
   "chat.description": "{{appName}} 帶給你最好的 ChatGPT, Claude, Gemini, OLLaMA WebUI 使用體驗",
-  "chat.title": "{{appName}}：個人 AI 效能工具，給自己一個更聰明的大腦",
+  "chat.title": "{{appName}} · 協作代理的理想平台",
   "discover.assistants.description": "內容創作、文案、問答、圖像生成、視頻生成、語音生成、智能代理、自動化工作流程，定制你專屬的 AI / GPTs / OLLaMA 智能助手",
   "discover.assistants.title": "智慧體社群",
   "discover.description": "內容創作、文案、問答、圖像生成、視頻生成、語音生成、智能代理、自定義 AI 應用，定制你專屬的 AI 應用工作台",
@@ -21,5 +21,5 @@
   "plugins.description": "搜尋、圖表生成、學術、圖像生成、視頻生成、語音生成、自動化工作流，定制 ChatGPT / Claude 專屬的 ToolCall 插件能力",
   "plugins.title": "外掛社群",
   "welcome.description": "{{appName}} 帶給你最好的 ChatGPT, Claude, Gemini, OLLaMA WebUI 使用體驗",
-  "welcome.title": "歡迎使用 {{appName}}：個人 AI 效能工具，給自己一個更聰明的大腦"
+  "welcome.title": "歡迎使用 {{appName}} · 協作代理的理想平台"
 }

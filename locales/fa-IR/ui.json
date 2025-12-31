@@ -2,7 +2,7 @@
   "chat": {
     "chat.avatar": "آواتار",
     "chat.placeholder": "...",
-    "tokenTag.overload": "بیش‌ازحد",
+    "tokenTag.overload": "بیش‌بار",
     "tokenTag.remained": "باقی‌مانده",
     "tokenTag.used": "استفاده‌شده"
   },
@@ -16,16 +16,16 @@
     "editableMessage.addProps": "افزودن ویژگی‌ها",
     "editableMessage.delete": "حذف",
     "editableMessage.input": "ورودی",
-    "editableMessage.inputPlaceholder": "لطفاً محتوای ورودی نمونه را وارد کنید",
+    "editableMessage.inputPlaceholder": "لطفاً محتوای نمونه ورودی را وارد کنید",
     "editableMessage.output": "خروجی",
-    "editableMessage.outputPlaceholder": "لطفاً محتوای خروجی نمونه را وارد کنید",
+    "editableMessage.outputPlaceholder": "لطفاً محتوای نمونه خروجی را وارد کنید",
     "editableMessage.system": "سیستم"
   },
   "emojiPicker": {
     "emojiPicker.delete": "حذف",
-    "emojiPicker.draggerDesc": "برای بارگذاری کلیک کنید یا تصویر را به اینجا بکشید",
+    "emojiPicker.draggerDesc": "برای بارگذاری، تصویر را کلیک یا به این ناحیه بکشید",
     "emojiPicker.emoji": "ایموجی",
-    "emojiPicker.fileTypeError": "فقط می‌توانید فایل تصویر بارگذاری کنید!",
+    "emojiPicker.fileTypeError": "فقط می‌توانید فایل‌های تصویری بارگذاری کنید!",
     "emojiPicker.upload": "بارگذاری",
     "emojiPicker.uploadBtn": "برش و بارگذاری"
   },
@@ -33,12 +33,12 @@
     "form.reset": "بازنشانی",
     "form.submit": "ارسال",
     "form.unsavedChanges": "تغییرات ذخیره‌نشده",
-    "form.unsavedWarning": "شما تغییرات ذخیره‌نشده دارید. آیا مطمئنید می‌خواهید خارج شوید؟"
+    "form.unsavedWarning": "تغییرات ذخیره‌نشده دارید. آیا مطمئن هستید که می‌خواهید خارج شوید؟"
   },
   "hotkey": {
-    "hotkey.conflict": "این میانبر با یک میانبر موجود تداخل دارد.",
-    "hotkey.invalidCombination": "میانبر باید شامل یک کلید اصلاح‌کننده (Ctrl، Alt، Shift) و فقط یک کلید معمولی باشد.",
-    "hotkey.placeholder": "برای ثبت میانبر کلیدها را فشار دهید",
+    "hotkey.conflict": "این کلید میانبر با یک کلید دیگر تداخل دارد.",
+    "hotkey.invalidCombination": "کلید میانبر باید شامل یک کلید ترکیبی (Ctrl، Alt، Shift) و فقط یک کلید عادی باشد.",
+    "hotkey.placeholder": "برای ضبط کلید میانبر، کلیدها را فشار دهید",
     "hotkey.reset": "بازنشانی به پیش‌فرض"
   },
   "messageModal": {
@@ -47,19 +47,19 @@
     "messageModal.edit": "ویرایش"
   },
   "sideNav": {
-    "sideNav.collapse": "جمع کردن نوار کناری",
+    "sideNav.collapse": "بستن نوار کناری",
     "sideNav.demoActiveLabel": "فعال",
-    "sideNav.demoFeatureAutoCollapseDesc": "برای جمع شدن هوشمند، به زیر آستانه بکشید",
-    "sideNav.demoFeatureAutoCollapseTitle": "جمع‌شدن خودکار",
-    "sideNav.demoFeaturePerformanceDesc": "بدون سربار انیمیشن برای عملکرد بهتر",
+    "sideNav.demoFeatureAutoCollapseDesc": "برای جمع شدن هوشمند، کمتر از حد آستانه بکشید",
+    "sideNav.demoFeatureAutoCollapseTitle": "جمع شدن خودکار",
+    "sideNav.demoFeaturePerformanceDesc": "بدون انیمیشن برای عملکرد بهتر",
     "sideNav.demoFeaturePerformanceTitle": "عملکرد",
     "sideNav.demoFeatureResizeDesc": "برای تنظیم عرض پنل بکشید",
     "sideNav.demoFeatureResizeTitle": "تغییر اندازه انعطاف‌پذیر",
-    "sideNav.demoFeatureSmartHandleDesc": "برای نمایش دکمه، نشانگر را نگه دارید",
-    "sideNav.demoFeatureSmartHandleTitle": "دستگیره هوشمند",
+    "sideNav.demoFeatureSmartHandleDesc": "برای نمایش دکمه تغییر وضعیت، نشانگر را نگه دارید",
+    "sideNav.demoFeatureSmartHandleTitle": "دسته هوشمند",
     "sideNav.demoFeaturesTitle": "ویژگی‌ها",
     "sideNav.demoHint": "لبه پنل را بکشید و از دکمه تغییر وضعیت استفاده کنید ->",
-    "sideNav.demoSubtitle": "پنل کناری سبک workspace با تغییر اندازه کشیدنی",
+    "sideNav.demoSubtitle": "پنل کناری به سبک محیط کاری با قابلیت تغییر اندازه با کشیدن",
     "sideNav.demoTitle": "دموی DraggableSideNav",
     "sideNav.expand": "باز کردن نوار کناری"
   }

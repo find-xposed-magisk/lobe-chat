@@ -29,6 +29,7 @@
   "FileManager.actions.moveSuccess": "ファイルを正常に移動しました",
   "FileManager.actions.moveToFolder": "フォルダへ移動...",
   "FileManager.actions.moveToRoot": "ルートディレクトリへ移動",
+  "FileManager.actions.moving": "移動中...",
   "FileManager.actions.removeFromKnowledgeBase": "ナレッジベースから削除",
   "FileManager.actions.removeFromKnowledgeBaseSuccess": "ファイルが正常に削除されました",
   "FileManager.actions.rename": "名前を変更",

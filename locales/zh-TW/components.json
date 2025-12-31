@@ -29,6 +29,7 @@
   "FileManager.actions.moveSuccess": "檔案移動成功",
   "FileManager.actions.moveToFolder": "移動到...",
   "FileManager.actions.moveToRoot": "移動到根目錄",
+  "FileManager.actions.moving": "正在移動...",
   "FileManager.actions.removeFromKnowledgeBase": "從資源庫中移除",
   "FileManager.actions.removeFromKnowledgeBaseSuccess": "文件移除成功",
   "FileManager.actions.rename": "重新命名",

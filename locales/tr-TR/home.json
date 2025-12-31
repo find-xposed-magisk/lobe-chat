@@ -1,14 +1,14 @@
 {
-  "agentSelection.empty": "Kullanılabilir asistan yok",
-  "agentSelection.noAvailable": "Şu anda eklenebilecek asistan yok",
-  "agentSelection.noSelected": "Henüz herhangi bir asistan seçilmedi",
-  "agentSelection.search": "Eşleşen asistan bulunamadı",
-  "project.create": "Yeni Proje Oluştur",
-  "project.deleteConfirm": "Bu proje silinmek üzere. Silindikten sonra geri getirilemez, lütfen işleminizi onaylayın.",
-  "starter.createAgent": "Asistan Oluştur",
+  "agentSelection.empty": "Kullanılabilir ajan yok",
+  "agentSelection.noAvailable": "Şu anda eklenebilecek ajan yok",
+  "agentSelection.noSelected": "Seçili ajan yok",
+  "agentSelection.search": "Eşleşen ajan bulunamadı",
+  "project.create": "Yeni proje",
+  "project.deleteConfirm": "Bu proje silinecek ve geri alınamayacak. Devam etmek için onaylayın.",
+  "starter.createAgent": "Ajan Oluştur",
   "starter.createGroup": "Grup Oluştur",
-  "starter.deepResearch": "Derinlemesine Araştırma",
-  "starter.developing": "Geliştiriliyor",
-  "starter.image": "Çizim",
-  "starter.write": "Yazı Yaz"
+  "starter.deepResearch": "Derin Araştırma",
+  "starter.developing": "Yakında geliyor",
+  "starter.image": "Görsel",
+  "starter.write": "Yaz"
 }

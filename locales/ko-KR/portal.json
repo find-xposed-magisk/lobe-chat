@@ -10,6 +10,8 @@
   "artifacts.svg.copySuccess": "이미지 복사 성공",
   "artifacts.svg.download.png": "PNG로 다운로드",
   "artifacts.svg.download.svg": "SVG로 다운로드",
+  "document.todos.allCompleted": "모든 작업이 완료되었습니다",
+  "document.todos.title": "작업",
   "emptyArtifactList": "현재 아티팩트 목록이 비어 있습니다. 세션에서 기능을 사용한 후 다시 확인해 주세요.",
   "emptyKnowledgeList": "현재 지식 목록이 비어 있습니다. 지식 베이스를 활성화한 후 다시 확인해 주세요.",
   "files": "파일",

@@ -1,14 +1,14 @@
 {
-  "agentSelection.empty": "Brak dostępnych asystentów",
-  "agentSelection.noAvailable": "Obecnie brak asystentów do dodania",
-  "agentSelection.noSelected": "Nie wybrano żadnego asystenta",
-  "agentSelection.search": "Nie znaleziono pasujących asystentów",
-  "project.create": "Utwórz nowy projekt",
-  "project.deleteConfirm": "Projekt zostanie usunięty. Po usunięciu nie będzie można go odzyskać. Proszę potwierdzić swoją decyzję.",
-  "starter.createAgent": "Utwórz Asystenta",
+  "agentSelection.empty": "Brak dostępnych agentów",
+  "agentSelection.noAvailable": "Obecnie nie można dodać żadnych agentów",
+  "agentSelection.noSelected": "Nie wybrano żadnych agentów",
+  "agentSelection.search": "Nie znaleziono pasujących agentów",
+  "project.create": "Nowy projekt",
+  "project.deleteConfirm": "Ten projekt zostanie usunięty i nie będzie można go odzyskać. Potwierdź, aby kontynuować.",
+  "starter.createAgent": "Utwórz agenta",
   "starter.createGroup": "Utwórz grupę",
-  "starter.deepResearch": "Dogłębne Badania",
-  "starter.developing": "W Trakcie Opracowywania",
-  "starter.image": "Ilustracja",
-  "starter.write": "Pisanie"
+  "starter.deepResearch": "Dogłębne badania",
+  "starter.developing": "Wkrótce dostępne",
+  "starter.image": "Obraz",
+  "starter.write": "Pisz"
 }

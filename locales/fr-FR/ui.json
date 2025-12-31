@@ -1,8 +1,8 @@
 {
   "chat": {
-    "chat.avatar": "avatar",
+    "chat.avatar": "Avatar",
     "chat.placeholder": "...",
-    "tokenTag.overload": "Dépassement",
+    "tokenTag.overload": "Surcharge",
     "tokenTag.remained": "Restant",
     "tokenTag.used": "Utilisé"
   },
@@ -16,28 +16,28 @@
     "editableMessage.addProps": "Ajouter des propriétés",
     "editableMessage.delete": "Supprimer",
     "editableMessage.input": "Entrée",
-    "editableMessage.inputPlaceholder": "Veuillez saisir un exemple de contenu d'entrée",
+    "editableMessage.inputPlaceholder": "Veuillez saisir un contenu d'entrée exemple",
     "editableMessage.output": "Sortie",
-    "editableMessage.outputPlaceholder": "Veuillez saisir un exemple de contenu de sortie",
+    "editableMessage.outputPlaceholder": "Veuillez saisir un contenu de sortie exemple",
     "editableMessage.system": "Système"
   },
   "emojiPicker": {
     "emojiPicker.delete": "Supprimer",
-    "emojiPicker.draggerDesc": "Cliquez ou faites glisser une image dans cette zone pour la télécharger",
-    "emojiPicker.emoji": "Emoji",
-    "emojiPicker.fileTypeError": "Vous ne pouvez télécharger que des images !",
+    "emojiPicker.draggerDesc": "Cliquez ou faites glisser une image ici pour la téléverser",
+    "emojiPicker.emoji": "Émoji",
+    "emojiPicker.fileTypeError": "Vous ne pouvez téléverser que des fichiers image !",
     "emojiPicker.upload": "Téléverser",
     "emojiPicker.uploadBtn": "Rogner et téléverser"
   },
   "form": {
     "form.reset": "Réinitialiser",
-    "form.submit": "Envoyer",
+    "form.submit": "Soumettre",
     "form.unsavedChanges": "Modifications non enregistrées",
     "form.unsavedWarning": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter ?"
   },
   "hotkey": {
-    "hotkey.conflict": "Ce raccourci entre en conflit avec un autre.",
-    "hotkey.invalidCombination": "Le raccourci doit inclure une touche modificatrice (Ctrl, Alt, Maj) et une seule touche normale.",
+    "hotkey.conflict": "Ce raccourci est en conflit avec un autre existant.",
+    "hotkey.invalidCombination": "Le raccourci doit inclure une touche de modification (Ctrl, Alt, Maj) et une seule touche normale.",
     "hotkey.placeholder": "Appuyez sur les touches pour enregistrer le raccourci",
     "hotkey.reset": "Réinitialiser par défaut"
   },
@@ -49,17 +49,17 @@
   "sideNav": {
     "sideNav.collapse": "Réduire la barre latérale",
     "sideNav.demoActiveLabel": "Actif",
-    "sideNav.demoFeatureAutoCollapseDesc": "Faites glisser sous le seuil pour une réduction intelligente",
+    "sideNav.demoFeatureAutoCollapseDesc": "Faites glisser sous le seuil pour réduire intelligemment",
     "sideNav.demoFeatureAutoCollapseTitle": "Réduction automatique",
-    "sideNav.demoFeaturePerformanceDesc": "Aucun coût d’animation pour de meilleures performances",
-    "sideNav.demoFeaturePerformanceTitle": "Performances",
+    "sideNav.demoFeaturePerformanceDesc": "Aucune animation pour de meilleures performances",
+    "sideNav.demoFeaturePerformanceTitle": "Performance",
     "sideNav.demoFeatureResizeDesc": "Faites glisser pour ajuster la largeur du panneau",
     "sideNav.demoFeatureResizeTitle": "Redimensionnement flexible",
-    "sideNav.demoFeatureSmartHandleDesc": "Survolez pour afficher le bouton",
+    "sideNav.demoFeatureSmartHandleDesc": "Survolez pour afficher le bouton de bascule",
     "sideNav.demoFeatureSmartHandleTitle": "Poignée intelligente",
     "sideNav.demoFeaturesTitle": "Fonctionnalités",
-    "sideNav.demoHint": "Essayez de faire glisser le bord du panneau et d’utiliser le bouton ->",
-    "sideNav.demoSubtitle": "Un panneau latéral façon workspace avec redimensionnement par glisser-déposer",
+    "sideNav.demoHint": "Essayez de faire glisser le bord du panneau et d'utiliser le bouton de bascule ->",
+    "sideNav.demoSubtitle": "Un panneau latéral de type espace de travail avec redimensionnement par glissement",
     "sideNav.demoTitle": "Démo DraggableSideNav",
     "sideNav.expand": "Développer la barre latérale"
   }
