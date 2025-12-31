@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.182](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.181...v2.0.0-next.182)
+
+<sup>Released on **2025-12-31**</sup>
+
+#### ✨ Features
+
+- **misc**: Brand new 2.0 ui for next.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Brand new 2.0 ui for next ([e5d6d3d](https://github.com/lobehub/lobe-chat/commit/e5d6d3d))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.181](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.180...v2.0.0-next.181)
 
 <sup>Released on **2025-12-31**</sup>
