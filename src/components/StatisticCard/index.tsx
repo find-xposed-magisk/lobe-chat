@@ -122,6 +122,9 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     }
   `,
   highlight: css`
+    --highlight-adjusted: transparent;
+    --highlight-color: transparent;
+
     overflow: hidden;
 
     &::before {
@@ -139,11 +142,11 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
 
       background-image: linear-gradient(
         60deg,
-        var(--highlight-adjusted, #000) 20%,
-        var(--highlight-color, #000) 80%
+        var(--highlight-adjusted) 20%,
+        var(--highlight-color) 80%
       );
       background-repeat: no-repeat;
-      background-position: center left;
+      background-position: left center;
       background-size: contain;
       filter: blur(32px);
     }
