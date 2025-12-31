@@ -1,5 +1,6 @@
 'use client';
 
+import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import { ActionIcon, Flexbox, InputNumber } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
 import { Check, Plus, X } from 'lucide-react';
@@ -7,6 +8,8 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useImageStore } from '@/store/image';
 import { imageGenerationConfigSelectors } from '@/store/image/selectors';
+
+const DEFAULT_IMAGE_NUM_MAX = ENABLE_BUSINESS_FEATURES ? 8 : 50;
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   actionButton: css`
@@ -117,7 +120,7 @@ interface ImageNumSelectorProps {
 }
 
 const ImageNum = memo<ImageNumSelectorProps>(
-  ({ presetCounts = [1, 2, 4, 8], min = 1, max = 50, disabled = false }) => {
+  ({ presetCounts = [1, 2, 4, 8], min = 1, max = DEFAULT_IMAGE_NUM_MAX, disabled = false }) => {
     const imageNum = useImageStore(imageGenerationConfigSelectors.imageNum);
     const setImageNum = useImageStore((s) => s.setImageNum);
     const [isEditing, setIsEditing] = useState(false);
