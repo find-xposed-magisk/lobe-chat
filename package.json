@@ -132,8 +132,6 @@
     ]
   },
   "overrides": {
-    "@lobehub/ui": "^4.4.5",
-    "antd-style": "^4.1.0",
     "stylelint-config-clean-order": "7.0.0"
   },
   "dependencies": {
