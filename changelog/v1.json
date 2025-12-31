@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "features": ["Brand new 2.0 ui for next."]
+    },
+    "date": "2025-12-31",
+    "version": "2.0.0-next.182"
+  },
+  {
+    "children": {
       "improvements": [
         "Improve ExecTask and task message UI, improve gtd tool inspector and todo list, improve page document tool inspector UI, improve RunCommand Inspector, rebranding chat ui, refactor UI in features, rerun i18n, setting style, support streaming and display ui for group mode, support tool streaming and title custom render, update i18n, Update i18n microcopy, update ui."
       ],
