@@ -402,7 +402,7 @@ export default {
   'userPanel.discord': 'Community Support',
   'userPanel.docs': 'Documentation',
   'userPanel.email': 'Email Support',
-  'userPanel.feedback': 'Feedback and Suggestions',
+  'userPanel.feedback': 'Contact Us',
   'userPanel.help': 'Help Center',
   'userPanel.moveGuide': 'The settings button has been moved here',
   'userPanel.plans': 'Subscription Plans',
