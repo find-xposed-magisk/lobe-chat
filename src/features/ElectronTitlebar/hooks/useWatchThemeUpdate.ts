@@ -1,5 +1,5 @@
 import { useWatchBroadcast } from '@lobechat/electron-client-ipc';
-import { cssVar } from 'antd-style';
+import { LOBE_THEME_APP_ID } from '@lobehub/ui';
 import { useLayoutEffect } from 'react';
 
 import { useElectronStore } from '@/store/electron';
@@ -41,7 +41,7 @@ export const useWatchThemeUpdate = () => {
     if (!isAppStateInit || !isMac) return;
     document.documentElement.style.background = 'none';
 
-    const lobeApp = document.querySelector('#lobe-ui-theme-app');
+    const lobeApp = document.querySelector('#' + LOBE_THEME_APP_ID);
     if (!lobeApp) return;
     const hexColor = getComputedStyle(lobeApp).getPropertyValue('--ant-color-bg-layout');
 
