@@ -1,3 +1,4 @@
+import { BRANDING_PROVIDER, ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import {
   DEFAULT_SEARCH_USER_MEMORY_TOP_K,
   DEFAULT_USER_MEMORY_EMBEDDING_DIMENSIONS,
@@ -133,7 +134,10 @@ const searchUserMemories = async (
 };
 
 const getEmbeddingRuntime = async (jwtPayload: ClientSecretPayload) => {
-  const agentRuntime = await initModelRuntimeWithUserPayload(ModelProvider.OpenAI, jwtPayload);
+  const agentRuntime = await initModelRuntimeWithUserPayload(
+    ENABLE_BUSINESS_FEATURES ? BRANDING_PROVIDER : ModelProvider.OpenAI,
+    jwtPayload,
+  );
   const { model: embeddingModel } =
     getServerDefaultFilesConfig().embeddingModel || DEFAULT_USER_MEMORY_EMBEDDING_MODEL_ITEM;
 
