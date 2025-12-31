@@ -14,11 +14,11 @@ const PreferenceCard = memo<PreferenceCardProps>(({ preference, onClick }) => {
   return (
     <TimeLineCard
       actions={<PreferenceDropdown id={preference.id} />}
+      capturedAt={preference.capturedAt || preference.updatedAt || preference.createdAt}
       cate={preference.type}
       hashTags={preference.tags}
       onClick={onClick}
       title={preference.title}
-      capturedAt={preference.capturedAt || preference.updatedAt || preference.createdAt}
     >
       {preference.conclusionDirectives}
     </TimeLineCard>

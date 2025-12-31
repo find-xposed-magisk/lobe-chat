@@ -28,10 +28,10 @@ const PreferenceCard = memo<PreferenceCardProps>(({ preference, onClick }) => {
           percent={(preference.scorePriority ?? 0) * 100}
         />
       }
+      capturedAt={preference.capturedAt || preference.updatedAt || preference.createdAt}
       cate={preference.type}
       onClick={onClick}
       title={preference.title}
-      capturedAt={preference.capturedAt || preference.updatedAt || preference.createdAt}
     >
       {preference.conclusionDirectives}
     </GridCard>

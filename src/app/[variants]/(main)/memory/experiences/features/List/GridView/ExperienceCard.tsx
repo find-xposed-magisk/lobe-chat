@@ -28,10 +28,10 @@ const ExperienceCard = memo<ExperienceCardProps>(({ experience, onClick }) => {
           percent={(experience.scoreConfidence ?? 0) * 100}
         />
       }
+      capturedAt={experience.capturedAt || experience.updatedAt || experience.createdAt}
       cate={experience.type}
       onClick={() => onClick(experience)}
       title={experience.title}
-      capturedAt={experience.capturedAt || experience.updatedAt || experience.createdAt}
     >
       {experience.keyLearning || experience.situation}
     </GridCard>

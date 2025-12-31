@@ -14,11 +14,11 @@ const IdentityCard = memo<IdentityCardProps>(({ identity, onClick }) => {
   return (
     <TimeLineCard
       actions={<IdentityDropdown id={identity.id} />}
+      capturedAt={identity.capturedAt || identity.updatedAt || identity.createdAt}
       cate={identity.type}
       hashTags={identity.tags}
       onClick={() => onClick?.(identity)}
       title={identity.role}
-      capturedAt={identity.capturedAt || identity.updatedAt || identity.createdAt}
     >
       {identity.description}
     </TimeLineCard>

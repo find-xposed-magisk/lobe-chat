@@ -54,11 +54,11 @@ export const settingsSelectors = {
   currentSettings,
   currentSystemAgent,
   currentTTS,
-  memoryEnabled,
   defaultAgent,
   defaultAgentConfig,
   defaultAgentMeta,
   exportSettings,
   getHotkeyById,
+  memoryEnabled,
   providerConfig: getProviderConfigById,
 };

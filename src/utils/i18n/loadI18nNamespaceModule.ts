@@ -1,5 +1,3 @@
-import { isDesktop } from '@/const/version';
-
 export interface LoadI18nNamespaceModuleParams {
   defaultLang: string;
   lng: string;
@@ -14,7 +12,7 @@ export const loadI18nNamespaceModule = async (params: LoadI18nNamespaceModulePar
 
   try {
     return import(`@/../locales/${normalizeLocale(lng)}/${ns}.json`);
-  } catch (error) {
+  } catch {
     return import(`@/locales/default/${ns}`);
   }
 };

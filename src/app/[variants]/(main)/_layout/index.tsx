@@ -22,14 +22,14 @@ import CmdkLazy from '@/layout/GlobalProvider/CmdkLazy';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
 import { HotkeyScopeEnum } from '@/types/hotkey';
 
-const FeedbackModal = lazy(() => import('@/components/FeedbackModal'));
-
 import DesktopHome from '../home';
 import DesktopHomeLayout from '../home/_layout';
 import DesktopAutoOidcOnFirstOpen from './DesktopAutoOidcOnFirstOpen';
 import DesktopLayoutContainer from './DesktopLayoutContainer';
 import RegisterHotkeys from './RegisterHotkeys';
 import { styles } from './style';
+
+const FeedbackModal = lazy(() => import('@/components/FeedbackModal'));
 
 const CloudBanner = dynamic(() => import('@/features/AlertBanner/CloudBanner'));
 

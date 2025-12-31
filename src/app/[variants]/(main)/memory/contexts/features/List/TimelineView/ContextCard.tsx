@@ -14,11 +14,11 @@ const ContextCard = memo<ContextCardProps>(({ context, onClick }) => {
   return (
     <TimeLineCard
       actions={<ContextDropdown id={context.id} />}
+      capturedAt={context.capturedAt || context.updatedAt || context.createdAt}
       cate={context.type}
       hashTags={context.tags}
       onClick={onClick}
       title={context.title}
-      capturedAt={context.capturedAt || context.updatedAt || context.createdAt}
     >
       {context.description}
     </TimeLineCard>

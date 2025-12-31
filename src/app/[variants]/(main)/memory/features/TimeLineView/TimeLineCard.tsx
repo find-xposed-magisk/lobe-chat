@@ -29,13 +29,13 @@ const styles = createStaticStyles(({ css }) => ({
 
 interface TimeLineCardProps {
   actions?: ReactNode;
+  capturedAt?: Date | number | string;
   cate?: string | null;
   children?: ReactNode;
   hashTags?: string[] | null;
   onClick?: () => void;
   title?: ReactNode;
   titleAddon?: ReactNode;
-  capturedAt?: Date | number | string;
 }
 
 const TimeLineCard = memo<TimeLineCardProps>(
