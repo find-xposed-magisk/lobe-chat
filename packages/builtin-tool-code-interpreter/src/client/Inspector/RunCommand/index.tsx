@@ -49,7 +49,7 @@ export const RunCommandInspector = memo<BuiltinInspectorProps<RunCommandParams, 
       return (
         <div className={cx(styles.root, shinyTextStyles.shinyText)}>
           <span>{t('builtins.lobe-cloud-code-interpreter.apiName.runCommand')}: </span>
-          <span>{description}</span>
+          <span className={highlightTextStyles.primary}>{description}</span>
         </div>
       );
     }

@@ -95,7 +95,7 @@ export const useGroupActions = ({
         disabled: isContinuing,
         handleClick: () => {
           if (!lastBlockId) return;
-          continueGenerationMessage(lastBlockId, id);
+          continueGenerationMessage(id, lastBlockId);
         },
         icon: StepForward,
         key: 'continueGeneration',
@@ -172,7 +172,6 @@ export const useGroupActions = ({
       },
     }),
     [
-      t,
       id,
       contentBlock,
       data.error,
