@@ -61,12 +61,18 @@ const StatsSetting = memo<{ mobile?: boolean }>(({ mobile }) => {
       {mobile ? (
         <Welcome mobile />
       ) : (
-        <Flexbox align={'flex-start'} gap={16} horizontal justify={'space-between'}>
+        <Flexbox
+          align={'flex-start'}
+          gap={16}
+          horizontal
+          justify={'space-between'}
+          style={{ marginTop: 12 }}
+        >
           <Welcome />
           <ShareButton />
         </Flexbox>
       )}
-      <Divider />
+      <div />
       <Grid maxItemWidth={150} rows={4}>
         <TotalAssistants mobile={mobile} />
         <TotalTopics mobile={mobile} />
@@ -82,7 +88,7 @@ const StatsSetting = memo<{ mobile?: boolean }>(({ mobile }) => {
           <TopicsRank mobile={mobile} />
         </Grid>
       </Block>
-
+      <div />
       <StatsFormGroup
         extra={
           <>

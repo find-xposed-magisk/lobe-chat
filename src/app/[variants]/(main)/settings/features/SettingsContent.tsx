@@ -98,9 +98,20 @@ interface SettingsContentProps {
   mobile?: boolean;
 }
 
+const secondaryBackgroundTabs = new Set([
+  SettingsTabs.Stats,
+  SettingsTabs.Plans,
+  SettingsTabs.Funds,
+  SettingsTabs.Usage,
+  SettingsTabs.Billing,
+  SettingsTabs.Referral,
+]);
+
 const SettingsContent = ({ mobile, activeTab }: SettingsContentProps) => {
   const location = useLocation();
-  const isStats = location.pathname.startsWith('/settings/stats');
+  const isSecondaryBackgroundTabs = secondaryBackgroundTabs.has(
+    location.pathname?.split('/settings/').find(Boolean) as SettingsTabs,
+  );
 
   const renderComponent = (tab: string) => {
     const Component = componentMap[tab as keyof typeof componentMap] || componentMap.common;
@@ -149,7 +160,7 @@ const SettingsContent = ({ mobile, activeTab }: SettingsContentProps) => {
             <SettingContainer
               maxWidth={1024}
               padding={24}
-              variant={isStats ? 'secondary' : undefined}
+              variant={isSecondaryBackgroundTabs ? 'secondary' : undefined}
             >
               {content}
             </SettingContainer>

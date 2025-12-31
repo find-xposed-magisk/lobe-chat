@@ -22,7 +22,7 @@ export const TopicsRank = memo(() => {
 
   const mapData = (item: ModelRankItem) => {
     return {
-      icon: <ModelIcon model={item.id as string} size={24} />,
+      icon: <ModelIcon model={item.id as string} size={20} />,
       id: item.id,
 
       name: item.id,
@@ -35,11 +35,7 @@ export const TopicsRank = memo(() => {
       <StatsFormGroup
         extra={
           showExtra ? (
-            <ActionIcon
-              icon={MaximizeIcon}
-              onClick={() => setOpen(true)}
-              size={{ blockSize: 28, size: 20 }}
-            />
+            <ActionIcon icon={MaximizeIcon} onClick={() => setOpen(true)} size={'small'} />
           ) : undefined
         }
         fontSize={16}

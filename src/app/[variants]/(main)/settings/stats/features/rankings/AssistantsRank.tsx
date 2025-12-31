@@ -40,10 +40,7 @@ export const AssistantsRank = memo<{ mobile?: boolean }>(({ mobile }) => {
           alt={item.title || t('defaultAgent', { ns: 'chat' })}
           avatar={item.avatar || DEFAULT_AVATAR}
           background={item.backgroundColor || undefined}
-          size={28}
-          style={{
-            backdropFilter: 'blur(8px)',
-          }}
+          size={20}
         />
       ),
       link,
@@ -65,11 +62,7 @@ export const AssistantsRank = memo<{ mobile?: boolean }>(({ mobile }) => {
       <StatsFormGroup
         extra={
           showExtra && (
-            <ActionIcon
-              icon={MaximizeIcon}
-              onClick={() => setOpen(true)}
-              size={{ blockSize: 28, size: 20 }}
-            />
+            <ActionIcon icon={MaximizeIcon} onClick={() => setOpen(true)} size={'small'} />
           )
         }
         fontSize={16}

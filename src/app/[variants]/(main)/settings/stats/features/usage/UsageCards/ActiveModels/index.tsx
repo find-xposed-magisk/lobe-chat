@@ -50,6 +50,7 @@ const ActiveModels = memo<UsageChartProps>(({ data, isLoading, groupBy }) => {
           <ActionIcon
             icon={MaximizeIcon}
             onClick={() => setOpen(true)}
+            size={'small'}
             title={
               groupBy === GroupBy.Model
                 ? t('usage.activeModels.modelTable')

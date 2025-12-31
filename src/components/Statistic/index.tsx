@@ -6,7 +6,7 @@ const Statistic = memo<{ title: ReactNode; value: ReactNode }>(({ value, title }
   return (
     <Flexbox gap={4} horizontal style={{ color: cssVar.colorTextSecondary, fontSize: 12 }}>
       <span style={{ fontWeight: 'bold' }}>{value}</span>
-      <span>{title}</span>
+      <span style={{ fontWeight: 'normal' }}>{title}</span>
     </Flexbox>
   );
 });

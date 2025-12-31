@@ -83,6 +83,7 @@ const ChatTransitionPreview = memo<ChatTransitionPreviewProps>(({ mode }) => {
         minHeight: 280,
         paddingBottom: 16,
       }}
+      variant={'outlined'}
     >
       <ChatItem
         actions={

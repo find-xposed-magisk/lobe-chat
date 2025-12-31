@@ -16,21 +16,17 @@ const TitleWithPercentage = memo<TitleWithPercentageProps>(
     const percentage = calcGrowthPercentage(count || 0, prvCount || 0);
 
     const upStyle: CSSProperties = {
-      background: cssVar.colorSuccessBg,
-      borderColor: cssVar.colorSuccessBorder,
       color: cssVar.colorSuccess,
     };
 
     const downStyle: CSSProperties = {
-      backgroundColor: cssVar.colorWarningBg,
-      borderColor: cssVar.colorWarningBorder,
       color: cssVar.colorWarning,
     };
 
     return (
       <Flexbox
         align={'center'}
-        gap={8}
+        gap={4}
         horizontal
         justify={'flex-start'}
         style={{
@@ -54,7 +50,6 @@ const TitleWithPercentage = memo<TitleWithPercentageProps>(
         {count && prvCount && percentage && percentage !== 0 ? (
           <Tag
             style={{
-              borderWidth: 0.5,
               ...(inverseColor
                 ? percentage > 0
                   ? downStyle
@@ -63,6 +58,7 @@ const TitleWithPercentage = memo<TitleWithPercentageProps>(
                   ? upStyle
                   : downStyle),
             }}
+            variant={'borderless'}
           >
             {percentage > 0 ? '+' : ''}
             {percentage.toFixed(1)}%

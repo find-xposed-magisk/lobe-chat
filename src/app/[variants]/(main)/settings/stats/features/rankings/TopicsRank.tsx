@@ -51,11 +51,7 @@ export const TopicsRank = memo<{ mobile?: boolean }>(({ mobile }) => {
       <StatsFormGroup
         extra={
           showExtra && (
-            <ActionIcon
-              icon={MaximizeIcon}
-              onClick={() => setOpen(true)}
-              size={{ blockSize: 28, size: 20 }}
-            />
+            <ActionIcon icon={MaximizeIcon} onClick={() => setOpen(true)} size={'small'} />
           )
         }
         fontSize={16}
