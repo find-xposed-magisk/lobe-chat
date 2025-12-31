@@ -1,5 +1,6 @@
-import { Button, Flexbox, Modal } from '@lobehub/ui';
+import { Button, Flexbox, Icon, Modal } from '@lobehub/ui';
 import { App } from 'antd';
+import { FolderIcon } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,13 +11,14 @@ import { useFileStore } from '@/store/file';
 
 interface MoveToFolderModalProps {
   fileId: string;
+  fileType?: string;
   knowledgeBaseId?: string;
   onClose: () => void;
   open: boolean;
 }
 
 const MoveToFolderModal = memo<MoveToFolderModalProps>(
-  ({ open, onClose, fileId, knowledgeBaseId }) => {
+  ({ open, onClose, fileId, fileType, knowledgeBaseId }) => {
     const { t } = useTranslation('components');
     const { message } = App.useApp();
 
@@ -25,10 +27,13 @@ const MoveToFolderModal = memo<MoveToFolderModalProps>(
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
     const [loadedFolders, setLoadedFolders] = useState<Set<string>>(new Set());
+    const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
-    const [moveFileToFolder, refreshFileList] = useFileStore((s) => [
+    const [moveFileToFolder, refreshFileList, createFolder, updateDocument] = useFileStore((s) => [
       s.moveFileToFolder,
       s.refreshFileList,
+      s.createFolder,
+      s.updateDocument,
     ]);
 
     // Sort items: folders only
@@ -37,39 +42,39 @@ const MoveToFolderModal = memo<MoveToFolderModalProps>(
     }, []);
 
     // Fetch root level folders
+    const fetchRootFolders = useCallback(async () => {
+      setLoading(true);
+      try {
+        const response = await fileService.getKnowledgeItems({
+          knowledgeBaseId,
+          parentId: null,
+          showFilesInKnowledgeBase: false,
+        });
+
+        // Filter only folders
+        const folderItems = response.items
+          .filter((item) => item.fileType === 'custom/folder')
+          .map((item) => ({
+            children: undefined,
+            id: item.id,
+            name: item.name,
+            slug: item.slug,
+          }));
+
+        setFolders(sortItems(folderItems));
+      } catch (error) {
+        console.error('Failed to load folders:', error);
+        setFolders([]);
+      } finally {
+        setLoading(false);
+      }
+    }, [knowledgeBaseId, sortItems]);
+
     useEffect(() => {
-      const fetchRootFolders = async () => {
-        if (!open) return;
-
-        setLoading(true);
-        try {
-          const response = await fileService.getKnowledgeItems({
-            knowledgeBaseId,
-            parentId: null,
-            showFilesInKnowledgeBase: false,
-          });
-
-          // Filter only folders
-          const folderItems = response.items
-            .filter((item) => item.fileType === 'custom/folder')
-            .map((item) => ({
-              children: undefined,
-              id: item.id,
-              name: item.name,
-              slug: item.slug,
-            }));
-
-          setFolders(sortItems(folderItems));
-        } catch (error) {
-          console.error('Failed to load folders:', error);
-          setFolders([]);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchRootFolders();
-    }, [open, knowledgeBaseId, sortItems]);
+      if (open) {
+        fetchRootFolders();
+      }
+    }, [open, fetchRootFolders]);
 
     const handleLoadFolder = useCallback(
       async (folderId: string) => {
@@ -118,6 +123,50 @@ const MoveToFolderModal = memo<MoveToFolderModalProps>(
       [knowledgeBaseId, loadedFolders, sortItems],
     );
 
+    // Reload folder children (bypass the loadedFolders guard)
+    const reloadFolderChildren = useCallback(
+      async (folderId: string) => {
+        try {
+          const response = await fileService.getKnowledgeItems({
+            knowledgeBaseId,
+            parentId: folderId,
+            showFilesInKnowledgeBase: false,
+          });
+
+          // Filter only folders
+          const childFolders: FolderTreeItem[] = response.items
+            .filter((item) => item.fileType === 'custom/folder')
+            .map((item) => ({
+              children: undefined,
+              id: item.id,
+              name: item.name,
+              slug: item.slug,
+            }));
+
+          const sortedChildren = sortItems(childFolders);
+
+          setFolders((prevFolders) => {
+            const updateFolder = (folders: FolderTreeItem[]): FolderTreeItem[] => {
+              return folders.map((folder) => {
+                const folderKey = folder.slug || folder.id;
+                if (folderKey === folderId) {
+                  return { ...folder, children: sortedChildren };
+                }
+                if (folder.children) {
+                  return { ...folder, children: updateFolder(folder.children) };
+                }
+                return folder;
+              });
+            };
+            return updateFolder(prevFolders);
+          });
+        } catch (error) {
+          console.error('Failed to reload folder contents:', error);
+        }
+      },
+      [knowledgeBaseId, sortItems],
+    );
+
     const handleToggleFolder = useCallback((folderId: string) => {
       setExpandedFolders((prev) => {
         const next = new Set(prev);
@@ -136,9 +185,58 @@ const MoveToFolderModal = memo<MoveToFolderModalProps>(
       setSelectedFolderId(folderId);
     }, []);
 
+    const handleCreateNewFolder = useCallback(async () => {
+      try {
+        setIsCreatingFolder(true);
+
+        // Create folder with default "Untitled" name
+        const newFolderId = await createFolder(
+          t('pageList.untitled', { ns: 'file' }),
+          selectedFolderId ?? undefined, // Parent ID (root if none selected)
+          knowledgeBaseId,
+        );
+
+        // Refresh tree to show the new folder
+        if (selectedFolderId) {
+          // Creating nested folder: auto-expand parent and reload its children
+          setExpandedFolders((prev) => new Set([...prev, selectedFolderId]));
+          await reloadFolderChildren(selectedFolderId);
+        } else {
+          // Creating at root: refetch root folders
+          await fetchRootFolders();
+        }
+
+        // Auto-select the newly created folder
+        setSelectedFolderId(newFolderId);
+      } catch (error) {
+        console.error('Failed to create folder:', error);
+        message.error(t('FileManager.actions.renameError'));
+      } finally {
+        setIsCreatingFolder(false);
+      }
+    }, [
+      selectedFolderId,
+      knowledgeBaseId,
+      createFolder,
+      reloadFolderChildren,
+      fetchRootFolders,
+      t,
+      message,
+    ]);
+
     const handleMove = async () => {
       try {
-        await moveFileToFolder(fileId, selectedFolderId);
+        // Detect if item is a document/folder (vs regular file)
+        const isDocument =
+          fileType === 'custom/document' || fileType === 'custom/folder';
+
+        if (isDocument) {
+          // Use updateDocument for Pages and folders
+          await updateDocument(fileId, { parentId: selectedFolderId });
+        } else {
+          // Use moveFileToFolder for regular files
+          await moveFileToFolder(fileId, selectedFolderId);
+        }
 
         // Refresh file list to invalidate SWR cache for both Explorer and Tree
         await refreshFileList();
@@ -158,7 +256,17 @@ const MoveToFolderModal = memo<MoveToFolderModalProps>(
 
     const handleMoveToRoot = async () => {
       try {
-        await moveFileToFolder(fileId, null);
+        // Detect if item is a document/folder (vs regular file)
+        const isDocument =
+          fileType === 'custom/document' || fileType === 'custom/folder';
+
+        if (isDocument) {
+          // Use updateDocument for Pages and folders
+          await updateDocument(fileId, { parentId: null });
+        } else {
+          // Use moveFileToFolder for regular files
+          await moveFileToFolder(fileId, null);
+        }
 
         // Refresh file list to invalidate SWR cache for both Explorer and Tree
         await refreshFileList();
@@ -193,6 +301,17 @@ const MoveToFolderModal = memo<MoveToFolderModalProps>(
         open={open}
         title={t('FileManager.actions.moveToFolder')}
       >
+        <Flexbox horizontal justify="flex-end" style={{ marginBottom: 12 }}>
+          <Button
+            icon={<Icon icon={FolderIcon} />}
+            loading={isCreatingFolder}
+            onClick={handleCreateNewFolder}
+            size="small"
+            type="default"
+          >
+            {t('header.actions.newFolder', { ns: 'file' })}
+          </Button>
+        </Flexbox>
         <Flexbox style={{ maxHeight: 400, minHeight: 200, overflowY: 'auto' }}>
           {loading ? (
             <div>{t('loading', { ns: 'common' })}</div>

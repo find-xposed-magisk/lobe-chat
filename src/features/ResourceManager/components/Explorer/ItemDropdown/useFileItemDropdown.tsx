@@ -154,6 +154,7 @@ export const useFileItemDropdown = ({
 
             createRawModal(MoveToFolderModal, {
               fileId: id,
+              fileType,
               knowledgeBaseId,
             });
           },
