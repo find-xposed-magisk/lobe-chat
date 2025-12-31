@@ -9,8 +9,9 @@ import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import ChangelogModal from '@/components/ChangelogModal';
+import FeedbackModal from '@/components/FeedbackModal';
 import LabsModal from '@/components/LabsModal';
-import { DOCUMENTS_REFER_URL, GITHUB, GITHUB_ISSUES, mailTo } from '@/const/url';
+import { DOCUMENTS_REFER_URL, GITHUB, mailTo } from '@/const/url';
 import ThemeButton from '@/features/User/UserPanel/ThemeButton';
 import { featureFlagsSelectors, useServerConfigStore } from '@/store/serverConfig';
 
@@ -20,6 +21,7 @@ const Footer = memo(() => {
   const [isLabsModalOpen, setIsLabsModalOpen] = useState(false);
   const [shouldLoadChangelog, setShouldLoadChangelog] = useState(false);
   const [isChangelogModalOpen, setIsChangelogModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   const handleOpenLabsModal = () => {
     setIsLabsModalOpen(true);
@@ -38,6 +40,14 @@ const Footer = memo(() => {
     setIsChangelogModalOpen(false);
   };
 
+  const handleOpenFeedbackModal = () => {
+    setIsFeedbackModalOpen(true);
+  };
+
+  const handleCloseFeedbackModal = () => {
+    setIsFeedbackModalOpen(false);
+  };
+
   const helpMenuItems: MenuProps['items'] = useMemo(
     () => [
       {
@@ -52,11 +62,8 @@ const Footer = memo(() => {
       {
         icon: <Icon icon={Feather} />,
         key: 'feedback',
-        label: (
-          <a href={GITHUB_ISSUES} rel="noopener noreferrer" target="_blank">
-            {t('userPanel.feedback')}
-          </a>
-        ),
+        label: t('userPanel.feedback'),
+        onClick: handleOpenFeedbackModal,
       },
       {
         icon: <Icon icon={DiscordIcon} />,
@@ -122,6 +129,7 @@ const Footer = memo(() => {
         open={isChangelogModalOpen}
         shouldLoad={shouldLoadChangelog}
       />
+      <FeedbackModal onClose={handleCloseFeedbackModal} open={isFeedbackModalOpen} />
     </>
   );
 });
