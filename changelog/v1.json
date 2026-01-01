@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Migrate to new DropdownMenuV2 and showContextMenu API."]
+    },
+    "date": "2026-01-01",
+    "version": "2.0.0-next.189"
+  },
+  {
+    "children": {
       "improvements": ["Improve tools UI and fix Google schema compatibility."]
     },
     "date": "2026-01-01",
