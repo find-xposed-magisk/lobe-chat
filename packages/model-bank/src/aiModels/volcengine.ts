@@ -10,6 +10,66 @@ const doubaoChatModels: AIChatModelCard[] = [
       vision: true,
     },
     config: {
+      deploymentName: 'doubao-seed-1-8-251215',
+    },
+    contextWindowTokens: 256_000,
+    description:
+      'Doubao-Seed-1.8 有着更强的多模态理解能力和 Agent 能力，支持文本/图片/视频输入与上下文缓存，可在复杂任务中提供更出色的表现。',
+    displayName: 'Doubao Seed 1.8',
+    id: 'doubao-seed-1.8',
+    maxOutput: 64_000,
+    pricing: {
+      currency: 'CNY',
+      units: [
+        {
+          lookup: {
+            prices: {
+              '[0, 0.032]': 0.8,
+              '[0.032, 0.128]': 1.2,
+              '[0.128, 0.256]': 2.4,
+            },
+            pricingParams: ['textInputRange'],
+          },
+          name: 'textInput',
+          strategy: 'lookup',
+          unit: 'millionTokens',
+        },
+        {
+          lookup: {
+            prices: {
+              '[0, 0.032]_[0, 0.0002]': 2,
+              '[0, 0.032]_[0.0002, infinity]': 8,
+              '[0.032, 0.128]_[0, infinity]': 16,
+              '[0.128, 0.256]_[0, infinity]': 24,
+            },
+            pricingParams: ['textInputRange', 'textOutputRange'],
+          },
+          name: 'textOutput',
+          strategy: 'lookup',
+          unit: 'millionTokens',
+        },
+        { name: 'textInput_cacheRead', rate: 0.16, strategy: 'fixed', unit: 'millionTokens' },
+        {
+          lookup: { prices: { '1h': 0.017 }, pricingParams: ['ttl'] },
+          name: 'textInput_cacheWrite',
+          strategy: 'lookup',
+          unit: 'millionTokens',
+        },
+      ],
+    },
+    releasedAt: '2025-12-18',
+    settings: {
+      extendParams: ['gpt5ReasoningEffort'],
+    },
+    type: 'chat',
+  },
+  {
+    abilities: {
+      functionCall: true,
+      reasoning: true,
+      vision: true,
+    },
+    config: {
       deploymentName: 'doubao-seed-code-preview-251028',
     },
     contextWindowTokens: 256_000,
@@ -48,6 +108,57 @@ const doubaoChatModels: AIChatModelCard[] = [
           unit: 'millionTokens',
         },
         { name: 'textInput_cacheRead', rate: 0.24, strategy: 'fixed', unit: 'millionTokens' },
+        { name: 'textInput_cacheWrite', rate: 0.017, strategy: 'fixed', unit: 'millionTokens' },
+      ],
+    },
+    settings: {
+      extendParams: ['enableReasoning'],
+    },
+    type: 'chat',
+  },
+  {
+    abilities: {
+      functionCall: true,
+      reasoning: true,
+    },
+    config: {
+      deploymentName: 'deepseek-v3-2-251201',
+    },
+    contextWindowTokens: 131_072,
+    description:
+      'DeepSeek-V3.2 是深度求索推出的首个将思考融入工具使用的混合推理模型，用高效架构省算力、大规模强化学习提能力、大规模合成任务数据强泛化，三者结合性能媲美 GPT-5-High，输出长度大幅降低，显著减少了计算开销与用户等待时间。',
+    displayName: 'DeepSeek V3.2',
+    enabled: true,
+    id: 'deepseek-v3.2',
+    maxOutput: 32_768,
+    pricing: {
+      currency: 'CNY',
+      units: [
+        {
+          lookup: {
+            prices: {
+              '[0, 0.032]': 2,
+              '[0.032, 0.128]': 4,
+            },
+            pricingParams: ['textInputRange'],
+          },
+          name: 'textInput',
+          strategy: 'lookup',
+          unit: 'millionTokens',
+        },
+        {
+          lookup: {
+            prices: {
+              '[0, 0.032]': 3,
+              '[0.032, 0.128]': 6,
+            },
+            pricingParams: ['textInputRange'],
+          },
+          name: 'textOutput',
+          strategy: 'lookup',
+          unit: 'millionTokens',
+        },
+        { name: 'textInput_cacheRead', rate: 0.4, strategy: 'fixed', unit: 'millionTokens' },
         { name: 'textInput_cacheWrite', rate: 0.017, strategy: 'fixed', unit: 'millionTokens' },
       ],
     },
@@ -171,7 +282,6 @@ const doubaoChatModels: AIChatModelCard[] = [
     description:
       'Doubao-Seed-1.6-thinking significantly strengthens reasoning, further improving core abilities in coding, math, and logical reasoning over Doubao-1.5-thinking-pro, while adding vision understanding. It supports a 256k context window and up to 16k output tokens.',
     displayName: 'Doubao Seed 1.6 Thinking',
-    enabled: true,
     id: 'doubao-seed-1.6-thinking',
     maxOutput: 32_000,
     pricing: {
@@ -221,7 +331,6 @@ const doubaoChatModels: AIChatModelCard[] = [
     description:
       'Doubao-Seed-1.6 is a new multimodal deep-reasoning model with auto, thinking, and non-thinking modes. In non-thinking mode, it significantly outperforms Doubao-1.5-pro/250115. It supports a 256k context window and up to 16k output tokens.',
     displayName: 'Doubao Seed 1.6',
-    enabled: true,
     id: 'doubao-seed-1.6',
     maxOutput: 32_000,
     pricing: {

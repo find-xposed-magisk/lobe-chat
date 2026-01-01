@@ -450,6 +450,26 @@ const hunyuanChatModels: AIChatModelCard[] = [
     abilities: {
       vision: true,
     },
+    contextWindowTokens: 24_000,
+    description:
+      '基于文本 TurboS 基座生产的图生文快思考模型，相比上一版本在图像基础识别、图像分析推理等维度都有明显的效果提升。',
+    displayName: '混元图生文',
+    id: 'hunyuan-vision-1.5-instruct',
+    maxOutput: 16_000,
+    pricing: {
+      currency: 'CNY',
+      units: [
+        { name: 'textInput', rate: 3, strategy: 'fixed', unit: 'millionTokens' },
+        { name: 'textOutput', rate: 9, strategy: 'fixed', unit: 'millionTokens' },
+      ],
+    },
+    releasedAt: '2025-12-17',
+    type: 'chat',
+  },
+  {
+    abilities: {
+      vision: true,
+    },
     contextWindowTokens: 36_000,
     description:
       'Latest 7B multimodal model with a 32K context window, supporting Chinese/English multimodal chat, object recognition, document table understanding, and multimodal math, outperforming 7B peers on multiple benchmarks.',

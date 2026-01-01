@@ -123,7 +123,7 @@ const googleChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 1_048_576 + 65_536,
     description:
-      "Gemini 3 Pro is Google’s most powerful agent and vibe-coding model, delivering richer visuals and deeper interaction on top of state-of-the-art reasoning.",
+      'Gemini 3 Pro is Google’s most powerful agent and vibe-coding model, delivering richer visuals and deeper interaction on top of state-of-the-art reasoning.',
     displayName: 'Gemini 3 Pro Preview',
     enabled: true,
     id: 'gemini-3-pro-preview',
@@ -167,6 +167,41 @@ const googleChatModels: AIChatModelCard[] = [
     },
     releasedAt: '2025-11-18',
     settings: {
+      extendParams: ['thinkingLevel2', 'urlContext'],
+      searchImpl: 'params',
+      searchProvider: 'google',
+    },
+    type: 'chat',
+  },
+  {
+    abilities: {
+      functionCall: true,
+      reasoning: true,
+      search: true,
+      video: true,
+      vision: true,
+    },
+    contextWindowTokens: 1_048_576 + 65_536,
+    description: 'Gemini 3 Flash 是为速度而打造的最智能的模型，将前沿智能与卓越的搜索接地相结合。',
+    displayName: 'Gemini 3 Flash Preview',
+    enabled: true,
+    id: 'gemini-3-flash-preview',
+    maxOutput: 65_536,
+    pricing: {
+      units: [
+        { name: 'textInput_cacheRead', rate: 0.05, strategy: 'fixed', unit: 'millionTokens' },
+        { name: 'textInput', rate: 0.5, strategy: 'fixed', unit: 'millionTokens' },
+        { name: 'textOutput', rate: 3, strategy: 'fixed', unit: 'millionTokens' },
+        {
+          lookup: { prices: { '1h': 1 }, pricingParams: ['ttl'] },
+          name: 'textInput_cacheWrite',
+          strategy: 'lookup',
+          unit: 'millionTokens',
+        },
+      ],
+    },
+    releasedAt: '2025-12-17',
+    settings: {
       extendParams: ['thinkingLevel', 'urlContext'],
       searchImpl: 'params',
       searchProvider: 'google',
@@ -182,7 +217,7 @@ const googleChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 131_072 + 32_768,
     description:
-      "Gemini 3 Pro Image (Nano Banana Pro) is Google’s image generation model and also supports multimodal chat.",
+      'Gemini 3 Pro Image (Nano Banana Pro) is Google’s image generation model and also supports multimodal chat.',
     displayName: 'Nano Banana Pro',
     enabled: true,
     id: 'gemini-3-pro-image-preview',
@@ -213,9 +248,8 @@ const googleChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 1_048_576 + 65_536,
     description:
-      "Gemini 2.5 Pro is Google’s most advanced reasoning model, able to reason over code, math, and STEM problems and analyze large datasets, codebases, and documents with long context.",
+      'Gemini 2.5 Pro is Google’s most advanced reasoning model, able to reason over code, math, and STEM problems and analyze large datasets, codebases, and documents with long context.',
     displayName: 'Gemini 2.5 Pro',
-    enabled: true,
     id: 'gemini-2.5-pro',
     maxOutput: 65_536,
     pricing: {
@@ -273,7 +307,7 @@ const googleChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 1_048_576 + 65_536,
     description:
-      "Gemini 2.5 Pro Preview is Google’s most advanced reasoning model, able to reason over code, math, and STEM problems and analyze large datasets, codebases, and documents with long context.",
+      'Gemini 2.5 Pro Preview is Google’s most advanced reasoning model, able to reason over code, math, and STEM problems and analyze large datasets, codebases, and documents with long context.',
     displayName: 'Gemini 2.5 Pro Preview 06-05',
     id: 'gemini-2.5-pro-preview-06-05',
     maxOutput: 65_536,
@@ -326,7 +360,7 @@ const googleChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 1_048_576 + 65_536,
     description:
-      "Gemini 2.5 Pro Preview is Google’s most advanced reasoning model, able to reason over code, math, and STEM problems and analyze large datasets, codebases, and documents with long context.",
+      'Gemini 2.5 Pro Preview is Google’s most advanced reasoning model, able to reason over code, math, and STEM problems and analyze large datasets, codebases, and documents with long context.',
     displayName: 'Gemini 2.5 Pro Preview 05-06',
     id: 'gemini-2.5-pro-preview-05-06',
     maxOutput: 65_536,
@@ -377,9 +411,8 @@ const googleChatModels: AIChatModelCard[] = [
       vision: true,
     },
     contextWindowTokens: 1_048_576 + 65_536,
-    description: "Gemini 2.5 Flash is Google’s best-value model with full capabilities.",
+    description: 'Gemini 2.5 Flash is Google’s best-value model with full capabilities.',
     displayName: 'Gemini 2.5 Flash',
-    enabled: true,
     id: 'gemini-2.5-flash',
     maxOutput: 65_536,
     pricing: {
@@ -432,9 +465,8 @@ const googleChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 32_768 + 8192,
     description:
-      "Nano Banana is Google’s newest, fastest, and most efficient native multimodal model, enabling conversational image generation and editing.",
+      'Nano Banana is Google’s newest, fastest, and most efficient native multimodal model, enabling conversational image generation and editing.',
     displayName: 'Nano Banana',
-    enabled: true,
     id: 'gemini-2.5-flash-image',
     maxOutput: 8192,
     pricing: {
@@ -459,7 +491,7 @@ const googleChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 32_768 + 8192,
     description:
-      "Nano Banana is Google’s newest, fastest, and most efficient native multimodal model, enabling conversational image generation and editing.",
+      'Nano Banana is Google’s newest, fastest, and most efficient native multimodal model, enabling conversational image generation and editing.',
     displayName: 'Nano Banana (Preview)',
     id: 'gemini-2.5-flash-image-preview',
     maxOutput: 8192,
@@ -488,7 +520,7 @@ const googleChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 1_048_576 + 65_536,
     description:
-      "Gemini 2.5 Flash-Lite is Google’s smallest, best-value model, designed for large-scale use.",
+      'Gemini 2.5 Flash-Lite is Google’s smallest, best-value model, designed for large-scale use.',
     displayName: 'Gemini 2.5 Flash-Lite',
     id: 'gemini-2.5-flash-lite',
     maxOutput: 65_536,
@@ -706,7 +738,8 @@ const googleChatModels: AIChatModelCard[] = [
       vision: true,
     },
     contextWindowTokens: 1_008_192,
-    description: 'Gemini 1.5 Flash 002 is an efficient multimodal model built for broad deployment.',
+    description:
+      'Gemini 1.5 Flash 002 is an efficient multimodal model built for broad deployment.',
     displayName: 'Gemini 1.5 Flash 002',
     id: 'gemini-1.5-flash-002', // Deprecated on 2025-09-24
     maxOutput: 8192,
@@ -903,7 +936,7 @@ const googleImageModels: AIImageModelCard[] = [
     type: 'image',
     enabled: true,
     description:
-      "Gemini 3 Pro Image (Nano Banana Pro) is Google’s image generation model and also supports multimodal chat.",
+      'Gemini 3 Pro Image (Nano Banana Pro) is Google’s image generation model and also supports multimodal chat.',
     releasedAt: '2025-11-18',
     parameters: nanoBananaProParameters,
     pricing: {
@@ -918,10 +951,9 @@ const googleImageModels: AIImageModelCard[] = [
   {
     displayName: 'Nano Banana',
     id: 'gemini-2.5-flash-image:image',
-    enabled: true,
     type: 'image',
     description:
-      "Nano Banana is Google’s newest, fastest, and most efficient native multimodal model, enabling conversational image generation and editing.",
+      'Nano Banana is Google’s newest, fastest, and most efficient native multimodal model, enabling conversational image generation and editing.',
     releasedAt: '2025-08-26',
     parameters: nanoBananaParameters,
     pricing: {
@@ -938,7 +970,7 @@ const googleImageModels: AIImageModelCard[] = [
     id: 'gemini-2.5-flash-image-preview:image',
     type: 'image',
     description:
-      "Nano Banana is Google’s newest, fastest, and most efficient native multimodal model, enabling conversational image generation and editing.",
+      'Nano Banana is Google’s newest, fastest, and most efficient native multimodal model, enabling conversational image generation and editing.',
     releasedAt: '2025-08-26',
     parameters: CHAT_MODEL_IMAGE_GENERATION_PARAMS,
     pricing: {
