@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.188](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.187...v2.0.0-next.188)
+
+<sup>Released on **2026-01-01**</sup>
+
+#### 💄 Styles
+
+- **misc**: Improve tools UI and fix Google schema compatibility.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Styles
+
+- **misc**: Improve tools UI and fix Google schema compatibility, closes [#11096](https://github.com/lobehub/lobe-chat/issues/11096) ([70a9cff](https://github.com/lobehub/lobe-chat/commit/70a9cff))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.187](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.186...v2.0.0-next.187)
 
 <sup>Released on **2026-01-01**</sup>
