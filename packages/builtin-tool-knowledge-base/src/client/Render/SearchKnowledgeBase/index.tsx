@@ -1,42 +1,30 @@
 'use client';
 
 import { BuiltinRenderProps } from '@lobechat/types';
-import { Flexbox } from '@lobehub/ui';
-import { ComponentType, memo } from 'react';
+import { Empty, Flexbox } from '@lobehub/ui';
+import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { SearchKnowledgeBaseArgs, SearchKnowledgeBaseState } from '../../../types';
 import FileItem from './Item';
 
-export interface SearchKnowledgeBaseRenderProps extends Pick<
-  BuiltinRenderProps<SearchKnowledgeBaseArgs, SearchKnowledgeBaseState>,
-  'pluginState'
-> {
-  FileIcon: ComponentType<{ fileName: string; size: number; variant?: 'raw' | 'file' | 'folder' }>;
-  isMobile?: boolean;
-  onFileClick?: (params: { chunkId: string; chunkText: string; fileId: string }) => void;
-}
+const SearchKnowledgeBase = memo<
+  BuiltinRenderProps<SearchKnowledgeBaseArgs, SearchKnowledgeBaseState>
+>(({ pluginState }) => {
+  const { t } = useTranslation('plugin');
+  const { fileResults } = pluginState || {};
 
-const SearchKnowledgeBase = memo<SearchKnowledgeBaseRenderProps>(
-  ({ pluginState, FileIcon, isMobile, onFileClick }) => {
-    const { fileResults } = pluginState || {};
+  if (!fileResults || fileResults.length === 0) {
+    return <Empty description={t('builtins.lobe-knowledge-base.inspector.noResults')} />;
+  }
 
-    return (
-      <Flexbox gap={8} horizontal wrap={'wrap'}>
-        {fileResults?.map((file, index) => {
-          return (
-            <FileItem
-              FileIcon={FileIcon}
-              index={index}
-              isMobile={isMobile}
-              key={file.fileId}
-              onFileClick={onFileClick}
-              {...file}
-            />
-          );
-        })}
-      </Flexbox>
-    );
-  },
-);
+  return (
+    <Flexbox gap={8} horizontal wrap={'wrap'}>
+      {fileResults.map((file, index) => {
+        return <FileItem index={index} key={file.fileId} {...file} />;
+      })}
+    </Flexbox>
+  );
+});
 
 export default SearchKnowledgeBase;
