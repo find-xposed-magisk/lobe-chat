@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Refactor oidc env to auth env."]
+    },
+    "date": "2026-01-01",
+    "version": "2.0.0-next.186"
+  },
+  {
+    "children": {
       "improvements": ["Update i18n."]
     },
     "date": "2026-01-01",
