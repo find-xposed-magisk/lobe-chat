@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.192](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.191...v2.0.0-next.192)
+
+<sup>Released on **2026-01-02**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix model edit icon missing.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix model edit icon missing, closes [#11105](https://github.com/lobehub/lobe-chat/issues/11105) ([0f88995](https://github.com/lobehub/lobe-chat/commit/0f88995))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.191](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.190...v2.0.0-next.191)
 
 <sup>Released on **2026-01-02**</sup>
