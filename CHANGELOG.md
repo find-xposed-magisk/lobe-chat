@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.191](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.190...v2.0.0-next.191)
+
+<sup>Released on **2026-01-02**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Refactor to remove meta in message.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Refactor to remove meta in message, closes [#11103](https://github.com/lobehub/lobe-chat/issues/11103) ([527c1cd](https://github.com/lobehub/lobe-chat/commit/527c1cd))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.190](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.189...v2.0.0-next.190)
 
 <sup>Released on **2026-01-02**</sup>
