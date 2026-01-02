@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Refactor to remove meta in message."]
+    },
+    "date": "2026-01-02",
+    "version": "2.0.0-next.191"
+  },
+  {
+    "children": {
       "improvements": ["Update i18n."]
     },
     "date": "2026-01-02",
