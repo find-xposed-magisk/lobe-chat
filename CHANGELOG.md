@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.193](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.192...v2.0.0-next.193)
+
+<sup>Released on **2026-01-02**</sup>
+
+#### 🐛 Bug Fixes
+
+- **database**: Add userId authorization check in removeFilesFromKnowledgeBase.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **database**: Add userId authorization check in removeFilesFromKnowledgeBase, closes [#11108](https://github.com/lobehub/lobe-chat/issues/11108) ([2c1762b](https://github.com/lobehub/lobe-chat/commit/2c1762b))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.192](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.191...v2.0.0-next.192)
 
 <sup>Released on **2026-01-02**</sup>
