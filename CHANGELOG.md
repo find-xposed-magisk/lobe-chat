@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.199](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.198...v2.0.0-next.199)
+
+<sup>Released on **2026-01-03**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Filter empty assistant messages for Anthropic API.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Filter empty assistant messages for Anthropic API, closes [#11129](https://github.com/lobehub/lobe-chat/issues/11129) ([7af750b](https://github.com/lobehub/lobe-chat/commit/7af750b))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.198](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.197...v2.0.0-next.198)
 
 <sup>Released on **2026-01-03**</sup>
