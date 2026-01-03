@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.200](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.199...v2.0.0-next.200)
+
+<sup>Released on **2026-01-03**</sup>
+
+#### ✨ Features
+
+- **misc**: Add work path for local system.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add work path for local system, closes [#11128](https://github.com/lobehub/lobe-chat/issues/11128) ([d8deadd](https://github.com/lobehub/lobe-chat/commit/d8deadd))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.199](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.198...v2.0.0-next.199)
 
 <sup>Released on **2026-01-03**</sup>
