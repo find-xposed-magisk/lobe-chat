@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.198](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.197...v2.0.0-next.198)
+
+<sup>Released on **2026-01-03**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Support thoughtSignature for openrouter.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Support thoughtSignature for openrouter, closes [#11117](https://github.com/lobehub/lobe-chat/issues/11117) ([bf5d41e](https://github.com/lobehub/lobe-chat/commit/bf5d41e))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.197](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.196...v2.0.0-next.197)
 
 <sup>Released on **2026-01-03**</sup>
