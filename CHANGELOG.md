@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.197](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.196...v2.0.0-next.197)
+
+<sup>Released on **2026-01-03**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Remove client db and refactor test.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix file upload issue.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Remove client db and refactor test, closes [#11123](https://github.com/lobehub/lobe-chat/issues/11123) ([bb2799d](https://github.com/lobehub/lobe-chat/commit/bb2799d))
+
+#### What's fixed
+
+- **misc**: Fix file upload issue, closes [#11122](https://github.com/lobehub/lobe-chat/issues/11122) ([1ae327a](https://github.com/lobehub/lobe-chat/commit/1ae327a))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.196](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.195...v2.0.0-next.196)
 
 <sup>Released on **2026-01-03**</sup>
