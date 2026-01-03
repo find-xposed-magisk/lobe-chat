@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.202](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.201...v2.0.0-next.202)
+
+<sup>Released on **2026-01-03**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Refactor and fix model runtime initialize.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Refactor and fix model runtime initialize, closes [#11134](https://github.com/lobehub/lobe-chat/issues/11134) ([8078cb9](https://github.com/lobehub/lobe-chat/commit/8078cb9))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.201](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.200...v2.0.0-next.201)
 
 <sup>Released on **2026-01-03**</sup>
