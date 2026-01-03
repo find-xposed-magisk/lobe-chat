@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Support thoughtSignature for openrouter."]
+    },
+    "date": "2026-01-03",
+    "version": "2.0.0-next.198"
+  },
+  {
+    "children": {
       "improvements": ["Remove client db and refactor test."],
       "fixes": ["Fix file upload issue."]
     },
