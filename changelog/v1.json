@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Filter empty assistant messages for Anthropic API."]
+    },
+    "date": "2026-01-03",
+    "version": "2.0.0-next.199"
+  },
+  {
+    "children": {
       "fixes": ["Support thoughtSignature for openrouter."]
     },
     "date": "2026-01-03",
