@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Refactor and fix model runtime initialize."]
+    },
+    "date": "2026-01-03",
+    "version": "2.0.0-next.202"
+  },
+  {
+    "children": {
       "fixes": ["Restore window resizable before hard reload in desktop onboarding."]
     },
     "date": "2026-01-03",
