@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.196](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.195...v2.0.0-next.196)
+
+<sup>Released on **2026-01-03**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Refactor to remove access code.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Refactor to remove access code, closes [#11120](https://github.com/lobehub/lobe-chat/issues/11120) ([0e9f98c](https://github.com/lobehub/lobe-chat/commit/0e9f98c))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.195](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.194...v2.0.0-next.195)
 
 <sup>Released on **2026-01-03**</sup>
