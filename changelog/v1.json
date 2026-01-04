@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Auto jump to group."]
+    },
+    "date": "2026-01-04",
+    "version": "2.0.0-next.208"
+  },
+  {
+    "children": {
       "fixes": ["Slove the old agents open profiles error problem."]
     },
     "date": "2026-01-04",

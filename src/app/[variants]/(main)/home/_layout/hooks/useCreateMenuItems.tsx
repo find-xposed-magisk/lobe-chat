@@ -10,7 +10,6 @@ import useSWRMutation from 'swr/mutation';
 
 import { useGroupTemplates } from '@/components/ChatGroupWizard/templates';
 import { DEFAULT_CHAT_GROUP_CHAT_CONFIG } from '@/const/settings';
-import { useActionSWR } from '@/libs/swr';
 import { type GroupMemberConfig, chatGroupService } from '@/services/chatGroup';
 import { useAgentStore } from '@/store/agent';
 import { useAgentGroupStore } from '@/store/agentGroup';
