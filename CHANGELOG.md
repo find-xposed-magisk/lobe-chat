@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.205](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.204...v2.0.0-next.205)
+
+<sup>Released on **2026-01-04**</sup>
+
+#### 🐛 Bug Fixes
+
+- **gtd**: Fix frozen object mutation in updateTodos.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **gtd**: Fix frozen object mutation in updateTodos, closes [#11184](https://github.com/lobehub/lobe-chat/issues/11184) ([4970794](https://github.com/lobehub/lobe-chat/commit/4970794))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.204](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.203...v2.0.0-next.204)
 
 <sup>Released on **2026-01-04**</sup>
