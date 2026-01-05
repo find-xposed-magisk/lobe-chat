@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Restore window position safely."]
+    },
+    "date": "2026-01-05",
+    "version": "2.0.0-next.216"
+  },
+  {
+    "children": {
       "fixes": [
         "Update CI bun version to v1.2.4, when the document filetype is agent/plan, not show the saveinto docs button."
       ]
