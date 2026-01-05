@@ -1,5 +1,10 @@
 [
   {
+    "children": {},
+    "date": "2026-01-05",
+    "version": "2.0.0-next.212"
+  },
+  {
     "children": {
       "fixes": ["Add lost like button in discover detail page."]
     },
