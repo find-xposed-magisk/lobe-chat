@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.221](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.220...v2.0.0-next.221)
+
+<sup>Released on **2026-01-05**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Convert glossary from JSON to Markdown table format.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Resolve desktop upload CORS issue.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Convert glossary from JSON to Markdown table format, closes [#11237](https://github.com/lobehub/lobe-chat/issues/11237) ([46a58a8](https://github.com/lobehub/lobe-chat/commit/46a58a8))
+
+#### What's fixed
+
+- **misc**: Resolve desktop upload CORS issue, closes [#11255](https://github.com/lobehub/lobe-chat/issues/11255) ([49ec5ed](https://github.com/lobehub/lobe-chat/commit/49ec5ed))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.220](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.219...v2.0.0-next.220)
 
 <sup>Released on **2026-01-05**</sup>
