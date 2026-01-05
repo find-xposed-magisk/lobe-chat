@@ -175,6 +175,7 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
   `,
   toolbarModelName: css`
     overflow: hidden;
+
     font-size: 12px;
     color: ${cssVar.colorTextSecondary};
     text-overflow: ellipsis;
