@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.218](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.217...v2.0.0-next.218)
+
+<sup>Released on **2026-01-05**</sup>
+
+#### ✨ Features
+
+- **misc**: Update the sandbox export files & save files way.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix editor modal when Markdown rendering off.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Update the sandbox export files & save files way, closes [#11249](https://github.com/lobehub/lobe-chat/issues/11249) ([039b0a1](https://github.com/lobehub/lobe-chat/commit/039b0a1))
+
+#### What's fixed
+
+- **misc**: Fix editor modal when Markdown rendering off, closes [#11251](https://github.com/lobehub/lobe-chat/issues/11251) ([eb86d3b](https://github.com/lobehub/lobe-chat/commit/eb86d3b))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.217](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.216...v2.0.0-next.217)
 
 <sup>Released on **2026-01-05**</sup>
