@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.213](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.212...v2.0.0-next.213)
+
+<sup>Released on **2026-01-05**</sup>
+
+#### 🐛 Bug Fixes
+
+- **model-runtime**: Handle incremental tool call chunks in Qwen stream.
+
+#### 💄 Styles
+
+- **misc**: Update i18n.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **model-runtime**: Handle incremental tool call chunks in Qwen stream, closes [#11219](https://github.com/lobehub/lobe-chat/issues/11219) ([03b9407](https://github.com/lobehub/lobe-chat/commit/03b9407))
+
+#### Styles
+
+- **misc**: Update i18n, closes [#11213](https://github.com/lobehub/lobe-chat/issues/11213) ([00e0980](https://github.com/lobehub/lobe-chat/commit/00e0980))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.212](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.211...v2.0.0-next.212)
 
 <sup>Released on **2026-01-05**</sup>
