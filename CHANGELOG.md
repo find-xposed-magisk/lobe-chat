@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.211](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.210...v2.0.0-next.211)
+
+<sup>Released on **2026-01-05**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Add lost like button in discover detail page.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Add lost like button in discover detail page, closes [#11182](https://github.com/lobehub/lobe-chat/issues/11182) ([41215d4](https://github.com/lobehub/lobe-chat/commit/41215d4))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.210](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.209...v2.0.0-next.210)
 
 <sup>Released on **2026-01-04**</sup>
