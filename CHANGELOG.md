@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.212](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.211...v2.0.0-next.212)
+
+<sup>Released on **2026-01-05**</sup>
+
+#### ♻ Code Refactoring
+
+- **redis**: Disable automatic deserialization in upstash provider.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **redis**: Disable automatic deserialization in upstash provider, closes [#11210](https://github.com/lobehub/lobe-chat/issues/11210) ([eb5c76c](https://github.com/lobehub/lobe-chat/commit/eb5c76c))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.211](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.210...v2.0.0-next.211)
 
 <sup>Released on **2026-01-05**</sup>
