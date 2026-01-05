@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.217](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.216...v2.0.0-next.217)
+
+<sup>Released on **2026-01-05**</sup>
+
+#### ♻ Code Refactoring
+
+- **utils**: Remove unused geo server utilities.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **utils**: Remove unused geo server utilities, closes [#11243](https://github.com/lobehub/lobe-chat/issues/11243) ([ee474cc](https://github.com/lobehub/lobe-chat/commit/ee474cc))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.216](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.215...v2.0.0-next.216)
 
 <sup>Released on **2026-01-05**</sup>
