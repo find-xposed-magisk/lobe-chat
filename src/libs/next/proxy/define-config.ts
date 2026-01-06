@@ -234,8 +234,10 @@ export function defineConfig() {
       // ref: https://authjs.dev/getting-started/session-management/protecting
       if (isProtected) {
         logNextAuth('Request a protected route, redirecting to sign-in page');
-        const nextLoginUrl = new URL('/next-auth/signin', req.nextUrl.origin);
-        nextLoginUrl.searchParams.set('callbackUrl', req.nextUrl.href);
+        const authUrl = authEnv.NEXT_PUBLIC_AUTH_URL;
+        const callbackUrl = `${authUrl}${req.nextUrl.pathname}${req.nextUrl.search}`;
+        const nextLoginUrl = new URL('/next-auth/signin', authUrl);
+        nextLoginUrl.searchParams.set('callbackUrl', callbackUrl);
         const hl = req.nextUrl.searchParams.get('hl');
         if (hl) {
           nextLoginUrl.searchParams.set('hl', hl);
@@ -320,8 +322,10 @@ export function defineConfig() {
       // If request a protected route, redirect to sign-in page
       if (isProtected) {
         logBetterAuth('Request a protected route, redirecting to sign-in page');
-        const signInUrl = new URL('/signin', req.nextUrl.origin);
-        signInUrl.searchParams.set('callbackUrl', req.nextUrl.href);
+        const authUrl = authEnv.NEXT_PUBLIC_AUTH_URL;
+        const callbackUrl = `${authUrl}${req.nextUrl.pathname}${req.nextUrl.search}`;
+        const signInUrl = new URL('/signin', authUrl);
+        signInUrl.searchParams.set('callbackUrl', callbackUrl);
         const hl = req.nextUrl.searchParams.get('hl');
         if (hl) {
           signInUrl.searchParams.set('hl', hl);
