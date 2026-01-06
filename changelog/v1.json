@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Add separate border-radius for bottom-right corner on macOS 26 Chrome."]
+    },
+    "date": "2026-01-06",
+    "version": "2.0.0-next.228"
+  },
+  {
+    "children": {
       "fixes": ["Allow zero-byte files and add business hooks for error handling."]
     },
     "date": "2026-01-06",
