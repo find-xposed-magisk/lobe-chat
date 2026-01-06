@@ -12,7 +12,8 @@ concurrency:
 
 jobs:
   # Check for duplicate runs
-  pre_job:
+  check-duplicate-run:
+    name: Check Duplicate Run
     runs-on: ubuntu-latest
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
@@ -26,8 +27,8 @@ jobs:
 
   # Package tests - all packages in single job to save runner resources
   test-packages:
-    needs: pre_job
-    if: needs.pre_job.outputs.should_skip != 'true'
+    needs: check-duplicate-run
+    if: needs.check-duplicate-run.outputs.should_skip != 'true'
     runs-on: ubuntu-latest
     name: Test Packages
     env:
@@ -61,21 +62,24 @@ jobs:
       - name: Upload coverage to Codecov
         if: always()
         run: |
+          curl -Os https://cli.codecov.io/latest/linux/codecov
+          chmod +x codecov
           for package in $PACKAGES; do
-            # Extract directory name: @lobechat/file-loaders -> file-loaders, model-bank -> model-bank
             dir="${package#@lobechat/}"
             if [ -f "./packages/$dir/coverage/lcov.info" ]; then
-              echo "Uploading coverage for $package..."
-              npx codecov --token=${{ secrets.CODECOV_TOKEN }} \
-                --file=./packages/$dir/coverage/lcov.info \
-                --flags=packages/$dir
+              echo "Uploading coverage for $dir..."
+              ./codecov upload-process \
+                -t ${{ secrets.CODECOV_TOKEN }} \
+                -f ./packages/$dir/coverage/lcov.info \
+                -F packages/$dir \
+                --disable-search
             fi
           done
 
   # App tests
   test-website:
-    needs: pre_job
-    if: needs.pre_job.outputs.should_skip != 'true'
+    needs: check-duplicate-run
+    if: needs.check-duplicate-run.outputs.should_skip != 'true'
     name: Test Website
 
     runs-on: ubuntu-latest
@@ -108,8 +112,8 @@ jobs:
           flags: app
 
   test-desktop:
-    needs: pre_job
-    if: needs.pre_job.outputs.should_skip != 'true'
+    needs: check-duplicate-run
+    if: needs.check-duplicate-run.outputs.should_skip != 'true'
     name: Test Desktop App
 
     runs-on: ubuntu-latest
@@ -150,8 +154,8 @@ jobs:
           flags: desktop
 
   test-databsae:
-    needs: pre_job
-    if: needs.pre_job.outputs.should_skip != 'true'
+    needs: check-duplicate-run
+    if: needs.check-duplicate-run.outputs.should_skip != 'true'
     name: Test Database
 
     runs-on: ubuntu-latest
