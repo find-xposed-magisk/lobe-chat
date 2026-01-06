@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.226](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.225...v2.0.0-next.226)
+
+<sup>Released on **2026-01-06**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Change all market routes & api call into lambda trpc client call.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Change all market routes & api call into lambda trpc client call, closes [#11256](https://github.com/lobehub/lobe-chat/issues/11256) ([8f7e378](https://github.com/lobehub/lobe-chat/commit/8f7e378))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.225](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.224...v2.0.0-next.225)
 
 <sup>Released on **2026-01-06**</sup>
