@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "improvements": ["Change all market routes & api call into lambda trpc client call."]
+    },
+    "date": "2026-01-06",
+    "version": "2.0.0-next.226"
+  },
+  {
     "children": {},
     "date": "2026-01-06",
     "version": "2.0.0-next.225"
