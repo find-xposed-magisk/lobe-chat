@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.222](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.221...v2.0.0-next.222)
+
+<sup>Released on **2026-01-06**</sup>
+
+#### ♻ Code Refactoring
+
+- **auth**: Improve auth configuration for better Docker runtime support.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix editor modal and refactor ModelSwitchPanel.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **auth**: Improve auth configuration for better Docker runtime support, closes [#11253](https://github.com/lobehub/lobe-chat/issues/11253) ([5277650](https://github.com/lobehub/lobe-chat/commit/5277650))
+
+#### What's fixed
+
+- **misc**: Fix editor modal and refactor ModelSwitchPanel, closes [#11273](https://github.com/lobehub/lobe-chat/issues/11273) ([0c57ec4](https://github.com/lobehub/lobe-chat/commit/0c57ec4))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.221](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.220...v2.0.0-next.221)
 
 <sup>Released on **2026-01-05**</sup>
