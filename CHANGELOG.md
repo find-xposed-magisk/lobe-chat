@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.238](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.237...v2.0.0-next.238)
+
+<sup>Released on **2026-01-08**</sup>
+
+#### ✨ Features
+
+- **misc**: Change the klavis Linear to LobeHub oauth Linear.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Topic renaming input focus issue in context menu.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Change the klavis Linear to LobeHub oauth Linear, closes [#11339](https://github.com/lobehub/lobe-chat/issues/11339) ([ec8ff26](https://github.com/lobehub/lobe-chat/commit/ec8ff26))
+
+#### What's fixed
+
+- **misc**: Topic renaming input focus issue in context menu, closes [#11323](https://github.com/lobehub/lobe-chat/issues/11323) ([dd065fc](https://github.com/lobehub/lobe-chat/commit/dd065fc))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.237](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.236...v2.0.0-next.237)
 
 <sup>Released on **2026-01-08**</sup>
