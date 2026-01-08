@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.240](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.239...v2.0.0-next.240)
+
+<sup>Released on **2026-01-08**</sup>
+
+#### ♻ Code Refactoring
+
+- **memory-user-memory**: Migrated to use typescript module for prompts.
+
+#### ✨ Features
+
+- **notebook**: Add i18n, Inspector and Streaming components.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **memory-user-memory**: Migrated to use typescript module for prompts, closes [#11344](https://github.com/lobehub/lobe-chat/issues/11344) ([902cfe5](https://github.com/lobehub/lobe-chat/commit/902cfe5))
+
+#### What's improved
+
+- **notebook**: Add i18n, Inspector and Streaming components, closes [#11212](https://github.com/lobehub/lobe-chat/issues/11212) ([f7dc54f](https://github.com/lobehub/lobe-chat/commit/f7dc54f))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.239](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.238...v2.0.0-next.239)
 
 <sup>Released on **2026-01-08**</sup>
