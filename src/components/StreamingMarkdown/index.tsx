@@ -9,7 +9,6 @@ const styles = createStaticStyles(({ css }) => ({
     padding-block: 12px;
     padding-inline: 16px;
     border-radius: 8px;
-
     font-size: 14px;
   `,
 }));
