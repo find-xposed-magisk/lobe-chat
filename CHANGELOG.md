@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.244](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.243...v2.0.0-next.244)
+
+<sup>Released on **2026-01-08**</sup>
+
+#### 🐛 Bug Fixes
+
+- **api**: Fix the issue where custom AI Providers cannot use custom APIs.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **api**: Fix the issue where custom AI Providers cannot use custom APIs, closes [#11335](https://github.com/lobehub/lobe-chat/issues/11335) ([2c666b8](https://github.com/lobehub/lobe-chat/commit/2c666b8))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.243](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.242...v2.0.0-next.243)
 
 <sup>Released on **2026-01-08**</sup>
