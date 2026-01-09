@@ -5,16 +5,39 @@ import type { ResourceItem, ResourceQueryParams, SyncOperation } from '@/types/r
  */
 export interface ResourceState {
   /**
-   * Primary store - Map for O(1) lookups
+   * Pagination state
    */
-  resourceMap: Map<string, ResourceItem>;
+  hasMore: boolean;
 
+  /**
+   * Loading states
+   */
+  isLoadingMore: boolean;
+
+  isSyncing: boolean;
+
+  /**
+   * Sync status
+   */
+  lastSyncTime?: Date;
+
+  offset: number;
+  /**
+   * Current query parameters
+   */
+  queryParams?: ResourceQueryParams;
   /**
    * Derived sorted/filtered list (computed from map)
    * Used for rendering in UI
    */
   resourceList: ResourceItem[];
 
+  /**
+   * Primary store - Map for O(1) lookups
+   */
+  resourceMap: Map<string, ResourceItem>;
+
+  syncError?: Error;
   /**
    * Sync queue (FIFO)
    * Contains pending operations to be synced to server
@@ -25,30 +48,7 @@ export interface ResourceState {
    * Track which resources are currently syncing
    */
   syncingIds: Set<string>;
-
-  /**
-   * Pagination state
-   */
-  hasMore: boolean;
-  offset: number;
   total: number;
-
-  /**
-   * Current query parameters
-   */
-  queryParams?: ResourceQueryParams;
-
-  /**
-   * Loading states
-   */
-  isLoadingMore: boolean;
-  isSyncing: boolean;
-
-  /**
-   * Sync status
-   */
-  lastSyncTime?: Date;
-  syncError?: Error;
 }
 
 /**

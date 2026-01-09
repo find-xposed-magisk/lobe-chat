@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 
-import { useFileStore } from '@/store/file';
-import { AsyncTaskStatus } from '@/types/asyncTask';
 import { revalidateResources } from '@/store/file/slices/resource/hooks';
+import { AsyncTaskStatus } from '@/types/asyncTask';
 import { type FileListItem } from '@/types/files';
 
 export const useCheckTaskStatus = (data: FileListItem[] | undefined) => {
