@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.248](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.247...v2.0.0-next.248)
+
+<sup>Released on **2026-01-09**</sup>
+
+#### ✨ Features
+
+- **userMemories**: Support to assign for extra headers when invoking upstash workflows.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **userMemories**: Support to assign for extra headers when invoking upstash workflows, closes [#11374](https://github.com/lobehub/lobe-chat/issues/11374) ([895e15e](https://github.com/lobehub/lobe-chat/commit/895e15e))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.247](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.246...v2.0.0-next.247)
 
 <sup>Released on **2026-01-09**</sup>
