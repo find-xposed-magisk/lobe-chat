@@ -4,21 +4,20 @@ import {
 } from '@lobechat/const';
 import { messages, topics } from '@lobechat/database/schemas';
 import {
+  BenchmarkLocomoContextProvider,
   LobeChatTopicContextProvider,
   LobeChatTopicResultRecorder,
   MemoryExtractionService,
   RetrievalUserMemoryContextProvider,
   RetrievalUserMemoryIdentitiesProvider,
-  BenchmarkLocomoContextProvider,
 } from '@lobechat/memory-user-memory';
 import type {
+  BenchmarkLocomoPart,
   MemoryExtractionAgent,
   MemoryExtractionJob,
   MemoryExtractionResult,
-  BenchmarkLocomoPart,
   PersistedMemoryResult,
 } from '@lobechat/memory-user-memory';
-import { UserMemorySourceBenchmarkLoCoMoModel } from '@/database/models/userMemory/sources/benchmarkLoCoMo';
 import { ModelRuntime } from '@lobechat/model-runtime';
 import type {
   Embeddings,
@@ -45,6 +44,7 @@ import type {
   MemoryExtractionTracePayload,
 } from '@lobechat/types';
 import { Client } from '@upstash/workflow';
+import debug from 'debug';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { join } from 'pathe';
 import { z } from 'zod';
@@ -54,6 +54,7 @@ import { TopicModel } from '@/database/models/topic';
 import type { ListUsersForMemoryExtractorCursor } from '@/database/models/user';
 import { UserModel } from '@/database/models/user';
 import { UserMemoryModel } from '@/database/models/userMemory';
+import { UserMemorySourceBenchmarkLoCoMoModel } from '@/database/models/userMemory/sources/benchmarkLoCoMo';
 import { getServerDB } from '@/database/server';
 import { getServerGlobalConfig } from '@/server/globalConfig';
 import {
@@ -64,9 +65,13 @@ import { KeyVaultsGateKeeper } from '@/server/modules/KeyVaultsEncrypt';
 import { S3 } from '@/server/modules/S3';
 import type { GlobalMemoryLayer } from '@/types/serverConfig';
 import type { UserKeyVaults } from '@/types/user/settings';
-import { LayersEnum, type MergeStrategyEnum, TypesEnum, MemorySourceType } from '@/types/userMemory';
+import {
+  LayersEnum,
+  MemorySourceType,
+  type MergeStrategyEnum,
+  TypesEnum,
+} from '@/types/userMemory';
 import { encodeAsync } from '@/utils/tokenizer';
-import debug from 'debug';
 
 const SOURCE_ALIAS_MAP: Record<string, MemorySourceType> = {
   benchmark_locomo: MemorySourceType.BenchmarkLocomo,
@@ -913,7 +918,10 @@ export class MemoryExtractionExecutor {
     };
   }
 
-  async listUserMemoryIdentities(job: MemoryExtractionJob, userId: string): Promise<IdentityMemoryDetail[]> {
+  async listUserMemoryIdentities(
+    job: MemoryExtractionJob,
+    userId: string,
+  ): Promise<IdentityMemoryDetail[]> {
     const db = await this.db;
     const userMemoryModel = new UserMemoryModel(db, userId);
 

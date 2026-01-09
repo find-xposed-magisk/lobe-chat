@@ -32,8 +32,7 @@ export const agentCronJobs = pgTable(
     agentId: text('agent_id')
       .references(() => agents.id, { onDelete: 'cascade' })
       .notNull(),
-    groupId: text('group_id')
-      .references(() => chatGroups.id, { onDelete: 'cascade' }),
+    groupId: text('group_id').references(() => chatGroups.id, { onDelete: 'cascade' }),
     userId: text('user_id')
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
