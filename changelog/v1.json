@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "improvements": ["Improve Tools popover component structure and fix UI consistency."]
+    },
+    "date": "2026-01-09",
+    "version": "2.0.0-next.245"
+  },
+  {
     "children": {},
     "date": "2026-01-08",
     "version": "2.0.0-next.244"
