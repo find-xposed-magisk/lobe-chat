@@ -1,8 +1,8 @@
 import { type StateCreator } from 'zustand/vanilla';
 
 import { knowledgeBaseService } from '@/services/knowledgeBase';
-import { useFileStore } from '@/store/file';
-import { type KnowledgeBaseStore } from '@/store/knowledgeBase/store';
+import { revalidateResources } from '@/store/file/slices/resource/hooks';
+import { type KnowledgeBaseStore } from '@/store/library/store';
 
 export interface KnowledgeBaseContentAction {
   addFilesToKnowledgeBase: (knowledgeBaseId: string, ids: string[]) => Promise<void>;
@@ -17,11 +17,15 @@ export const createContentSlice: StateCreator<
 > = () => ({
   addFilesToKnowledgeBase: async (knowledgeBaseId, ids) => {
     await knowledgeBaseService.addFilesToKnowledgeBase(knowledgeBaseId, ids);
-    await useFileStore.getState().refreshFileList();
+
+    // Revalidate resource list to show updated KB associations
+    await revalidateResources();
   },
 
   removeFilesFromKnowledgeBase: async (knowledgeBaseId, ids) => {
     await knowledgeBaseService.removeFilesFromKnowledgeBase(knowledgeBaseId, ids);
-    await useFileStore.getState().refreshFileList();
+
+    // Revalidate resource list to show updated KB associations
+    await revalidateResources();
   },
 });
