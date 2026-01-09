@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.252](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.251...v2.0.0-next.252)
+
+<sup>Released on **2026-01-09**</sup>
+
+#### ✨ Features
+
+- **misc**: Add the agent cron job.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add the agent cron job, closes [#11370](https://github.com/lobehub/lobe-chat/issues/11370) ([10e47d9](https://github.com/lobehub/lobe-chat/commit/10e47d9))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.251](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.250...v2.0.0-next.251)
 
 <sup>Released on **2026-01-09**</sup>
