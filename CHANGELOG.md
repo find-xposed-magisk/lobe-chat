@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.246](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.245...v2.0.0-next.246)
+
+<sup>Released on **2026-01-09**</sup>
+
+#### ✨ Features
+
+- **misc**: Generate `agent_cron_jobs` in agents.
+
+#### 💄 Styles
+
+- **desktop**: Update macOS beta icon assets.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Generate `agent_cron_jobs` in agents, closes [#11349](https://github.com/lobehub/lobe-chat/issues/11349) ([eefb6cb](https://github.com/lobehub/lobe-chat/commit/eefb6cb))
+
+#### Styles
+
+- **desktop**: Update macOS beta icon assets, closes [#11368](https://github.com/lobehub/lobe-chat/issues/11368) ([3623e58](https://github.com/lobehub/lobe-chat/commit/3623e58))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.245](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.244...v2.0.0-next.245)
 
 <sup>Released on **2026-01-09**</sup>
