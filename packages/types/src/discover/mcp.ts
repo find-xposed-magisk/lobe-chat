@@ -18,7 +18,7 @@ export enum McpCategory {
   Tools = 'tools',
   TravelTransport = 'travel-transport',
   Weather = 'weather',
-  WebSearch = 'web-search',
+  WebSearch = 'web-search'
 }
 
 export enum McpSorts {
