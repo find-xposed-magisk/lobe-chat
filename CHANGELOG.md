@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.245](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.244...v2.0.0-next.245)
+
+<sup>Released on **2026-01-09**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Improve Tools popover component structure and fix UI consistency.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Improve Tools popover component structure and fix UI consistency, closes [#11356](https://github.com/lobehub/lobe-chat/issues/11356) ([f46837a](https://github.com/lobehub/lobe-chat/commit/f46837a))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.244](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.243...v2.0.0-next.244)
 
 <sup>Released on **2026-01-08**</sup>
