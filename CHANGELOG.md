@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.253](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.252...v2.0.0-next.253)
+
+<sup>Released on **2026-01-09**</sup>
+
+#### ✨ Features
+
+- **desktop**: Improve macOS permission requests and Full Disk Access detection.
+
+#### 🐛 Bug Fixes
+
+- **controls**: Update checkbox toggle behavior and pass value to ParamControlWrapper.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **desktop**: Improve macOS permission requests and Full Disk Access detection, closes [#11380](https://github.com/lobehub/lobe-chat/issues/11380) ([2d5868f](https://github.com/lobehub/lobe-chat/commit/2d5868f))
+
+#### What's fixed
+
+- **controls**: Update checkbox toggle behavior and pass value to ParamControlWrapper, closes [#11363](https://github.com/lobehub/lobe-chat/issues/11363) ([1f1ef94](https://github.com/lobehub/lobe-chat/commit/1f1ef94))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.252](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.251...v2.0.0-next.252)
 
 <sup>Released on **2026-01-09**</sup>
