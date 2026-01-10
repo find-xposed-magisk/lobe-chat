@@ -8,15 +8,15 @@ export enum ArtifactDisplayMode {
 // ============== Portal View Stack Types ==============
 
 export enum PortalViewType {
-  Home = 'home',
   Artifact = 'artifact',
   Document = 'document',
-  Notebook = 'notebook',
   FilePreview = 'filePreview',
-  MessageDetail = 'messageDetail',
-  ToolUI = 'toolUI',
-  Thread = 'thread',
   GroupThread = 'groupThread',
+  Home = 'home',
+  MessageDetail = 'messageDetail',
+  Notebook = 'notebook',
+  Thread = 'thread',
+  ToolUI = 'toolUI',
 }
 
 export interface PortalFile {
@@ -27,38 +27,38 @@ export interface PortalFile {
 
 export type PortalViewData =
   | { type: PortalViewType.Home }
-  | { type: PortalViewType.Artifact; artifact: PortalArtifact }
-  | { type: PortalViewType.Document; documentId: string }
+  | { artifact: PortalArtifact; type: PortalViewType.Artifact }
+  | { documentId: string; type: PortalViewType.Document }
   | { type: PortalViewType.Notebook }
-  | { type: PortalViewType.FilePreview; file: PortalFile }
-  | { type: PortalViewType.MessageDetail; messageId: string }
-  | { type: PortalViewType.ToolUI; messageId: string; identifier: string }
-  | { type: PortalViewType.Thread; threadId?: string; startMessageId?: string }
-  | { type: PortalViewType.GroupThread; agentId: string };
+  | { file: PortalFile; type: PortalViewType.FilePreview }
+  | { messageId: string; type: PortalViewType.MessageDetail }
+  | { identifier: string; messageId: string; type: PortalViewType.ToolUI }
+  | { startMessageId?: string; threadId?: string; type: PortalViewType.Thread }
+  | { agentId: string; type: PortalViewType.GroupThread };
 
 // ============== Portal State ==============
 
 export interface ChatPortalState {
-  portalArtifactDisplayMode: ArtifactDisplayMode;
-  portalStack: PortalViewData[];
-  showPortal: boolean;
-
   // Legacy fields (kept for backward compatibility during migration)
   // TODO: Remove after Phase 3 migration complete
   /** @deprecated Use portalStack instead */
   portalArtifact?: PortalArtifact;
+  portalArtifactDisplayMode: ArtifactDisplayMode;
   /** @deprecated Use portalStack instead */
   portalDocumentId?: string;
+
   /** @deprecated Use portalStack instead */
   portalFile?: PortalFile;
   /** @deprecated Use portalStack instead */
   portalMessageDetail?: string;
+  portalStack: PortalViewData[];
   /** @deprecated Use portalStack instead */
   portalThreadId?: string;
   /** @deprecated Use portalStack instead */
   portalToolMessage?: { id: string; identifier: string };
   /** @deprecated Use portalStack instead */
   showNotebook?: boolean;
+  showPortal: boolean;
 }
 
 export const initialChatPortalState: ChatPortalState = {

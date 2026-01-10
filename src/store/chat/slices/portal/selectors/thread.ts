@@ -5,7 +5,7 @@ import { type PortalViewData, PortalViewType } from '../initialState';
 // Helper to get current view
 const getCurrentView = (s: ChatStoreState): PortalViewData | null => {
   const { portalStack } = s;
-  return portalStack[portalStack.length - 1] ?? null;
+  return portalStack.at(-1) ?? null;
 };
 
 // Check if current view is Thread

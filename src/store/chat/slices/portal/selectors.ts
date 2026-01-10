@@ -9,7 +9,7 @@ import { type PortalFile, type PortalViewData, PortalViewType } from './initialS
 
 const currentView = (s: ChatStoreState): PortalViewData | null => {
   const { portalStack } = s;
-  return portalStack[portalStack.length - 1] ?? null;
+  return portalStack.at(-1) ?? null;
 };
 
 const currentViewType = (s: ChatStoreState): PortalViewType | null => {
@@ -109,10 +109,10 @@ const messageDetailId = (s: ChatStoreState): string | undefined => {
 // Tool UI / Plugin selectors
 const currentToolUI = (
   s: ChatStoreState,
-): { messageId: string; identifier: string } | undefined => {
+): { identifier: string; messageId: string } | undefined => {
   const view = getViewData(s, PortalViewType.ToolUI);
   if (view) {
-    return { messageId: view.messageId, identifier: view.identifier };
+    return { identifier: view.identifier, messageId: view.messageId };
   }
   return undefined;
 };

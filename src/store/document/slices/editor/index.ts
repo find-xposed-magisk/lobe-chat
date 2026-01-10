@@ -6,5 +6,5 @@ export {
   type EditorState,
   initialEditorState,
 } from './initialState';
-export { documentReducer, type DocumentDispatch } from './reducer';
+export { type DocumentDispatch, documentReducer } from './reducer';
 export { editorSelectors } from './selectors';
