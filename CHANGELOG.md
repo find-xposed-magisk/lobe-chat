@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.261](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.260...v2.0.0-next.261)
+
+<sup>Released on **2026-01-10**</sup>
+
+#### ✨ Features
+
+- **userMemories**: Support to use customized Qstash client with extra header for workflows.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **userMemories**: Support to use customized Qstash client with extra header for workflows, closes [#11378](https://github.com/lobehub/lobe-chat/issues/11378) ([3417af4](https://github.com/lobehub/lobe-chat/commit/3417af4))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.260](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.259...v2.0.0-next.260)
 
 <sup>Released on **2026-01-10**</sup>
