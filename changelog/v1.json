@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Fix auto add group member crash."]
+    },
+    "date": "2026-01-10",
+    "version": "2.0.0-next.255"
+  },
+  {
+    "children": {
       "improvements": ["Update i18n."]
     },
     "date": "2026-01-10",
