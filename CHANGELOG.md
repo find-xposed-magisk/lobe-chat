@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.256](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.255...v2.0.0-next.256)
+
+<sup>Released on **2026-01-10**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Refactor page and notebook document usage.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Refactor page and notebook document usage, closes [#11345](https://github.com/lobehub/lobe-chat/issues/11345) ([88721eb](https://github.com/lobehub/lobe-chat/commit/88721eb))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.255](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.254...v2.0.0-next.255)
 
 <sup>Released on **2026-01-10**</sup>
