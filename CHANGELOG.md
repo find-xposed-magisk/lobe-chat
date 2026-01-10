@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.255](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.254...v2.0.0-next.255)
+
+<sup>Released on **2026-01-10**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix auto add group member crash.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix auto add group member crash, closes [#11387](https://github.com/lobehub/lobe-chat/issues/11387) ([fe4ff91](https://github.com/lobehub/lobe-chat/commit/fe4ff91))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.254](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.253...v2.0.0-next.254)
 
 <sup>Released on **2026-01-10**</sup>
