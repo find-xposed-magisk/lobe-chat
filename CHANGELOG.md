@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.254](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.253...v2.0.0-next.254)
+
+<sup>Released on **2026-01-10**</sup>
+
+#### 💄 Styles
+
+- **misc**: Update i18n.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Styles
+
+- **misc**: Update i18n, closes [#11360](https://github.com/lobehub/lobe-chat/issues/11360) ([da09825](https://github.com/lobehub/lobe-chat/commit/da09825))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.253](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.252...v2.0.0-next.253)
 
 <sup>Released on **2026-01-09**</sup>
