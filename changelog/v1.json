@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Remember page agent panel width."]
+    },
+    "date": "2026-01-10",
+    "version": "2.0.0-next.257"
+  },
+  {
+    "children": {
       "improvements": ["Refactor page and notebook document usage."]
     },
     "date": "2026-01-10",
