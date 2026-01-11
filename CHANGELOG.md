@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.262](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.261...v2.0.0-next.262)
+
+<sup>Released on **2026-01-11**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Rename chat folder to agent.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Rename chat folder to agent, closes [#11409](https://github.com/lobehub/lobe-chat/issues/11409) ([7cfb1a3](https://github.com/lobehub/lobe-chat/commit/7cfb1a3))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.261](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.260...v2.0.0-next.261)
 
 <sup>Released on **2026-01-10**</sup>
