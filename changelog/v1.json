@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Handle will-prevent-unload event to allow app quit."]
+    },
+    "date": "2026-01-11",
+    "version": "2.0.0-next.264"
+  },
+  {
+    "children": {
       "improvements": [
         "ModelParse support to get model settings params & Customize extendParams UI."
       ]
