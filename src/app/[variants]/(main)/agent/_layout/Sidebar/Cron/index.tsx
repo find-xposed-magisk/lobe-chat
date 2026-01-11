@@ -1,9 +1,8 @@
 'use client';
 
 import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
-import { AccordionItem, ActionIcon, Flexbox, Icon, Text } from '@lobehub/ui';
-import { message } from 'antd';
-import { Calendar, Plus } from 'lucide-react';
+import { Accordion, AccordionItem, ActionIcon, Flexbox, Text } from '@lobehub/ui';
+import { Plus } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import urlJoin from 'url-join';
@@ -11,9 +10,7 @@ import urlJoin from 'url-join';
 import NeuralNetworkLoading from '@/components/NeuralNetworkLoading';
 import EmptyNavItem from '@/features/NavPanel/components/EmptyNavItem';
 import SkeletonList from '@/features/NavPanel/components/SkeletonList';
-import { useFetchCronTopicsWithJobInfo } from '@/hooks/useFetchCronTopicsWithJobInfo';
 import { useQueryRoute } from '@/hooks/useQueryRoute';
-import { agentCronJobService } from '@/services/agentCronJob';
 import { useAgentStore } from '@/store/agent';
 
 import CronTopicGroup from './CronTopicGroup';
@@ -25,33 +22,22 @@ interface CronTopicListProps {
 const CronTopicList = memo<CronTopicListProps>(({ itemKey }) => {
   const { t } = useTranslation('setting');
   const router = useQueryRoute();
-  const agentId = useAgentStore((s) => s.activeAgentId);
-  const { cronTopicsGroupsWithJobInfo, isLoading, mutate } = useFetchCronTopicsWithJobInfo();
-  const totalTopics = cronTopicsGroupsWithJobInfo.reduce(
-    (acc, group) => acc + group.topics.length,
-    0,
-  );
+  const [agentId, createAgentCronJob, useFetchCronTopicsWithJobInfo] = useAgentStore((s) => [
+    s.activeAgentId,
+    s.createAgentCronJob,
+    s.useFetchCronTopicsWithJobInfo,
+  ]);
+  const { data: cronTopicsGroupsWithJobInfo = [], isLoading } =
+    useFetchCronTopicsWithJobInfo(agentId);
 
   const handleCreateCronJob = useCallback(async () => {
     if (!agentId) return;
-    try {
-      const result = await agentCronJobService.create({
-        agentId,
-        content: t('agentCronJobs.form.content.placeholder') || 'This is a cron job',
-        cronPattern: '*/30 * * * *',
-        enabled: true,
-        name: t('agentCronJobs.addJob') || 'Cron Job Task',
-      });
 
-      if (result.success) {
-        await mutate();
-        router.push(urlJoin('/agent', agentId, 'cron', result.data.id));
-      }
-    } catch (error) {
-      console.error('Failed to create cron job:', error);
-      message.error('Failed to create scheduled task');
+    const cronJobId = await createAgentCronJob();
+    if (cronJobId) {
+      router.push(urlJoin('/agent', agentId, 'cron', cronJobId));
     }
-  }, [agentId, mutate, router, t]);
+  }, [agentId, createAgentCronJob, router]);
 
   if (!ENABLE_BUSINESS_FEATURES) return null;
 
@@ -74,7 +60,6 @@ const CronTopicList = memo<CronTopicListProps>(({ itemKey }) => {
         paddingInline={'8px 4px'}
         title={
           <Flexbox align="center" gap={4} horizontal>
-            <Icon icon={Calendar} size={12} />
             <Text ellipsis fontSize={12} type={'secondary'} weight={500}>
               {t('agentCronJobs.title')}
             </Text>
@@ -96,7 +81,6 @@ const CronTopicList = memo<CronTopicListProps>(({ itemKey }) => {
         paddingInline={'8px 4px'}
         title={
           <Flexbox align="center" gap={4} horizontal>
-            <Icon icon={Calendar} size={12} />
             <Text ellipsis fontSize={12} type={'secondary'} weight={500}>
               {t('agentCronJobs.title')}
             </Text>
@@ -108,6 +92,8 @@ const CronTopicList = memo<CronTopicListProps>(({ itemKey }) => {
     );
   }
 
+  const totalCronJobs = cronTopicsGroupsWithJobInfo.length;
+
   return (
     <AccordionItem
       action={addAction}
@@ -116,14 +102,18 @@ const CronTopicList = memo<CronTopicListProps>(({ itemKey }) => {
       paddingInline={'8px 4px'}
       title={
         <Flexbox align="center" gap={4} horizontal>
-          <Icon icon={Calendar} size={12} />
           <Text ellipsis fontSize={12} type={'secondary'} weight={500}>
-            {`${t('agentCronJobs.title')} ${totalTopics > 0 ? totalTopics : ''}`}
+            {t('agentCronJobs.title')}
           </Text>
+          {totalCronJobs > 0 && (
+            <Text fontSize={11} type="secondary">
+              {totalCronJobs}
+            </Text>
+          )}
         </Flexbox>
       }
     >
-      <Flexbox gap={2} paddingBlock={2}>
+      <Accordion defaultExpandedKeys={cronTopicsGroupsWithJobInfo.map((g) => g.cronJobId)} gap={2}>
         {cronTopicsGroupsWithJobInfo.map((group) => (
           <CronTopicGroup
             cronJob={group.cronJob}
@@ -132,7 +122,7 @@ const CronTopicList = memo<CronTopicListProps>(({ itemKey }) => {
             topics={group.topics}
           />
         ))}
-      </Flexbox>
+      </Accordion>
     </AccordionItem>
   );
 });
