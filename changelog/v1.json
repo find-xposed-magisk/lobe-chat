@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "improvements": ["Rename chat folder to agent."]
+    },
+    "date": "2026-01-11",
+    "version": "2.0.0-next.262"
+  },
+  {
     "children": {},
     "date": "2026-01-10",
     "version": "2.0.0-next.261"
