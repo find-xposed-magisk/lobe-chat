@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Improve cron jobs style."]
+    },
+    "date": "2026-01-11",
+    "version": "2.0.0-next.266"
+  },
+  {
+    "children": {
       "fixes": [
         "Fix duplicate agent and group, Fix Windows desktop build error with macOS native module, force plain text paste in ChatInput editor."
       ]
