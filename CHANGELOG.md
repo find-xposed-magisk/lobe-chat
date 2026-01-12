@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.267](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.266...v2.0.0-next.267)
+
+<sup>Released on **2026-01-12**</sup>
+
+#### 🐛 Bug Fixes
+
+- **ChatInput**: Add missing MaxTokens setting to params popover.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **ChatInput**: Add missing MaxTokens setting to params popover, closes [#11412](https://github.com/lobehub/lobe-chat/issues/11412) [#11375](https://github.com/lobehub/lobe-chat/issues/11375) ([3db4389](https://github.com/lobehub/lobe-chat/commit/3db4389))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.266](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.265...v2.0.0-next.266)
 
 <sup>Released on **2026-01-11**</sup>
