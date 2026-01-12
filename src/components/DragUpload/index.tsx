@@ -42,16 +42,16 @@ const useStyles = createStyles(({ css, token }) => {
       margin-block-start: -44px;
     `,
     iconLeft: css`
+      transform: rotateZ(-20deg) translateX(10px);
       border-radius: ${token.borderRadiusLG}px;
       color: color-mix(in srgb, ${token.geekblue} 95%, black);
       background: color-mix(in srgb, ${token.geekblue} 68%, white);
-      transform: rotateZ(-20deg) translateX(10px);
     `,
     iconRight: css`
+      transform: rotateZ(20deg) translateX(-10px);
       border-radius: ${token.borderRadiusLG}px;
       color: color-mix(in srgb, ${token.geekblue} 95%, black);
       background: color-mix(in srgb, ${token.geekblue} 68%, white);
-      transform: rotateZ(20deg) translateX(-10px);
     `,
     title: css`
       font-size: 20px;
@@ -91,11 +91,7 @@ const DragUpload = memo<DragUploadProps>(({ enabledFiles = true, onUploadFiles }
       <div className={styles.container}>
         <Center className={styles.content} gap={12}>
           <Flexbox className={styles.iconGroup} horizontal>
-            <Center
-              className={styles.iconLeft}
-              height={BLOCK_SIZE * 1.25}
-              width={BLOCK_SIZE}
-            >
+            <Center className={styles.iconLeft} height={BLOCK_SIZE * 1.25} width={BLOCK_SIZE}>
               <Icon icon={FileImage} size={ICON_SIZE} />
             </Center>
             <Center
@@ -109,11 +105,7 @@ const DragUpload = memo<DragUploadProps>(({ enabledFiles = true, onUploadFiles }
             >
               <Icon icon={FileUpIcon} size={ICON_SIZE} />
             </Center>
-            <Center
-              className={styles.iconRight}
-              height={BLOCK_SIZE * 1.25}
-              width={BLOCK_SIZE}
-            >
+            <Center className={styles.iconRight} height={BLOCK_SIZE * 1.25} width={BLOCK_SIZE}>
               <Icon icon={FileText} size={ICON_SIZE} />
             </Center>
           </Flexbox>

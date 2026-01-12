@@ -27,7 +27,7 @@ const TruncatedFileName = memo<TruncatedFileNameProps>(({ name, className }) => 
       measureSpan.style.position = 'absolute';
       measureSpan.style.whiteSpace = 'nowrap';
       measureSpan.style.font = window.getComputedStyle(container).font;
-      document.body.appendChild(measureSpan);
+      document.body.append(measureSpan);
 
       // Measure full name
       measureSpan.textContent = name;
@@ -36,7 +36,7 @@ const TruncatedFileName = memo<TruncatedFileNameProps>(({ name, className }) => 
       // If it fits, show the full name
       if (fullWidth <= containerWidth) {
         setDisplayName(name);
-        document.body.removeChild(measureSpan);
+        measureSpan.remove();
         return;
       }
 
@@ -65,7 +65,7 @@ const TruncatedFileName = memo<TruncatedFileNameProps>(({ name, className }) => 
       if (availableWidth <= 0) {
         // Not enough space, just show ellipsis + extension
         setDisplayName(`...${extension}`);
-        document.body.removeChild(measureSpan);
+        measureSpan.remove();
         return;
       }
 
@@ -93,7 +93,7 @@ const TruncatedFileName = memo<TruncatedFileNameProps>(({ name, className }) => 
         }
       }
 
-      document.body.removeChild(measureSpan);
+      measureSpan.remove();
 
       // Construct final truncated name
       if (bestFit.length === 0) {
@@ -101,7 +101,9 @@ const TruncatedFileName = memo<TruncatedFileNameProps>(({ name, className }) => 
       } else {
         const startChars = Math.ceil(bestFit.length / 2);
         const endChars = Math.floor(bestFit.length / 2);
-        setDisplayName(`${baseName.slice(0, startChars)}...${baseName.slice(-endChars)}${extension}`);
+        setDisplayName(
+          `${baseName.slice(0, startChars)}...${baseName.slice(-endChars)}${extension}`,
+        );
       }
     };
 
