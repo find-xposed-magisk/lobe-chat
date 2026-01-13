@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.278](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.277...v2.0.0-next.278)
+
+<sup>Released on **2026-01-13**</sup>
+
+#### ✨ Features
+
+- **share**: Add topic sharing functionality.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **share**: Add topic sharing functionality, closes [#11448](https://github.com/lobehub/lobe-chat/issues/11448) ([ddca165](https://github.com/lobehub/lobe-chat/commit/ddca165))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.277](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.276...v2.0.0-next.277)
 
 <sup>Released on **2026-01-13**</sup>
