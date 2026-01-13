@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Add MiniMax-M2.1 and GLM-4.7 for Qiniu provider."]
+    },
+    "date": "2026-01-13",
+    "version": "2.0.0-next.280"
+  },
+  {
+    "children": {
       "fixes": ["Fix new topic flick issue, fix thread portal not open correctly."]
     },
     "date": "2026-01-13",
