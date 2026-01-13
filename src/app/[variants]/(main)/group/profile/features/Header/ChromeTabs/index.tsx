@@ -10,9 +10,8 @@ const styles = createStaticStyles(({ css, cssVar: cv }) => ({
   addButton: css`
     cursor: pointer;
 
-    flex-shrink: 0;
-
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
 
@@ -51,9 +50,8 @@ const styles = createStaticStyles(({ css, cssVar: cv }) => ({
   tab: css`
     cursor: pointer;
 
-    flex-shrink: 0;
-
     display: flex;
+    flex-shrink: 0;
     gap: 6px;
     align-items: center;
 

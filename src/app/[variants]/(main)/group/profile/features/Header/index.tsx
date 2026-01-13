@@ -17,22 +17,19 @@ import ChromeTabs, { type ChromeTabItem } from './ChromeTabs';
 const useStyles = createStyles(({ css, token }) => ({
   header: css`
     overflow: hidden;
-
     flex: none;
 
     width: 100%;
     height: 44px;
     padding-block: 8px;
     padding-inline: 12px;
-
     border-block-end: 1px solid ${token.colorBorderSecondary};
   `,
   tabsWrapper: css`
+    scrollbar-width: none;
     overflow-x: auto;
     flex: 1;
     min-width: 0;
-
-    scrollbar-width: none;
 
     &::-webkit-scrollbar {
       display: none;
