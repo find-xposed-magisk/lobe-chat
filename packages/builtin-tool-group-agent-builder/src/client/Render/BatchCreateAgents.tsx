@@ -11,9 +11,10 @@ import type { BatchCreateAgentsParams, BatchCreateAgentsState } from '../../type
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   container: css`
-    padding: 4px 16px;
-    background: ${cssVar.colorFillQuaternary};
+    padding-block: 4px;
+    padding-inline: 16px;
     border-radius: 8px;
+    background: ${cssVar.colorFillQuaternary};
   `,
   description: css`
     overflow: hidden;
