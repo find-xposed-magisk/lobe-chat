@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.285](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.284...v2.0.0-next.285)
+
+<sup>Released on **2026-01-14**</sup>
+
+#### ✨ Features
+
+- **misc**: Update the agent profiles tools check & agentbuilder tools & publish to market button.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Update the agent profiles tools check & agentbuilder tools & publish to market button, closes [#11501](https://github.com/lobehub/lobe-chat/issues/11501) ([85277fa](https://github.com/lobehub/lobe-chat/commit/85277fa))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.284](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.283...v2.0.0-next.284)
 
 <sup>Released on **2026-01-14**</sup>
