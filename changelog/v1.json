@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Update readFile content."]
+    },
+    "date": "2026-01-14",
+    "version": "2.0.0-next.282"
+  },
+  {
+    "children": {
       "fixes": ["Fix group ux and memory retriever."]
     },
     "date": "2026-01-14",
