@@ -1,6 +1,14 @@
 [
   {
     "children": {
+      "improvements": ["Remove the old lobehub plugins."],
+      "fixes": ["Slove the settings/profile change but not refresh the profiles."]
+    },
+    "date": "2026-01-14",
+    "version": "2.0.0-next.284"
+  },
+  {
+    "children": {
       "improvements": ["Fix UI issues with tooltip wrapping and dropdown type."]
     },
     "date": "2026-01-14",
