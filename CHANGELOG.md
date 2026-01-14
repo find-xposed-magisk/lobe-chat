@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.281](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.280...v2.0.0-next.281)
+
+<sup>Released on **2026-01-14**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix group ux and memory retriever.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix group ux and memory retriever, closes [#11481](https://github.com/lobehub/lobe-chat/issues/11481) ([033ca92](https://github.com/lobehub/lobe-chat/commit/033ca92))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.280](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.279...v2.0.0-next.280)
 
 <sup>Released on **2026-01-13**</sup>
