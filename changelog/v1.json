@@ -1,6 +1,15 @@
 [
   {
     "children": {
+      "features": [
+        "Update the agent profiles tools check & agentbuilder tools & publish to market button."
+      ]
+    },
+    "date": "2026-01-14",
+    "version": "2.0.0-next.285"
+  },
+  {
+    "children": {
       "improvements": ["Remove the old lobehub plugins."],
       "fixes": ["Slove the settings/profile change but not refresh the profiles."]
     },
