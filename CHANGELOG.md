@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.284](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.283...v2.0.0-next.284)
+
+<sup>Released on **2026-01-14**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Remove the old lobehub plugins.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Slove the settings/profile change but not refresh the profiles.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Remove the old lobehub plugins, closes [#11498](https://github.com/lobehub/lobe-chat/issues/11498) ([e5b47df](https://github.com/lobehub/lobe-chat/commit/e5b47df))
+
+#### What's fixed
+
+- **misc**: Slove the settings/profile change but not refresh the profiles, closes [#11497](https://github.com/lobehub/lobe-chat/issues/11497) ([f1e2111](https://github.com/lobehub/lobe-chat/commit/f1e2111))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.283](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.282...v2.0.0-next.283)
 
 <sup>Released on **2026-01-14**</sup>
