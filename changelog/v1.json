@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Fix UI issues with tooltip wrapping and dropdown type."]
+    },
+    "date": "2026-01-14",
+    "version": "2.0.0-next.283"
+  },
+  {
+    "children": {
       "improvements": ["Update readFile content."]
     },
     "date": "2026-01-14",
