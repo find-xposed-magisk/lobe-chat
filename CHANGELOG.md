@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.287](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.286...v2.0.0-next.287)
+
+<sup>Released on **2026-01-14**</sup>
+
+#### ♻ Code Refactoring
+
+- **desktop**: Unify TITLE_BAR_HEIGHT constant to desktop-bridge.
+
+#### 🐛 Bug Fixes
+
+- **desktop**: Return OFFICIAL_URL in cloud mode for remoteServerUrl selector.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **desktop**: Unify TITLE_BAR_HEIGHT constant to desktop-bridge, closes [#11496](https://github.com/lobehub/lobe-chat/issues/11496) ([e7739e5](https://github.com/lobehub/lobe-chat/commit/e7739e5))
+
+#### What's fixed
+
+- **desktop**: Return OFFICIAL_URL in cloud mode for remoteServerUrl selector, closes [#11502](https://github.com/lobehub/lobe-chat/issues/11502) ([1d11fac](https://github.com/lobehub/lobe-chat/commit/1d11fac))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.286](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.285...v2.0.0-next.286)
 
 <sup>Released on **2026-01-14**</sup>
