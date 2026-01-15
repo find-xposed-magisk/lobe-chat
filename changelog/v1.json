@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "features": ["Improve group prompt context engine and fix group supervisor response issue."]
+    },
+    "date": "2026-01-15",
+    "version": "2.0.0-next.288"
+  },
+  {
     "children": {},
     "date": "2026-01-14",
     "version": "2.0.0-next.287"
