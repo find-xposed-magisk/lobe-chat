@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.292](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.291...v2.0.0-next.292)
+
+<sup>Released on **2026-01-15**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Use fallbackData to prevent useActionSWR auto-fetch.
+
+#### ✨ Features
+
+- **desktop**: Add local update testing scripts and stable channel API version check.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Use fallbackData to prevent useActionSWR auto-fetch, closes [#11514](https://github.com/lobehub/lobe-chat/issues/11514) ([d446163](https://github.com/lobehub/lobe-chat/commit/d446163))
+
+#### What's improved
+
+- **desktop**: Add local update testing scripts and stable channel API version check, closes [#11474](https://github.com/lobehub/lobe-chat/issues/11474) [#11513](https://github.com/lobehub/lobe-chat/issues/11513) ([959c210](https://github.com/lobehub/lobe-chat/commit/959c210))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.291](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.290...v2.0.0-next.291)
 
 <sup>Released on **2026-01-15**</sup>
