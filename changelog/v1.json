@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Use fallbackData to prevent useActionSWR auto-fetch."]
+    },
+    "date": "2026-01-15",
+    "version": "2.0.0-next.292"
+  },
+  {
+    "children": {
       "fixes": ["Click lobe ai topic trigger create new agent."],
       "improvements": ["Improve agent loading state."]
     },
