@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.288](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.287...v2.0.0-next.288)
+
+<sup>Released on **2026-01-15**</sup>
+
+#### ✨ Features
+
+- **misc**: Improve group prompt context engine and fix group supervisor response issue.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Improve group prompt context engine and fix group supervisor response issue, closes [#11490](https://github.com/lobehub/lobe-chat/issues/11490) ([7d066eb](https://github.com/lobehub/lobe-chat/commit/7d066eb))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.287](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.286...v2.0.0-next.287)
 
 <sup>Released on **2026-01-14**</sup>
