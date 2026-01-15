@@ -1,6 +1,4 @@
-import { usePathname } from '@/libs/router/navigation';
-import { useSearchParams } from '@/libs/router/navigation';
-
+import { usePathname, useSearchParams } from '@/libs/router/navigation';
 import { ProfileTabs, SettingsTabs, SidebarTabKey } from '@/store/global/initialState';
 
 /**
