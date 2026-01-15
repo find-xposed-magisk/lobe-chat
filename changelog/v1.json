@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Fix internal editor onTextChange issue and add test case."]
+    },
+    "date": "2026-01-15",
+    "version": "2.0.0-next.290"
+  },
+  {
+    "children": {
       "fixes": ["Fix page content mismatch when switch quickly."]
     },
     "date": "2026-01-15",
