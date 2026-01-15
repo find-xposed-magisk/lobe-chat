@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.289](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.288...v2.0.0-next.289)
+
+<sup>Released on **2026-01-15**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix page content mismatch when switch quickly.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix page content mismatch when switch quickly, closes [#11505](https://github.com/lobehub/lobe-chat/issues/11505) ([0cb1374](https://github.com/lobehub/lobe-chat/commit/0cb1374))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.288](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.287...v2.0.0-next.288)
 
 <sup>Released on **2026-01-15**</sup>
