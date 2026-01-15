@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.290](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.289...v2.0.0-next.290)
+
+<sup>Released on **2026-01-15**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix internal editor onTextChange issue and add test case.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix internal editor onTextChange issue and add test case, closes [#11509](https://github.com/lobehub/lobe-chat/issues/11509) ([e5eb03e](https://github.com/lobehub/lobe-chat/commit/e5eb03e))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.289](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.288...v2.0.0-next.289)
 
 <sup>Released on **2026-01-15**</sup>
