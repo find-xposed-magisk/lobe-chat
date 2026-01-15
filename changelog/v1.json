@@ -1,6 +1,14 @@
 [
   {
     "children": {
+      "fixes": ["Click lobe ai topic trigger create new agent."],
+      "improvements": ["Improve agent loading state."]
+    },
+    "date": "2026-01-15",
+    "version": "2.0.0-next.291"
+  },
+  {
+    "children": {
       "fixes": ["Fix internal editor onTextChange issue and add test case."]
     },
     "date": "2026-01-15",
