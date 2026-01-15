@@ -33,7 +33,16 @@ export interface InspectorProps {
  * Tool message component - adapts Tool message data to use AssistantGroup/Tool components
  */
 const Tool = memo<InspectorProps>(
-  ({ arguments: requestArgs, apiName, disableEditing, messageId, toolCallId, index, identifier, type }) => {
+  ({
+    arguments: requestArgs,
+    apiName,
+    disableEditing,
+    messageId,
+    toolCallId,
+    index,
+    identifier,
+    type,
+  }) => {
     const [showDebug, setShowDebug] = useState(false);
     const [showPluginRender, setShowPluginRender] = useState(false);
     const [expand, setExpand] = useState(true);

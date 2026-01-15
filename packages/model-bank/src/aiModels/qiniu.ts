@@ -21,7 +21,7 @@ const qiniuChatModels: AIChatModelCard[] = [
     },
     contextWindowTokens: 65_536,
     description:
-      "DeepSeek R1 is DeepSeek’s latest open model with very strong reasoning, matching OpenAI’s o1 on math, programming, and reasoning tasks.",
+      'DeepSeek R1 is DeepSeek’s latest open model with very strong reasoning, matching OpenAI’s o1 on math, programming, and reasoning tasks.',
     displayName: 'DeepSeek R1',
     enabled: true,
     id: 'deepseek-r1',
@@ -34,7 +34,7 @@ const qiniuChatModels: AIChatModelCard[] = [
       search: true,
     },
     contextWindowTokens: 204_800,
-    description: 
+    description:
       'MiniMax-M2.1 is a lightweight, cutting-edge large language model optimized for coding, proxy workflows, and modern application development, providing cleaner, more concise output and faster perceptual response times.',
     displayName: 'MiniMax M2.1',
     enabled: true,
@@ -89,7 +89,7 @@ const qiniuChatModels: AIChatModelCard[] = [
     displayName: 'LongCat Flash Chat',
     enabled: true,
     id: 'meituan/longcat-flash-chat',
-    maxOutput: 65536,
+    maxOutput: 65_536,
     pricing: {
       currency: 'CNY',
       units: [
@@ -111,8 +111,8 @@ const qiniuChatModels: AIChatModelCard[] = [
       search: true,
     },
     contextWindowTokens: 200_000,
-    description: 
-      'GLM-4.7 is Zhipu\'s latest flagship model, offering improved general capabilities, simpler and more natural replies, and a more immersive writing experience.',
+    description:
+      "GLM-4.7 is Zhipu's latest flagship model, offering improved general capabilities, simpler and more natural replies, and a more immersive writing experience.",
     displayName: 'GLM-4.7',
     enabled: true,
     id: 'z-ai/glm-4.7',
@@ -138,7 +138,7 @@ const qiniuChatModels: AIChatModelCard[] = [
       search: true,
     },
     contextWindowTokens: 200_000,
-    description: 
+    description:
       'The flagship model of Zhipu, GLM-4.6, surpasses its predecessor in all aspects of advanced coding, long text processing, reasoning, and intelligent agent capabilities.',
     displayName: 'GLM-4.6',
     enabled: true,

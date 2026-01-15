@@ -403,10 +403,7 @@ export const desktopRoutes: RouteConfig[] = [
   {
     children: [
       {
-        element: dynamicElement(
-          () => import('../share/t/[id]'),
-          'Desktop > Share > Topic',
-        ),
+        element: dynamicElement(() => import('../share/t/[id]'), 'Desktop > Share > Topic'),
         path: ':id',
       },
     ],

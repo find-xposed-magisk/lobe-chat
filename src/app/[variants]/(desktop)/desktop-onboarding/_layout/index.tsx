@@ -1,11 +1,12 @@
 'use client';
 
+import { TITLE_BAR_HEIGHT } from '@lobechat/desktop-bridge';
 import { Center, Flexbox, Text } from '@lobehub/ui';
 import { Divider } from 'antd';
 import { cx } from 'antd-style';
 import type { FC, PropsWithChildren } from 'react';
 
-import { SimpleTitleBar, TITLE_BAR_HEIGHT } from '@/features/ElectronTitlebar';
+import SimpleTitleBar from '@/features/Electron/titlebar/SimpleTitleBar';
 import LangButton from '@/features/User/UserPanel/LangButton';
 import ThemeButton from '@/features/User/UserPanel/ThemeButton';
 import { useIsDark } from '@/hooks/useIsDark';

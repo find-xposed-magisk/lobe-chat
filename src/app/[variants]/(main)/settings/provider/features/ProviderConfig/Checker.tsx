@@ -186,9 +186,9 @@ const Checker = memo<ConnectionCheckerProps>(
             style={
               pass
                 ? {
-                  borderColor: cssVar.colorSuccess,
-                  color: cssVar.colorSuccess,
-                }
+                    borderColor: cssVar.colorSuccess,
+                    color: cssVar.colorSuccess,
+                  }
                 : undefined
             }
           >

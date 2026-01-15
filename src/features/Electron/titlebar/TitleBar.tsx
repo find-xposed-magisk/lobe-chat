@@ -1,18 +1,19 @@
 import { TITLE_BAR_HEIGHT } from '@lobechat/desktop-bridge';
+import { useWatchBroadcast } from '@lobechat/electron-client-ipc';
 import { Flexbox } from '@lobehub/ui';
 import { Divider } from 'antd';
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useRef } from 'react';
 
 import { useElectronStore } from '@/store/electron';
 import { electronStylish } from '@/styles/electron';
 import { isMacOS } from '@/utils/platform';
 
-import Connection from './Connection';
+import Connection from '../connection/Connection';
+import { useWatchThemeUpdate } from '../system/useWatchThemeUpdate';
+import { useUpdateModal } from '../updater/UpdateModal';
+import { UpdateNotification } from '../updater/UpdateNotification';
 import NavigationBar from './NavigationBar';
-import { UpdateModal } from './UpdateModal';
-import { UpdateNotification } from './UpdateNotification';
 import WinControl from './WinControl';
-import { useWatchThemeUpdate } from './hooks/useWatchThemeUpdate';
 
 const isMac = isMacOS();
 
@@ -24,6 +25,19 @@ const TitleBar = memo(() => {
 
   initElectronAppState();
   useWatchThemeUpdate();
+
+  const { open: openUpdateModal } = useUpdateModal();
+  const updateModalOpenRef = useRef(false);
+
+  useWatchBroadcast('manualUpdateCheckStart', () => {
+    if (updateModalOpenRef.current) return;
+    updateModalOpenRef.current = true;
+    openUpdateModal({
+      onAfterClose: () => {
+        updateModalOpenRef.current = false;
+      },
+    });
+  });
 
   const showWinControl = isAppStateInit && !isMac;
 
@@ -59,12 +73,8 @@ const TitleBar = memo(() => {
           </>
         )}
       </Flexbox>
-      <UpdateModal />
     </Flexbox>
   );
 });
 
 export default TitleBar;
-
-export { default as SimpleTitleBar } from './SimpleTitleBar';
-export { TITLE_BAR_HEIGHT } from '@lobechat/desktop-bridge';

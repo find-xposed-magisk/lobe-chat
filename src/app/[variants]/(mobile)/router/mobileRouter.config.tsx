@@ -259,10 +259,7 @@ export const mobileRoutes: RouteConfig[] = [
   {
     children: [
       {
-        element: dynamicElement(
-          () => import('../../share/t/[id]'),
-          'Mobile > Share > Topic',
-        ),
+        element: dynamicElement(() => import('../../share/t/[id]'), 'Mobile > Share > Topic'),
         path: ':id',
       },
     ],
