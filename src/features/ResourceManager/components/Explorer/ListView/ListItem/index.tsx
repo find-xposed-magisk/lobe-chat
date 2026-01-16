@@ -48,13 +48,13 @@ const styles = createStaticStyles(({ css }) => {
     `,
 
     dragOver: css`
+      outline: 1px dashed ${cssVar.colorPrimaryBorder};
+      outline-offset: -2px;
+
       &,
       &:hover {
         background: ${cssVar.colorPrimaryBg};
       }
-
-      outline: 1px dashed ${cssVar.colorPrimaryBorder};
-      outline-offset: -2px;
     `,
 
     dragging: css`
