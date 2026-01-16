@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.297](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.296...v2.0.0-next.297)
+
+<sup>Released on **2026-01-16**</sup>
+
+#### ✨ Features
+
+- **misc**: Add agent group publish into market & use market group agents in lobehub.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add agent group publish into market & use market group agents in lobehub, closes [#11535](https://github.com/lobehub/lobe-chat/issues/11535) ([02b9e76](https://github.com/lobehub/lobe-chat/commit/02b9e76))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.296](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.295...v2.0.0-next.296)
 
 <sup>Released on **2026-01-16**</sup>
