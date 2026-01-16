@@ -5,7 +5,6 @@ import { Pagination } from 'antd';
 import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import AssistantEmpty from '../../../features/AssistantEmpty';
 import { useUserDetailContext } from './DetailProvider';
 import UserGroupCard from './UserGroupCard';
 

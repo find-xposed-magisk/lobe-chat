@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "features": ["Add agent group publish into market & use market group agents in lobehub."]
+    },
+    "date": "2026-01-16",
+    "version": "2.0.0-next.297"
+  },
+  {
+    "children": {
       "improvements": ["Improve todo list."]
     },
     "date": "2026-01-16",

@@ -1,4 +1,8 @@
-import { type CategoryItem, type CategoryListQuery, type PluginManifest } from '@lobehub/market-sdk';
+import {
+  type CategoryItem,
+  type CategoryListQuery,
+  type PluginManifest,
+} from '@lobehub/market-sdk';
 import {
   AgentEventRequest,
   type CallReportRequest,
@@ -15,13 +19,11 @@ import {
   type AssistantMarketSource,
   type AssistantQueryParams,
   type DiscoverAssistantDetail,
-  type DiscoverGroupAgentDetail,
   type DiscoverMcpDetail,
   type DiscoverModelDetail,
   type DiscoverPluginDetail,
   type DiscoverProviderDetail,
   type DiscoverUserProfile,
-  type GroupAgentListResponse,
   type GroupAgentQueryParams,
   type IdentifiersResponse,
   type McpListResponse,
@@ -479,9 +481,7 @@ class DiscoverService {
     return lambdaClient.market.getGroupAgentIdentifiers.query();
   };
 
-  getGroupAgentList = async (
-    params: GroupAgentQueryParams = {},
-  ): Promise<any> => {
+  getGroupAgentList = async (params: GroupAgentQueryParams = {}): Promise<any> => {
     const locale = globalHelpers.getCurrentLanguage();
     return lambdaClient.market.getGroupAgentList.query(
       {

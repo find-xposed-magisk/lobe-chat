@@ -1,5 +1,4 @@
-import { Avatar, Flexbox, Text } from '@lobehub/ui';
-import { Grid } from '@lobehub/ui';
+import { Avatar, Flexbox, Grid, Text } from '@lobehub/ui';
 import qs from 'query-string';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,9 +15,11 @@ const GroupAgentCard = memo<DiscoverGroupAgentItem>((item) => {
 
   const handleClick = () => {
     if (!item.identifier) return;
-    navigate(qs.stringifyUrl({
-      url: urlJoin('/community/group_agent', item.identifier),
-    }));
+    navigate(
+      qs.stringifyUrl({
+        url: urlJoin('/community/group_agent', item.identifier),
+      }),
+    );
   };
 
   return (
@@ -27,8 +28,8 @@ const GroupAgentCard = memo<DiscoverGroupAgentItem>((item) => {
       onClick={handleClick}
       padding={16}
       style={{
-        borderRadius: 8,
         border: '1px solid var(--lobe-border-color)',
+        borderRadius: 8,
         cursor: 'pointer',
         transition: 'all 0.2s',
       }}
@@ -76,7 +77,9 @@ const Related = memo(() => {
         </Grid>
       ) : (
         <Flexbox align="center" padding={32} style={{ color: '#999' }}>
-          {t('groupAgents.details.related.empty', { defaultValue: 'No related group agents found' })}
+          {t('groupAgents.details.related.empty', {
+            defaultValue: 'No related group agents found',
+          })}
         </Flexbox>
       )}
     </Flexbox>

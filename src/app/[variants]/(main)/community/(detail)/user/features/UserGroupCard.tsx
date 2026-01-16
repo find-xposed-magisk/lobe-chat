@@ -2,7 +2,7 @@
 
 import { Avatar, Block, Flexbox, Icon, Tag, Text, Tooltip, TooltipGroup } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
-import { ClockIcon, DownloadIcon, HeartIcon, UsersIcon } from 'lucide-react';
+import { ClockIcon, DownloadIcon, UsersIcon } from 'lucide-react';
 import qs from 'query-string';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';

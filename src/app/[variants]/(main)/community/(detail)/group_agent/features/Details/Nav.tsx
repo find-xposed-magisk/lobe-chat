@@ -1,13 +1,11 @@
 'use client';
 
 import { SOCIAL_URL } from '@lobechat/business-const';
-import { Flexbox, Icon, Tabs, Tag } from '@lobehub/ui';
+import { Flexbox, Icon, Tabs } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
-import { BookOpenIcon, HistoryIcon, LayersIcon, ListIcon, SquareUserIcon, UsersIcon } from 'lucide-react';
+import { BookOpenIcon, HistoryIcon, SquareUserIcon } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-
-import { useDetailContext } from '../DetailProvider';
 
 const styles = createStaticStyles(({ css, cssVar }) => {
   return {
