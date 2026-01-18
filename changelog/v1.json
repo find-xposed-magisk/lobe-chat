@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Fix group sub task execution."]
+    },
+    "date": "2026-01-18",
+    "version": "2.0.0-next.309"
+  },
+  {
+    "children": {
       "fixes": ["Fix group subagent task issue."],
       "improvements": ["Update i18n."]
     },
