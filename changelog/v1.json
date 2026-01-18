@@ -1,6 +1,15 @@
 [
   {
     "children": {
+      "fixes": [
+        "Fixed the createGroupWithSupervisor function test, slove when use copy & install group from market, the member system Role is lost."
+      ]
+    },
+    "date": "2026-01-18",
+    "version": "2.0.0-next.307"
+  },
+  {
+    "children": {
       "fixes": ["Fix supervisor id issue."]
     },
     "date": "2026-01-18",
