@@ -1,6 +1,14 @@
 [
   {
     "children": {
+      "fixes": ["Fix group subagent task issue."],
+      "improvements": ["Update i18n."]
+    },
+    "date": "2026-01-18",
+    "version": "2.0.0-next.308"
+  },
+  {
+    "children": {
       "fixes": [
         "Fixed the createGroupWithSupervisor function test, slove when use copy & install group from market, the member system Role is lost."
       ]
