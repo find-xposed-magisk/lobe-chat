@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.309](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.308...v2.0.0-next.309)
+
+<sup>Released on **2026-01-18**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix group sub task execution.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix group sub task execution, closes [#11595](https://github.com/lobehub/lobe-chat/issues/11595) ([32be2b2](https://github.com/lobehub/lobe-chat/commit/32be2b2))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.308](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.307...v2.0.0-next.308)
 
 <sup>Released on **2026-01-18**</sup>
