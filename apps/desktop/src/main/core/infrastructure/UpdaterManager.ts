@@ -113,6 +113,26 @@ export class UpdaterManager {
 
     logger.info(`${manual ? 'Manually checking' : 'Auto checking'} for updates...`);
 
+    // Log detailed updater configuration for debugging
+    const inferredChannel =
+      autoUpdater.channel ||
+      (autoUpdater.currentVersion?.prerelease?.[0]
+        ? String(autoUpdater.currentVersion.prerelease[0])
+        : null);
+
+    logger.info('[Updater Config] Channel:', autoUpdater.channel);
+    logger.info('[Updater Config] inferredChannel:', inferredChannel);
+    logger.info('[Updater Config] allowPrerelease:', autoUpdater.allowPrerelease);
+    logger.info('[Updater Config] currentVersion:', autoUpdater.currentVersion?.version);
+    logger.info('[Updater Config] allowDowngrade:', autoUpdater.allowDowngrade);
+    logger.info('[Updater Config] autoDownload:', autoUpdater.autoDownload);
+    logger.info('[Updater Config] forceDevUpdateConfig:', autoUpdater.forceDevUpdateConfig);
+    logger.info('[Updater Config] Build channel from config:', channel);
+    logger.info('[Updater Config] isStableChannel:', isStableChannel);
+    logger.info('[Updater Config] UPDATE_SERVER_URL:', UPDATE_SERVER_URL || '(not set)');
+    logger.info('[Updater Config] usingFallbackProvider:', this.usingFallbackProvider);
+    logger.info('[Updater Config] GitHub config:', JSON.stringify(githubConfig));
+
     // If manual check, notify renderer process about check start
     if (manual) {
       this.mainWindow.broadcast('manualUpdateCheckStart');
@@ -322,7 +342,7 @@ export class UpdaterManager {
   /**
    * Configure update provider based on channel
    * - Stable channel + UPDATE_SERVER_URL: Use generic HTTP provider (S3) as primary, channel=stable
-   * - Other channels (beta/nightly) or no S3: Use GitHub provider, channel=latest
+   * - Other channels (beta/nightly) or no S3: Use GitHub provider, channel unset (defaults to latest)
    *
    * Important: S3 has stable-mac.yml, GitHub has latest-mac.yml
    */
@@ -340,12 +360,15 @@ export class UpdaterManager {
         url: UPDATE_SERVER_URL,
       });
     } else {
-      // Beta/nightly channels use GitHub, or fallback to GitHub if UPDATE_SERVER_URL not configured
-      // GitHub releases have latest-mac.yml, so we use default channel (latest)
-      autoUpdater.channel = 'latest';
+      // GitHub provider:
+      // - stable: use default latest-mac.yml (GitHub uploads latest* only)
+      // - beta/nightly: leave channel unset so prerelease matching uses tag (e.g. next)
       const reason = this.usingFallbackProvider ? '(fallback from S3)' : '';
       logger.info(`Configuring GitHub provider for ${channel} channel ${reason}`);
-      logger.info(`Channel set to: latest (will look for latest-mac.yml)`);
+      if (autoUpdater.channel !== null) {
+        autoUpdater.channel = null;
+      }
+      logger.info('Channel left unset (defaults to latest-mac.yml for GitHub)');
 
       // For beta/nightly channels, we need prerelease versions
       const needPrerelease = channel !== 'stable';
@@ -406,6 +429,8 @@ export class UpdaterManager {
 
     autoUpdater.on('checking-for-update', () => {
       logger.info('[Updater] Checking for update...');
+      logger.info('[Updater] Current channel:', autoUpdater.channel);
+      logger.info('[Updater] Current allowPrerelease:', autoUpdater.allowPrerelease);
     });
 
     autoUpdater.on('update-available', (info) => {
@@ -437,6 +462,14 @@ export class UpdaterManager {
 
     autoUpdater.on('error', async (err) => {
       logger.error('Error in auto-updater:', err);
+      // Log configuration state when error occurs for debugging
+      logger.error('[Updater Error Context] Channel:', autoUpdater.channel);
+      logger.error('[Updater Error Context] allowPrerelease:', autoUpdater.allowPrerelease);
+      logger.error('[Updater Error Context] Build channel from config:', channel);
+      logger.error('[Updater Error Context] isStableChannel:', isStableChannel);
+      logger.error('[Updater Error Context] UPDATE_SERVER_URL:', UPDATE_SERVER_URL || '(not set)');
+      logger.error('[Updater Error Context] usingFallbackProvider:', this.usingFallbackProvider);
+      logger.error('[Updater Error Context] GitHub config:', JSON.stringify(githubConfig));
 
       // Try fallback to GitHub if S3 failed
       if (!this.usingFallbackProvider && isStableChannel && UPDATE_SERVER_URL) {
