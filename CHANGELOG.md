@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.317](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.316...v2.0.0-next.317)
+
+<sup>Released on **2026-01-19**</sup>
+
+#### 🐛 Bug Fixes
+
+- **desktop**: Resolve onboarding navigation issues after logout.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **desktop**: Resolve onboarding navigation issues after logout, closes [#11628](https://github.com/lobehub/lobe-chat/issues/11628) ([05a0873](https://github.com/lobehub/lobe-chat/commit/05a0873))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.316](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.315...v2.0.0-next.316)
 
 <sup>Released on **2026-01-19**</sup>
