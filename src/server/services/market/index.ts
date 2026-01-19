@@ -368,6 +368,13 @@ export class MarketService {
     return this.market.user.getUserInfo(username, options);
   }
 
+  /**
+   * Register user on market and optionally follow another user
+   */
+  async registerUser(params: { followUserId?: string; registerUserId: string }): Promise<void> {
+    await this.market.user.register(params);
+  }
+
   // ============================== Skills Methods ==============================
 
   /**
