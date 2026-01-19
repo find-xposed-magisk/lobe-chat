@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.312](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.311...v2.0.0-next.312)
+
+<sup>Released on **2026-01-19**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Change the /community/assistant to /agent routes.
+
+#### ✨ Features
+
+- **misc**: Improve the agentbuilder systemRole.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Change the /community/assistant to /agent routes, closes [#11606](https://github.com/lobehub/lobe-chat/issues/11606) ([7f004c5](https://github.com/lobehub/lobe-chat/commit/7f004c5))
+
+#### What's improved
+
+- **misc**: Improve the agentbuilder systemRole, closes [#11608](https://github.com/lobehub/lobe-chat/issues/11608) ([2f032d4](https://github.com/lobehub/lobe-chat/commit/2f032d4))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.311](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.310...v2.0.0-next.311)
 
 <sup>Released on **2026-01-19**</sup>
