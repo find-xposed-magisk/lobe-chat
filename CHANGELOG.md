@@ -2,6 +2,32 @@
 
 # Changelog
 
+## [Version 2.0.0-next.313](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.312...v2.0.0-next.313)
+
+<sup>Released on **2026-01-19**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix server agent task run with headless, internlm provider base url and homepage.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix server agent task run with headless, closes [#11600](https://github.com/lobehub/lobe-chat/issues/11600) ([435eede](https://github.com/lobehub/lobe-chat/commit/435eede))
+- **misc**: Internlm provider base url and homepage, closes [#11612](https://github.com/lobehub/lobe-chat/issues/11612) ([38725da](https://github.com/lobehub/lobe-chat/commit/38725da))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.312](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.311...v2.0.0-next.312)
 
 <sup>Released on **2026-01-19**</sup>
