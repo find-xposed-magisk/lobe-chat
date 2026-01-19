@@ -1,6 +1,14 @@
 [
   {
     "children": {
+      "improvements": ["Change the /community/assistant to /agent routes."],
+      "features": ["Improve the agentbuilder systemRole."]
+    },
+    "date": "2026-01-19",
+    "version": "2.0.0-next.312"
+  },
+  {
+    "children": {
       "improvements": ["Refactor market sdk into market servers."]
     },
     "date": "2026-01-19",
