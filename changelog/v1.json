@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "features": ["Improve desktop onboarding window management and footer actions."]
+    },
+    "date": "2026-01-19",
+    "version": "2.0.0-next.314"
+  },
+  {
+    "children": {
       "fixes": ["Fix server agent task run with headless, internlm provider base url and homepage."]
     },
     "date": "2026-01-19",
