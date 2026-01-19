@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Refactor market sdk into market servers."]
+    },
+    "date": "2026-01-19",
+    "version": "2.0.0-next.311"
+  },
+  {
+    "children": {
       "improvements": ["Update i18n."]
     },
     "date": "2026-01-19",
