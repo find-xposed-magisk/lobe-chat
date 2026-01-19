@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["When use trpc client should include the credentials cookies."]
+    },
+    "date": "2026-01-19",
+    "version": "2.0.0-next.316"
+  },
+  {
+    "children": {
       "features": ["Add the cloudEndpoint & Klavis Tools Call in Excuation Task."]
     },
     "date": "2026-01-19",
