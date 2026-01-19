@@ -36,6 +36,7 @@ export interface RuntimeExecutorContext {
   stepIndex: number;
   streamManager: IStreamEventManager;
   toolExecutionService: ToolExecutionService;
+  topicId?: string;
   userId?: string;
 }
 
@@ -475,6 +476,7 @@ export const createRuntimeExecutors = (
       const executionResult = await toolExecutionService.executeTool(chatToolPayload, {
         serverDB: ctx.serverDB,
         toolManifestMap: state.toolManifestMap,
+        topicId: ctx.topicId,
         userId: ctx.userId,
       });
 

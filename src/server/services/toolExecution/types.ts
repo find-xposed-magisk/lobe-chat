@@ -6,6 +6,8 @@ export interface ToolExecutionContext {
   /** Server database for LobeHub Skills execution */
   serverDB?: LobeChatDatabase;
   toolManifestMap: Record<string, LobeToolManifest>;
+  /** Topic ID for sandbox session management */
+  topicId?: string;
   userId?: string;
 }
 
