@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Fix server agent task run with headless, internlm provider base url and homepage."]
+    },
+    "date": "2026-01-19",
+    "version": "2.0.0-next.313"
+  },
+  {
+    "children": {
       "improvements": ["Change the /community/assistant to /agent routes."],
       "features": ["Improve the agentbuilder systemRole."]
     },
