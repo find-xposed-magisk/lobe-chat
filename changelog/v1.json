@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "features": ["Add the cloudEndpoint & Klavis Tools Call in Excuation Task."]
+    },
+    "date": "2026-01-19",
+    "version": "2.0.0-next.315"
+  },
+  {
+    "children": {
       "features": ["Improve desktop onboarding window management and footer actions."]
     },
     "date": "2026-01-19",
