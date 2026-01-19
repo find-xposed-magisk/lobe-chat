@@ -1,5 +1,10 @@
 [
   {
+    "children": {},
+    "date": "2026-01-19",
+    "version": "2.0.0-next.317"
+  },
+  {
     "children": {
       "fixes": ["When use trpc client should include the credentials cookies."]
     },
