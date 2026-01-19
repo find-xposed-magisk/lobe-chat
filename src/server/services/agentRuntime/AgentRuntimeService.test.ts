@@ -40,6 +40,9 @@ vi.mock('@/server/modules/ModelRuntime', () => ({
 
 // Mock search service to avoid server-side env access
 vi.mock('@/server/services/search', () => ({
+  SearchService: vi.fn().mockImplementation(() => ({
+    search: vi.fn(),
+  })),
   searchService: {
     search: vi.fn(),
   },
