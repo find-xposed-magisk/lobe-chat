@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Slove commnuity user avatarUrl is wrong, should update others in profile."]
+    },
+    "date": "2026-01-20",
+    "version": "2.0.0-next.319"
+  },
+  {
+    "children": {
       "fixes": ["Fix parallel tools calling race issue."]
     },
     "date": "2026-01-20",
