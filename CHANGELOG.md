@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.324](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.323...v2.0.0-next.324)
+
+<sup>Released on **2026-01-20**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: TypewriterEffect not refreshing on language change.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: TypewriterEffect not refreshing on language change, closes [#11657](https://github.com/lobehub/lobe-chat/issues/11657) ([ba30f46](https://github.com/lobehub/lobe-chat/commit/ba30f46))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.323](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.322...v2.0.0-next.323)
 
 <sup>Released on **2026-01-20**</sup>
