@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.319](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.318...v2.0.0-next.319)
+
+<sup>Released on **2026-01-20**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Slove commnuity user avatarUrl is wrong, should update others in profile.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Slove commnuity user avatarUrl is wrong, should update others in profile, closes [#11634](https://github.com/lobehub/lobe-chat/issues/11634) ([04465c8](https://github.com/lobehub/lobe-chat/commit/04465c8))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.318](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.317...v2.0.0-next.318)
 
 <sup>Released on **2026-01-20**</sup>
