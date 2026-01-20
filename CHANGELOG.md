@@ -2,6 +2,61 @@
 
 # Changelog
 
+## [Version 2.0.0-next.323](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.322...v2.0.0-next.323)
+
+<sup>Released on **2026-01-20**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Optimize lobehub models and default configuration.
+
+#### ✨ Features
+
+- **misc**: Add the agents and agents group fork feature.
+
+#### 🐛 Bug Fixes
+
+- **model-runtime**: Fix Qwen parallel tool calls arguments incorrectly merged.
+- **topic**: Correct topic item href route for agent and group pages.
+- **misc**: Fix Topic component causing stack overflow and freezing the app, simplify updater config logic, slove the nuqs error in commnuity agent group page.
+
+#### 💄 Styles
+
+- **misc**: Optimize profile settings skeleton screen.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Optimize lobehub models and default configuration, closes [#11621](https://github.com/lobehub/lobe-chat/issues/11621) ([5074fbe](https://github.com/lobehub/lobe-chat/commit/5074fbe))
+
+#### What's improved
+
+- **misc**: Add the agents and agents group fork feature, closes [#11652](https://github.com/lobehub/lobe-chat/issues/11652) ([b1c3b83](https://github.com/lobehub/lobe-chat/commit/b1c3b83))
+
+#### What's fixed
+
+- **model-runtime**: Fix Qwen parallel tool calls arguments incorrectly merged, closes [#11649](https://github.com/lobehub/lobe-chat/issues/11649) ([ddbe661](https://github.com/lobehub/lobe-chat/commit/ddbe661))
+- **topic**: Correct topic item href route for agent and group pages, closes [#11607](https://github.com/lobehub/lobe-chat/issues/11607) ([2fffe8b](https://github.com/lobehub/lobe-chat/commit/2fffe8b))
+- **misc**: Fix Topic component causing stack overflow and freezing the app, closes [#11609](https://github.com/lobehub/lobe-chat/issues/11609) ([600cb85](https://github.com/lobehub/lobe-chat/commit/600cb85))
+- **misc**: Simplify updater config logic, closes [#11636](https://github.com/lobehub/lobe-chat/issues/11636) ([5c645f0](https://github.com/lobehub/lobe-chat/commit/5c645f0))
+- **misc**: Slove the nuqs error in commnuity agent group page, closes [#11651](https://github.com/lobehub/lobe-chat/issues/11651) ([1c29bca](https://github.com/lobehub/lobe-chat/commit/1c29bca))
+
+#### Styles
+
+- **misc**: Optimize profile settings skeleton screen, closes [#11656](https://github.com/lobehub/lobe-chat/issues/11656) ([e61ae85](https://github.com/lobehub/lobe-chat/commit/e61ae85))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.322](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.321...v2.0.0-next.322)
 
 <sup>Released on **2026-01-20**</sup>
