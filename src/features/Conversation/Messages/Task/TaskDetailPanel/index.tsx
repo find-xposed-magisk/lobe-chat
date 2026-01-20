@@ -17,6 +17,7 @@ interface TaskDetailPanelProps {
 }
 
 const TaskDetailPanel = memo<TaskDetailPanelProps>(({ taskDetail, content, messageId }) => {
+  // Default: server-side task execution
   return <StatusContent content={content} messageId={messageId} taskDetail={taskDetail} />;
 });
 
