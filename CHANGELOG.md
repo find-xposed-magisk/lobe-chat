@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.328](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.327...v2.0.0-next.328)
+
+<sup>Released on **2026-01-20**</sup>
+
+#### ✨ Features
+
+- **misc**: Support client tasks mode.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Support client tasks mode, closes [#11666](https://github.com/lobehub/lobe-chat/issues/11666) ([98cf57b](https://github.com/lobehub/lobe-chat/commit/98cf57b))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.327](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.326...v2.0.0-next.327)
 
 <sup>Released on **2026-01-20**</sup>
