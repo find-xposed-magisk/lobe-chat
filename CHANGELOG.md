@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.318](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.317...v2.0.0-next.318)
+
+<sup>Released on **2026-01-20**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix parallel tools calling race issue.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix parallel tools calling race issue, closes [#11626](https://github.com/lobehub/lobe-chat/issues/11626) ([34bdcd4](https://github.com/lobehub/lobe-chat/commit/34bdcd4))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.317](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.316...v2.0.0-next.317)
 
 <sup>Released on **2026-01-19**</sup>
