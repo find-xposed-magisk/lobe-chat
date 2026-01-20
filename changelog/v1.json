@@ -1,5 +1,16 @@
 [
   {
+    "children": {
+      "improvements": ["Optimize profile settings skeleton screen."],
+      "features": ["Add the agents and agents group fork feature."],
+      "fixes": [
+        "Fix Topic component causing stack overflow and freezing the app, simplify updater config logic, slove the nuqs error in commnuity agent group page."
+      ]
+    },
+    "date": "2026-01-20",
+    "version": "2.0.0-next.323"
+  },
+  {
     "children": {},
     "date": "2026-01-20",
     "version": "2.0.0-next.322"
