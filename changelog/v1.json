@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "fixes": ["Fix parallel tools calling race issue."]
+    },
+    "date": "2026-01-20",
+    "version": "2.0.0-next.318"
+  },
+  {
     "children": {},
     "date": "2026-01-19",
     "version": "2.0.0-next.317"
