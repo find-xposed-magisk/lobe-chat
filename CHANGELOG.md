@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.320](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.319...v2.0.0-next.320)
+
+<sup>Released on **2026-01-20**</sup>
+
+#### 🐛 Bug Fixes
+
+- **ShareModal**: Wrap ShareMessageModal with Provider in context menu.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **ShareModal**: Wrap ShareMessageModal with Provider in context menu, closes [#11434](https://github.com/lobehub/lobe-chat/issues/11434) [#11382](https://github.com/lobehub/lobe-chat/issues/11382) ([0d30e5f](https://github.com/lobehub/lobe-chat/commit/0d30e5f))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.319](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.318...v2.0.0-next.319)
 
 <sup>Released on **2026-01-20**</sup>
