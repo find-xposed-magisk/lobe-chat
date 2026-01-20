@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.321](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.320...v2.0.0-next.321)
+
+<sup>Released on **2026-01-20**</sup>
+
+#### ✨ Features
+
+- **memory-user-memory**: Support to configure preferred model.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **memory-user-memory**: Support to configure preferred model, closes [#11637](https://github.com/lobehub/lobe-chat/issues/11637) ([49374da](https://github.com/lobehub/lobe-chat/commit/49374da))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.320](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.319...v2.0.0-next.320)
 
 <sup>Released on **2026-01-20**</sup>
