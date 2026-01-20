@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.326](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.325...v2.0.0-next.326)
+
+<sup>Released on **2026-01-20**</sup>
+
+#### 🐛 Bug Fixes
+
+- **desktop**: Gracefully handle missing update manifest 404 errors.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **desktop**: Gracefully handle missing update manifest 404 errors, closes [#11625](https://github.com/lobehub/lobe-chat/issues/11625) ([13e95b9](https://github.com/lobehub/lobe-chat/commit/13e95b9))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.325](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.324...v2.0.0-next.325)
 
 <sup>Released on **2026-01-20**</sup>
