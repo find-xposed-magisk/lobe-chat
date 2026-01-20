@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.327](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.326...v2.0.0-next.327)
+
+<sup>Released on **2026-01-20**</sup>
+
+#### ♻ Code Refactoring
+
+- **model-select**: Migrate FunctionCallingModelSelect to LobeSelect.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **model-select**: Migrate FunctionCallingModelSelect to LobeSelect, closes [#11664](https://github.com/lobehub/lobe-chat/issues/11664) ([ad51305](https://github.com/lobehub/lobe-chat/commit/ad51305))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.326](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.325...v2.0.0-next.326)
 
 <sup>Released on **2026-01-20**</sup>
