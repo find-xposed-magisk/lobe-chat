@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["TypewriterEffect not refreshing on language change."]
+    },
+    "date": "2026-01-20",
+    "version": "2.0.0-next.324"
+  },
+  {
+    "children": {
       "improvements": ["Optimize profile settings skeleton screen."],
       "features": ["Add the agents and agents group fork feature."],
       "fixes": [
