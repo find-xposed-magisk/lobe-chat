@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.332](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.331...v2.0.0-next.332)
+
+<sup>Released on **2026-01-21**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Improve e2e server and complete i18n resources.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Improve e2e server and complete i18n resources, closes [#11678](https://github.com/lobehub/lobe-chat/issues/11678) ([d450dd9](https://github.com/lobehub/lobe-chat/commit/d450dd9))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.331](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.330...v2.0.0-next.331)
 
 <sup>Released on **2026-01-21**</sup>
