@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.329](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.328...v2.0.0-next.329)
+
+<sup>Released on **2026-01-21**</sup>
+
+#### ♻ Code Refactoring
+
+- **auth**: Remove NEXT_PUBLIC_AUTH_URL env variable.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Sloved the old removeSessionTopics not work.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **auth**: Remove NEXT_PUBLIC_AUTH_URL env variable, closes [#11658](https://github.com/lobehub/lobe-chat/issues/11658) ([c0f9875](https://github.com/lobehub/lobe-chat/commit/c0f9875))
+
+#### What's fixed
+
+- **misc**: Sloved the old removeSessionTopics not work, closes [#11671](https://github.com/lobehub/lobe-chat/issues/11671) ([06d41e5](https://github.com/lobehub/lobe-chat/commit/06d41e5))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.328](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.327...v2.0.0-next.328)
 
 <sup>Released on **2026-01-20**</sup>
