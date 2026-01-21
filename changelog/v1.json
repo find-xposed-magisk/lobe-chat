@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Sloved the old removeSessionTopics not work."]
+    },
+    "date": "2026-01-21",
+    "version": "2.0.0-next.329"
+  },
+  {
+    "children": {
       "features": ["Support client tasks mode."]
     },
     "date": "2026-01-20",
