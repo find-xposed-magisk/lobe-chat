@@ -1,6 +1,15 @@
 [
   {
     "children": {
+      "improvements": ["Move vercel-react-best-practices skills to .agents directory."],
+      "features": ["Skill setting page and skill store."],
+      "fixes": ["Fix group broadcast trigger tool use, fix local system tools."]
+    },
+    "date": "2026-01-22",
+    "version": "2.0.0-next.339"
+  },
+  {
+    "children": {
       "fixes": ["Updata cron job ui & fixed commnuity pagenation goto error."]
     },
     "date": "2026-01-22",
