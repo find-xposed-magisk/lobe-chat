@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Update og."]
+    },
+    "date": "2026-01-22",
+    "version": "2.0.0-next.340"
+  },
+  {
+    "children": {
       "improvements": ["Move vercel-react-best-practices skills to .agents directory."],
       "features": ["Skill setting page and skill store."],
       "fixes": ["Fix group broadcast trigger tool use, fix local system tools."]
