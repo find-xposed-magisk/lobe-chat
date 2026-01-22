@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "features": ["Add server version check for desktop app."]
+    },
+    "date": "2026-01-22",
+    "version": "2.0.0-next.341"
+  },
+  {
+    "children": {
       "improvements": ["Update og."]
     },
     "date": "2026-01-22",
