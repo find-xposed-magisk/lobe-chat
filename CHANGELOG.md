@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.335](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.334...v2.0.0-next.335)
+
+<sup>Released on **2026-01-22**</sup>
+
+#### ✨ Features
+
+- **database**: Added user memory activity.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **database**: Added user memory activity, closes [#11680](https://github.com/lobehub/lobe-chat/issues/11680) ([0160fbd](https://github.com/lobehub/lobe-chat/commit/0160fbd))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.334](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.333...v2.0.0-next.334)
 
 <sup>Released on **2026-01-21**</sup>
