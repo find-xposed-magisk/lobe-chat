@@ -2,6 +2,50 @@
 
 # Changelog
 
+## [Version 2.0.0-next.339](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.338...v2.0.0-next.339)
+
+<sup>Released on **2026-01-22**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Move vercel-react-best-practices skills to .agents directory.
+
+#### ✨ Features
+
+- **misc**: Skill setting page and skill store.
+
+#### 🐛 Bug Fixes
+
+- **model-runtime**: Filter unsupported image types (SVG) before sending to vision models.
+- **misc**: Fix group broadcast trigger tool use, fix local system tools.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Move vercel-react-best-practices skills to .agents directory, closes [#11703](https://github.com/lobehub/lobe-chat/issues/11703) ([6df7731](https://github.com/lobehub/lobe-chat/commit/6df7731))
+
+#### What's improved
+
+- **misc**: Skill setting page and skill store, closes [#11665](https://github.com/lobehub/lobe-chat/issues/11665) ([d8c0c26](https://github.com/lobehub/lobe-chat/commit/d8c0c26))
+
+#### What's fixed
+
+- **model-runtime**: Filter unsupported image types (SVG) before sending to vision models, closes [#11698](https://github.com/lobehub/lobe-chat/issues/11698) ([c0c99a7](https://github.com/lobehub/lobe-chat/commit/c0c99a7))
+- **misc**: Fix group broadcast trigger tool use, closes [#11646](https://github.com/lobehub/lobe-chat/issues/11646) ([831a9b3](https://github.com/lobehub/lobe-chat/commit/831a9b3))
+- **misc**: Fix local system tools, closes [#11702](https://github.com/lobehub/lobe-chat/issues/11702) ([6548fc7](https://github.com/lobehub/lobe-chat/commit/6548fc7))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.338](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.337...v2.0.0-next.338)
 
 <sup>Released on **2026-01-22**</sup>
