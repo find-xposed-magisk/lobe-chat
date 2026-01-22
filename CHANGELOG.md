@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.336](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.335...v2.0.0-next.336)
+
+<sup>Released on **2026-01-22**</sup>
+
+#### ✨ Features
+
+- **misc**: Support agent group unpublish agents.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix tool argument scape and improve multi task run.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Support agent group unpublish agents, closes [#11687](https://github.com/lobehub/lobe-chat/issues/11687) ([4e060be](https://github.com/lobehub/lobe-chat/commit/4e060be))
+
+#### What's fixed
+
+- **misc**: Fix tool argument scape and improve multi task run, closes [#11691](https://github.com/lobehub/lobe-chat/issues/11691) ([b13bb8a](https://github.com/lobehub/lobe-chat/commit/b13bb8a))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.335](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.334...v2.0.0-next.335)
 
 <sup>Released on **2026-01-22**</sup>
