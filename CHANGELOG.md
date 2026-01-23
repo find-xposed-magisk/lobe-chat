@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.356](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.355...v2.0.0-next.356)
+
+<sup>Released on **2026-01-23**</sup>
+
+#### ✨ Features
+
+- **misc**: Remove NextAuth.
+
+#### 🐛 Bug Fixes
+
+- **editor**: Prevent crash when toggling enableInputMarkdown setting.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Remove NextAuth, closes [#11732](https://github.com/lobehub/lobe-chat/issues/11732) ([1eff864](https://github.com/lobehub/lobe-chat/commit/1eff864))
+
+#### What's fixed
+
+- **editor**: Prevent crash when toggling enableInputMarkdown setting, closes [#11755](https://github.com/lobehub/lobe-chat/issues/11755) ([ea5eed8](https://github.com/lobehub/lobe-chat/commit/ea5eed8))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.355](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.354...v2.0.0-next.355)
 
 <sup>Released on **2026-01-23**</sup>
