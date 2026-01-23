@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.354](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.353...v2.0.0-next.354)
+
+<sup>Released on **2026-01-23**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Migrate AI Rules to Claude Code Skills.
+
+#### 🐛 Bug Fixes
+
+- **pdf**: Ensure worker config before Document render.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Migrate AI Rules to Claude Code Skills, closes [#11737](https://github.com/lobehub/lobe-chat/issues/11737) ([346fc46](https://github.com/lobehub/lobe-chat/commit/346fc46))
+
+#### What's fixed
+
+- **pdf**: Ensure worker config before Document render, closes [#11746](https://github.com/lobehub/lobe-chat/issues/11746) ([ad34072](https://github.com/lobehub/lobe-chat/commit/ad34072))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.353](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.352...v2.0.0-next.353)
 
 <sup>Released on **2026-01-23**</sup>
