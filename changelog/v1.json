@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "improvements": ["Migrate AI Rules to Claude Code Skills."]
+    },
+    "date": "2026-01-23",
+    "version": "2.0.0-next.354"
+  },
+  {
     "children": {},
     "date": "2026-01-23",
     "version": "2.0.0-next.353"
