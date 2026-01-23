@@ -2,6 +2,33 @@
 
 # Changelog
 
+## [Version 2.0.0-next.355](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.354...v2.0.0-next.355)
+
+<sup>Released on **2026-01-23**</sup>
+
+#### 🐛 Bug Fixes
+
+- **home**: Use correct CreateGroupModal for session group creation.
+- **misc**: Fix favorite refresh bug and group topic refresh issue.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **home**: Use correct CreateGroupModal for session group creation, closes [#11752](https://github.com/lobehub/lobe-chat/issues/11752) ([36bcc50](https://github.com/lobehub/lobe-chat/commit/36bcc50))
+- **misc**: Fix favorite refresh bug and group topic refresh issue, closes [#11745](https://github.com/lobehub/lobe-chat/issues/11745) ([5d115ef](https://github.com/lobehub/lobe-chat/commit/5d115ef))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.354](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.353...v2.0.0-next.354)
 
 <sup>Released on **2026-01-23**</sup>
