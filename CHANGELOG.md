@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.358](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.357...v2.0.0-next.358)
+
+<sup>Released on **2026-01-23**</sup>
+
+#### 🐛 Bug Fixes
+
+- **store**: Delete message before regeneration.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **store**: Delete message before regeneration, closes [#11760](https://github.com/lobehub/lobe-chat/issues/11760) ([a8a6300](https://github.com/lobehub/lobe-chat/commit/a8a6300))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.357](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.356...v2.0.0-next.357)
 
 <sup>Released on **2026-01-23**</sup>
