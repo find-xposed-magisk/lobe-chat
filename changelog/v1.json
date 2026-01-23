@@ -1,5 +1,13 @@
 [
   {
+    "children": {
+      "fixes": ["Add advace config back in agent/group profiles."],
+      "improvements": ["Move plugin store button outside scroll container."]
+    },
+    "date": "2026-01-23",
+    "version": "2.0.0-next.347"
+  },
+  {
     "children": {},
     "date": "2026-01-23",
     "version": "2.0.0-next.346"

@@ -35,7 +35,6 @@ import { type LobeToolMetaWithAvailability } from '@/store/tool/slices/builtin/s
 
 import PluginTag from './PluginTag';
 
-
 const WEB_BROWSING_IDENTIFIER = 'lobe-web-browsing';
 
 type TabType = 'all' | 'installed';
@@ -45,7 +44,6 @@ const prefixCls = 'ant';
 const styles = createStaticStyles(({ css }) => ({
   dropdown: css`
     overflow: hidden;
-
     width: 100%;
 
     .${prefixCls}-dropdown-menu {
@@ -335,7 +333,9 @@ const AgentTool = memo<AgentToolProps>(
       () => [
         // 原有的 builtin 工具
         ...filteredBuiltinList.map((item) => ({
-          icon: <Avatar avatar={item.meta.avatar} size={20} style={{ flex: 'none', marginRight: 0 }} />,
+          icon: (
+            <Avatar avatar={item.meta.avatar} size={20} style={{ flex: 'none', marginRight: 0 }} />
+          ),
           key: item.identifier,
           label: (
             <ToolItem
