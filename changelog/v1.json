@@ -1,6 +1,15 @@
 [
   {
     "children": {
+      "fixes": [
+        "Fixed the agent group builder tools excaution edge case crash, fixed the group topic copy not right."
+      ]
+    },
+    "date": "2026-01-23",
+    "version": "2.0.0-next.348"
+  },
+  {
+    "children": {
       "fixes": ["Add advace config back in agent/group profiles."],
       "improvements": ["Move plugin store button outside scroll container."]
     },
