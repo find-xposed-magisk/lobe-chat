@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Fixed the sandbox tools call when error should use right callback."]
+    },
+    "date": "2026-01-23",
+    "version": "2.0.0-next.344"
+  },
+  {
+    "children": {
       "improvements": ["Update share style."],
       "fixes": ["Fix scope issue."]
     },
