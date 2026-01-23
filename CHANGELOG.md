@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.347](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.346...v2.0.0-next.347)
+
+<sup>Released on **2026-01-23**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Add advace config back in agent/group profiles.
+
+#### 💄 Styles
+
+- **misc**: Move plugin store button outside scroll container.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Add advace config back in agent/group profiles, closes [#11727](https://github.com/lobehub/lobe-chat/issues/11727) ([403175f](https://github.com/lobehub/lobe-chat/commit/403175f))
+
+#### Styles
+
+- **misc**: Move plugin store button outside scroll container, closes [#11728](https://github.com/lobehub/lobe-chat/issues/11728) ([c484d1a](https://github.com/lobehub/lobe-chat/commit/c484d1a))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.346](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.345...v2.0.0-next.346)
 
 <sup>Released on **2026-01-23**</sup>
