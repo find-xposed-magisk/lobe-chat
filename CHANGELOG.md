@@ -2,6 +2,47 @@
 
 # Changelog
 
+## [Version 2.0.0-next.343](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.342...v2.0.0-next.343)
+
+<sup>Released on **2026-01-23**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Improve memory data with experience and identity.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix scope issue.
+
+#### 💄 Styles
+
+- **misc**: Update share style.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Improve memory data with experience and identity, closes [#11717](https://github.com/lobehub/lobe-chat/issues/11717) ([bdb3eb4](https://github.com/lobehub/lobe-chat/commit/bdb3eb4))
+
+#### What's fixed
+
+- **misc**: Fix scope issue, closes [#11719](https://github.com/lobehub/lobe-chat/issues/11719) ([17adde8](https://github.com/lobehub/lobe-chat/commit/17adde8))
+
+#### Styles
+
+- **misc**: Update share style, closes [#11716](https://github.com/lobehub/lobe-chat/issues/11716) ([3c70dfa](https://github.com/lobehub/lobe-chat/commit/3c70dfa))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.342](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.341...v2.0.0-next.342)
 
 <sup>Released on **2026-01-22**</sup>
