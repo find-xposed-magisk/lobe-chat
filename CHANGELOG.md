@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.344](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.343...v2.0.0-next.344)
+
+<sup>Released on **2026-01-23**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fixed the sandbox tools call when error should use right callback.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fixed the sandbox tools call when error should use right callback, closes [#11721](https://github.com/lobehub/lobe-chat/issues/11721) ([e8fce68](https://github.com/lobehub/lobe-chat/commit/e8fce68))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.343](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.342...v2.0.0-next.343)
 
 <sup>Released on **2026-01-23**</sup>
