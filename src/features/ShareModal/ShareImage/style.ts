@@ -28,6 +28,7 @@ export const styles = createStaticStyles(({ css, cssVar }) => ({
     padding-block: 16px;
     padding-inline: 24px;
     border-block-end: 1px solid ${cssVar.colorBorder};
+
     background: ${cssVar.colorBgContainer};
   `,
   role: css`
