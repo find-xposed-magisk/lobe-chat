@@ -2,6 +2,47 @@
 
 # Changelog
 
+## [Version 2.0.0-next.345](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.344...v2.0.0-next.345)
+
+<sup>Released on **2026-01-23**</sup>
+
+#### ✨ Features
+
+- **misc**: Remove Clerk authentication code.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Slove the agents header switch agents the lobeAI not show problem.
+
+#### 💄 Styles
+
+- **misc**: Improve auto scroll and group profile.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Remove Clerk authentication code, closes [#11711](https://github.com/lobehub/lobe-chat/issues/11711) ([395595a](https://github.com/lobehub/lobe-chat/commit/395595a))
+
+#### What's fixed
+
+- **misc**: Slove the agents header switch agents the lobeAI not show problem, closes [#11726](https://github.com/lobehub/lobe-chat/issues/11726) ([f45f508](https://github.com/lobehub/lobe-chat/commit/f45f508))
+
+#### Styles
+
+- **misc**: Improve auto scroll and group profile, closes [#11725](https://github.com/lobehub/lobe-chat/issues/11725) ([550acc2](https://github.com/lobehub/lobe-chat/commit/550acc2))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.344](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.343...v2.0.0-next.344)
 
 <sup>Released on **2026-01-23**</sup>
