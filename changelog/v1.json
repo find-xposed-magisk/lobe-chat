@@ -1,5 +1,10 @@
 [
   {
+    "children": {},
+    "date": "2026-01-23",
+    "version": "2.0.0-next.346"
+  },
+  {
     "children": {
       "features": ["Remove Clerk authentication code."],
       "fixes": ["Slove the agents header switch agents the lobeAI not show problem."],
