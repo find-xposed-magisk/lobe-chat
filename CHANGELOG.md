@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.350](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.349...v2.0.0-next.350)
+
+<sup>Released on **2026-01-23**</sup>
+
+#### 🐛 Bug Fixes
+
+- **ModelSelect**: Resolve tooltip hover causing popup to close.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **ModelSelect**: Resolve tooltip hover causing popup to close, closes [#11742](https://github.com/lobehub/lobe-chat/issues/11742) ([1b73f14](https://github.com/lobehub/lobe-chat/commit/1b73f14))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.349](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.348...v2.0.0-next.349)
 
 <sup>Released on **2026-01-23**</sup>
