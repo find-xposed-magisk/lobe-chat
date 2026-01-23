@@ -2,6 +2,34 @@
 
 # Changelog
 
+## [Version 2.0.0-next.348](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.347...v2.0.0-next.348)
+
+<sup>Released on **2026-01-23**</sup>
+
+#### 🐛 Bug Fixes
+
+- **copilot**: History popover not refreshing when agentId changes.
+- **misc**: Fixed the agent group builder tools excaution edge case crash, fixed the group topic copy not right.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **copilot**: History popover not refreshing when agentId changes, closes [#11731](https://github.com/lobehub/lobe-chat/issues/11731) ([64f39e7](https://github.com/lobehub/lobe-chat/commit/64f39e7))
+- **misc**: Fixed the agent group builder tools excaution edge case crash, closes [#11735](https://github.com/lobehub/lobe-chat/issues/11735) ([5de4742](https://github.com/lobehub/lobe-chat/commit/5de4742))
+- **misc**: Fixed the group topic copy not right, closes [#11730](https://github.com/lobehub/lobe-chat/issues/11730) ([282c1fb](https://github.com/lobehub/lobe-chat/commit/282c1fb))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.347](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.346...v2.0.0-next.347)
 
 <sup>Released on **2026-01-23**</sup>
