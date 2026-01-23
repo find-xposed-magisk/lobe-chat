@@ -1,5 +1,10 @@
 [
   {
+    "children": {},
+    "date": "2026-01-23",
+    "version": "2.0.0-next.350"
+  },
+  {
     "children": {
       "fixes": ["When use market group, the group sys role was not used."]
     },
