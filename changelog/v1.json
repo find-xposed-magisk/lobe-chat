@@ -1,5 +1,17 @@
 [
   {
+    "children": {},
+    "date": "2026-01-23",
+    "version": "2.0.0-next.358"
+  },
+  {
+    "children": {
+      "fixes": ["Page content switch mismatch."]
+    },
+    "date": "2026-01-23",
+    "version": "2.0.0-next.357"
+  },
+  {
     "children": {
       "features": ["Remove NextAuth."]
     },
