@@ -1,6 +1,15 @@
 [
   {
     "children": {
+      "features": ["Remove Clerk authentication code."],
+      "fixes": ["Slove the agents header switch agents the lobeAI not show problem."],
+      "improvements": ["Improve auto scroll and group profile."]
+    },
+    "date": "2026-01-23",
+    "version": "2.0.0-next.345"
+  },
+  {
+    "children": {
       "fixes": ["Fixed the sandbox tools call when error should use right callback."]
     },
     "date": "2026-01-23",
