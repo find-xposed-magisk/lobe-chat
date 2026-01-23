@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "fixes": ["Fix auto scroll."]
+    },
+    "date": "2026-01-23",
+    "version": "2.0.0-next.351"
+  },
+  {
     "children": {},
     "date": "2026-01-23",
     "version": "2.0.0-next.350"
