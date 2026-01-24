@@ -2,6 +2,33 @@
 
 # Changelog
 
+## [Version 2.0.0-next.366](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.365...v2.0.0-next.366)
+
+<sup>Released on **2026-01-24**</sup>
+
+#### 🐛 Bug Fixes
+
+- **email**: Use || instead of ?? to handle empty string from Dockerfile.
+- **misc**: Prevent recently viewed items from shrinking.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **email**: Use || instead of ?? to handle empty string from Dockerfile, closes [#11778](https://github.com/lobehub/lobe-chat/issues/11778) [#11757](https://github.com/lobehub/lobe-chat/issues/11757) [#11757](https://github.com/lobehub/lobe-chat/issues/11757) [#11707](https://github.com/lobehub/lobe-chat/issues/11707) [#11757](https://github.com/lobehub/lobe-chat/issues/11757) [#11707](https://github.com/lobehub/lobe-chat/issues/11707) ([0e65517](https://github.com/lobehub/lobe-chat/commit/0e65517))
+- **misc**: Prevent recently viewed items from shrinking, closes [#11780](https://github.com/lobehub/lobe-chat/issues/11780) ([60ad7de](https://github.com/lobehub/lobe-chat/commit/60ad7de))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.365](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.364...v2.0.0-next.365)
 
 <sup>Released on **2026-01-24**</sup>
