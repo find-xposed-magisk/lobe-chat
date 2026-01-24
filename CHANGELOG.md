@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.360](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.359...v2.0.0-next.360)
+
+<sup>Released on **2026-01-24**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Login success callback url error.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Login success callback url error, closes [#11763](https://github.com/lobehub/lobe-chat/issues/11763) ([f73435d](https://github.com/lobehub/lobe-chat/commit/f73435d))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.359](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.358...v2.0.0-next.359)
 
 <sup>Released on **2026-01-24**</sup>
