@@ -303,6 +303,16 @@ After migration is complete, follow [Simple Migration - Step 2](#steps) to confi
 
 ## Troubleshooting
 
+### Clear browser data before accessing
+
+After migration, if you encounter login issues, try clearing your browser's site data first:
+
+1. Open browser DevTools (F12 or right-click → Inspect)
+2. Go to Application tab → Storage → Clear site data
+3. Refresh the page and try again
+
+![Clear Browser Site Data](https://hub-apac-1.lobeobjects.space/docs/733c50ee2302e5daa3d99dc0739238c8.png)
+
 ### Users can't log in after migration
 
 - Ensure email service is configured for password reset
@@ -327,6 +337,8 @@ This error occurs because the database schema is outdated. Run `pnpm db:migrate`
 ## Related Reading
 
 <Cards>
+  <Card href={'/docs/self-hosting/advanced/auth/migration-internals'} title={'Migration Technical Deep Dive'} />
+
   <Card href={'/docs/self-hosting/advanced/auth'} title={'Authentication Service Configuration'} />
 
   <Card href={'/docs/self-hosting/environment-variables/auth'} title={'Auth Environment Variables'} />
