@@ -2,6 +2,32 @@
 
 # Changelog
 
+## [Version 2.0.0-next.365](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.364...v2.0.0-next.365)
+
+<sup>Released on **2026-01-24**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Docker deploy REDIS_URL check, fix sub task issue.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Docker deploy REDIS_URL check, closes [#11773](https://github.com/lobehub/lobe-chat/issues/11773) ([a9702bf](https://github.com/lobehub/lobe-chat/commit/a9702bf))
+- **misc**: Fix sub task issue, closes [#11777](https://github.com/lobehub/lobe-chat/issues/11777) ([8ae3456](https://github.com/lobehub/lobe-chat/commit/8ae3456))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.364](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.363...v2.0.0-next.364)
 
 <sup>Released on **2026-01-24**</sup>
