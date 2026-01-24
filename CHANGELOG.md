@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.369](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.368...v2.0.0-next.369)
+
+<sup>Released on **2026-01-24**</sup>
+
+#### ✨ Features
+
+- **misc**: Add the agent/group profiles page the states and forked by tag.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Add the agent/group profiles page the states and forked by tag, closes [#11784](https://github.com/lobehub/lobe-chat/issues/11784) ([1458100](https://github.com/lobehub/lobe-chat/commit/1458100))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.368](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.367...v2.0.0-next.368)
 
 <sup>Released on **2026-01-24**</sup>
