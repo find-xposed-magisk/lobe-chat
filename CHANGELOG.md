@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.363](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.362...v2.0.0-next.363)
+
+<sup>Released on **2026-01-24**</sup>
+
+#### ♻ Code Refactoring
+
+- **ModelSelect**: Migrate from antd Select to LobeSelect.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **ModelSelect**: Migrate from antd Select to LobeSelect, closes [#11772](https://github.com/lobehub/lobe-chat/issues/11772) ([73412d1](https://github.com/lobehub/lobe-chat/commit/73412d1))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.362](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.361...v2.0.0-next.362)
 
 <sup>Released on **2026-01-24**</sup>
