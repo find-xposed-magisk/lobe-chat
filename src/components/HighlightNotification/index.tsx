@@ -19,31 +19,31 @@ export interface HighlightNotificationProps {
 
 const styles = createStaticStyles(({ css }) => ({
   action: css`
-    margin-top: 8px;
     display: block;
     width: 100%;
+    margin-block-start: 8px;
   `,
   card: css`
     position: fixed;
-    bottom: 56px;
-    left: 8px;
     z-index: 1000;
+    inset-block-end: 56px;
+    inset-inline-start: 8px;
+
+    overflow: hidden;
 
     width: 300px;
     max-width: calc(100vw - 32px);
-    padding: 0px;
-
-    background: ${cssVar.colorBgContainer};
+    padding: 0;
     border: 1px solid ${cssVar.colorBorder};
     border-radius: 12px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
 
-    overflow: hidden;
+    background: ${cssVar.colorBgContainer};
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 12%);
   `,
   closeButton: css`
     position: absolute;
-    top: 8px;
-    right: 8px;
+    inset-block-start: 8px;
+    inset-inline-end: 8px;
   `,
   description: css`
     font-size: 14px;
@@ -52,8 +52,7 @@ const styles = createStaticStyles(({ css }) => ({
   image: css`
     width: 100%;
     height: auto;
-
-    border-bottom: 1px solid ${cssVar.colorBorderSecondary};
+    border-block-end: 1px solid ${cssVar.colorBorderSecondary};
   `,
   title: css`
     font-size: 16px;

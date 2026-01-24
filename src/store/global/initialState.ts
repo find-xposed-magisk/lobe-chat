@@ -120,7 +120,6 @@ export interface SystemStatus {
   lastSelectedImageProvider?: string;
   latestChangelogId?: string;
   leftPanelWidth: number;
-  readNotificationSlugs?: string[];
   mobileShowPortal?: boolean;
   mobileShowTopic?: boolean;
   /**
@@ -138,6 +137,7 @@ export interface SystemStatus {
    */
   pagePageSize?: number;
   portalWidth: number;
+  readNotificationSlugs?: string[];
   /**
    * Resource Manager column widths
    */
