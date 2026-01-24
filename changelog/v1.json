@@ -1,6 +1,20 @@
 [
   {
     "children": {
+      "fixes": ["Add cron pages enables change should reload the state."]
+    },
+    "date": "2026-01-24",
+    "version": "2.0.0-next.367"
+  },
+  {
+    "children": {
+      "fixes": ["Prevent recently viewed items from shrinking."]
+    },
+    "date": "2026-01-24",
+    "version": "2.0.0-next.366"
+  },
+  {
+    "children": {
       "fixes": ["Docker deploy REDIS_URL check, fix sub task issue."]
     },
     "date": "2026-01-24",
