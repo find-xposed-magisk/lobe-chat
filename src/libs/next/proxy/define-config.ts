@@ -162,6 +162,7 @@ export function defineConfig() {
     '/api/webhooks(.*)',
     '/api/workflows(.*)',
     '/api/agent(.*)',
+    '/api/dev(.*)',
     '/webapi(.*)',
     '/trpc(.*)',
     // better auth
