@@ -2,6 +2,33 @@
 
 # Changelog
 
+## [Version 2.0.0-next.364](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.363...v2.0.0-next.364)
+
+<sup>Released on **2026-01-24**</sup>
+
+#### 🐛 Bug Fixes
+
+- **AgentTool**: Prevent popover overflow from window.
+- **misc**: Fixed when windows withd low the protal will resize.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **AgentTool**: Prevent popover overflow from window, closes [#11770](https://github.com/lobehub/lobe-chat/issues/11770) ([385522a](https://github.com/lobehub/lobe-chat/commit/385522a))
+- **misc**: Fixed when windows withd low the protal will resize, closes [#11738](https://github.com/lobehub/lobe-chat/issues/11738) ([96f7862](https://github.com/lobehub/lobe-chat/commit/96f7862))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.363](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.362...v2.0.0-next.363)
 
 <sup>Released on **2026-01-24**</sup>
