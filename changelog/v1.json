@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "fixes": ["Surface streaming errors during mid-stream pulls."]
+    },
+    "date": "2026-01-24",
+    "version": "2.0.0-next.359"
+  },
+  {
     "children": {},
     "date": "2026-01-23",
     "version": "2.0.0-next.358"
