@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Broadcast tools calling and improve auto scroll."]
+    },
+    "date": "2026-01-25",
+    "version": "2.0.0-next.375"
+  },
+  {
+    "children": {
       "features": ["Update the discover page sort, add haveSkill、mostUsage params."],
       "improvements": ["Update share action bar."]
     },
