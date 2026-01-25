@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.371](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.370...v2.0.0-next.371)
+
+<sup>Released on **2026-01-25**</sup>
+
+#### 🐛 Bug Fixes
+
+- **builtin-tool-memory**: Missing activities for topK parameter.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **builtin-tool-memory**: Missing activities for topK parameter, closes [#11801](https://github.com/lobehub/lobe-chat/issues/11801) ([d6dee2a](https://github.com/lobehub/lobe-chat/commit/d6dee2a))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.370](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.369...v2.0.0-next.370)
 
 <sup>Released on **2026-01-25**</sup>
