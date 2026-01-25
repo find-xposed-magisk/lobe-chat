@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.375](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.374...v2.0.0-next.375)
+
+<sup>Released on **2026-01-25**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Broadcast tools calling and improve auto scroll.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Broadcast tools calling and improve auto scroll, closes [#11804](https://github.com/lobehub/lobe-chat/issues/11804) ([c352915](https://github.com/lobehub/lobe-chat/commit/c352915))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.374](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.373...v2.0.0-next.374)
 
 <sup>Released on **2026-01-25**</sup>
