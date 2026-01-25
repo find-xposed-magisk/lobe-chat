@@ -1,8 +1,7 @@
 'use client';
 
 import { ActionIcon, Button, Icon } from '@lobehub/ui';
-import { Tooltip } from 'antd';
-import { App } from 'antd';
+import { App, Tooltip } from 'antd';
 import { CalendarClockIcon } from 'lucide-react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -53,11 +52,7 @@ const AnalysisTrigger = memo<Props>(({ footerNote, range, onRangeChange, iconOnl
     <>
       {iconOnly ? (
         <Tooltip title={t('analysis.action.button')}>
-          <ActionIcon
-            icon={CalendarClockIcon}
-            loading={loading}
-            onClick={() => setOpen(true)}
-          />
+          <ActionIcon icon={CalendarClockIcon} loading={loading} onClick={() => setOpen(true)} />
         </Tooltip>
       ) : (
         <Button

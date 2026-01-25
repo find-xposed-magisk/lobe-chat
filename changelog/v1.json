@@ -2,6 +2,23 @@
   {
     "children": {
       "fixes": [
+        "Fix update memory tools, resolve server version check issue for desktop app, slove the descktop use offical endpoint mcp not use stdio."
+      ]
+    },
+    "date": "2026-01-25",
+    "version": "2.0.0-next.379"
+  },
+  {
+    "children": {
+      "improvements": ["Improve popover trigger styles and component consistency."],
+      "fixes": ["Library cannot nav."]
+    },
+    "date": "2026-01-25",
+    "version": "2.0.0-next.378"
+  },
+  {
+    "children": {
+      "fixes": [
         "Show fallback title for custom assistant in chat messages, webhook user service compatibility for old nextauth users."
       ]
     },
