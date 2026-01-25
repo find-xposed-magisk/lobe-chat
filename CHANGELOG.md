@@ -2,6 +2,47 @@
 
 # Changelog
 
+## [Version 2.0.0-next.378](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.377...v2.0.0-next.378)
+
+<sup>Released on **2026-01-25**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Improve popover trigger styles and component consistency.
+
+#### ✨ Features
+
+- **database**: Added user memory persona schema.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Library cannot nav.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Improve popover trigger styles and component consistency, closes [#11832](https://github.com/lobehub/lobe-chat/issues/11832) ([f5c5d52](https://github.com/lobehub/lobe-chat/commit/f5c5d52))
+
+#### What's improved
+
+- **database**: Added user memory persona schema, closes [#11833](https://github.com/lobehub/lobe-chat/issues/11833) ([14adf99](https://github.com/lobehub/lobe-chat/commit/14adf99))
+
+#### What's fixed
+
+- **misc**: Library cannot nav, closes [#11828](https://github.com/lobehub/lobe-chat/issues/11828) ([d424a81](https://github.com/lobehub/lobe-chat/commit/d424a81))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.377](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.376...v2.0.0-next.377)
 
 <sup>Released on **2026-01-25**</sup>
