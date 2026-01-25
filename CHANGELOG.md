@@ -2,6 +2,41 @@
 
 # Changelog
 
+## [Version 2.0.0-next.370](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.369...v2.0.0-next.370)
+
+<sup>Released on **2026-01-25**</sup>
+
+#### ✨ Features
+
+- **userMemories**: Added user memory request, implemented workflow trigger.
+- **misc**: Support history context auto compress.
+
+#### 🐛 Bug Fixes
+
+- **desktop-onboarding**: Improve auth countdown and error UI.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **userMemories**: Added user memory request, implemented workflow trigger, closes [#11749](https://github.com/lobehub/lobe-chat/issues/11749) ([9df3b88](https://github.com/lobehub/lobe-chat/commit/9df3b88))
+- **misc**: Support history context auto compress, closes [#11790](https://github.com/lobehub/lobe-chat/issues/11790) ([09a00df](https://github.com/lobehub/lobe-chat/commit/09a00df))
+
+#### What's fixed
+
+- **desktop-onboarding**: Improve auth countdown and error UI, closes [#11788](https://github.com/lobehub/lobe-chat/issues/11788) ([c0ffd8f](https://github.com/lobehub/lobe-chat/commit/c0ffd8f))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.369](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.368...v2.0.0-next.369)
 
 <sup>Released on **2026-01-24**</sup>
