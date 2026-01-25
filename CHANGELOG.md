@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.372](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.371...v2.0.0-next.372)
+
+<sup>Released on **2026-01-25**</sup>
+
+#### ✨ Features
+
+- **userMemories**: Memory activity list.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **userMemories**: Memory activity list, closes [#11785](https://github.com/lobehub/lobe-chat/issues/11785) ([a9f3a53](https://github.com/lobehub/lobe-chat/commit/a9f3a53))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.371](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.370...v2.0.0-next.371)
 
 <sup>Released on **2026-01-25**</sup>
