@@ -2,6 +2,51 @@
 
 # Changelog
 
+## [Version 2.0.0-next.373](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.372...v2.0.0-next.373)
+
+<sup>Released on **2026-01-25**</sup>
+
+#### ♻ Code Refactoring
+
+- **memory-user-memory**: Simplify buildContext(...).
+
+#### ✨ Features
+
+- **database**: Added listMemories method.
+
+#### 🐛 Bug Fixes
+
+- **builtin-tool-memory**: Update identity tool should have type for enum.
+- **userMemories**: Added memory activity tools.
+- **misc**: Slove group member plugin is lost & not use the plugins.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **memory-user-memory**: Simplify buildContext(...), closes [#11808](https://github.com/lobehub/lobe-chat/issues/11808) ([d5a9913](https://github.com/lobehub/lobe-chat/commit/d5a9913))
+
+#### What's improved
+
+- **database**: Added listMemories method, closes [#11806](https://github.com/lobehub/lobe-chat/issues/11806) ([5929f7b](https://github.com/lobehub/lobe-chat/commit/5929f7b))
+
+#### What's fixed
+
+- **builtin-tool-memory**: Update identity tool should have type for enum, closes [#11803](https://github.com/lobehub/lobe-chat/issues/11803) ([aa63f18](https://github.com/lobehub/lobe-chat/commit/aa63f18))
+- **userMemories**: Added memory activity tools, closes [#11800](https://github.com/lobehub/lobe-chat/issues/11800) ([8ea08dd](https://github.com/lobehub/lobe-chat/commit/8ea08dd))
+- **misc**: Slove group member plugin is lost & not use the plugins, closes [#11802](https://github.com/lobehub/lobe-chat/issues/11802) ([e4ebd40](https://github.com/lobehub/lobe-chat/commit/e4ebd40))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.372](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.371...v2.0.0-next.372)
 
 <sup>Released on **2026-01-25**</sup>
