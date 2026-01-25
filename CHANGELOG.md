@@ -2,6 +2,47 @@
 
 # Changelog
 
+## [Version 2.0.0-next.376](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.375...v2.0.0-next.376)
+
+<sup>Released on **2026-01-25**</sup>
+
+#### ♻ Code Refactoring
+
+- **misc**: Refactor search model implement.
+
+#### ✨ Features
+
+- **trpc**: Add response metadata and auth header handling.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix add message and improve local system tool.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **misc**: Refactor search model implement, closes [#11825](https://github.com/lobehub/lobe-chat/issues/11825) ([3cf0bfa](https://github.com/lobehub/lobe-chat/commit/3cf0bfa))
+
+#### What's improved
+
+- **trpc**: Add response metadata and auth header handling, closes [#11816](https://github.com/lobehub/lobe-chat/issues/11816) ([1276a87](https://github.com/lobehub/lobe-chat/commit/1276a87))
+
+#### What's fixed
+
+- **misc**: Fix add message and improve local system tool, closes [#11815](https://github.com/lobehub/lobe-chat/issues/11815) ([3b41009](https://github.com/lobehub/lobe-chat/commit/3b41009))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.375](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.374...v2.0.0-next.375)
 
 <sup>Released on **2026-01-25**</sup>
