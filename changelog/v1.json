@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "features": ["Support history context auto compress."]
+    },
+    "date": "2026-01-25",
+    "version": "2.0.0-next.370"
+  },
+  {
+    "children": {
       "features": ["Add the agent/group profiles page the states and forked by tag."]
     },
     "date": "2026-01-24",
