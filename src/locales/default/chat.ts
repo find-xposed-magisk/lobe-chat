@@ -40,6 +40,9 @@ export default {
   'chatList.expandMessage': 'Expand Message',
   'chatList.longMessageDetail': 'View Details',
   'clearCurrentMessages': 'Clear current session messages',
+  'compressedHistory': 'Compressed History',
+  'compression.history': 'History',
+  'compression.summary': 'Summary',
   'confirmClearCurrentMessages':
     'You are about to clear the current session messages. Once cleared, they cannot be retrieved. Please confirm your action.',
   'confirmRemoveChatGroupItemAlert':
@@ -229,6 +232,7 @@ export default {
   'noMembersYet': "This group doesn't have any members yet. Click the + button to invite agents.",
   'noSelectedAgents': 'No members selected yet',
   'openInNewWindow': 'Open in New Window',
+  'operation.contextCompression': 'Context too long, compressing history...',
   'operation.execAgentRuntime': 'Preparing response',
   'operation.execClientTask': 'Executing task',
   'operation.sendMessage': 'Sending message',
