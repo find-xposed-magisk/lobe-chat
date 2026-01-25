@@ -2,6 +2,32 @@
 
 # Changelog
 
+## [Version 2.0.0-next.377](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.376...v2.0.0-next.377)
+
+<sup>Released on **2026-01-25**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Show fallback title for custom assistant in chat messages, webhook user service compatibility for old nextauth users.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Show fallback title for custom assistant in chat messages, closes [#11820](https://github.com/lobehub/lobe-chat/issues/11820) ([0c96b5a](https://github.com/lobehub/lobe-chat/commit/0c96b5a))
+- **misc**: Webhook user service compatibility for old nextauth users, closes [#11826](https://github.com/lobehub/lobe-chat/issues/11826) ([a6bfaab](https://github.com/lobehub/lobe-chat/commit/a6bfaab))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.376](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.375...v2.0.0-next.376)
 
 <sup>Released on **2026-01-25**</sup>
