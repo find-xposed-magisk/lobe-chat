@@ -1,6 +1,15 @@
 [
   {
     "children": {
+      "fixes": [
+        "Show fallback title for custom assistant in chat messages, webhook user service compatibility for old nextauth users."
+      ]
+    },
+    "date": "2026-01-25",
+    "version": "2.0.0-next.377"
+  },
+  {
+    "children": {
       "improvements": ["Refactor search model implement."],
       "fixes": ["Fix add message and improve local system tool."]
     },
