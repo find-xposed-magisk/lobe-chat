@@ -2,6 +2,43 @@
 
 # Changelog
 
+## [Version 2.0.0-next.379](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.378...v2.0.0-next.379)
+
+<sup>Released on **2026-01-25**</sup>
+
+#### ✨ Features
+
+- **utils**: Added `trimBasedOnBatchProbe` for truncating without compromising structured data.
+
+#### 🐛 Bug Fixes
+
+- **desktop**: Prevent duplicate IPC handler registration from dynamic imports.
+- **misc**: Fix update memory tools, resolve server version check issue for desktop app, slove the descktop use offical endpoint mcp not use stdio.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **utils**: Added `trimBasedOnBatchProbe` for truncating without compromising structured data, closes [#11836](https://github.com/lobehub/lobe-chat/issues/11836) ([6dac3d1](https://github.com/lobehub/lobe-chat/commit/6dac3d1))
+
+#### What's fixed
+
+- **desktop**: Prevent duplicate IPC handler registration from dynamic imports, closes [#11827](https://github.com/lobehub/lobe-chat/issues/11827) ([c3fd2dc](https://github.com/lobehub/lobe-chat/commit/c3fd2dc))
+- **misc**: Fix update memory tools, closes [#11831](https://github.com/lobehub/lobe-chat/issues/11831) ([cfc03dd](https://github.com/lobehub/lobe-chat/commit/cfc03dd))
+- **misc**: Resolve server version check issue for desktop app, closes [#11834](https://github.com/lobehub/lobe-chat/issues/11834) ([0bd2a59](https://github.com/lobehub/lobe-chat/commit/0bd2a59))
+- **misc**: Slove the descktop use offical endpoint mcp not use stdio, closes [#11813](https://github.com/lobehub/lobe-chat/issues/11813) ([370bf16](https://github.com/lobehub/lobe-chat/commit/370bf16))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.378](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.377...v2.0.0-next.378)
 
 <sup>Released on **2026-01-25**</sup>
