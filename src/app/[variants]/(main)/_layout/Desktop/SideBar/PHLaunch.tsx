@@ -19,22 +19,22 @@ const PH_END_DATE = new Date('2026-02-01T00:00:00Z');
 
 const useStyles = createStyles(({ css, token }) => ({
   action: css`
-    margin-top: 12px;
+    margin-block-start: 12px;
   `,
   body: css`
     font-size: 14px;
     color: ${token.colorTextSecondary};
   `,
   card: css`
-    overflow: hidden;
     position: relative;
+    overflow: hidden;
     width: 280px;
     border-radius: 8px;
   `,
   closeButton: css`
     position: absolute;
-    top: 8px;
-    right: 8px;
+    inset-block-start: 8px;
+    inset-inline-end: 8px;
   `,
   content: css`
     padding: 12px;
@@ -43,7 +43,7 @@ const useStyles = createStyles(({ css, token }) => ({
     overflow: hidden;
     width: 100%;
     height: auto;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
+    border-block-end: 1px solid ${token.colorBorderSecondary};
   `,
   title: css`
     font-size: 16px;
