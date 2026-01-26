@@ -2,6 +2,32 @@
 
 # Changelog
 
+## [Version 2.0.0-next.381](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.380...v2.0.0-next.381)
+
+<sup>Released on **2026-01-26**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix cron job issue, fix share single message.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix cron job issue, closes [#11835](https://github.com/lobehub/lobe-chat/issues/11835) ([6d50f80](https://github.com/lobehub/lobe-chat/commit/6d50f80))
+- **misc**: Fix share single message, closes [#11840](https://github.com/lobehub/lobe-chat/issues/11840) ([9433bbb](https://github.com/lobehub/lobe-chat/commit/9433bbb))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.380](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.379...v2.0.0-next.380)
 
 <sup>Released on **2026-01-26**</sup>
