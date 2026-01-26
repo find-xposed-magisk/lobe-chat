@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.382](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.381...v2.0.0-next.382)
+
+<sup>Released on **2026-01-26**</sup>
+
+#### ✨ Features
+
+- **memory-user-memory,database,userMemories**: Implemented user memory persona.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **memory-user-memory,database,userMemories**: Implemented user memory persona, closes [#11838](https://github.com/lobehub/lobe-chat/issues/11838) ([75ea548](https://github.com/lobehub/lobe-chat/commit/75ea548))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.381](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.380...v2.0.0-next.381)
 
 <sup>Released on **2026-01-26**</sup>
