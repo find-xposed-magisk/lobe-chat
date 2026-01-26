@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Update i18n."]
+    },
+    "date": "2026-01-26",
+    "version": "2.0.0-next.380"
+  },
+  {
+    "children": {
       "fixes": [
         "Fix update memory tools, resolve server version check issue for desktop app, slove the descktop use offical endpoint mcp not use stdio."
       ]
