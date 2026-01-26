@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.387](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.386...v2.0.0-next.387)
+
+<sup>Released on **2026-01-26**</sup>
+
+#### ✨ Features
+
+- **utils**: Added errorCauseFrom, errorMessageFrom, errorNameFrom.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **utils**: Added errorCauseFrom, errorMessageFrom, errorNameFrom, closes [#11864](https://github.com/lobehub/lobe-chat/issues/11864) ([a396ab1](https://github.com/lobehub/lobe-chat/commit/a396ab1))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.386](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.385...v2.0.0-next.386)
 
 <sup>Released on **2026-01-26**</sup>
