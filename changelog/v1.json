@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "fixes": ["Fix page count issue."]
+    },
+    "date": "2026-01-26",
+    "version": "2.0.0-next.388"
+  },
+  {
     "children": {},
     "date": "2026-01-26",
     "version": "2.0.0-next.387"
