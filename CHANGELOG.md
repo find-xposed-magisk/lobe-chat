@@ -2,6 +2,41 @@
 
 # Changelog
 
+## [Version 2.0.0-next.384](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.383...v2.0.0-next.384)
+
+<sup>Released on **2026-01-26**</sup>
+
+#### ✨ Features
+
+- **desktop**: Add manual update check entry in About page.
+
+#### 🐛 Bug Fixes
+
+- **model-runtime**: Filter null values from enum for Gemini compatibility.
+- **misc**: Group builder not set true edit data.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **desktop**: Add manual update check entry in About page, closes [#11854](https://github.com/lobehub/lobe-chat/issues/11854) ([ec854d7](https://github.com/lobehub/lobe-chat/commit/ec854d7))
+
+#### What's fixed
+
+- **model-runtime**: Filter null values from enum for Gemini compatibility, closes [#11859](https://github.com/lobehub/lobe-chat/issues/11859) ([1163f71](https://github.com/lobehub/lobe-chat/commit/1163f71))
+- **misc**: Group builder not set true edit data, closes [#11858](https://github.com/lobehub/lobe-chat/issues/11858) ([8eba0e6](https://github.com/lobehub/lobe-chat/commit/8eba0e6))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.383](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.382...v2.0.0-next.383)
 
 <sup>Released on **2026-01-26**</sup>
