@@ -2,6 +2,39 @@
 
 # Changelog
 
+## [Version 2.0.0-next.386](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.385...v2.0.0-next.386)
+
+<sup>Released on **2026-01-26**</sup>
+
+#### ✨ Features
+
+- **misc**: Group builder not set true edit data.
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix resource pages.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Group builder not set true edit data, closes [#11861](https://github.com/lobehub/lobe-chat/issues/11861) ([37944e7](https://github.com/lobehub/lobe-chat/commit/37944e7))
+
+#### What's fixed
+
+- **misc**: Fix resource pages, closes [#11863](https://github.com/lobehub/lobe-chat/issues/11863) ([7ce31c1](https://github.com/lobehub/lobe-chat/commit/7ce31c1))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.385](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.384...v2.0.0-next.385)
 
 <sup>Released on **2026-01-26**</sup>
