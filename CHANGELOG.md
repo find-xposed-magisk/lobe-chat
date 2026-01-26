@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.0.0-next.385](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.384...v2.0.0-next.385)
+
+<sup>Released on **2026-01-26**</sup>
+
+#### ✨ Features
+
+- **misc**: Share page improvements and pg17 docs update.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Share page improvements and pg17 docs update, closes [#11850](https://github.com/lobehub/lobe-chat/issues/11850) ([5b953b1](https://github.com/lobehub/lobe-chat/commit/5b953b1))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ## [Version 2.0.0-next.384](https://github.com/lobehub/lobe-chat/compare/v2.0.0-next.383...v2.0.0-next.384)
 
 <sup>Released on **2026-01-26**</sup>
