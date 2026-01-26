@@ -1,6 +1,14 @@
 [
   {
     "children": {
+      "features": ["Group builder not set true edit data."],
+      "fixes": ["Fix resource pages."]
+    },
+    "date": "2026-01-26",
+    "version": "2.0.0-next.386"
+  },
+  {
+    "children": {
       "features": ["Share page improvements and pg17 docs update."]
     },
     "date": "2026-01-26",
