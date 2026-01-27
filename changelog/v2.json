@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Update the artifact prompt."]
+    },
+    "date": "2026-01-27",
+    "version": "2.0.5"
+  },
+  {
+    "children": {
       "fixes": ["Rename docker image and update docs for v2."]
     },
     "date": "2026-01-27",
