@@ -2,6 +2,32 @@
 
 # Changelog
 
+### [Version 2.0.3](https://github.com/lobehub/lobe-chat/compare/v2.0.2...v2.0.3)
+
+<sup>Released on **2026-01-27**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fixed compressed group message & open the switch config to control compression config enabled, fixed the onboarding crash problem.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fixed compressed group message & open the switch config to control compression config enabled, closes [#11901](https://github.com/lobehub/lobe-chat/issues/11901) ([dc51838](https://github.com/lobehub/lobe-chat/commit/dc51838))
+- **misc**: Fixed the onboarding crash problem, closes [#11905](https://github.com/lobehub/lobe-chat/issues/11905) ([439e4ee](https://github.com/lobehub/lobe-chat/commit/439e4ee))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.0.2](https://github.com/lobehub/lobe-chat/compare/v2.0.1...v2.0.2)
 
 <sup>Released on **2026-01-27**</sup>
