@@ -467,7 +467,8 @@
     "overrides": {
       "@lobehub/ui": "4.33.4",
       "better-auth": "1.4.6",
-      "better-call": "1.1.8"
+      "better-call": "1.1.8",
+      "drizzle-orm": "0.44.7"
     }
   }
 }
