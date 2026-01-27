@@ -93,6 +93,10 @@ We’re building the world’s largest human–agent co-evolving network.
 
 </details>
 
+<br/>
+
+<https://github.com/user-attachments/assets/6710ad97-03d0-4175-bd75-adff9b55eca2>
+
 ## 👋🏻 Getting Started & Join Our Community
 
 We are a group of e/acc design-engineers, hoping to provide modern design components and tools for AIGC.
@@ -917,7 +921,7 @@ This project is [LobeHub Community License](./LICENSE) licensed.
 [image-feat-tts]: https://github.com/user-attachments/assets/50189597-2cc3-4002-b4c8-756a52ad5c0a
 [image-feat-vision]: https://github.com/user-attachments/assets/18574a1f-46c2-4cbc-af2c-35a86e128a07
 [image-feat-web-search]: https://github.com/user-attachments/assets/cfdc48ac-b5f8-4a00-acee-db8f2eba09ad
-[image-star]: https://github.com/user-attachments/assets/c3b482e7-cef5-4e94-bef9-226900ecfaab
+[image-star]: https://github.com/user-attachments/assets/3216e25b-186f-4a54-9cb4-2f124aec0471
 [issues-link]: https://img.shields.io/github/issues/lobehub/lobe-chat.svg?style=flat
 [lobe-chat-plugins]: https://github.com/lobehub/lobe-chat-plugins
 [lobe-commit]: https://github.com/lobehub/lobe-commit/tree/master/packages/lobe-commit

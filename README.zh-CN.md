@@ -91,6 +91,10 @@ LobeHub 是一个工作与生活空间，用于发现、构建并与会随着您
 
 </details>
 
+<br/>
+
+<https://github.com/user-attachments/assets/6710ad97-03d0-4175-bd75-adff9b55eca2>
+
 ## 👋🏻 开始使用 & 交流
 
 我们是一群充满热情的设计工程师，希望为 AIGC 提供现代化的设计组件和工具，并以开源的方式分享。
@@ -905,7 +909,7 @@ This project is [LobeHub Community License](./LICENSE) licensed.
 [github-releasedate-link]: https://github.com/lobehub/lobe-chat/releases
 [github-releasedate-shield]: https://img.shields.io/github/release-date/lobehub/lobe-chat?labelColor=black&style=flat-square
 [github-stars-link]: https://github.com/lobehub/lobe-chat/stargazers
-[github-stars-shield]: https://img.shields.io/github/stars/lobehub/lobe-chat?color=ffcb47&labelColor=black&style=flat-square
+[github-stars-shield]: https://github.com/user-attachments/assets/3216e25b-186f-4a54-9cb4-2f124aec0471
 [github-trending-shield]: https://trendshift.io/api/badge/repositories/2256
 [github-trending-url]: https://trendshift.io/repositories/2256
 [image-banner]: https://github.com/user-attachments/assets/0fe626a3-0ddc-4f67-b595-3c5b3f1701e0
