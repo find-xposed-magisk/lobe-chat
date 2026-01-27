@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "fixes": ["Slove the recentTopicLinkError."]
+    },
+    "date": "2026-01-27",
+    "version": "2.0.2"
+  },
+  {
     "children": {},
     "date": "2026-01-27",
     "version": "2.0.1"
