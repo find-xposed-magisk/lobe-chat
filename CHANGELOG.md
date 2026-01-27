@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.0.4](https://github.com/lobehub/lobe-chat/compare/v2.0.3...v2.0.4)
+
+<sup>Released on **2026-01-27**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Rename docker image and update docs for v2.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Rename docker image and update docs for v2, closes [#11911](https://github.com/lobehub/lobe-chat/issues/11911) ([e6cb6cb](https://github.com/lobehub/lobe-chat/commit/e6cb6cb))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.0.3](https://github.com/lobehub/lobe-chat/compare/v2.0.2...v2.0.3)
 
 <sup>Released on **2026-01-27**</sup>
