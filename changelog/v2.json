@@ -1,6 +1,15 @@
 [
   {
     "children": {
+      "fixes": [
+        "Fixed compressed group message & open the switch config to control compression config enabled, fixed the onboarding crash problem."
+      ]
+    },
+    "date": "2026-01-27",
+    "version": "2.0.3"
+  },
+  {
+    "children": {
       "fixes": ["Slove the recentTopicLinkError."]
     },
     "date": "2026-01-27",
