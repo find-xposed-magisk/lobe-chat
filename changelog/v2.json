@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["The klavis in onboarding connect timeout fixed."]
+    },
+    "date": "2026-01-27",
+    "version": "2.0.6"
+  },
+  {
+    "children": {
       "fixes": ["Update the artifact prompt."]
     },
     "date": "2026-01-27",
