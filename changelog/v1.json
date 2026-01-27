@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Tts and translate error."]
+    },
+    "date": "2026-01-27",
+    "version": "2.0.0-next.389"
+  },
+  {
+    "children": {
       "fixes": ["Fix page count issue."]
     },
     "date": "2026-01-26",

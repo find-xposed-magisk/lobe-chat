@@ -73,8 +73,8 @@ const SearchResults = memo<SearchResultsProps>(
             ? `/resource/library/${result.knowledgeBaseId}?file=${result.id}`
             : `/resource?file=${result.id}`;
           console.log('[SearchResults] File navigation:', {
-            url: fileUrl,
             fileDetails: result,
+            url: fileUrl,
           });
           navigate(fileUrl);
           break;
