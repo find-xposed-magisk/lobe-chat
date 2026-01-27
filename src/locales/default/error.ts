@@ -1,5 +1,3 @@
-import { businessErrorsLocales } from '@/business/locales/errors';
-
 export default {
   'error.backHome': 'Back to Home',
   'error.desc': 'Give it a try later, or go back to the known world.',
@@ -245,10 +243,4 @@ export default {
   'upload.title': 'File upload failed. Please check your network connection or try again later',
   'upload.unknownError': 'Error reason: {{reason}}',
   'upload.uploadFailed': 'File upload failed.',
-  'waitlist.currentEmail': 'Current account: {{email}}',
-  'waitlist.desc':
-    'Your account is not on the whitelist. Please contact the administrator to request access.',
-  'waitlist.switchAccount': 'Switch Account',
-  'waitlist.title': 'Access Restricted',
-  ...businessErrorsLocales,
 };
