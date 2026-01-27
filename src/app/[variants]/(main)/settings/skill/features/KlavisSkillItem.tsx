@@ -3,7 +3,7 @@
 import { type KlavisServerType } from '@lobechat/const';
 import { Avatar, DropdownMenu, Flexbox, Icon, Button as LobeButton } from '@lobehub/ui';
 import { App, Button } from 'antd';
-import { createStaticStyles, cssVar } from 'antd-style';
+import { cssVar } from 'antd-style';
 import { Loader2, MoreHorizontalIcon, SquareArrowOutUpRight, Unplug } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,53 +14,10 @@ import { type KlavisServer, KlavisServerStatus } from '@/store/tool/slices/klavi
 import { useUserStore } from '@/store/user';
 import { userProfileSelectors } from '@/store/user/selectors';
 
+import { styles } from './style';
+
 const POLL_INTERVAL_MS = 1000;
 const POLL_TIMEOUT_MS = 15_000;
-
-const styles = createStaticStyles(({ css, cssVar }) => ({
-  connected: css`
-    font-size: 14px;
-    color: ${cssVar.colorSuccess};
-  `,
-  container: css`
-    padding-block: 12px;
-    padding-inline: 0;
-  `,
-  disconnected: css`
-    font-size: 14px;
-    color: ${cssVar.colorTextTertiary};
-  `,
-  error: css`
-    font-size: 14px;
-    color: ${cssVar.colorError};
-  `,
-  icon: css`
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    justify-content: center;
-
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-
-    background: ${cssVar.colorFillTertiary};
-  `,
-  pending: css`
-    font-size: 14px;
-    color: ${cssVar.colorWarning};
-  `,
-  title: css`
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 500;
-    color: ${cssVar.colorText};
-
-    &:hover {
-      color: ${cssVar.colorPrimary};
-    }
-  `,
-}));
 
 interface KlavisSkillItemProps {
   server?: KlavisServer;
@@ -320,21 +277,24 @@ const KlavisSkillItem = memo<KlavisSkillItemProps>(({ serverType, server }) => {
       justify="space-between"
     >
       <Flexbox align="center" gap={16} horizontal style={{ flex: 1, overflow: 'hidden' }}>
-        <div className={styles.icon}>{renderIcon()}</div>
-        <Flexbox gap={4} style={{ overflow: 'hidden' }}>
-          <span
-            className={styles.title}
-            onClick={() =>
-              createIntegrationDetailModal({
-                identifier: serverType.identifier,
-                serverName: serverType.serverName,
-                type: 'klavis',
-              })
-            }
-          >
-            {serverType.label}
-          </span>
-          {!isConnected && renderStatus()}
+        <Flexbox
+          align="center"
+          gap={16}
+          horizontal
+          onClick={() =>
+            createIntegrationDetailModal({
+              identifier: serverType.identifier,
+              serverName: serverType.serverName,
+              type: 'klavis',
+            })
+          }
+          style={{ cursor: 'pointer' }}
+        >
+          <div className={styles.icon}>{renderIcon()}</div>
+          <Flexbox gap={4} style={{ overflow: 'hidden' }}>
+            <span className={styles.title}>{serverType.label}</span>
+            {!isConnected && renderStatus()}
+          </Flexbox>
         </Flexbox>
       </Flexbox>
       <Flexbox align="center" gap={12} horizontal>
