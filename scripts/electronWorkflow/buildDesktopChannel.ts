@@ -115,7 +115,7 @@ const main = async () => {
 
   try {
     runCommand(`npm run workflow:set-desktop-version ${version} ${channel}`);
-    runCommand('npm run desktop:build', { UPDATE_CHANNEL: channel });
+    runCommand('npm run desktop:package:app', { UPDATE_CHANNEL: channel });
   } catch (error) {
     console.error('❌ Build failed:', error);
     process.exit(1);

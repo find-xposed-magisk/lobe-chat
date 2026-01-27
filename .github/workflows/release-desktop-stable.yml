@@ -188,7 +188,7 @@ jobs:
       # macOS 构建
       - name: Build artifact on macOS
         if: runner.os == 'macOS'
-        run: npm run desktop:build
+        run: npm run desktop:package:app
         env:
           UPDATE_CHANNEL: stable
           UPDATE_SERVER_URL: ${{ secrets.UPDATE_SERVER_URL }}
@@ -208,7 +208,7 @@ jobs:
       # Windows 构建
       - name: Build artifact on Windows
         if: runner.os == 'Windows'
-        run: npm run desktop:build
+        run: npm run desktop:package:app
         env:
           UPDATE_CHANNEL: stable
           UPDATE_SERVER_URL: ${{ secrets.UPDATE_SERVER_URL }}
@@ -225,7 +225,7 @@ jobs:
       - name: Build artifact on Linux
         if: runner.os == 'Linux'
         run: |
-          npm run desktop:build
+          npm run desktop:package:app
           tar -czf apps/desktop/release/lobehub-renderer.tar.gz -C out .
         env:
           UPDATE_CHANNEL: stable

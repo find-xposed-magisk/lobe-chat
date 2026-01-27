@@ -131,7 +131,7 @@ jobs:
       # 注意：fork 的 PR 无法访问 secrets，会构建未签名版本
       - name: Build artifact on macOS
         if: runner.os == 'macOS'
-        run: npm run desktop:build
+        run: npm run desktop:package:app
         env:
           # 设置更新通道，PR构建为nightly，否则为stable
           UPDATE_CHANNEL: 'nightly'
@@ -155,7 +155,7 @@ jobs:
       # 注意：fork 的 PR 无法访问 secrets，会构建未签名版本
       - name: Build artifact on Windows
         if: runner.os == 'Windows'
-        run: npm run desktop:build
+        run: npm run desktop:package:app
         env:
           # 设置更新通道，PR构建为nightly，否则为stable
           UPDATE_CHANNEL: 'nightly'
@@ -171,7 +171,7 @@ jobs:
       # Linux 平台构建处理
       - name: Build artifact on Linux
         if: runner.os == 'Linux'
-        run: npm run desktop:build
+        run: npm run desktop:package:app
         env:
           # 设置更新通道，PR构建为nightly，否则为stable
           UPDATE_CHANNEL: 'nightly'

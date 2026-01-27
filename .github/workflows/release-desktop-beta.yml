@@ -101,7 +101,7 @@ jobs:
       # macOS 构建
       - name: Build artifact on macOS
         if: runner.os == 'macOS'
-        run: npm run desktop:build
+        run: npm run desktop:package:app
         env:
           UPDATE_CHANNEL: beta
           APP_URL: http://localhost:3015
@@ -119,7 +119,7 @@ jobs:
       # Windows 构建
       - name: Build artifact on Windows
         if: runner.os == 'Windows'
-        run: npm run desktop:build
+        run: npm run desktop:package:app
         env:
           UPDATE_CHANNEL: beta
           APP_URL: http://localhost:3015
@@ -133,7 +133,7 @@ jobs:
       # Linux 构建
       - name: Build artifact on Linux
         if: runner.os == 'Linux'
-        run: npm run desktop:build
+        run: npm run desktop:package:app
         env:
           UPDATE_CHANNEL: beta
           APP_URL: http://localhost:3015
