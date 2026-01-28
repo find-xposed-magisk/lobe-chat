@@ -17,11 +17,15 @@ const DesktopFileMenuBridge = () => {
   const { createAgent, createEmptyGroup, createPage } = useCreateMenuItems();
   const navigate = useNavigate();
   const inboxAgentId = useAgentStore(builtinAgentSelectors.inboxAgentId);
+  const activeAgentId = useAgentStore((s) => s.activeAgentId);
 
-  // Handle create new topic from File menu (navigate to inbox agent)
+  // Handle create new topic from File menu
+  // If currently in an agent page, create a new topic for the current agent
+  // Otherwise, navigate to inbox agent
   const handleCreateNewTopic = useCallback(() => {
-    navigate(SESSION_CHAT_URL(inboxAgentId, false));
-  }, [inboxAgentId, navigate]);
+    const targetAgentId = activeAgentId || inboxAgentId;
+    navigate(SESSION_CHAT_URL(targetAgentId, false));
+  }, [activeAgentId, inboxAgentId, navigate]);
 
   // Handle create new agent from File menu
   const handleCreateNewAgent = useCallback(async () => {

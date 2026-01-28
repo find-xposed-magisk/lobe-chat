@@ -78,6 +78,8 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     background: ${cssVar.colorBgContainer};
   `,
   previewText: css`
+    overflow: auto;
+
     font-size: 12px;
     line-height: 1.6;
     word-break: break-all;
