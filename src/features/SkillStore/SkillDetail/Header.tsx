@@ -7,7 +7,7 @@ import { Loader2, SquareArrowOutUpRight } from 'lucide-react';
 import { memo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useSkillConnect } from '@/features/SkillStore/LobeHubList/useSkillConnect';
+import { useSkillConnect } from '@/features/SkillStore/SkillList/LobeHub/useSkillConnect';
 
 import { useDetailContext } from './DetailContext';
 import { ICON_SIZE, styles } from './styles';

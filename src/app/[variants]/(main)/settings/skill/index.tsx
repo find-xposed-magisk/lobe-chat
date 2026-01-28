@@ -21,7 +21,7 @@ const Page = () => {
     <>
       <SettingHeader
         extra={
-          <Button icon={<Icon icon={Store} />} onClick={handleOpenStore}>
+          <Button icon={<Icon icon={Store} />} onClick={handleOpenStore} size="large">
             {t('skillStore.button')}
           </Button>
         }

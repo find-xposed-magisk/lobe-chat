@@ -5,11 +5,11 @@ import { type SegmentedOptions } from 'antd/es/segmented';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import AddSkillButton from './AddSkillButton';
-import CommunityList from './CommunityList';
-import CustomList from './CustomList';
-import LobeHubList from './LobeHubList';
 import Search from './Search';
+import AddSkillButton from './SkillList/AddSkillButton';
+import CommunityList from './SkillList/Community';
+import CustomList from './SkillList/Custom';
+import LobeHubList from './SkillList/LobeHub';
 
 export enum SkillStoreTab {
   Community = 'community',

@@ -213,7 +213,15 @@ export const useSkillConnect = ({ identifier, serverName, type }: UseSkillConnec
     } finally {
       setIsConnecting(false);
     }
-  }, [userId, serverName, klavisServer, identifier, createKlavisServer, refreshKlavisServerTools, openOAuthWindow]);
+  }, [
+    userId,
+    serverName,
+    klavisServer,
+    identifier,
+    createKlavisServer,
+    refreshKlavisServerTools,
+    openOAuthWindow,
+  ]);
 
   const handleConnect = type === 'lobehub' ? handleLobehubConnect : handleKlavisConnect;
 
