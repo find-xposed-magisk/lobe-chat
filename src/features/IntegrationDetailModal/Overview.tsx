@@ -1,0 +1,65 @@
+'use client';
+
+import { Flexbox, Icon, Text, Typography } from '@lobehub/ui';
+import { ExternalLink } from 'lucide-react';
+import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { useDetailContext } from './DetailProvider';
+import { styles } from './styles';
+
+const Overview = memo(() => {
+  const { t } = useTranslation(['plugin']);
+  const { author, authorUrl, localizedIntroduction } = useDetailContext();
+
+  const handleAuthorClick = () => {
+    if (authorUrl) {
+      window.open(authorUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  return (
+    <Flexbox gap={20}>
+      {/* Introduction */}
+      <Typography className={styles.introduction}>{localizedIntroduction}</Typography>
+
+      {/* Developed by */}
+      <Flexbox gap={8}>
+        <Flexbox align="center" gap={4} horizontal>
+          <span className={styles.sectionTitle}>{t('integrationDetail.developedBy')}</span>
+          <span
+            className={styles.authorLink}
+            onClick={handleAuthorClick}
+            style={{ cursor: authorUrl ? 'pointer' : 'default' }}
+          >
+            {author}
+            {authorUrl && <Icon icon={ExternalLink} size={12} />}
+          </span>
+        </Flexbox>
+        <Text className={styles.trustWarning} type="secondary">
+          {t('integrationDetail.trustWarning')}
+        </Text>
+      </Flexbox>
+
+      {/* Details */}
+      <Flexbox gap={12}>
+        <span className={styles.sectionTitle}>{t('integrationDetail.details')}</span>
+        <Flexbox gap={16} horizontal>
+          <div className={styles.detailItem}>
+            <span className={styles.detailLabel}>{t('integrationDetail.author')}</span>
+            <span
+              className={styles.authorLink}
+              onClick={handleAuthorClick}
+              style={{ cursor: authorUrl ? 'pointer' : 'default' }}
+            >
+              {author}
+              {authorUrl && <Icon icon={ExternalLink} size={12} />}
+            </span>
+          </div>
+        </Flexbox>
+      </Flexbox>
+    </Flexbox>
+  );
+});
+
+export default Overview;

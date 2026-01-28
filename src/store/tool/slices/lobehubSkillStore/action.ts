@@ -77,6 +77,12 @@ export interface LobehubSkillStoreAction {
    * @param enabled - Whether to enable fetching
    */
   useFetchLobehubSkillConnections: (enabled: boolean) => SWRResponse<LobehubSkillServer[]>;
+
+  /**
+   * Use SWR to fetch tools for a LobeHub Skill provider
+   * @param provider - Provider ID (e.g., 'linear')
+   */
+  useFetchProviderTools: (provider: string | undefined) => SWRResponse<LobehubSkillTool[]>;
 }
 
 export const createLobehubSkillStoreSlice: StateCreator<
@@ -354,6 +360,23 @@ export const createLobehubSkillStoreSlice: StateCreator<
             }
           }
         },
+        revalidateOnFocus: false,
+      },
+    ),
+
+  useFetchProviderTools: (provider) =>
+    useSWR<LobehubSkillTool[]>(
+      provider ? `lobehub-skill-tools-${provider}` : null,
+      async () => {
+        const response = await toolsClient.market.connectListTools.query({ provider: provider! });
+        return (response.tools || []).map((tool: any) => ({
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+          name: tool.name,
+        }));
+      },
+      {
+        fallbackData: [],
         revalidateOnFocus: false,
       },
     ),

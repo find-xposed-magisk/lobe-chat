@@ -351,6 +351,8 @@
   "integrationDetail.author": "作者",
   "integrationDetail.details": "详情",
   "integrationDetail.developedBy": "开发者",
+  "integrationDetail.tabs.overview": "概览",
+  "integrationDetail.tabs.tools": "技能列表",
   "integrationDetail.tools": "工具",
   "integrationDetail.trustWarning": "请仅使用您信任的开发者提供的连接器。LobeHub 无法控制开发者提供哪些工具，也无法验证这些工具是否按预期工作或是否会发生变化。",
   "list.item.deprecated.title": "已删除",

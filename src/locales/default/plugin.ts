@@ -356,6 +356,8 @@ export default {
   'integrationDetail.author': 'Author',
   'integrationDetail.details': 'Details',
   'integrationDetail.developedBy': 'Developed by',
+  'integrationDetail.tabs.overview': 'Overview',
+  'integrationDetail.tabs.tools': 'Tools',
   'integrationDetail.tools': 'Tools',
   'integrationDetail.trustWarning':
     "Only use connectors from developers you trust. LobeHub does not control which tools developers make available and cannot verify that they will work as intended or that they won't change.",

@@ -54,6 +54,12 @@ export interface KlavisStoreAction {
   removeKlavisServer: (identifier: string) => Promise<void>;
 
   /**
+   * Use SWR to fetch tools for a Klavis server by serverName
+   * @param serverName - Klavis server name (e.g., 'Google Calendar')
+   */
+  useFetchServerTools: (serverName: string | undefined) => SWRResponse<KlavisTool[]>;
+
+  /**
    * Use SWR to fetch user's Klavis server list
    * @param enabled - Whether to enable fetching
    */
@@ -338,6 +344,23 @@ export const createKlavisStoreSlice: StateCreator<
       }
     }
   },
+
+  useFetchServerTools: (serverName) =>
+    useSWR<KlavisTool[]>(
+      serverName ? `klavis-server-tools-${serverName}` : null,
+      async () => {
+        const response = await toolsClient.klavis.getTools.query({ serverName: serverName! });
+        return (response.tools || []).map((tool: any) => ({
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+          name: tool.name,
+        }));
+      },
+      {
+        fallbackData: [],
+        revalidateOnFocus: false,
+      },
+    ),
 
   useFetchUserKlavisServers: (enabled) =>
     useSWR<KlavisServer[]>(
