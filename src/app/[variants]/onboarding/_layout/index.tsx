@@ -40,7 +40,7 @@ const OnBoardingContainer: FC<PropsWithChildren> = ({ children }) => {
         </Center>
         <Center padding={24}>
           <Text align={'center'} type={'secondary'}>
-            © 2025 LobeHub. All rights reserved.
+            © 2026 LobeHub. All rights reserved.
           </Text>
         </Center>
       </Flexbox>
