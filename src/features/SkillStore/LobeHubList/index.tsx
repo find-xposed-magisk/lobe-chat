@@ -4,7 +4,6 @@ import { KLAVIS_SERVER_TYPES, LOBEHUB_SKILL_PROVIDERS } from '@lobechat/const';
 import isEqual from 'fast-deep-equal';
 import { memo, useCallback, useMemo } from 'react';
 
-import { createIntegrationDetailModal } from '@/features/IntegrationDetailModal';
 import { serverConfigSelectors, useServerConfigStore } from '@/store/serverConfig';
 import { useToolStore } from '@/store/tool';
 import { klavisStoreSelectors, lobehubSkillStoreSelectors } from '@/store/tool/selectors';
@@ -12,6 +11,7 @@ import { KlavisServerStatus } from '@/store/tool/slices/klavisStore';
 import { LobehubSkillStatus } from '@/store/tool/slices/lobehubSkillStore/types';
 
 import Empty from '../Empty';
+import { createIntegrationDetailModal } from '../IntegrationDetail';
 import { gridStyles } from '../style';
 import Item from './Item';
 

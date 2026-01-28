@@ -8,7 +8,7 @@ import { Loader2, MoreHorizontalIcon, SquareArrowOutUpRight, Unplug } from 'luci
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { createIntegrationDetailModal } from '@/features/IntegrationDetailModal';
+import { createIntegrationDetailModal } from '@/features/SkillStore/IntegrationDetail';
 import { useToolStore } from '@/store/tool';
 import {
   type LobehubSkillServer,
