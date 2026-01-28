@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.0.7](https://github.com/lobehub/lobe-chat/compare/v2.0.6...v2.0.7)
+
+<sup>Released on **2026-01-28**</sup>
+
+#### 🐛 Bug Fixes
+
+- **model-runtime**: Include tool_calls in speed metrics & add getActiveTraceId.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **model-runtime**: Include tool_calls in speed metrics & add getActiveTraceId, closes [#11927](https://github.com/lobehub/lobe-chat/issues/11927) ([b24da44](https://github.com/lobehub/lobe-chat/commit/b24da44))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.0.6](https://github.com/lobehub/lobe-chat/compare/v2.0.5...v2.0.6)
 
 <sup>Released on **2026-01-27**</sup>
