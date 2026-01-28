@@ -8,7 +8,7 @@ import { Loader2, MoreHorizontalIcon, SquareArrowOutUpRight, Unplug } from 'luci
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { createIntegrationDetailModal } from '@/features/SkillStore/IntegrationDetail';
+import { createLobehubSkillDetailModal } from '@/features/SkillStore/SkillDetail';
 import { useToolStore } from '@/store/tool';
 import {
   type LobehubSkillServer,
@@ -266,9 +266,8 @@ const LobehubSkillItem = memo<LobehubSkillItemProps>(({ provider, server }) => {
           gap={16}
           horizontal
           onClick={() =>
-            createIntegrationDetailModal({
+            createLobehubSkillDetailModal({
               identifier: provider.id,
-              type: 'lobehub',
             })
           }
           style={{ cursor: 'pointer' }}

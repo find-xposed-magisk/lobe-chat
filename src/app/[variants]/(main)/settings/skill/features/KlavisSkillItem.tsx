@@ -8,7 +8,7 @@ import { Loader2, MoreHorizontalIcon, SquareArrowOutUpRight, Unplug } from 'luci
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { createIntegrationDetailModal } from '@/features/SkillStore/IntegrationDetail';
+import { createKlavisSkillDetailModal } from '@/features/SkillStore/SkillDetail';
 import { useToolStore } from '@/store/tool';
 import { type KlavisServer, KlavisServerStatus } from '@/store/tool/slices/klavisStore';
 import { useUserStore } from '@/store/user';
@@ -282,10 +282,9 @@ const KlavisSkillItem = memo<KlavisSkillItemProps>(({ serverType, server }) => {
           gap={16}
           horizontal
           onClick={() =>
-            createIntegrationDetailModal({
+            createKlavisSkillDetailModal({
               identifier: serverType.identifier,
               serverName: serverType.serverName,
-              type: 'klavis',
             })
           }
           style={{ cursor: 'pointer' }}

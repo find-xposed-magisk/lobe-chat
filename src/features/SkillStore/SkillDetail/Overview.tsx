@@ -5,7 +5,7 @@ import { ExternalLink } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useDetailContext } from './DetailProvider';
+import { useDetailContext } from './DetailContext';
 import { styles } from './styles';
 
 const Overview = memo(() => {

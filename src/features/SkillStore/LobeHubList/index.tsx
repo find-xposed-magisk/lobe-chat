@@ -11,7 +11,7 @@ import { KlavisServerStatus } from '@/store/tool/slices/klavisStore';
 import { LobehubSkillStatus } from '@/store/tool/slices/lobehubSkillStore/types';
 
 import Empty from '../Empty';
-import { createIntegrationDetailModal } from '../IntegrationDetail';
+import { createKlavisSkillDetailModal, createLobehubSkillDetailModal } from '../SkillDetail';
 import { gridStyles } from '../style';
 import Item from './Item';
 
@@ -95,9 +95,7 @@ export const LobeHubList = memo<LobeHubListProps>(({ keywords }) => {
               isConnected={isConnected}
               key={item.provider.id}
               label={item.provider.label}
-              onOpenDetail={() =>
-                createIntegrationDetailModal({ identifier: item.provider.id, type: 'lobehub' })
-              }
+              onOpenDetail={() => createLobehubSkillDetailModal({ identifier: item.provider.id })}
               type="lobehub"
             />
           );
@@ -113,10 +111,9 @@ export const LobeHubList = memo<LobeHubListProps>(({ keywords }) => {
             key={item.serverType.identifier}
             label={item.serverType.label}
             onOpenDetail={() =>
-              createIntegrationDetailModal({
+              createKlavisSkillDetailModal({
                 identifier: item.serverType.identifier,
                 serverName: item.serverType.serverName,
-                type: 'klavis',
               })
             }
             serverName={item.serverType.serverName}

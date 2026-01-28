@@ -9,13 +9,17 @@ import { useTranslation } from 'react-i18next';
 
 import { useSkillConnect } from '@/features/SkillStore/LobeHubList/useSkillConnect';
 
-import { useDetailContext } from './DetailProvider';
+import { useDetailContext } from './DetailContext';
 import { ICON_SIZE, styles } from './styles';
 
-const Header = memo(() => {
+interface HeaderProps {
+  type: 'klavis' | 'lobehub';
+}
+
+const Header = memo<HeaderProps>(({ type }) => {
   const { t } = useTranslation(['setting']);
   const { close } = useModalContext();
-  const { type, identifier, serverName, icon, label, localizedDescription, isConnected } =
+  const { identifier, serverName, icon, label, localizedDescription, isConnected } =
     useDetailContext();
 
   const {

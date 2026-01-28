@@ -5,6 +5,7 @@ import { BookOpenIcon, ListIcon } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useDetailContext } from './DetailContext';
 import { styles } from './styles';
 
 export type TabKey = 'overview' | 'tools';
@@ -12,11 +13,12 @@ export type TabKey = 'overview' | 'tools';
 interface NavProps {
   activeTab: TabKey;
   setActiveTab: (tab: TabKey) => void;
-  toolsCount: number;
 }
 
-const Nav = memo<NavProps>(({ activeTab, setActiveTab, toolsCount }) => {
+const Nav = memo<NavProps>(({ activeTab, setActiveTab }) => {
   const { t } = useTranslation(['plugin']);
+  const { tools } = useDetailContext();
+  const toolsCount = tools.length;
 
   return (
     <Flexbox className={styles.nav}>

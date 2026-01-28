@@ -5,37 +5,15 @@ import { Loader2, Wrench } from 'lucide-react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useToolStore } from '@/store/tool';
-
-import { useDetailContext } from './DetailProvider';
+import { useDetailContext } from './DetailContext';
 import { styles } from './styles';
-
-interface ToolItem {
-  description?: string;
-  inputSchema?: any;
-  name: string;
-}
 
 const ToolList = memo(() => {
   const { t } = useTranslation(['plugin', 'discover']);
-  const { type, identifier, serverName } = useDetailContext();
+  const { tools, toolsLoading } = useDetailContext();
   const [activeKey, setActiveKey] = useState<string[]>([]);
 
-  // Fetch tools using SWR hooks from store
-  const useFetchServerTools = useToolStore((s) => s.useFetchServerTools);
-  const useFetchProviderTools = useToolStore((s) => s.useFetchProviderTools);
-
-  const { data: klavisTools = [], isLoading: klavisToolsLoading } = useFetchServerTools(
-    type === 'klavis' ? serverName : undefined,
-  );
-  const { data: lobehubTools = [], isLoading: lobehubToolsLoading } = useFetchProviderTools(
-    type === 'lobehub' ? identifier : undefined,
-  );
-
-  const tools: ToolItem[] = type === 'klavis' ? klavisTools : lobehubTools;
-  const isLoading = type === 'klavis' ? klavisToolsLoading : lobehubToolsLoading;
-
-  if (isLoading) {
+  if (toolsLoading) {
     return (
       <Flexbox align="center" justify="center" style={{ minHeight: 200 }}>
         <Icon icon={Loader2} size={24} spin />
