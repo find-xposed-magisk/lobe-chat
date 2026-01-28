@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "fixes": ["Fix inbox agent in mobile."]
+    },
+    "date": "2026-01-28",
+    "version": "2.0.8"
+  },
+  {
     "children": {},
     "date": "2026-01-28",
     "version": "2.0.7"
