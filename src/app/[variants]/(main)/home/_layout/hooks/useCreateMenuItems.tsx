@@ -285,6 +285,7 @@ export const useCreateMenuItems = () => {
     configMenuItem,
     createAgent,
     createAgentMenuItem,
+    createEmptyGroup,
     createGroupChatMenuItem,
     createGroupFromTemplate,
     createGroupWithMembers,

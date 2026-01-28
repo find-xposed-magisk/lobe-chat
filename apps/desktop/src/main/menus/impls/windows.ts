@@ -55,6 +55,44 @@ export class WindowsMenu extends BaseMenuPlatform implements IMenuPlatform {
         label: t('file.title'),
         submenu: [
           {
+            accelerator: 'Ctrl+N',
+            click: () => {
+              const mainWindow = this.app.browserManager.getMainWindow();
+              mainWindow.show();
+              mainWindow.broadcast('createNewTopic');
+            },
+            label: t('file.newTopic'),
+          },
+          { type: 'separator' },
+          {
+            accelerator: 'Alt+Ctrl+A',
+            click: () => {
+              const mainWindow = this.app.browserManager.getMainWindow();
+              mainWindow.show();
+              mainWindow.broadcast('createNewAgent');
+            },
+            label: t('file.newAgent'),
+          },
+          {
+            accelerator: 'Alt+Ctrl+G',
+            click: () => {
+              const mainWindow = this.app.browserManager.getMainWindow();
+              mainWindow.show();
+              mainWindow.broadcast('createNewAgentGroup');
+            },
+            label: t('file.newAgentGroup'),
+          },
+          {
+            accelerator: 'Alt+Ctrl+P',
+            click: () => {
+              const mainWindow = this.app.browserManager.getMainWindow();
+              mainWindow.show();
+              mainWindow.broadcast('createNewPage');
+            },
+            label: t('file.newPage'),
+          },
+          { type: 'separator' },
+          {
             click: () => this.app.browserManager.retrieveByIdentifier('settings').show(),
             label: t('file.preferences'),
           },

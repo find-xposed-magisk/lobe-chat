@@ -21,6 +21,7 @@ const HotkeySetting = memo(() => {
   const { message } = App.useApp();
 
   const hotkeys = useElectronStore(desktopHotkeysSelectors.hotkeys, isEqual);
+
   const [isHotkeysInit, updateDesktopHotkey, useFetchDesktopHotkeys] = useElectronStore((s) => [
     desktopHotkeysSelectors.isHotkeysInit(s),
     s.updateDesktopHotkey,

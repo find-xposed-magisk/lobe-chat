@@ -11,6 +11,7 @@ import { DndContextWrapper } from '@/app/[variants]/(main)/resource/features/Dnd
 import Loading from '@/components/Loading/BrandTextLoading';
 import { isDesktop } from '@/const/version';
 import { BANNER_HEIGHT } from '@/features/AlertBanner/CloudBanner';
+import DesktopFileMenuBridge from '@/features/DesktopFileMenuBridge';
 import DesktopNavigationBridge from '@/features/DesktopNavigationBridge';
 import AuthRequiredModal from '@/features/Electron/AuthRequiredModal';
 import TitleBar from '@/features/Electron/titlebar/TitleBar';
@@ -43,12 +44,14 @@ const Layout: FC = () => {
   return (
     <HotkeysProvider initiallyActiveScopes={[HotkeyScopeEnum.Global]}>
       <Suspense fallback={null}>
-        {isDesktop && <TitleBar />}
         {isDesktop && <DesktopAutoOidcOnFirstOpen />}
         {isDesktop && <DesktopNavigationBridge />}
+        {isDesktop && <DesktopFileMenuBridge />}
         {isDesktop && <AuthRequiredModal />}
         {showCloudPromotion && <CloudBanner />}
       </Suspense>
+
+      <Suspense fallback={null}>{isDesktop && <TitleBar />}</Suspense>
       <DndContextWrapper>
         <Flexbox
           className={cx(isPWA ? styles.mainContainerPWA : styles.mainContainer)}
