@@ -22,11 +22,14 @@ const ToolList = memo(() => {
   const [activeKey, setActiveKey] = useState<string[]>([]);
 
   // Fetch tools using SWR hooks from store
-  const { data: klavisTools = [], isLoading: klavisToolsLoading } = useToolStore((s) =>
-    s.useFetchServerTools(type === 'klavis' ? serverName : undefined),
+  const useFetchServerTools = useToolStore((s) => s.useFetchServerTools);
+  const useFetchProviderTools = useToolStore((s) => s.useFetchProviderTools);
+
+  const { data: klavisTools = [], isLoading: klavisToolsLoading } = useFetchServerTools(
+    type === 'klavis' ? serverName : undefined,
   );
-  const { data: lobehubTools = [], isLoading: lobehubToolsLoading } = useToolStore((s) =>
-    s.useFetchProviderTools(type === 'lobehub' ? identifier : undefined),
+  const { data: lobehubTools = [], isLoading: lobehubToolsLoading } = useFetchProviderTools(
+    type === 'lobehub' ? identifier : undefined,
   );
 
   const tools: ToolItem[] = type === 'klavis' ? klavisTools : lobehubTools;

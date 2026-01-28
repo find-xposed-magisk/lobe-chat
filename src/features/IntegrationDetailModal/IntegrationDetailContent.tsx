@@ -28,11 +28,14 @@ export const IntegrationDetailContent = ({
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
   // Fetch tools count for Nav badge (always fetch to show count in tab)
-  const { data: klavisTools = [] } = useToolStore((s) =>
-    s.useFetchServerTools(type === 'klavis' ? serverName : undefined),
+  const useFetchServerTools = useToolStore((s) => s.useFetchServerTools);
+  const useFetchProviderTools = useToolStore((s) => s.useFetchProviderTools);
+
+  const { data: klavisTools = [] } = useFetchServerTools(
+    type === 'klavis' ? serverName : undefined,
   );
-  const { data: lobehubTools = [] } = useToolStore((s) =>
-    s.useFetchProviderTools(type === 'lobehub' ? identifier : undefined),
+  const { data: lobehubTools = [] } = useFetchProviderTools(
+    type === 'lobehub' ? identifier : undefined,
   );
   const toolsCount = type === 'klavis' ? klavisTools.length : lobehubTools.length;
 
