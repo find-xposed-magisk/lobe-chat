@@ -1,6 +1,6 @@
 ---
 name: linear
-description: Linear issue management guide. Use when working with Linear issues, creating issues, updating status, or adding comments. Triggers on Linear issue references (LOBE-xxx), issue tracking, or project management tasks. Requires Linear MCP tools to be available.
+description: "Linear issue management. MUST USE when: (1) user mentions LOBE-xxx issue IDs (e.g. LOBE-4540), (2) user says 'linear', 'linear issue', 'link linear', (3) creating PRs that reference Linear issues. Provides workflows for retrieving issues, updating status, and adding comments."
 ---
 
 # Linear Issue Management
@@ -21,6 +21,7 @@ When creating issues with `mcp__linear-server__create_issue`, **MUST add the `cl
 ## Completion Comment (REQUIRED)
 
 Every completed issue MUST have a comment summarizing work done. This is critical for:
+
 - Team visibility
 - Code review context
 - Future reference
@@ -28,6 +29,7 @@ Every completed issue MUST have a comment summarizing work done. This is critica
 ## PR Association (REQUIRED)
 
 When creating PRs for Linear issues, include magic keywords in PR body:
+
 - `Fixes LOBE-123`
 - `Closes LOBE-123`
 - `Resolves LOBE-123`
