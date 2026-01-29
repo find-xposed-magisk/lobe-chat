@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.0.11](https://github.com/lobehub/lobe-chat/compare/v2.0.10...v2.0.11)
+
+<sup>Released on **2026-01-29**</sup>
+
+#### 💄 Styles
+
+- **misc**: Fix group task render.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Styles
+
+- **misc**: Fix group task render, closes [#11952](https://github.com/lobehub/lobe-chat/issues/11952) ([b8ef02e](https://github.com/lobehub/lobe-chat/commit/b8ef02e))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.0.10](https://github.com/lobehub/lobe-chat/compare/v2.0.9...v2.0.10)
 
 <sup>Released on **2026-01-29**</sup>
