@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "fixes": ["Add ExtendParamsTypeSchema for enhanced model settings."]
+    },
+    "date": "2026-01-29",
+    "version": "2.0.10"
+  },
+  {
     "children": {},
     "date": "2026-01-29",
     "version": "2.0.9"
