@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Group publish to market should set local group market identifer."]
+    },
+    "date": "2026-01-29",
+    "version": "2.0.12"
+  },
+  {
+    "children": {
       "improvements": ["Fix group task render."]
     },
     "date": "2026-01-29",
