@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Fix group task render."]
+    },
+    "date": "2026-01-29",
+    "version": "2.0.11"
+  },
+  {
+    "children": {
       "fixes": ["Add ExtendParamsTypeSchema for enhanced model settings."]
     },
     "date": "2026-01-29",
