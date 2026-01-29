@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.0.12](https://github.com/lobehub/lobe-chat/compare/v2.0.11...v2.0.12)
+
+<sup>Released on **2026-01-29**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Group publish to market should set local group market identifer.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Group publish to market should set local group market identifer, closes [#11965](https://github.com/lobehub/lobe-chat/issues/11965) ([0bda4d9](https://github.com/lobehub/lobe-chat/commit/0bda4d9))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.0.11](https://github.com/lobehub/lobe-chat/compare/v2.0.10...v2.0.11)
 
 <sup>Released on **2026-01-29**</sup>
