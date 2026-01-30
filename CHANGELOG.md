@@ -2,6 +2,31 @@
 
 # Changelog
 
+## [Version 2.1.0](https://github.com/lobehub/lobe-chat/compare/v2.0.13...v2.1.0)
+
+<sup>Released on **2026-01-30**</sup>
+
+#### ✨ Features
+
+- **misc**: Refactor cron job UI and use runtime enableBusinessFeatures flag.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's improved
+
+- **misc**: Refactor cron job UI and use runtime enableBusinessFeatures flag, closes [#11975](https://github.com/lobehub/lobe-chat/issues/11975) ([104a19a](https://github.com/lobehub/lobe-chat/commit/104a19a))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.0.13](https://github.com/lobehub/lobe-chat/compare/v2.0.12...v2.0.13)
 
 <sup>Released on **2026-01-29**</sup>
