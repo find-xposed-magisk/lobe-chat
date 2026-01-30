@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Fix feishu sso provider."]
+    },
+    "date": "2026-01-30",
+    "version": "2.1.2"
+  },
+  {
+    "children": {
       "fixes": ["Correct desktop download URL path."]
     },
     "date": "2026-01-30",
