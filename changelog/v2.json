@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "improvements": ["Update i18n, Update Kimi K2.5 & Qwen3 Max Thinking models."]
+    },
+    "date": "2026-01-31",
+    "version": "2.1.4"
+  },
+  {
     "children": {},
     "date": "2026-01-31",
     "version": "2.1.3"
