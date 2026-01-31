@@ -2,6 +2,40 @@
 
 # Changelog
 
+### [Version 2.1.4](https://github.com/lobehub/lobe-chat/compare/v2.1.3...v2.1.4)
+
+<sup>Released on **2026-01-31**</sup>
+
+#### 🐛 Bug Fixes
+
+- **stream**: Update event handling to use 'text' instead of 'content_part' in gemini 2.5 models.
+
+#### 💄 Styles
+
+- **misc**: Update i18n, Update Kimi K2.5 & Qwen3 Max Thinking models.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **stream**: Update event handling to use 'text' instead of 'content_part' in gemini 2.5 models, closes [#11235](https://github.com/lobehub/lobe-chat/issues/11235) ([a76a630](https://github.com/lobehub/lobe-chat/commit/a76a630))
+
+#### Styles
+
+- **misc**: Update i18n, closes [#11920](https://github.com/lobehub/lobe-chat/issues/11920) ([1a590a0](https://github.com/lobehub/lobe-chat/commit/1a590a0))
+- **misc**: Update Kimi K2.5 & Qwen3 Max Thinking models, closes [#11925](https://github.com/lobehub/lobe-chat/issues/11925) ([6f9e010](https://github.com/lobehub/lobe-chat/commit/6f9e010))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.1.3](https://github.com/lobehub/lobe-chat/compare/v2.1.2...v2.1.3)
 
 <sup>Released on **2026-01-31**</sup>
