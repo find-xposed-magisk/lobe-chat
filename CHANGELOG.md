@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.1.3](https://github.com/lobehub/lobe-chat/compare/v2.1.2...v2.1.3)
+
+<sup>Released on **2026-01-31**</sup>
+
+#### 🐛 Bug Fixes
+
+- **auth**: Add AUTH_DISABLE_EMAIL_PASSWORD env to enable SSO-only mode.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **auth**: Add AUTH_DISABLE_EMAIL_PASSWORD env to enable SSO-only mode, closes [#12009](https://github.com/lobehub/lobe-chat/issues/12009) ([f3210a3](https://github.com/lobehub/lobe-chat/commit/f3210a3))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.1.2](https://github.com/lobehub/lobe-chat/compare/v2.1.1...v2.1.2)
 
 <sup>Released on **2026-01-30**</sup>
