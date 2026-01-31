@@ -29,7 +29,25 @@ export function defineConfig(config: CustomNextConfig) {
 
   const standaloneConfig: NextConfig = {
     output: 'standalone',
-    outputFileTracingIncludes: { '*': ['public/**/*', '.next/static/**/*'] },
+    outputFileTracingIncludes: {
+      '*': [
+        'public/**/*',
+        '.next/static/**/*',
+        // Only needed for Docker standalone builds.
+        // On Vercel (serverless), including native bindings can easily exceed function size limits.
+        ...(buildWithDocker
+          ? [
+              // Ensure native bindings are included in standalone output.
+              // `@napi-rs/canvas` is loaded via dynamic `require()` (see packages/file-loaders),
+              // which may not be picked up by Next.js output tracing.
+              'node_modules/@napi-rs/canvas/**/*',
+              // pnpm real package locations (including platform-specific bindings with `.node`)
+              'node_modules/.pnpm/@napi-rs+canvas*/**/*',
+              'node_modules/.pnpm/@napi-rs+canvas-*/**/*',
+            ]
+          : []),
+      ],
+    },
   };
 
   const assetPrefix = process.env.NEXT_PUBLIC_ASSET_PREFIX;
