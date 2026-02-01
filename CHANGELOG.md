@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.1.7](https://github.com/lobehub/lobe-chat/compare/v2.1.6...v2.1.7)
+
+<sup>Released on **2026-02-01**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Add missing description parameter docs in Notebook system prompt.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Add missing description parameter docs in Notebook system prompt, closes [#12015](https://github.com/lobehub/lobe-chat/issues/12015) [#11391](https://github.com/lobehub/lobe-chat/issues/11391) ([182030f](https://github.com/lobehub/lobe-chat/commit/182030f))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.1.6](https://github.com/lobehub/lobe-chat/compare/v2.1.5...v2.1.6)
 
 <sup>Released on **2026-02-01**</sup>
