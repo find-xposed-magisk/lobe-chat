@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.1.6](https://github.com/lobehub/lobe-chat/compare/v2.1.5...v2.1.6)
+
+<sup>Released on **2026-02-01**</sup>
+
+#### 💄 Styles
+
+- **misc**: Improve local-system tool implement.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Styles
+
+- **misc**: Improve local-system tool implement, closes [#12022](https://github.com/lobehub/lobe-chat/issues/12022) ([5e203b8](https://github.com/lobehub/lobe-chat/commit/5e203b8))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.1.5](https://github.com/lobehub/lobe-chat/compare/v2.1.4...v2.1.5)
 
 <sup>Released on **2026-01-31**</sup>
