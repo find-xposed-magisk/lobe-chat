@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Improve local-system tool implement."]
+    },
+    "date": "2026-02-01",
+    "version": "2.1.6"
+  },
+  {
+    "children": {
       "fixes": ["Slove the group member agents cant set skills problem."]
     },
     "date": "2026-01-31",
