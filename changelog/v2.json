@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Add missing description parameter docs in Notebook system prompt."]
+    },
+    "date": "2026-02-01",
+    "version": "2.1.7"
+  },
+  {
+    "children": {
       "improvements": ["Improve local-system tool implement."]
     },
     "date": "2026-02-01",
