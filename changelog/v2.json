@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "improvements": ["Improve tasks display."]
+    },
+    "date": "2026-02-01",
+    "version": "2.1.8"
+  },
+  {
+    "children": {
       "fixes": ["Add missing description parameter docs in Notebook system prompt."]
     },
     "date": "2026-02-01",
