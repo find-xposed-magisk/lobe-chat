@@ -5,7 +5,7 @@
  * IMPORTANT: Keep this file as CommonJS (.js) for compatibility with startServer.js
  */
 
-const MIGRATION_DOC_BASE = 'https://lobehub.com/docs/self-hosting/advanced/auth';
+const MIGRATION_DOC_BASE = 'https://lobehub.com/docs/self-hosting/migration/v2/auth';
 
 /**
  * Deprecated environment variable checks configuration
