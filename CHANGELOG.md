@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.1.9](https://github.com/lobehub/lobe-chat/compare/v2.1.8...v2.1.9)
+
+<sup>Released on **2026-02-02**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Use oauth2.link for generic OIDC provider account linking.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Use oauth2.link for generic OIDC provider account linking, closes [#12024](https://github.com/lobehub/lobe-chat/issues/12024) ([c7a06a4](https://github.com/lobehub/lobe-chat/commit/c7a06a4))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.1.8](https://github.com/lobehub/lobe-chat/compare/v2.1.7...v2.1.8)
 
 <sup>Released on **2026-02-01**</sup>
