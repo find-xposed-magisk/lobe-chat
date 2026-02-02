@@ -55,8 +55,7 @@ export default class RemoteServerSyncCtr extends ControllerModule {
     logger.debug(`${logPrefix} Received stream:start IPC call`);
 
     try {
-      const config = await this.remoteServerConfigCtr.getRemoteServerConfig();
-      if (!config.active || (config.storageMode === 'selfHost' && !config.remoteServerUrl)) {
+      if (!(await this.remoteServerConfigCtr.isRemoteServerConfigured())) {
         logger.warn(`${logPrefix} Remote server sync not active or configured.`);
         event.sender.send(
           `stream:error:${requestId}`,

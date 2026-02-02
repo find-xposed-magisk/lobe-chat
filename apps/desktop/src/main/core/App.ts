@@ -10,6 +10,7 @@ import { buildDir } from '@/const/dir';
 import { isDev } from '@/const/env';
 import { ELECTRON_BE_PROTOCOL_SCHEME } from '@/const/protocol';
 import { IControlModule } from '@/controllers';
+import AuthCtr from '@/controllers/AuthCtr';
 import { IServiceModule } from '@/services';
 import { createLogger } from '@/utils/logger';
 
@@ -251,6 +252,14 @@ export class App {
   private onActivate = () => {
     logger.debug('Application activated');
     this.browserManager.showMainWindow();
+
+    // Trigger proactive token refresh on app activation (respects 6-hour interval)
+    const authCtr = this.getController(AuthCtr);
+    if (authCtr) {
+      authCtr.onAppActivate().catch((error) => {
+        logger.error('Error during app activation token refresh:', error);
+      });
+    }
   };
 
   /**
