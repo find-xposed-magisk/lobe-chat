@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Use oauth2.link for generic OIDC provider account linking."]
+    },
+    "date": "2026-02-02",
+    "version": "2.1.9"
+  },
+  {
+    "children": {
       "improvements": ["Improve tasks display."]
     },
     "date": "2026-02-01",
