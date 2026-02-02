@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "fixes": ["Hide password features when AUTH_DISABLE_EMAIL_PASSWORD is set."]
+    },
+    "date": "2026-02-02",
+    "version": "2.1.11"
+  },
+  {
     "children": {},
     "date": "2026-02-02",
     "version": "2.1.10"
