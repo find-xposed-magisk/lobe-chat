@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.1.10](https://github.com/lobehub/lobe-chat/compare/v2.1.9...v2.1.10)
+
+<sup>Released on **2026-02-02**</sup>
+
+#### 🐛 Bug Fixes
+
+- **auth**: Revert authority URL and tenant ID for Microsoft authentication..
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **auth**: Revert authority URL and tenant ID for Microsoft authentication., closes [#11930](https://github.com/lobehub/lobe-chat/issues/11930) ([98f93ef](https://github.com/lobehub/lobe-chat/commit/98f93ef))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.1.9](https://github.com/lobehub/lobe-chat/compare/v2.1.8...v2.1.9)
 
 <sup>Released on **2026-02-02**</sup>
