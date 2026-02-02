@@ -23,6 +23,7 @@ import { z } from 'zod';
 
 import { FormInput, FormPassword } from '@/components/FormInput';
 import { SkeletonInput, SkeletonSwitch } from '@/components/Skeleton';
+import { lambdaQuery } from '@/libs/trpc/client';
 import { aiProviderSelectors, useAiInfraStore } from '@/store/aiInfra';
 import {
   type AiProviderDetailItem,
@@ -33,6 +34,7 @@ import {
 import { KeyVaultsConfigKey, LLMProviderApiTokenKey, LLMProviderBaseUrlKey } from '../../const';
 import Checker, { type CheckErrorRender } from './Checker';
 import EnableSwitch from './EnableSwitch';
+import OAuthDeviceFlowAuth from './OAuthDeviceFlowAuth';
 import UpdateProviderInfo from './UpdateProviderInfo';
 
 const prefixCls = 'ant';
@@ -131,6 +133,7 @@ const ProviderConfig = memo<ProviderConfigProps>(
     title,
   }) => {
     const {
+      authType,
       proxyUrl,
       showApiKey = true,
       defaultShowBrowserRequest,
@@ -140,6 +143,15 @@ const ProviderConfig = memo<ProviderConfigProps>(
     } = settings || {};
     const { t } = useTranslation('modelProvider');
     const [form] = Form.useForm();
+
+    const isOAuthProvider = authType === 'oauthDeviceFlow';
+
+    // Query OAuth authentication status (only for OAuth providers)
+    const { data: oauthStatus } = lambdaQuery.oauthDeviceFlow.getAuthStatus.useQuery(
+      { providerId: id },
+      { enabled: isOAuthProvider, refetchOnWindowFocus: true },
+    );
+    const isOAuthAuthenticated = oauthStatus?.isAuthenticated ?? false;
 
     const [
       data,
@@ -235,42 +247,51 @@ const ProviderConfig = memo<ProviderConfigProps>(
 
     const isCustom = source === AiProviderSourceEnum.Custom;
 
-    const apiKeyItem: FormItemProps[] = !showApiKey
-      ? []
-      : (apiKeyItems ?? [
-          {
-            children: isLoading ? (
-              <SkeletonInput />
-            ) : (
-              <FormPassword
-                autoComplete={'new-password'}
-                placeholder={t('providerModels.config.apiKey.placeholder', { name })}
-                suffix={
-                  configUpdating && (
-                    <Icon icon={Loader2Icon} spin style={{ color: cssVar.colorTextTertiary }} />
-                  )
-                }
-              />
-            ),
-            desc: apiKeyUrl ? (
-              <Trans
-                components={[
-                  <span key="0" />,
-                  <span key="1" />,
-                  <span key="2" />,
-                  <a href={apiKeyUrl} key="3" rel="noreferrer" target="_blank" />,
-                ]}
-                i18nKey="providerModels.config.apiKey.descWithUrl"
-                ns={'modelProvider'}
-                values={{ name }}
-              />
-            ) : (
-              t(`providerModels.config.apiKey.desc`, { name })
-            ),
-            label: t(`providerModels.config.apiKey.title`),
-            name: [KeyVaultsConfigKey, LLMProviderApiTokenKey],
-          },
-        ]);
+    // OAuth auth change handler
+    const handleOAuthChange = useCallback(async () => {
+      // Only refresh provider data, don't update with form values
+      // OAuth tokens are saved directly to DB by the tRPC endpoint
+      await useAiInfraStore.getState().refreshAiProviderDetail();
+      await useAiInfraStore.getState().refreshAiProviderRuntimeState();
+    }, []);
+
+    const apiKeyItem: FormItemProps[] =
+      !showApiKey || isOAuthProvider
+        ? []
+        : (apiKeyItems ?? [
+            {
+              children: isLoading ? (
+                <SkeletonInput />
+              ) : (
+                <FormPassword
+                  autoComplete={'new-password'}
+                  placeholder={t('providerModels.config.apiKey.placeholder', { name })}
+                  suffix={
+                    configUpdating && (
+                      <Icon icon={Loader2Icon} spin style={{ color: cssVar.colorTextTertiary }} />
+                    )
+                  }
+                />
+              ),
+              desc: apiKeyUrl ? (
+                <Trans
+                  components={[
+                    <span key="0" />,
+                    <span key="1" />,
+                    <span key="2" />,
+                    <a href={apiKeyUrl} key="3" rel="noreferrer" target="_blank" />,
+                  ]}
+                  i18nKey="providerModels.config.apiKey.descWithUrl"
+                  ns={'modelProvider'}
+                  values={{ name }}
+                />
+              ) : (
+                t(`providerModels.config.apiKey.desc`, { name })
+              ),
+              label: t(`providerModels.config.apiKey.title`),
+              name: [KeyVaultsConfigKey, LLMProviderApiTokenKey],
+            },
+          ]);
 
     const aceGcmItem: FormItemProps = {
       children: (
@@ -400,73 +421,92 @@ const ProviderConfig = memo<ProviderConfigProps>(
     ].filter(Boolean) as FormItemProps[];
 
     const logoUrl = data?.logo ?? logo;
+
+    // Header components - shared between OAuth card and Form
+    const headerTitle = (
+      <Flexbox
+        align={'center'}
+        gap={4}
+        horizontal
+        style={{
+          height: 24,
+          maxHeight: 24,
+          ...(enabled ? {} : { filter: 'grayscale(100%)', maxHeight: 24, opacity: 0.66 }),
+        }}
+      >
+        {isCustom ? (
+          <Flexbox align={'center'} gap={8} horizontal>
+            {logoUrl ? (
+              <Avatar avatar={logoUrl} shape={'circle'} size={32} title={name || id} />
+            ) : (
+              <ProviderCombine provider={'not-exist-provider'} size={24} />
+            )}
+            {name}
+          </Flexbox>
+        ) : (
+          <>
+            {title ?? <ProviderCombine provider={id} size={24} />}
+            <Tooltip title={t('providerModels.config.helpDoc')}>
+              <a
+                href={urlJoin(BASE_PROVIDER_DOC_URL, id)}
+                onClick={(e) => e.stopPropagation()}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <Center className={styles.help} height={20} width={20}>
+                  ?
+                </Center>
+              </a>
+            </Tooltip>
+          </>
+        )}
+      </Flexbox>
+    );
+
+    const headerExtra = (
+      <Flexbox align={'center'} gap={8} horizontal>
+        {extra}
+        {isCustom && <UpdateProviderInfo />}
+        {canDeactivate && !(ENABLE_BUSINESS_FEATURES && id === 'lobehub') && (
+          <EnableSwitch id={id} key={id} />
+        )}
+      </Flexbox>
+    );
+
     const model: FormGroupItemType = {
       children: configItems,
-
       defaultActive: true,
-
-      extra: (
-        <Flexbox align={'center'} gap={8} horizontal>
-          {extra}
-
-          {isCustom && <UpdateProviderInfo />}
-          {canDeactivate && !(ENABLE_BUSINESS_FEATURES && id === 'lobehub') && (
-            <EnableSwitch id={id} key={id} />
-          )}
-        </Flexbox>
-      ),
-      title: (
-        <Flexbox
-          align={'center'}
-          gap={4}
-          horizontal
-          style={{
-            height: 24,
-            maxHeight: 24,
-            ...(enabled ? {} : { filter: 'grayscale(100%)', maxHeight: 24, opacity: 0.66 }),
-          }}
-        >
-          {isCustom ? (
-            <Flexbox align={'center'} gap={8} horizontal>
-              {logoUrl ? (
-                <Avatar avatar={logoUrl} shape={'circle'} size={32} title={name || id} />
-              ) : (
-                <ProviderCombine provider={'not-exist-provider'} size={24} />
-              )}
-              {name}
-            </Flexbox>
-          ) : (
-            <>
-              {title ?? <ProviderCombine provider={id} size={24} />}
-              <Tooltip title={t('providerModels.config.helpDoc')}>
-                <a
-                  href={urlJoin(BASE_PROVIDER_DOC_URL, id)}
-                  onClick={(e) => e.stopPropagation()}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  <Center className={styles.help} height={20} width={20}>
-                    ?
-                  </Center>
-                </a>
-              </Tooltip>
-            </>
-          )}
-        </Flexbox>
-      ),
+      extra: isOAuthProvider ? undefined : headerExtra,
+      title: isOAuthProvider ? '' : headerTitle,
     };
 
+    // For OAuth providers, only show Form when authenticated
+    const shouldShowForm = !isOAuthProvider || isOAuthAuthenticated;
+
     return (
-      <Form
-        className={cx(styles.form, className)}
-        form={form}
-        items={[model]}
-        onValuesChange={(_, values) => {
-          debouncedHandleValueChange(id, values);
-        }}
-        variant={'borderless'}
-        {...FORM_STYLE}
-      />
+      <>
+        {isOAuthProvider && (
+          <OAuthDeviceFlowAuth
+            extra={headerExtra}
+            name={name || id}
+            onAuthChange={handleOAuthChange}
+            providerId={id}
+            title={headerTitle}
+          />
+        )}
+        {shouldShowForm && (
+          <Form
+            className={cx(styles.form, className)}
+            form={form}
+            items={[model]}
+            onValuesChange={(_, values) => {
+              debouncedHandleValueChange(id, values);
+            }}
+            variant={'borderless'}
+            {...FORM_STYLE}
+          />
+        )}
+      </>
     );
   },
 );
