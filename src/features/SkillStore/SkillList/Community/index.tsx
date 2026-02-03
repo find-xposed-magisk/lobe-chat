@@ -13,6 +13,7 @@ import Loading from '../Loading';
 import VirtuosoLoading from '../VirtuosoLoading';
 import { virtuosoGridStyles } from '../style';
 import Item from './Item';
+import WantMoreSkills from './WantMoreSkills';
 
 export const CommunityList = memo(() => {
   const { t } = useTranslation('setting');
@@ -22,6 +23,7 @@ export const CommunityList = memo(() => {
     isMcpListInit,
     allItems,
     currentPage,
+    totalPages,
     searchLoading,
     useFetchMCPPluginList,
     loadMoreMCPPlugins,
@@ -31,6 +33,7 @@ export const CommunityList = memo(() => {
     s.isMcpListInit,
     s.mcpPluginItems,
     s.currentPage,
+    s.totalPages,
     s.searchLoading,
     s.useFetchMCPPluginList,
     s.loadMoreMCPPlugins,
@@ -70,10 +73,19 @@ export const CommunityList = memo(() => {
 
     if (allItems.length === 0) return <Empty search={hasSearchKeywords} />;
 
+    // Check if we've reached the end of the list
+    const hasReachedEnd = totalPages !== undefined && currentPage >= totalPages;
+
+    const renderFooter = () => {
+      if (isLoading) return <VirtuosoLoading />;
+      if (hasReachedEnd) return <WantMoreSkills />;
+      return <div style={{ height: 16 }} />;
+    };
+
     return (
       <VirtuosoGrid
         components={{
-          Footer: isLoading ? VirtuosoLoading : () => <div style={{ height: 16 }} />,
+          Footer: renderFooter,
         }}
         data={allItems}
         endReached={loadMoreMCPPlugins}

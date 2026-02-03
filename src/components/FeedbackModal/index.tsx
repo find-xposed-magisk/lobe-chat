@@ -1,19 +1,24 @@
 'use client';
 
-import { App, Form, Input, Upload } from 'antd';
+import { MarketSDK } from '@lobehub/market-sdk';
 import { Button, Flexbox, Icon, Modal } from '@lobehub/ui';
+import { App, Form, Input, Upload } from 'antd';
 import { ImagePlus, Send } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-import { MarketSDK } from '@lobehub/market-sdk';
 
 import TextArea from '@/components/TextArea';
 import { useFileStore } from '@/store/file';
 import { userProfileSelectors } from '@/store/user/selectors';
 import { useUserStore } from '@/store/user/store';
 
+interface FeedbackInitialValues {
+  message?: string;
+  title?: string;
+}
+
 interface FeedbackModalProps {
+  initialValues?: FeedbackInitialValues;
   onClose: () => void;
   open: boolean;
 }
@@ -23,7 +28,7 @@ interface FormValues {
   title: string;
 }
 
-const FeedbackModal = memo<FeedbackModalProps>(({ onClose, open }) => {
+const FeedbackModal = memo<FeedbackModalProps>(({ initialValues, onClose, open }) => {
   const { t } = useTranslation('common');
   const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
@@ -118,7 +123,12 @@ const FeedbackModal = memo<FeedbackModalProps>(({ onClose, open }) => {
       footer={
         <Flexbox gap={8} horizontal justify="flex-end">
           <Button onClick={handleCancel}>{t('cancel')}</Button>
-          <Button icon={<Icon icon={Send} />} loading={loading} onClick={handleSubmit} type="primary">
+          <Button
+            icon={<Icon icon={Send} />}
+            loading={loading}
+            onClick={handleSubmit}
+            type="primary"
+          >
             {t('feedback.submit')}
           </Button>
         </Flexbox>
@@ -128,7 +138,7 @@ const FeedbackModal = memo<FeedbackModalProps>(({ onClose, open }) => {
       title={t('feedback.title')}
       width={600}
     >
-      <Form form={form} layout="vertical">
+      <Form form={form} initialValues={initialValues} layout="vertical">
         <Form.Item
           label={t('feedback.fields.title.label')}
           name="title"
