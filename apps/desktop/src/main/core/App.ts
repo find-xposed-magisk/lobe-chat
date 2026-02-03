@@ -11,6 +11,11 @@ import { isDev } from '@/const/env';
 import { ELECTRON_BE_PROTOCOL_SCHEME } from '@/const/protocol';
 import { IControlModule } from '@/controllers';
 import AuthCtr from '@/controllers/AuthCtr';
+import {
+  astSearchDetectors,
+  contentSearchDetectors,
+  fileSearchDetectors,
+} from '@/modules/toolDetectors';
 import { IServiceModule } from '@/services';
 import { createLogger } from '@/utils/logger';
 
@@ -21,6 +26,7 @@ import { ProtocolManager } from './infrastructure/ProtocolManager';
 import { RendererUrlManager } from './infrastructure/RendererUrlManager';
 import { StaticFileServerManager } from './infrastructure/StaticFileServerManager';
 import { StoreManager } from './infrastructure/StoreManager';
+import { ToolDetectorManager } from './infrastructure/ToolDetectorManager';
 import { UpdaterManager } from './infrastructure/UpdaterManager';
 import { MenuManager } from './ui/MenuManager';
 import { ShortcutManager } from './ui/ShortcutManager';
@@ -47,6 +53,7 @@ export class App {
   staticFileServerManager: StaticFileServerManager;
   protocolManager: ProtocolManager;
   rendererUrlManager: RendererUrlManager;
+  toolDetectorManager: ToolDetectorManager;
   chromeFlags: string[] = ['OverlayScrollbar', 'FluentOverlayScrollbar', 'FluentScrollbar'];
 
   /**
@@ -120,6 +127,10 @@ export class App {
     this.trayManager = new TrayManager(this);
     this.staticFileServerManager = new StaticFileServerManager(this);
     this.protocolManager = new ProtocolManager(this);
+    this.toolDetectorManager = new ToolDetectorManager(this);
+
+    // Register built-in tool detectors
+    this.registerBuiltinToolDetectors();
 
     // Configure renderer loading strategy (dev server vs static export)
     // should register before app ready
@@ -157,6 +168,32 @@ export class App {
         `Theme mode initialized to: ${themeMode} (themeSource: ${nativeTheme.themeSource})`,
       );
     }
+  }
+
+  /**
+   * Register built-in tool detectors for content search and file search
+   */
+  private registerBuiltinToolDetectors() {
+    logger.debug('Registering built-in tool detectors');
+
+    // Register content search tools (rg, ag, grep)
+    for (const detector of contentSearchDetectors) {
+      this.toolDetectorManager.register(detector, 'content-search');
+    }
+
+    // Register AST-based code search tools (ast-grep)
+    for (const detector of astSearchDetectors) {
+      this.toolDetectorManager.register(detector, 'ast-search');
+    }
+
+    // Register file search tools (mdfind, fd, find)
+    for (const detector of fileSearchDetectors) {
+      this.toolDetectorManager.register(detector, 'file-search');
+    }
+
+    logger.info(
+      `Registered ${this.toolDetectorManager.getRegisteredTools().length} tool detectors`,
+    );
   }
 
   bootstrap = async () => {

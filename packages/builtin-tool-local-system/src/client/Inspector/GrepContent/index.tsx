@@ -38,6 +38,7 @@ export const GrepContentInspector = memo<
   // Check result count
   const resultCount = pluginState?.result?.total_matches ?? 0;
   const hasResults = resultCount > 0;
+  const engine = pluginState?.result?.engine;
 
   return (
     <div className={cx(inspectorTextStyles.root, isLoading && shinyTextStyles.shinyText)}>
@@ -57,6 +58,16 @@ export const GrepContentInspector = memo<
             ({t('builtins.lobe-local-system.inspector.noResults')})
           </Text>
         ))}
+      {!isLoading && engine && (
+        <Text
+          as={'span'}
+          color={cssVar.colorTextDescription}
+          fontSize={12}
+          style={{ marginInlineStart: 4 }}
+        >
+          [{engine}]
+        </Text>
+      )}
     </div>
   );
 });

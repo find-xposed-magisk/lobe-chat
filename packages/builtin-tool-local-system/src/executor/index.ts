@@ -168,7 +168,9 @@ class LocalSystemExecutor extends BaseExecutor<typeof LocalSystemApiEnum> {
     try {
       const result: LocalFileItem[] = await localFileService.searchLocalFiles(params);
 
-      const state: LocalFileSearchState = { searchResults: result };
+      // Extract engine from first result (all results use same engine)
+      const engine = result[0]?.engine;
+      const state: LocalFileSearchState = { engine, searchResults: result };
 
       const content = formatFileSearchResults(result);
 
@@ -428,7 +430,7 @@ class LocalSystemExecutor extends BaseExecutor<typeof LocalSystemApiEnum> {
             matches: result.matches,
             totalMatches: result.total_matches,
           })
-        : 'Search failed';
+        : `Search failed: ${result.error || 'Unknown error'}`;
 
       const state: GrepContentState = { message: content.split('\n')[0], result };
 
@@ -455,7 +457,7 @@ class LocalSystemExecutor extends BaseExecutor<typeof LocalSystemApiEnum> {
             files: result.files,
             totalFiles: result.total_files,
           })
-        : 'Glob search failed';
+        : `Glob search failed: ${result.error || 'Unknown error'}`;
 
       const state: GlobFilesState = { message: content.split('\n')[0], result };
 

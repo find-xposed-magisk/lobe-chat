@@ -42,6 +42,8 @@ export interface FileResult {
 }
 
 export interface LocalFileSearchState {
+  /** Search engine used (e.g., 'mdfind', 'fd', 'find', 'fast-glob') */
+  engine?: string;
   searchResults: LocalFileItem[];
 }
 

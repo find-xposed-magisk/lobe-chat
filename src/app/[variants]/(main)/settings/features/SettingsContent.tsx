@@ -1,12 +1,12 @@
 'use client';
 
 import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
-import dynamic from '@/libs/next/dynamic';
 import { Fragment } from 'react';
 
 import Loading from '@/components/Loading/BrandTextLoading';
 import NavHeader from '@/features/NavHeader';
 import SettingContainer from '@/features/Setting/SettingContainer';
+import dynamic from '@/libs/next/dynamic';
 import { SettingsTabs } from '@/store/global/initialState';
 
 const componentMap = {
@@ -36,6 +36,9 @@ const componentMap = {
   }),
   [SettingsTabs.Proxy]: dynamic(() => import('../proxy'), {
     loading: () => <Loading debugId="Settings > Proxy" />,
+  }),
+  [SettingsTabs.SystemTools]: dynamic(() => import('../system-tools'), {
+    loading: () => <Loading debugId="Settings > SystemTools" />,
   }),
   [SettingsTabs.Storage]: dynamic(() => import('../storage'), {
     loading: () => <Loading debugId="Settings > Storage" />,

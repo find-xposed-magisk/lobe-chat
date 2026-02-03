@@ -21,6 +21,7 @@ import {
   PaletteIcon,
   PieChart,
   Sparkles,
+  TerminalSquare,
   UserCircle,
 } from 'lucide-react';
 import { useMemo } from 'react';
@@ -210,6 +211,11 @@ export const useCategory = () => {
         icon: EthernetPort,
         key: SettingsTabs.Proxy,
         label: t('tab.proxy'),
+      },
+      isDesktop && {
+        icon: TerminalSquare,
+        key: SettingsTabs.SystemTools,
+        label: t('tab.systemTools'),
       },
       {
         icon: Database,

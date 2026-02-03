@@ -38,6 +38,7 @@ export const SearchLocalFilesInspector = memo<
   // Check if search returned results
   const resultCount = pluginState?.searchResults?.length ?? 0;
   const hasResults = resultCount > 0;
+  const engine = pluginState?.engine;
 
   return (
     <div className={cx(inspectorTextStyles.root, isLoading && shinyTextStyles.shinyText)}>
@@ -58,6 +59,16 @@ export const SearchLocalFilesInspector = memo<
               ({t('builtins.lobe-local-system.inspector.noResults')})
             </Text>
           ))}
+        {!isLoading && engine && (
+          <Text
+            as={'span'}
+            color={cssVar.colorTextDescription}
+            fontSize={12}
+            style={{ marginInlineStart: 4 }}
+          >
+            [{engine}]
+          </Text>
+        )}
       </span>
     </div>
   );

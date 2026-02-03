@@ -3,6 +3,8 @@
 export interface LocalFileItem {
   contentType?: string;
   createdTime: Date;
+  /** Search engine used to find this file (e.g., 'mdfind', 'fd', 'find', 'fast-glob') */
+  engine?: string;
   isDirectory: boolean;
   lastAccessTime: Date;
   // Spotlight specific metadata
@@ -220,10 +222,15 @@ export interface GrepContentParams {
   'output_mode'?: 'content' | 'files_with_matches' | 'count';
   'path'?: string;
   'pattern': string;
+  /** Preferred search tool: 'rg' | 'ag' | 'grep' */
+  'tool'?: 'rg' | 'ag' | 'grep';
   'type'?: string;
 }
 
 export interface GrepContentResult {
+  /** Search engine used: 'rg' | 'ag' | 'grep' | 'nodejs' */
+  engine?: string;
+  error?: string;
   matches: string[];
   success: boolean;
   total_matches: number;
@@ -236,6 +243,9 @@ export interface GlobFilesParams {
 }
 
 export interface GlobFilesResult {
+  /** Search engine used: 'fd' | 'find' | 'fast-glob' */
+  engine?: string;
+  error?: string;
   files: string[];
   success: boolean;
   total_files: number;
