@@ -150,7 +150,7 @@ const ChatAppearance = memo(() => {
         title={t('settingChatAppearance.highlighterTheme.title')}
         variant={'filled'}
       >
-        <HighlighterPreview theme={general.highlighterTheme} />
+        <HighlighterPreview key={general.highlighterTheme} theme={general.highlighterTheme} />
       </FormGroup>
 
       <FormGroup
@@ -176,7 +176,7 @@ const ChatAppearance = memo(() => {
         title={t('settingChatAppearance.mermaidTheme.title')}
         variant={'filled'}
       >
-        <MermaidPreview theme={general.mermaidTheme} />
+        <MermaidPreview key={general.mermaidTheme} theme={general.mermaidTheme} />
       </FormGroup>
     </>
   );
