@@ -1,5 +1,10 @@
 [
   {
+    "children": {},
+    "date": "2026-02-04",
+    "version": "2.1.17"
+  },
+  {
     "children": {
       "fixes": ["Add the preview publish to market button preview check."]
     },
