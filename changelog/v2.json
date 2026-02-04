@@ -1,5 +1,12 @@
 [
   {
+    "children": {
+      "fixes": ["Fix cannot uncompressed messages."]
+    },
+    "date": "2026-02-04",
+    "version": "2.1.14"
+  },
+  {
     "children": {},
     "date": "2026-02-03",
     "version": "2.1.13"
