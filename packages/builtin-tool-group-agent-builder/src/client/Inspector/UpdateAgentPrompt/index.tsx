@@ -32,6 +32,8 @@ const styles = createStaticStyles(({ css, cssVar: cv }) => ({
     display: flex;
     gap: 6px;
     align-items: center;
+
+    min-width: 0;
   `,
 }));
 
@@ -88,7 +90,14 @@ export const UpdateAgentPromptInspector = memo<
       {agent && !isSupervisor && (
         <>
           <Avatar avatar={agent.avatar ?? undefined} size={18} title={agent.title ?? undefined} />
-          <span className={styles.agentName}>{agent.title}</span>
+          <Text
+            className={styles.agentName}
+            ellipsis={{
+              tooltipWhenOverflow: true,
+            }}
+          >
+            {agent.title}
+          </Text>
         </>
       )}
       {/* Show length diff when completed */}
@@ -98,6 +107,7 @@ export const UpdateAgentPromptInspector = memo<
           code
           color={lengthDiff >= 0 ? cssVar.colorSuccess : cssVar.colorError}
           fontSize={12}
+          noWrap
         >
           {lengthDiff >= 0 ? '+' : ''}
           {lengthDiff}
