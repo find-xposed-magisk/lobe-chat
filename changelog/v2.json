@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Add the preview publish to market button preview check."]
+    },
+    "date": "2026-02-04",
+    "version": "2.1.16"
+  },
+  {
+    "children": {
       "fixes": ["Fixed the agents list the show updateAt time error."]
     },
     "date": "2026-02-04",
