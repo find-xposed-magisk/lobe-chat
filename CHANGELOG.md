@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.1.17](https://github.com/lobehub/lobe-chat/compare/v2.1.16...v2.1.17)
+
+<sup>Released on **2026-02-04**</sup>
+
+#### ♻ Code Refactoring
+
+- **model-runtime**: Extract Anthropic factory and convert Moonshot to RouterRuntime.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### Code refactoring
+
+- **model-runtime**: Extract Anthropic factory and convert Moonshot to RouterRuntime, closes [#12109](https://github.com/lobehub/lobe-chat/issues/12109) ([71064fd](https://github.com/lobehub/lobe-chat/commit/71064fd))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.1.16](https://github.com/lobehub/lobe-chat/compare/v2.1.15...v2.1.16)
 
 <sup>Released on **2026-02-04**</sup>
