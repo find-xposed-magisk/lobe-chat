@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Fixed the agents list the show updateAt time error."]
+    },
+    "date": "2026-02-04",
+    "version": "2.1.15"
+  },
+  {
+    "children": {
       "fixes": ["Fix cannot uncompressed messages."]
     },
     "date": "2026-02-04",
