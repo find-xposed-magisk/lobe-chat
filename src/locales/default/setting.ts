@@ -417,6 +417,8 @@ export default {
   'settingChat.enableAutoCreateTopic.desc':
     'Whether to automatically create a topic during the conversation, only effective in temporary topics',
   'settingChat.enableAutoCreateTopic.title': 'Auto Create Topic',
+  'settingChat.enableAutoScrollOnStreaming.desc': 'Override global setting for this assistant',
+  'settingChat.enableAutoScrollOnStreaming.title': 'Auto-scroll During AI Response',
   'settingChat.enableCompressHistory.title': 'Enable Automatic Summary of Chat History',
   'settingChat.enableHistoryCount.alias': 'Unlimited',
   'settingChat.enableHistoryCount.limited': 'Include only {{number}} conversation messages',
@@ -434,6 +436,9 @@ export default {
   'settingChat.inputTemplate.title': 'User Input Preprocessing',
   'settingChat.submit': 'Update Chat Preferences',
   'settingChat.title': 'Chat Settings',
+  'settingChatAppearance.autoScrollOnStreaming.desc':
+    'Automatically scroll to bottom when AI is generating response',
+  'settingChatAppearance.autoScrollOnStreaming.title': 'Auto-scroll During AI Response',
   'settingChatAppearance.fontSize.desc': 'Font size of messages',
   'settingChatAppearance.fontSize.marks.normal': 'Standard',
   'settingChatAppearance.fontSize.title': 'Font Size',
@@ -654,7 +659,8 @@ When I am ___, I need ___
 
 ---
 💡 Tip: The more specific your description, the better we can meet your needs`,
-  'skillStore.wantMore.feedback.title': '[Skill Request] Summarize the skill you need in one sentence',
+  'skillStore.wantMore.feedback.title':
+    '[Skill Request] Summarize the skill you need in one sentence',
   'skillStore.wantMore.reachedEnd': "You've reached the end. Can't find what you need?",
   'startConversation': 'Start Conversation',
   'storage.actions.export.button': 'Export',

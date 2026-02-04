@@ -60,6 +60,15 @@ const AgentChat = memo(() => {
         name: 'enableCompressHistory',
         valuePropName: 'checked',
       },
+      {
+        children: <Switch />,
+        desc: t('settingChat.enableAutoScrollOnStreaming.desc'),
+        label: t('settingChat.enableAutoScrollOnStreaming.title'),
+        layout: 'horizontal',
+        minWidth: undefined,
+        name: 'enableAutoScrollOnStreaming',
+        valuePropName: 'checked',
+      },
     ],
     title: t('settingChat.title'),
   };

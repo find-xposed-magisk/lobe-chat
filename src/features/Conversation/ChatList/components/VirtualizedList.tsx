@@ -8,10 +8,8 @@ import WideScreenContainer from '../../../WideScreenContainer';
 import { dataSelectors, useConversationStore, virtuaListSelectors } from '../../store';
 import { useScrollToUserMessage } from '../hooks/useScrollToUserMessage';
 import AutoScroll from './AutoScroll';
-import DebugInspector, {
-  AT_BOTTOM_THRESHOLD,
-  OPEN_DEV_INSPECTOR,
-} from './AutoScroll/DebugInspector';
+import DebugInspector, { OPEN_DEV_INSPECTOR } from './AutoScroll/DebugInspector';
+import { AT_BOTTOM_THRESHOLD } from './AutoScroll/const';
 import BackBottom from './BackBottom';
 
 interface VirtualizedListProps {

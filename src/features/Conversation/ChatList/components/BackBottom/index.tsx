@@ -4,7 +4,8 @@ import { ArrowDownIcon } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { AT_BOTTOM_THRESHOLD, OPEN_DEV_INSPECTOR } from '../AutoScroll/DebugInspector';
+import { OPEN_DEV_INSPECTOR } from '../AutoScroll/DebugInspector';
+import { AT_BOTTOM_THRESHOLD } from '../AutoScroll/const';
 import { styles } from './style';
 
 export interface BackBottomProps {
