@@ -112,9 +112,6 @@ const SkillInstallBanner = memo(() => {
     createSkillStoreModal();
   }, []);
 
-  // Don't show banner if no skills are enabled
-  if (!isLobehubSkillEnabled && !isKlavisEnabled) return null;
-
   return (
     <div className={styles.banner} onClick={handleOpenStore}>
       <Flexbox align="center" gap={8} horizontal>

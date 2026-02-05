@@ -1,4 +1,5 @@
 import { Flexbox } from '@lobehub/ui';
+import { AnimatePresence, m as motion } from 'motion/react';
 import { useMemo } from 'react';
 
 import DragUploadZone, { useUploadFiles } from '@/components/DragUploadZone';
@@ -7,8 +8,11 @@ import { useAgentStore } from '@/store/agent';
 import { agentByIdSelectors } from '@/store/agent/selectors';
 import { useChatStore } from '@/store/chat';
 import { useHomeStore } from '@/store/home';
+import { serverConfigSelectors, useServerConfigStore } from '@/store/serverConfig';
 
-import ModeHeader from './ModeHeader';
+import CommunityRecommend from '../CommunityRecommend';
+import SuggestQuestions from '../SuggestQuestions';
+import ModeTag from './ModeTag';
 import SkillInstallBanner from './SkillInstallBanner';
 import StarterList from './StarterList';
 import { useSend } from './useSend';
@@ -18,6 +22,9 @@ const leftActions: ActionKeys[] = ['model', 'search', 'fileUpload', 'tools'];
 const InputArea = () => {
   const { loading, send, inboxAgentId } = useSend();
   const inputActiveMode = useHomeStore((s) => s.inputActiveMode);
+  const isLobehubSkillEnabled = useServerConfigStore(serverConfigSelectors.enableLobehubSkill);
+  const isKlavisEnabled = useServerConfigStore(serverConfigSelectors.enableKlavis);
+  const showSkillBanner = isLobehubSkillEnabled || isKlavisEnabled;
 
   // Get agent's model info for vision support check
   const model = useAgentStore((s) => agentByIdSelectors.getAgentModelById(inboxAgentId)(s));
@@ -40,10 +47,26 @@ const InputArea = () => {
     [],
   );
 
+  const showSuggestQuestions =
+    inputActiveMode && ['agent', 'group', 'write'].includes(inputActiveMode);
+
+  const extraActionItems = useMemo(
+    () =>
+      inputActiveMode
+        ? [
+            {
+              children: <ModeTag />,
+              key: 'mode-tag',
+            },
+          ]
+        : [],
+    [inputActiveMode],
+  );
+
   return (
     <Flexbox gap={16} style={{ marginBottom: 16 }}>
-      <Flexbox style={{ paddingBottom: 32, position: 'relative' }}>
-        <SkillInstallBanner />
+      <Flexbox style={{ paddingBottom: showSkillBanner ? 32 : 0, position: 'relative' }}>
+        {showSkillBanner && <SkillInstallBanner />}
         <DragUploadZone
           onUploadFiles={handleUploadFiles}
           style={{ position: 'relative', zIndex: 1 }}
@@ -69,14 +92,36 @@ const InputArea = () => {
           >
             <DesktopChatInput
               dropdownPlacement="bottomLeft"
-              extenHeaderContent={inputActiveMode ? <ModeHeader /> : undefined}
+              extraActionItems={extraActionItems}
               inputContainerProps={inputContainerProps}
             />
           </ChatInputProvider>
         </DragUploadZone>
       </Flexbox>
 
-      <StarterList />
+      {/* Keep StarterList mounted to prevent useInitBuiltinAgent hooks from re-running */}
+      <div style={{ display: showSuggestQuestions ? 'none' : undefined }}>
+        <StarterList />
+      </div>
+      <AnimatePresence mode="popLayout">
+        {showSuggestQuestions && (
+          <motion.div
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: 8 }}
+            initial={{ opacity: 0, scale: 0.98, y: 8 }}
+            key={inputActiveMode}
+            transition={{
+              duration: 0.2,
+              ease: [0.4, 0, 0.2, 1],
+            }}
+          >
+            <Flexbox gap={24}>
+              <SuggestQuestions mode={inputActiveMode} />
+              <CommunityRecommend mode={inputActiveMode} />
+            </Flexbox>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Flexbox>
   );
 };

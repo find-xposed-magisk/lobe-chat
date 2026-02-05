@@ -56,7 +56,7 @@ interface DesktopChatInputProps extends ActionToolbarProps {
 }
 
 const DesktopChatInput = memo<DesktopChatInputProps>(
-  ({ showFootnote, inputContainerProps, extenHeaderContent, dropdownPlacement }) => {
+  ({ showFootnote, inputContainerProps, extenHeaderContent, extraActionItems, dropdownPlacement }) => {
     const { t } = useTranslation('chat');
     const [chatInputHeight, updateSystemStatus] = useGlobalStore((s) => [
       systemStatusSelectors.chatInputHeight(s),
@@ -93,7 +93,12 @@ const DesktopChatInput = memo<DesktopChatInputProps>(
           defaultHeight={chatInputHeight || 32}
           footer={
             <ChatInputActionBar
-              left={<ActionBar dropdownPlacement={dropdownPlacement} />}
+              left={
+                <ActionBar
+                  dropdownPlacement={dropdownPlacement}
+                  extraActionItems={extraActionItems}
+                />
+              }
               right={<SendArea />}
               style={{ paddingRight: 8 }}
             />

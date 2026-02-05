@@ -42,9 +42,10 @@ const mapActionsToItems = (keys: ActionKeys[]): ChatInputActionsProps['items'] =
 
 export interface ActionToolbarProps {
   dropdownPlacement?: DropdownPlacement;
+  extraActionItems?: ChatInputActionsProps['items'];
 }
 
-const ActionToolbar = memo<ActionToolbarProps>(({ dropdownPlacement }) => {
+const ActionToolbar = memo<ActionToolbarProps>(({ dropdownPlacement, extraActionItems = [] }) => {
   const [expandInputActionbar, toggleExpandInputActionbar] = useGlobalStore((s) => [
     systemStatusSelectors.expandInputActionbar(s),
     s.toggleExpandInputActionbar,
@@ -57,7 +58,10 @@ const ActionToolbar = memo<ActionToolbarProps>(({ dropdownPlacement }) => {
 
   const mobile = useChatInputStore((s) => s.mobile);
 
-  const items = useMemo(() => mapActionsToItems(leftActions), [leftActions]);
+  const items = useMemo(
+    () => (mapActionsToItems(leftActions) ?? []).concat(extraActionItems),
+    [extraActionItems, leftActions],
+  );
 
   const contextValue = useMemo(() => ({ dropdownPlacement }), [dropdownPlacement]);
 

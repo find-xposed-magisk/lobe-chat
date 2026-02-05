@@ -4,6 +4,7 @@ import { type ReactNode, Suspense, memo, useState } from 'react';
 
 interface GroupBlockProps extends Omit<FlexboxProps, 'title'> {
   action?: ReactNode;
+  actionAlwaysVisible?: boolean;
   icon?: IconProps['icon'];
   title?: ReactNode;
 }
@@ -18,44 +19,49 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
   `,
 }));
 
-const GroupBlock = memo<GroupBlockProps>(({ title, action, children, icon, ...rest }) => {
-  const [isHovered, setIsHovered] = useState(false);
+const GroupBlock = memo<GroupBlockProps>(
+  ({ title, action, actionAlwaysVisible, children, icon, ...rest }) => {
+    const [isHovered, setIsHovered] = useState(false);
 
-  return (
-    <Flexbox
-      gap={16}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      {...rest}
-    >
-      <Flexbox align={'center'} horizontal justify={'space-between'}>
-        <Flexbox
-          align={'center'}
-          flex={1}
-          gap={8}
-          horizontal
-          justify={'flex-start'}
-          style={{ overflow: 'hidden' }}
-        >
-          <Icon color={cssVar.colorTextDescription} icon={icon} size={18} />
-          <Text color={cssVar.colorTextSecondary} ellipsis>
-            {title}
-          </Text>
+    return (
+      <Flexbox
+        gap={16}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        {...rest}
+      >
+        <Flexbox align={'center'} horizontal justify={'space-between'}>
+          <Flexbox
+            align={'center'}
+            flex={1}
+            gap={8}
+            horizontal
+            justify={'flex-start'}
+            style={{ overflow: 'hidden' }}
+          >
+            <Icon color={cssVar.colorTextDescription} icon={icon} size={18} />
+            <Text color={cssVar.colorTextSecondary} ellipsis>
+              {title}
+            </Text>
+          </Flexbox>
+          <Flexbox
+            align={'center'}
+            className={cx(
+              styles.action,
+              (isHovered || actionAlwaysVisible) && styles.actionVisible,
+            )}
+            flex={'none'}
+            gap={2}
+            horizontal
+            justify={'flex-end'}
+          >
+            {action}
+          </Flexbox>
         </Flexbox>
-        <Flexbox
-          align={'center'}
-          className={cx(styles.action, isHovered && styles.actionVisible)}
-          flex={'none'}
-          gap={2}
-          horizontal
-          justify={'flex-end'}
-        >
-          {action}
-        </Flexbox>
+        <Suspense fallback={'loading'}>{children}</Suspense>
       </Flexbox>
-      <Suspense fallback={'loading'}>{children}</Suspense>
-    </Flexbox>
-  );
-});
+    );
+  },
+);
 
 export default GroupBlock;
