@@ -3,7 +3,7 @@ import { ModelProvider } from 'model-bank';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { testProvider } from '../../providerTestUtils';
-import type {TogetherAIModel } from './index';
+import type { TogetherAIModel } from './index';
 import { LobeTogetherAI, params } from './index';
 
 const provider = ModelProvider.TogetherAI;

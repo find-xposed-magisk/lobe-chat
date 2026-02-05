@@ -1,10 +1,7 @@
 import { ModelProvider } from 'model-bank';
 
-import type {
-  OpenAICompatibleFactoryOptions} from '../../core/openaiCompatibleFactory';
-import {
-  createOpenAICompatibleRuntime
-} from '../../core/openaiCompatibleFactory';
+import type { OpenAICompatibleFactoryOptions } from '../../core/openaiCompatibleFactory';
+import { createOpenAICompatibleRuntime } from '../../core/openaiCompatibleFactory';
 import { processMultiProviderModelList } from '../../utils/modelParse';
 
 const THINKING_MODELS = new Set(['DeepSeek-V3-1']);
@@ -44,7 +41,7 @@ export const params = {
       const rawList: any[] = modelsPage.data || [];
 
       // Remove `created` field from each model item
-       
+
       const modelList: AkashChatModelCard[] = rawList.map(({ created: _, ...rest }) => rest);
 
       return await processMultiProviderModelList(modelList, 'akashchat');

@@ -18,15 +18,12 @@ import type {
   ThreadStatus,
   UIChatMessage,
   UpdateMessageParams,
-  UpdateMessageRAGParams} from '@lobechat/types';
-import {
-  MessageGroupType,
-  ThreadType
+  UpdateMessageRAGParams,
 } from '@lobechat/types';
+import { MessageGroupType, ThreadType } from '@lobechat/types';
 import type { HeatmapsProps } from '@lobehub/charts';
 import dayjs from 'dayjs';
-import type {
-  SQL} from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import {
   and,
   asc,
@@ -251,7 +248,6 @@ export class MessageModel {
         ttsContentMd5: messageTTS.contentMd5,
         ttsFile: messageTTS.fileId,
         ttsVoice: messageTTS.voice,
-         
       })
       .from(messages)
       .where(
@@ -480,7 +476,7 @@ export class MessageModel {
           },
           fileList: fileList
             .filter((relation) => relation.messageId === item.id)
-             
+
             .map<ChatFileItem>(({ id, url, size, fileType, name }) => ({
               content: documentsMap[id],
               fileType: fileType!,
@@ -491,7 +487,7 @@ export class MessageModel {
             })),
           imageList: imageList
             .filter((relation) => relation.messageId === item.id)
-             
+
             .map<ChatImageItem>(({ id, url, name }) => ({ alt: name!, id, url })),
 
           model,
@@ -504,7 +500,7 @@ export class MessageModel {
           taskDetail: item.role === 'task' ? threadMap.get(item.id as string) : undefined,
           videoList: videoList
             .filter((relation) => relation.messageId === item.id)
-             
+
             .map<ChatVideoItem>(({ id, url, name }) => ({ alt: name!, id, url })),
         } as unknown as UIChatMessage;
       },
@@ -591,7 +587,6 @@ export class MessageModel {
         ttsContentMd5: messageTTS.contentMd5,
         ttsFile: messageTTS.fileId,
         ttsVoice: messageTTS.voice,
-         
       })
       .from(messages)
       .where(and(eq(messages.userId, this.userId), inArray(messages.id, messageIds)))
@@ -661,7 +656,10 @@ export class MessageModel {
             })
             .from(threads)
             .where(
-              and(eq(threads.userId, this.userId), inArray(threads.sourceMessageId, taskMessageIds)),
+              and(
+                eq(threads.userId, this.userId),
+                inArray(threads.sourceMessageId, taskMessageIds),
+              ),
             )
         : Promise.resolve([]),
     ]);

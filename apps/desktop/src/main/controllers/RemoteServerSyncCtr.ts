@@ -8,6 +8,7 @@ import https from 'node:https';
 import { URL } from 'node:url';
 
 import { defaultProxySettings } from '@/const/store';
+import { appendVercelCookie } from '@/utils/http-headers';
 import { createLogger } from '@/utils/logger';
 
 import RemoteServerConfigCtr from './RemoteServerConfigCtr';
@@ -189,6 +190,7 @@ export default class RemoteServerSyncCtr extends ControllerModule {
     // Prepare headers, cloning and adding Oidc-Auth
     const requestHeaders: OutgoingHttpHeaders = { ...headers }; // Use OutgoingHttpHeaders
     requestHeaders['Oidc-Auth'] = accessToken;
+    appendVercelCookie(requestHeaders);
 
     // Let node handle Host, Content-Length etc. Remove potentially problematic headers
     delete requestHeaders['host'];

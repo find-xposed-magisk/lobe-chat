@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type {
-  ModelParamsSchema,RuntimeImageGenParams} from './index';
-import {
-  extractDefaultValues,
-  ModelParamsMetaSchema,
-  validateModelParamsSchema
-} from './index';
+import type { ModelParamsSchema, RuntimeImageGenParams } from './index';
+import { extractDefaultValues, ModelParamsMetaSchema, validateModelParamsSchema } from './index';
 
 describe('meta-schema', () => {
   describe('ModelParamsMetaSchema', () => {

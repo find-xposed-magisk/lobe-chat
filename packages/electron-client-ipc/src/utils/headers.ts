@@ -3,7 +3,7 @@
  * @param headersInit - Headers initialization object
  * @returns Converted record object
  */
- 
+
 export const headersToRecord = (headersInit?: HeadersInit): Record<string, string> => {
   const record: Record<string, string> = {};
   if (!headersInit) {

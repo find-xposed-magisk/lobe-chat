@@ -1,4 +1,3 @@
- 
 /**
  * Lobe Group Management Executor
  *
@@ -15,13 +14,14 @@ import type {
   InterruptParams,
   SpeakParams,
   SummarizeParams,
-  VoteParams} from '@lobechat/builtin-tool-group-management';
+  VoteParams,
+} from '@lobechat/builtin-tool-group-management';
 import {
   GroupManagementApiName,
-  GroupManagementIdentifier
+  GroupManagementIdentifier,
 } from '@lobechat/builtin-tool-group-management';
-import type {BuiltinToolContext, BuiltinToolResult} from '@lobechat/types';
-import { BaseExecutor   } from '@lobechat/types';
+import type { BuiltinToolContext, BuiltinToolResult } from '@lobechat/types';
+import { BaseExecutor } from '@lobechat/types';
 
 class GroupManagementExecutor extends BaseExecutor<typeof GroupManagementApiName> {
   readonly identifier = GroupManagementIdentifier;

@@ -11,7 +11,8 @@ import type {
   StreamContext,
   StreamProtocolChunk,
   StreamProtocolToolCallChunk,
-  StreamToolCallChunkData} from '../protocol';
+  StreamToolCallChunkData,
+} from '../protocol';
 import {
   convertIterableToStream,
   createCallbacksTransformer,
@@ -19,7 +20,7 @@ import {
   createSSEProtocolTransformer,
   createTokenSpeedCalculator,
   FIRST_CHUNK_ERROR_KEY,
-  generateToolCallId
+  generateToolCallId,
 } from '../protocol';
 
 /**
@@ -561,7 +562,6 @@ const transformOpenAIStream = (
       },
       type: errorName,
     } as ChatMessageError;
-     
 
     return { data: errorData, id: chunk.id, type: 'error' };
   }

@@ -1,10 +1,5 @@
-import type {
-  GenerateContentConfig,
-  GoogleGenAI} from '@google/genai';
-import {
-  FunctionCallingConfigMode,
-  Type as SchemaType,
-} from '@google/genai';
+import type { GenerateContentConfig, GoogleGenAI } from '@google/genai';
+import { FunctionCallingConfigMode, Type as SchemaType } from '@google/genai';
 import Debug from 'debug';
 
 import { buildGoogleTool } from '../../core/contextBuilders/google';

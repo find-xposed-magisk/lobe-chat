@@ -5,8 +5,7 @@ import type { PartialDeep } from 'type-fest';
 
 import { merge } from '@/utils/merge';
 
-import type {
-  AgentItem} from '../schemas';
+import type { AgentItem } from '../schemas';
 import {
   agents,
   agentsFiles,
@@ -427,7 +426,7 @@ export class AgentModel {
     }
 
     // Build data to be merged, excluding params (processed separately)
-     
+
     const { params: _params, ...restData } = data;
     const mergedValue = merge(agent, restData);
 
@@ -448,7 +447,7 @@ export class AgentModel {
     }
 
     // Remove timestamp fields to let Drizzle's $onUpdate handle them automatically
-     
+
     const { updatedAt: _, accessedAt: __, createdAt: ___, ...updateData } = mergedValue;
 
     return this.db

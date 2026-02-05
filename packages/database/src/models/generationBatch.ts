@@ -1,4 +1,9 @@
-import type { Generation, GenerationAsset, GenerationBatch, GenerationConfig } from '@lobechat/types';
+import type {
+  Generation,
+  GenerationAsset,
+  GenerationBatch,
+  GenerationConfig,
+} from '@lobechat/types';
 import debug from 'debug';
 import { and, eq } from 'drizzle-orm';
 
@@ -7,10 +12,9 @@ import { FileService } from '@/server/services/file';
 import type {
   GenerationBatchItem,
   GenerationBatchWithGenerations,
-  NewGenerationBatch} from '../schemas/generation';
-import {
-  generationBatches
+  NewGenerationBatch,
 } from '../schemas/generation';
+import { generationBatches } from '../schemas/generation';
 import type { LobeChatDatabase } from '../type';
 import { GenerationModel } from './generation';
 

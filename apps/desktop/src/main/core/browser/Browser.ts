@@ -3,21 +3,15 @@ import { join } from 'node:path';
 
 import { APP_WINDOW_MIN_SIZE } from '@lobechat/desktop-bridge';
 import type { MainBroadcastEventKey, MainBroadcastParams } from '@lobechat/electron-client-ipc';
-import type {
-  BrowserWindowConstructorOptions} from 'electron';
-import {
-  BrowserWindow,
-  ipcMain,
-  screen,
-  session as electronSession,
-} from 'electron';
+import type { BrowserWindowConstructorOptions } from 'electron';
+import { BrowserWindow, ipcMain, screen, session as electronSession } from 'electron';
 
 import { preloadDir, resourcesDir } from '@/const/dir';
 import { isMac } from '@/const/env';
 import { ELECTRON_BE_PROTOCOL_SCHEME } from '@/const/protocol';
 import RemoteServerConfigCtr from '@/controllers/RemoteServerConfigCtr';
 import { backendProxyProtocolManager } from '@/core/infrastructure/BackendProxyProtocolManager';
-import { setResponseHeader } from '@/utils/http-headers';
+import { appendVercelCookie, setResponseHeader } from '@/utils/http-headers';
 import { createLogger } from '@/utils/logger';
 
 import type { App } from '../App';
@@ -139,6 +133,7 @@ export default class Browser {
         contextIsolation: true,
         preload: join(preloadDir, 'index.js'),
         sandbox: false,
+        webviewTag: true,
       },
       width: resolvedState.width,
       x: resolvedState.x,
@@ -480,6 +475,8 @@ export default class Browser {
         delete requestHeaders['Origin'];
         logger.debug(`[${this.identifier}] Removed Origin header for: ${details.url}`);
       }
+
+      appendVercelCookie(requestHeaders);
 
       callback({ requestHeaders });
     });

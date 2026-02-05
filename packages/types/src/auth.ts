@@ -47,4 +47,3 @@ export interface ClientSecretPayload {
 
   vertexAIRegion?: string;
 }
- 

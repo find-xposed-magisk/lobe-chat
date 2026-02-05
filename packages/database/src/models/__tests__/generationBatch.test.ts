@@ -5,14 +5,8 @@ import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getTestDB } from '../../core/getTestDB';
-import type {
-  NewGenerationBatch} from '../../schemas';
-import {
-  generationBatches,
-  generations,
-  generationTopics,
-  users,
-} from '../../schemas';
+import type { NewGenerationBatch } from '../../schemas';
+import { generationBatches, generations, generationTopics, users } from '../../schemas';
 import type { LobeChatDatabase } from '../../type';
 import { GenerationBatchModel } from '../generationBatch';
 

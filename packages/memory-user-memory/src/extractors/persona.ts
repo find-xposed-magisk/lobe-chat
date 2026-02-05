@@ -40,7 +40,6 @@ export class UserPersonaExtractor extends BaseMemoryExtractor<
     return undefined;
   }
 
-   
   protected getTools(_options: PersonaTemplateProps) {
     return [
       {

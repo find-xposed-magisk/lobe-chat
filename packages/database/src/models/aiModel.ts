@@ -3,12 +3,11 @@ import type {
   AiModelSortMap,
   AiProviderModelListItem,
   EnabledAiModel,
-  ToggleAiModelEnableParams} from 'model-bank';
-import {
-  AiModelSourceEnum
+  ToggleAiModelEnableParams,
 } from 'model-bank';
+import { AiModelSourceEnum } from 'model-bank';
 
-import type {AiModelSelectItem, NewAiModelItem } from '../schemas';
+import type { AiModelSelectItem, NewAiModelItem } from '../schemas';
 import { aiModels } from '../schemas';
 import type { LobeChatDatabase } from '../type';
 

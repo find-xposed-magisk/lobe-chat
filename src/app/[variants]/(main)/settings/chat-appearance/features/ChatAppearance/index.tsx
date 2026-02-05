@@ -5,6 +5,7 @@ import {
   FormGroup,
   highlighterThemes,
   Icon,
+  LobeSwitch as Switch,
   mermaidThemes,
   Segmented,
   Select,
@@ -74,6 +75,27 @@ const ChatAppearance = memo(() => {
         }
       >
         <ChatTransitionPreview key={general.transitionMode} mode={general.transitionMode} />
+      </FormGroup>
+
+      <FormGroup
+        active={false}
+        collapsible={false}
+        desc={t('settingChatAppearance.autoScrollOnStreaming.desc')}
+        extra={
+          <Flexbox align={'center'} gap={8} horizontal>
+            {loadingStates.enableAutoScrollOnStreaming && (
+              <Icon icon={Loader2Icon} size={16} spin style={{ opacity: 0.5 }} />
+            )}
+            <Switch
+              checked={general.enableAutoScrollOnStreaming ?? true}
+              onChange={(checked) => handleChange('enableAutoScrollOnStreaming', checked)}
+            />
+          </Flexbox>
+        }
+        title={t('settingChatAppearance.autoScrollOnStreaming.title')}
+        variant={'filled'}
+      >
+        {null}
       </FormGroup>
 
       <FormGroup

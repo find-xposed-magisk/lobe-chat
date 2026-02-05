@@ -11,13 +11,14 @@ import type {
   UserMemoryIdentityWithoutVectors,
   UserMemoryItemSimple,
   UserMemoryPreferenceWithoutVectors,
-  UserMemoryWithoutVectors} from '@lobechat/types';
+  UserMemoryWithoutVectors,
+} from '@lobechat/types';
 import {
   ActivityTypeEnum,
   IdentityTypeEnum,
   LayersEnum,
   MemorySourceType,
-  RelationshipEnum
+  RelationshipEnum,
 } from '@lobechat/types';
 import type { AnyColumn, SQL } from 'drizzle-orm';
 import {
@@ -43,14 +44,15 @@ import type {
   UserMemoryExperience,
   UserMemoryIdentity,
   UserMemoryItem,
-  UserMemoryPreference} from '../../schemas';
+  UserMemoryPreference,
+} from '../../schemas';
 import {
   userMemories,
   userMemoriesActivities,
   userMemoriesContexts,
   userMemoriesExperiences,
   userMemoriesIdentities,
-  userMemoriesPreferences
+  userMemoriesPreferences,
 } from '../../schemas';
 import type { LobeChatDatabase } from '../../type';
 import { selectNonVectorColumns } from '../../utils/columns';

@@ -91,7 +91,6 @@ export class DataExporterRepos {
 
   private removeUserId(data: any[]) {
     return data.map((item) => {
-       
       const { userId: _, ...rest } = item;
       return rest;
     });

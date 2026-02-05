@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { ModelProvider } from 'model-bank';
-import type { Mock} from 'vitest';
+import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as modelParseModule from '../../utils/modelParse';

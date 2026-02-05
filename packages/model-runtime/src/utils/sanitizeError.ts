@@ -40,7 +40,7 @@ export function sanitizeError(error: any): any {
     if (error.hasOwnProperty(key)) {
       const value = error[key];
       const lowerKey = key.toLowerCase();
-      
+
       // Skip sensitive fields entirely
       if (sensitiveFields.includes(lowerKey)) {
         continue;

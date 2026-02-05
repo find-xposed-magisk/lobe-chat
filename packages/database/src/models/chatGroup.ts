@@ -4,11 +4,9 @@ import type {
   ChatGroupAgentItem,
   ChatGroupItem,
   NewChatGroup,
-  NewChatGroupAgent} from '../schemas';
-import {
-  chatGroups,
-  chatGroupsAgents
+  NewChatGroupAgent,
 } from '../schemas';
+import { chatGroups, chatGroupsAgents } from '../schemas';
 import type { LobeChatDatabase } from '../type';
 
 export class ChatGroupModel {

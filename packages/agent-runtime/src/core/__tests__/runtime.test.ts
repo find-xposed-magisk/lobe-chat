@@ -10,7 +10,8 @@ import type {
   CostCalculationContext,
   CostLimit,
   RuntimeConfig,
-  Usage} from '../../types';
+  Usage,
+} from '../../types';
 import { AgentRuntime } from '../runtime';
 
 // Mock Agent for testing

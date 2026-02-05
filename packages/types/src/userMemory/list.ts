@@ -1,11 +1,5 @@
-import type {
-  UserMemoryListItem,
-  UserMemoryWithoutVectors,
-} from './base'
-import type {
-  UserMemoryIdentitiesListItem,
-  UserMemoryIdentityWithoutVectors,
-} from './identity'
+import type { UserMemoryListItem, UserMemoryWithoutVectors } from './base';
+import type { UserMemoryIdentitiesListItem, UserMemoryIdentityWithoutVectors } from './identity';
 import type {
   UserMemoryActivitiesListItem,
   UserMemoryActivityWithoutVectors,
@@ -15,7 +9,7 @@ import type {
   UserMemoryExperienceWithoutVectors,
   UserMemoryPreferencesListItem,
   UserMemoryPreferenceWithoutVectors,
-} from './layers'
+} from './layers';
 import type { LayersEnum } from './shared';
 
 export interface TopicSource {
@@ -36,13 +30,13 @@ export enum MemorySourceType {
 export interface ContextMemorySimple {
   context: UserMemoryContextsListItem;
   layer: LayersEnum.Context;
-  memory: UserMemoryListItem
+  memory: UserMemoryListItem;
 }
 
 export interface ContextMemoryDetail {
   context: UserMemoryContextWithoutVectors;
   layer: LayersEnum.Context;
-  memory: UserMemoryWithoutVectors
+  memory: UserMemoryWithoutVectors;
   source?: MemorySource;
   sourceType?: MemorySourceType;
 }

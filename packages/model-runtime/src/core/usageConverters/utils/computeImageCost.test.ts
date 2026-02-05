@@ -1,7 +1,7 @@
 import type { Pricing } from 'model-bank';
 import { describe, expect, it } from 'vitest';
 
-import type {ImageGenerationParams } from './computeImageCost';
+import type { ImageGenerationParams } from './computeImageCost';
 import { computeImageCost } from './computeImageCost';
 
 describe('computeImageCost', () => {

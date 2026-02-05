@@ -1,11 +1,10 @@
 import * as Comlink from 'comlink';
-import type { loadPyodide as loadPyodideType,PyodideAPI } from 'pyodide';
+import type { loadPyodide as loadPyodideType, PyodideAPI } from 'pyodide';
 import urlJoin from 'url-join';
 
 import type { PythonOptions, PythonOutput, PythonResult } from './types';
 
 declare global {
-   
   var loadPyodide: typeof loadPyodideType;
 }
 

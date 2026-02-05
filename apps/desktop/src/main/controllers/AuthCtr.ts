@@ -8,6 +8,7 @@ import crypto from 'node:crypto';
 import querystring from 'node:querystring';
 import { URL } from 'node:url';
 
+import { appendVercelCookie } from '@/utils/http-headers';
 import { createLogger } from '@/utils/logger';
 
 import RemoteServerConfigCtr from './RemoteServerConfigCtr';
@@ -358,12 +359,9 @@ export default class AuthCtr extends ControllerModule {
       logger.debug(`Polling for credentials: ${url.toString()}`);
 
       // Send HTTP request directly
-      const response = await fetch(url.toString(), {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'GET',
-      });
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      appendVercelCookie(headers);
+      const response = await fetch(url.toString(), { headers, method: 'GET' });
 
       // Check response status
       if (response.status === 404) {
@@ -477,11 +475,13 @@ export default class AuthCtr extends ControllerModule {
 
       logger.debug('Sending token exchange request');
       // Send request to get token
+      const tokenHeaders: Record<string, string> = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      };
+      appendVercelCookie(tokenHeaders);
       const response = await fetch(tokenUrl.toString(), {
         body,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: tokenHeaders,
         method: 'POST',
       });
 

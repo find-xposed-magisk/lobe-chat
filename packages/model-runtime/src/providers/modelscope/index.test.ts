@@ -3,7 +3,7 @@ import { ModelProvider } from 'model-bank';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { testProvider } from '../../providerTestUtils';
-import type { ModelScopeModelCard} from './index';
+import type { ModelScopeModelCard } from './index';
 import { LobeModelScopeAI, params } from './index';
 
 const provider = ModelProvider.ModelScope;

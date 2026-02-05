@@ -6,7 +6,7 @@ import { Ollama } from 'ollama/browser';
 import type { ClientOptions } from 'openai';
 
 import type { LobeRuntimeAI } from '../../core/BaseAI';
-import { convertIterableToStream, createModelPullStream,OllamaStream } from '../../core/streams';
+import { convertIterableToStream, createModelPullStream, OllamaStream } from '../../core/streams';
 import type {
   ChatMethodOptions,
   ChatStreamPayload,
@@ -233,7 +233,6 @@ export class LobeOllamaAI implements LobeRuntimeAI {
     const { model, insecure } = params;
     const signal = options?.signal; // 获取传入的 AbortSignal
 
-     
     const abortOllama = () => {
       // 假设 this.client.abort() 是幂等的或者可以安全地多次调用
       this.client.abort();

@@ -1,10 +1,11 @@
 import { DataSyncConfig } from '@lobechat/electron-client-ipc';
 import retry from 'async-retry';
-import { safeStorage } from 'electron';
+import { session as electronSession, safeStorage } from 'electron';
 import querystring from 'node:querystring';
 import { URL } from 'node:url';
 
 import { OFFICIAL_CLOUD_SERVER } from '@/const/env';
+import { appendVercelCookie } from '@/utils/http-headers';
 import { createLogger } from '@/utils/logger';
 
 import { ControllerModule, IpcMethod } from './index';
@@ -455,13 +456,11 @@ export default class RemoteServerConfigCtr extends ControllerModule {
       logger.debug(`Sending token refresh request to ${tokenUrl.toString()}`);
 
       // Send request
-      const response = await fetch(tokenUrl.toString(), {
-        body,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        method: 'POST',
-      });
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      };
+      appendVercelCookie(headers);
+      const response = await fetch(tokenUrl.toString(), { body, headers, method: 'POST' });
 
       if (!response.ok) {
         // Try to parse error response
@@ -540,5 +539,40 @@ export default class RemoteServerConfigCtr extends ControllerModule {
     const dataConfig = this.normalizeConfig(config ? config : await this.getRemoteServerConfig());
 
     return dataConfig.storageMode === 'cloud' ? OFFICIAL_CLOUD_SERVER : dataConfig.remoteServerUrl;
+  }
+
+  /**
+   * Setup subscription webview session with OIDC token injection
+   * This configures a webRequest interceptor on the given partition session
+   * to automatically inject the Oidc-Auth token header for official domain requests.
+   * @param params.partition The partition name for the webview session
+   */
+  @IpcMethod()
+  async setupSubscriptionWebviewSession(params: { partition: string }) {
+    const { partition } = params;
+
+    logger.info(`Setting up subscription webview session for partition: ${partition}`);
+
+    const session = electronSession.fromPartition(partition);
+
+    session.webRequest.onBeforeSendHeaders(
+      { urls: [`https://*.lobehub.com/*`] },
+      async (details, callback) => {
+        const requestHeaders = { ...details.requestHeaders };
+
+        const token = await this.getAccessToken();
+
+        if (token) {
+          requestHeaders['Oidc-Auth'] = token;
+          logger.debug(`Injected Oidc-Auth token for: ${details.url}`);
+        }
+
+        callback({ requestHeaders });
+      },
+    );
+
+    logger.debug(`Subscription webview session setup completed for partition: ${partition}`);
+
+    return { success: true };
   }
 }

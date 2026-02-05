@@ -2,7 +2,7 @@
 import { ModelProvider } from 'model-bank';
 import OpenAI from 'openai';
 import type { Stream } from 'openai/streaming';
-import type { Mock} from 'vitest';
+import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { LobeOpenAICompatibleRuntime } from '../../core/BaseAI';
@@ -161,7 +161,7 @@ describe('LobeOpenAICompatibleFactory', () => {
 
         // Collect all chunks
         const chunks = [];
-         
+
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
@@ -267,7 +267,6 @@ describe('LobeOpenAICompatibleFactory', () => {
         const decoder = new TextDecoder();
         const reader = result.body!.getReader();
 
-         
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
@@ -337,7 +336,6 @@ describe('LobeOpenAICompatibleFactory', () => {
         const reader = result.body!.getReader();
         const stream: string[] = [];
 
-         
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
@@ -411,7 +409,6 @@ describe('LobeOpenAICompatibleFactory', () => {
         const reader = result.body!.getReader();
         const stream: string[] = [];
 
-         
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
@@ -886,7 +883,6 @@ describe('LobeOpenAICompatibleFactory', () => {
               const reader = readableStream.getReader();
               const process = async () => {
                 try {
-                   
                   while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -2735,7 +2731,7 @@ describe('LobeOpenAICompatibleFactory', () => {
           },
           contextWindowTokens: 200_000,
           description:
-            "Claude 3 Haiku is Anthropic’s fastest and most compact model, designed for near-instant responses with fast, accurate performance.",
+            'Claude 3 Haiku is Anthropic’s fastest and most compact model, designed for near-instant responses with fast, accurate performance.',
           displayName: 'Claude 3 Haiku',
           enabled: false,
           id: 'claude-3-haiku-20240307',
@@ -2791,7 +2787,8 @@ describe('LobeOpenAICompatibleFactory', () => {
             deploymentName: 'gpt-4o-mini',
           },
           contextWindowTokens: 128_000,
-          description: 'GPT-4o Mini is a small, efficient model with performance similar to GPT-4o.',
+          description:
+            'GPT-4o Mini is a small, efficient model with performance similar to GPT-4o.',
           displayName: 'GPT 4o Mini',
           enabled: false,
           id: 'gpt-4o-mini',

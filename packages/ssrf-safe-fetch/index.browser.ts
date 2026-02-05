@@ -24,11 +24,10 @@ export interface SSRFOptions {
  */
 export const ssrfSafeFetch = async (
   url: string,
-   
+
   options?: RequestInit,
-   
+
   _ssrfOptions?: SSRFOptions,
-   
 ): Promise<Response> => {
   return fetch(url, options);
 };

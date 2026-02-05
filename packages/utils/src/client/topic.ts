@@ -42,7 +42,12 @@ const getTopicGroupId = (timestamp: number): TimeGroupId => {
 
 // Ensure group sorting
 const sortGroups = (groups: GroupedTopic[]): GroupedTopic[] => {
-  const orderMap = new Map<string, number>([['today', 0], ['yesterday', 1], ['week', 2], ['month', 3]]);
+  const orderMap = new Map<string, number>([
+    ['today', 0],
+    ['yesterday', 1],
+    ['week', 2],
+    ['month', 3],
+  ]);
 
   // Set the order of fixed groups
 

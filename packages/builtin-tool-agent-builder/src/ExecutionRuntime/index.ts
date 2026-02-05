@@ -410,7 +410,6 @@ export class AgentBuilderExecutionRuntime {
 
       window.addEventListener('message', messageHandler);
 
-       
       const checkAuthStatus = async (): Promise<boolean> => {
         try {
           // Check LobehubSkill status
@@ -516,7 +515,6 @@ export class AgentBuilderExecutionRuntime {
         resolve(result);
       };
 
-       
       const checkAuthStatus = async (): Promise<boolean> => {
         try {
           // Refresh server status first
@@ -603,7 +601,6 @@ export class AgentBuilderExecutionRuntime {
 
       // Small delay for typewriter effect
       if (i + chunkSize < prompt.length) {
-         
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }

@@ -3,7 +3,7 @@ import type { ClientSecretPayload } from '@lobechat/types';
 import { ModelProvider } from 'model-bank';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ChatStreamCallbacks, ChatStreamPayload} from '../index';
+import type { ChatStreamCallbacks, ChatStreamPayload } from '../index';
 import { LobeOpenAI, ModelRuntime } from '../index';
 import { providerRuntimeMap } from '../runtimeMap';
 import type { CreateImagePayload } from '../types/image';

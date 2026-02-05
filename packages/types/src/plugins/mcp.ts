@@ -18,7 +18,6 @@ export enum MCPInstallStep {
   INSTALLING_PLUGIN = 'INSTALLING_PLUGIN',
 }
 
- 
 export interface CheckMcpInstallParams {
   /**
    * Installation details

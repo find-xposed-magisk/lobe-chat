@@ -5,14 +5,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { LobeChatDatabase } from '@/database/type';
 
 import { getTestDB } from '../../core/getTestDB';
-import type {
-  NewChatGroup} from '../../schemas';
-import {
-  agents as agentsTable,
-  chatGroups,
-  chatGroupsAgents,
-  users,
-} from '../../schemas';
+import type { NewChatGroup } from '../../schemas';
+import { agents as agentsTable, chatGroups, chatGroupsAgents, users } from '../../schemas';
 import { ChatGroupModel } from '../chatGroup';
 
 const userId = 'test-user';

@@ -58,7 +58,7 @@ export class LobeCloudflareAI implements LobeRuntimeAI {
   async chat(payload: ChatStreamPayload, options?: ChatMethodOptions): Promise<Response> {
     try {
       // Remove internal apiMode parameter to prevent sending to Cloudflare API
-       
+
       const { model, tools, apiMode: _, ...restPayload } = payload;
       const functions = tools?.map((tool) => tool.function);
       const headers = options?.headers || {};
