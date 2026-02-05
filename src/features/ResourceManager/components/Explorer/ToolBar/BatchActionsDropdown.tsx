@@ -18,7 +18,7 @@ import ActionIconWithChevron from './ActionIconWithChevron';
 
 export type MultiSelectActionType =
   | 'addToKnowledgeBase'
-  | 'addToOtherKnowledgeBase'
+  | 'moveToOtherKnowledgeBase'
   | 'batchChunking'
   | 'delete'
   | 'deleteLibrary'
@@ -97,7 +97,7 @@ const BatchActionsDropdown = memo<BatchActionsDropdownProps>(({ selectCount, onA
         disabled: selectCount === 0,
         icon: <Icon icon={BookMinusIcon} />,
         key: 'removeFromKnowledgeBase',
-        label: t('FileManager.actions.removeFromKnowledgeBase'),
+        label: t('FileManager.actions.removeFromLibrary'),
         onClick: () => {
           modal.confirm({
             okButtonProps: {
@@ -105,9 +105,9 @@ const BatchActionsDropdown = memo<BatchActionsDropdownProps>(({ selectCount, onA
             },
             onOk: async () => {
               await onActionClick('removeFromKnowledgeBase');
-              message.success(t('FileManager.actions.removeFromKnowledgeBaseSuccess'));
+              message.success(t('FileManager.actions.removeFromLibrarySuccess'));
             },
-            title: t('FileManager.actions.confirmRemoveFromKnowledgeBase', {
+            title: t('FileManager.actions.confirmRemoveFromLibrary', {
               count: selectCount,
             }),
           });
@@ -119,8 +119,8 @@ const BatchActionsDropdown = memo<BatchActionsDropdownProps>(({ selectCount, onA
           children: addToKnowledgeBaseSubmenu as any,
           disabled: selectCount === 0,
           icon: <Icon icon={BookPlusIcon} />,
-          key: 'addToOtherKnowledgeBase',
-          label: t('FileManager.actions.addToOtherKnowledgeBase'),
+          key: 'moveToOtherKnowledgeBase',
+          label: t('FileManager.actions.moveToOtherLibrary'),
         });
       }
     } else if (availableKnowledgeBases.length > 0) {
@@ -129,7 +129,7 @@ const BatchActionsDropdown = memo<BatchActionsDropdownProps>(({ selectCount, onA
         disabled: selectCount === 0,
         icon: <Icon icon={BookPlusIcon} />,
         key: 'addToKnowledgeBase',
-        label: t('FileManager.actions.addToKnowledgeBase'),
+        label: t('FileManager.actions.addToLibrary'),
       });
     }
 

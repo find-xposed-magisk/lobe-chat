@@ -18,6 +18,9 @@ import SortDropdown from '../ToolBar/SortDropdown';
 import ViewSwitcher from '../ToolBar/ViewSwitcher';
 import Breadcrumb from './Breadcrumb';
 
+/**
+ * Toolbar for the resource explorer
+ */
 const Header = memo(() => {
   const { t } = useTranslation(['components', 'common', 'file', 'knowledgeBase']);
   const { modal, message } = App.useApp();
@@ -47,14 +50,14 @@ const Header = memo(() => {
               },
               onOk: async () => {
                 await onActionClick('removeFromKnowledgeBase');
-                message.success(t('FileManager.actions.removeFromKnowledgeBaseSuccess'));
+                message.success(t('FileManager.actions.removeFromLibrarySuccess'));
               },
-              title: t('FileManager.actions.confirmRemoveFromKnowledgeBase', {
+              title: t('FileManager.actions.confirmRemoveFromLibrary', {
                 count: selectCount,
               }),
             });
           }}
-          title={t('FileManager.actions.removeFromKnowledgeBase')}
+          title={t('FileManager.actions.removeFromLibrary')}
         />
       ) : null}
 
