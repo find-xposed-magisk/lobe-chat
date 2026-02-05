@@ -1,12 +1,7 @@
 import { AssociatedObjectSchema } from '@lobechat/memory-user-memory';
-import {
-  ActivityTypeEnum,
-  IdentityTypeEnum,
-  LayersEnum,
-  MemorySourceType,
+import type {
   MergeStrategyEnum,
   Optional,
-  RelationshipEnum,
   TypesEnum,
   UserMemoryContextObjectType,
   UserMemoryContextSubjectType,
@@ -16,7 +11,13 @@ import {
   UserMemoryIdentityWithoutVectors,
   UserMemoryItemSimple,
   UserMemoryPreferenceWithoutVectors,
-  UserMemoryWithoutVectors,
+  UserMemoryWithoutVectors} from '@lobechat/types';
+import {
+  ActivityTypeEnum,
+  IdentityTypeEnum,
+  LayersEnum,
+  MemorySourceType,
+  RelationshipEnum
 } from '@lobechat/types';
 import type { AnyColumn, SQL } from 'drizzle-orm';
 import {
@@ -35,22 +36,23 @@ import {
 
 import { merge } from '@/utils/merge';
 
-import {
+import type {
   UserMemoryActivitiesWithoutVectors,
   UserMemoryActivity,
   UserMemoryContext,
   UserMemoryExperience,
   UserMemoryIdentity,
   UserMemoryItem,
-  UserMemoryPreference,
+  UserMemoryPreference} from '../../schemas';
+import {
   userMemories,
   userMemoriesActivities,
   userMemoriesContexts,
   userMemoriesExperiences,
   userMemoriesIdentities,
-  userMemoriesPreferences,
+  userMemoriesPreferences
 } from '../../schemas';
-import { LobeChatDatabase } from '../../type';
+import type { LobeChatDatabase } from '../../type';
 import { selectNonVectorColumns } from '../../utils/columns';
 import { TopicModel } from '../topic';
 
@@ -1381,7 +1383,7 @@ export class UserMemoryModel {
     const identitySelection = selectNonVectorColumns(userMemoriesIdentities);
     const preferenceSelection = selectNonVectorColumns(userMemoriesPreferences);
     // TODO(@nekomeowww): activity
-    // eslint-disable-next-line unused-imports/no-unused-vars, @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line unused-imports/no-unused-vars
     const activitySelection = selectNonVectorColumns(userMemoriesActivities);
 
     const baseConditions: Array<SQL | undefined> = [

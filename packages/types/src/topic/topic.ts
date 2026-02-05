@@ -18,7 +18,7 @@ export enum TopicDisplayMode {
   // AscMessages = 'ascMessages',
   // DescMessages = 'descMessages',
 }
-/* eslint-enable */
+ 
 
 export interface GroupedTopic {
   children: ChatTopic[];

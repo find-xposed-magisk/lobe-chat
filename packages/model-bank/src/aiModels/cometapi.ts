@@ -1,4 +1,4 @@
-import { AIChatModelCard } from '../types/aiModel';
+import type { AIChatModelCard } from '../types/aiModel';
 
 // CometAPI model list based on src/config/modelProviders/cometapi.ts
 const cometapiChatModels: AIChatModelCard[] = [

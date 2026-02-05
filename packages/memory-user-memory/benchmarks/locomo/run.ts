@@ -1,6 +1,8 @@
-import { MemorySourceType } from '@lobechat/types';
-import { convertLocomoFile } from '../../src/converters/locomo';
 import { exit } from 'node:process';
+
+import { MemorySourceType } from '@lobechat/types';
+
+import { convertLocomoFile } from '../../src/converters/locomo';
 
 const baseUrl = process.env.MEMORY_USER_MEMORY_LOBEHUB_BASE_URL;
 const benchmarkLoCoMoFile = process.env.MEMORY_USER_MEMORY_BENCHMARKS_LOCOMO_DATASETS;
@@ -86,7 +88,7 @@ async function main() {
   );
 }
 
-// eslint-disable-next-line unicorn/prefer-top-level-await
+ 
 main().catch((e) => {
   console.error(e);
   exit(1);

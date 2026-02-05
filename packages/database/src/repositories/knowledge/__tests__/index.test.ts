@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { getTestDB } from '../../../core/getTestDB';
 import { documents, files, knowledgeBaseFiles, knowledgeBases, users } from '../../../schemas';
-import { LobeChatDatabase } from '../../../type';
+import type { LobeChatDatabase } from '../../../type';
 import { KnowledgeRepo } from '../index';
 
 const serverDB: LobeChatDatabase = await getTestDB();

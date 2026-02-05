@@ -1,7 +1,7 @@
+import type {GroupContextMemberInfo} from '@lobechat/prompts';
 import {
-  type GroupContextMemberInfo,
   formatGroupMembers,
-  groupContextTemplate,
+  groupContextTemplate
 } from '@lobechat/prompts';
 import debug from 'debug';
 

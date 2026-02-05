@@ -1,9 +1,10 @@
 import type { ChatModelCard } from '@lobechat/types';
 import { ModelProvider } from 'model-bank';
 
+import type {
+  OpenAICompatibleFactoryOptions} from '../../core/openaiCompatibleFactory';
 import {
-  OpenAICompatibleFactoryOptions,
-  createOpenAICompatibleRuntime,
+  createOpenAICompatibleRuntime
 } from '../../core/openaiCompatibleFactory';
 
 export interface HunyuanModelCard {
@@ -14,7 +15,7 @@ export const params = {
   baseURL: 'https://api.hunyuan.cloud.tencent.com/v1',
   chatCompletion: {
     handlePayload: (payload) => {
-      // eslint-disable-next-line unused-imports/no-unused-vars, @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line unused-imports/no-unused-vars
       const { enabledSearch, frequency_penalty, model, presence_penalty, thinking, ...rest } =
         payload;
 

@@ -1,14 +1,16 @@
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
-import {
+import type {
   AiModelSortMap,
-  AiModelSourceEnum,
   AiProviderModelListItem,
   EnabledAiModel,
-  ToggleAiModelEnableParams,
+  ToggleAiModelEnableParams} from 'model-bank';
+import {
+  AiModelSourceEnum
 } from 'model-bank';
 
-import { AiModelSelectItem, NewAiModelItem, aiModels } from '../schemas';
-import { LobeChatDatabase } from '../type';
+import type {AiModelSelectItem, NewAiModelItem } from '../schemas';
+import { aiModels } from '../schemas';
+import type { LobeChatDatabase } from '../type';
 
 export class AiModelModel {
   private userId: string;

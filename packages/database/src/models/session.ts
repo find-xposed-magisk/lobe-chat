@@ -1,13 +1,14 @@
 import { DEFAULT_AGENT_CONFIG, DEFAULT_INBOX_AVATAR, INBOX_SESSION_ID } from '@lobechat/const';
-import {
+import type {
   ChatSessionList,
   LobeAgentConfig,
   LobeAgentSession,
   LobeGroupSession,
   SessionRankItem,
 } from '@lobechat/types';
+import type {
+  Column} from 'drizzle-orm';
 import {
-  Column,
   and,
   asc,
   count,
@@ -25,18 +26,19 @@ import type { PartialDeep } from 'type-fest';
 
 import { merge } from '@/utils/merge';
 
-import {
+import type {
   AgentItem,
   NewAgent,
   NewSession,
-  SessionItem,
+  SessionItem} from '../schemas';
+import {
   agents,
   agentsToSessions,
   sessionGroups,
   sessions,
   topics,
 } from '../schemas';
-import { LobeChatDatabase } from '../type';
+import type { LobeChatDatabase } from '../type';
 import { genEndDateWhere, genRangeWhere, genStartDateWhere, genWhere } from '../utils/genWhere';
 import { idGenerator } from '../utils/idGenerator';
 
@@ -381,11 +383,11 @@ export class SessionModel {
 
     if (!result) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars,unused-imports/no-unused-vars
+    // eslint-disable-next-line unused-imports/no-unused-vars
     const { agent, clientId, ...session } = result;
     const sessionId = this.genId();
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const { id: _, slug: __, ...config } = agent;
 
     return this.create({
@@ -549,7 +551,7 @@ export class SessionModel {
     }
 
     // Build data to be merged, excluding params (processed separately)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const { params: _params, ...restData } = data;
     const mergedValue = merge(session.agent, restData);
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { resolveJoiner, normalizeToArray, truncateByPunctuation, hardTruncateFromTail, trimBasedOnBatchProbe } from './trimBatchProbe';
+import { hardTruncateFromTail, normalizeToArray, resolveJoiner, trimBasedOnBatchProbe,truncateByPunctuation } from './trimBatchProbe';
 
 vi.mock('tokenx', () => ({
   estimateTokenCount: (str: string) => str.split(/\s+/).filter(Boolean).length,

@@ -1,11 +1,13 @@
-import { FilesTabs, QueryFileListParams, SortType } from '@lobechat/types';
+import type { QueryFileListParams} from '@lobechat/types';
+import { FilesTabs, SortType } from '@lobechat/types';
 import { and, asc, count, desc, eq, ilike, inArray, like, notExists, or, sum } from 'drizzle-orm';
 import type { PgTransaction } from 'drizzle-orm/pg-core';
 
-import {
+import type {
   FileItem,
   NewFile,
-  NewGlobalFile,
+  NewGlobalFile} from '../schemas';
+import {
   chunks,
   documentChunks,
   embeddings,
@@ -14,7 +16,7 @@ import {
   globalFiles,
   knowledgeBaseFiles,
 } from '../schemas';
-import { LobeChatDatabase, Transaction } from '../type';
+import type { LobeChatDatabase, Transaction } from '../type';
 
 export class FileModel {
   private readonly userId: string;

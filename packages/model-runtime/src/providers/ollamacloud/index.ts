@@ -1,8 +1,9 @@
 import { ModelProvider } from 'model-bank';
 
+import type {
+  OpenAICompatibleFactoryOptions} from '../../core/openaiCompatibleFactory';
 import {
-  OpenAICompatibleFactoryOptions,
-  createOpenAICompatibleRuntime,
+  createOpenAICompatibleRuntime
 } from '../../core/openaiCompatibleFactory';
 import { processMultiProviderModelList } from '../../utils/modelParse';
 

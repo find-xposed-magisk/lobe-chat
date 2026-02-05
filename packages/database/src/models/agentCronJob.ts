@@ -1,11 +1,8 @@
 import { and, desc, eq, gt, inArray, isNull, or, sql } from 'drizzle-orm';
 
+import type {AgentCronJob, CreateAgentCronJobData, NewAgentCronJob, UpdateAgentCronJobData} from '../schemas/agentCronJob';
 import {
-  type AgentCronJob,
-  type CreateAgentCronJobData,
-  type NewAgentCronJob,
-  type UpdateAgentCronJobData,
-  agentCronJobs,
+  agentCronJobs
 } from '../schemas/agentCronJob';
 import type { LobeChatDatabase } from '../type';
 

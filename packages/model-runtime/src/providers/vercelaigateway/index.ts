@@ -1,8 +1,8 @@
 import { ModelProvider } from 'model-bank';
 
+import type {OpenAICompatibleFactoryOptions} from '../../core/openaiCompatibleFactory';
 import {
-  type OpenAICompatibleFactoryOptions,
-  createOpenAICompatibleRuntime,
+  createOpenAICompatibleRuntime
 } from '../../core/openaiCompatibleFactory';
 import { processMultiProviderModelList } from '../../utils/modelParse';
 
@@ -40,7 +40,7 @@ export const params = {
   baseURL: 'https://ai-gateway.vercel.sh/v1',
   chatCompletion: {
     handlePayload: (payload) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const { reasoning_effort, thinking, reasoning: _reasoning, verbosity, ...rest } = payload;
 
       let reasoning: VercelAIGatewayReasoning | undefined;

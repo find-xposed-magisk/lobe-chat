@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
+import type {
+  RequestFilteringAgentOptions} from 'request-filtering-agent';
 import {
-  RequestFilteringAgentOptions,
   RequestFilteringHttpAgent,
   RequestFilteringHttpsAgent,
 } from 'request-filtering-agent';
@@ -26,10 +27,10 @@ export interface SSRFOptions {
  */
 export const ssrfSafeFetch = async (
   url: string,
-  // eslint-disable-next-line no-undef
+   
   options?: RequestInit,
   ssrfOptions?: SSRFOptions,
-  // eslint-disable-next-line no-undef
+   
 ): Promise<Response> => {
   try {
     // Configure SSRF protection options with proper precedence using nullish coalescing

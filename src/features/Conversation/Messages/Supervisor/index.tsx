@@ -3,7 +3,8 @@
 import type { EmojiReaction } from '@lobechat/types';
 import { Tag } from '@lobehub/ui';
 import isEqual from 'fast-deep-equal';
-import { type MouseEventHandler, memo, useCallback } from 'react';
+import type {MouseEventHandler} from 'react';
+import { memo,  useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { MESSAGE_ACTION_BAR_PORTAL_ATTRIBUTES } from '@/const/messageActionPortal';
@@ -18,12 +19,12 @@ import { userProfileSelectors } from '@/store/user/selectors';
 import { ReactionDisplay } from '../../components/Reaction';
 import { useAgentMeta } from '../../hooks';
 import { dataSelectors, messageStateSelectors, useConversationStore } from '../../store';
+import Usage from '../components/Extras/Usage';
+import MessageBranch from '../components/MessageBranch';
 import {
   useSetMessageItemActionElementPortialContext,
   useSetMessageItemActionTypeContext,
 } from '../Contexts/message-action-context';
-import Usage from '../components/Extras/Usage';
-import MessageBranch from '../components/MessageBranch';
 import Group from './components/Group';
 
 const actionBarHolder = (
@@ -112,6 +113,12 @@ const GroupMessage = memo<GroupMessageProps>(({ id, index, disableEditing, isLat
 
   return (
     <ChatItem
+      showTitle
+      avatar={{ ...avatar, title: groupMeta.title }}
+      newScreenMinHeight={minHeight}
+      placement={'left'}
+      time={createdAt}
+      titleAddon={<Tag>{t('supervisor.label')}</Tag>}
       actions={
         <>
           {branch && (
@@ -124,7 +131,6 @@ const GroupMessage = memo<GroupMessageProps>(({ id, index, disableEditing, isLat
           {actionBarHolder}
         </>
       }
-      avatar={{ ...avatar, title: groupMeta.title }}
       customAvatarRender={() => (
         <AgentGroupAvatar
           avatar={groupMeta.avatar}
@@ -132,12 +138,7 @@ const GroupMessage = memo<GroupMessageProps>(({ id, index, disableEditing, isLat
           memberAvatars={memberAvatars}
         />
       )}
-      newScreenMinHeight={minHeight}
       onMouseEnter={onMouseEnter}
-      placement={'left'}
-      showTitle
-      time={createdAt}
-      titleAddon={<Tag>{t('supervisor.label')}</Tag>}
     >
       {children && children.length > 0 && (
         <Group

@@ -2,8 +2,8 @@ import type { ShareVisibility } from '@lobechat/types';
 import { TRPCError } from '@trpc/server';
 import { and, asc, eq, sql } from 'drizzle-orm';
 
-import { agents, chatGroups, chatGroupsAgents, topicShares, topics } from '../schemas';
-import { LobeChatDatabase } from '../type';
+import { agents, chatGroups, chatGroupsAgents, topics,topicShares } from '../schemas';
+import type { LobeChatDatabase } from '../type';
 
 export type TopicShareData = NonNullable<
   Awaited<ReturnType<(typeof TopicShareModel)['findByShareId']>>

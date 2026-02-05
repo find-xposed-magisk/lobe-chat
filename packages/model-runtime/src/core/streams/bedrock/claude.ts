@@ -1,13 +1,14 @@
-import { InvokeModelWithResponseStreamResponse } from '@aws-sdk/client-bedrock-runtime';
+import type { InvokeModelWithResponseStreamResponse } from '@aws-sdk/client-bedrock-runtime';
 
-import { ChatStreamCallbacks } from '../../../types';
+import type { ChatStreamCallbacks } from '../../../types';
 import { nanoid } from '../../../utils/uuid';
 import { transformAnthropicStream } from '../anthropic';
+import type {
+  StreamContext} from '../protocol';
 import {
-  StreamContext,
   createCallbacksTransformer,
   createSSEProtocolTransformer,
-  createTokenSpeedCalculator,
+  createTokenSpeedCalculator
 } from '../protocol';
 import { createBedrockStream } from './common';
 

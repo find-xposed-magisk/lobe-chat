@@ -1,9 +1,10 @@
-import {
+import type {
   GenerateContentResponseUsageMetadata,
-  MediaModality,
-  ModalityTokenCount,
+  ModalityTokenCount} from '@google/genai';
+import {
+  MediaModality
 } from '@google/genai';
-import { ModelUsage } from '@lobechat/types';
+import type { ModelUsage } from '@lobechat/types';
 import type { Pricing } from 'model-bank';
 
 import { withUsageCost } from './utils/withUsageCost';

@@ -2,10 +2,11 @@
 import { ModelProvider } from 'model-bank';
 import OpenAI from 'openai';
 import type { Stream } from 'openai/streaming';
-import { Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Mock} from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LobeOpenAICompatibleRuntime } from '../../core/BaseAI';
-import { ChatStreamCallbacks, ChatStreamPayload } from '../../types/chat';
+import type { LobeOpenAICompatibleRuntime } from '../../core/BaseAI';
+import type { ChatStreamCallbacks, ChatStreamPayload } from '../../types/chat';
 import { AgentRuntimeErrorType } from '../../types/error';
 import * as debugStreamModule from '../../utils/debugStream';
 import * as openaiHelpers from '../contextBuilders/openai';
@@ -160,7 +161,7 @@ describe('LobeOpenAICompatibleFactory', () => {
 
         // Collect all chunks
         const chunks = [];
-        // eslint-disable-next-line no-constant-condition
+         
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
@@ -266,7 +267,7 @@ describe('LobeOpenAICompatibleFactory', () => {
         const decoder = new TextDecoder();
         const reader = result.body!.getReader();
 
-        // eslint-disable-next-line no-constant-condition
+         
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
@@ -336,7 +337,7 @@ describe('LobeOpenAICompatibleFactory', () => {
         const reader = result.body!.getReader();
         const stream: string[] = [];
 
-        // eslint-disable-next-line no-constant-condition
+         
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
@@ -410,7 +411,7 @@ describe('LobeOpenAICompatibleFactory', () => {
         const reader = result.body!.getReader();
         const stream: string[] = [];
 
-        // eslint-disable-next-line no-constant-condition
+         
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
@@ -885,7 +886,7 @@ describe('LobeOpenAICompatibleFactory', () => {
               const reader = readableStream.getReader();
               const process = async () => {
                 try {
-                  // eslint-disable-next-line no-constant-condition
+                   
                   while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;

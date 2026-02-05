@@ -1,9 +1,10 @@
-import { type StateCreator } from 'zustand/vanilla';
+import type {StateCreator} from 'zustand/vanilla';
 
-import { type ResourceManagerMode } from '@/features/ResourceManager';
-import { type FilesTabs, SortType } from '@/types/files';
+import type {ResourceManagerMode} from '@/features/ResourceManager';
+import type { FilesTabs, SortType } from '@/types/files';
 
-import { type State, type ViewMode, initialState } from './initialState';
+import type {State, ViewMode} from './initialState';
+import {   initialState } from './initialState';
 
 export type MultiSelectActionType =
   | 'addToKnowledgeBase'
@@ -81,13 +82,13 @@ export interface Action {
    */
   setSelectedFileIds: (ids: string[]) => void;
   /**
-   * Set the sort direction
-   */
-  setSortType: (sortType: SortType) => void;
-  /**
    * Set the field to sort files by
    */
   setSorter: (sorter: 'name' | 'createdAt' | 'size') => void;
+  /**
+   * Set the sort direction
+   */
+  setSortType: (sortType: SortType) => void;
   /**
    * Set the file explorer view mode
    */

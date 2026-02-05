@@ -1,23 +1,24 @@
-import { ChatCitationItem, ChatMessageError } from '@lobechat/types';
-import OpenAI from 'openai';
+import type { ChatCitationItem, ChatMessageError } from '@lobechat/types';
+import type OpenAI from 'openai';
 import type { Stream } from 'openai/streaming';
 
 import { AgentRuntimeErrorType } from '../../../types/error';
 import { convertOpenAIResponseUsage } from '../../usageConverters';
-import {
+import type {
   ChatPayloadForTransformStream,
-  FIRST_CHUNK_ERROR_KEY,
   StreamContext,
   StreamProtocolChunk,
   StreamProtocolToolCallChunk,
-  StreamToolCallChunkData,
+  StreamToolCallChunkData} from '../protocol';
+import {
   convertIterableToStream,
   createCallbacksTransformer,
   createFirstErrorHandleTransformer,
   createSSEProtocolTransformer,
   createTokenSpeedCalculator,
+  FIRST_CHUNK_ERROR_KEY
 } from '../protocol';
-import { OpenAIStreamOptions } from './openai';
+import type { OpenAIStreamOptions } from './openai';
 
 const transformOpenAIStream = (
   chunk:
@@ -186,7 +187,7 @@ const transformOpenAIStream = (
       },
       type: errorName,
     } as ChatMessageError;
-    /* eslint-enable */
+     
 
     return { data: errorData, id: streamContext.id, type: 'error' };
   }

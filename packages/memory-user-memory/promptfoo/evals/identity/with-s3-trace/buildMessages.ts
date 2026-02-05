@@ -1,6 +1,7 @@
-import { renderPlaceholderTemplate } from '@lobechat/context-engine';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
+import { renderPlaceholderTemplate } from '@lobechat/context-engine';
 
 interface TracePayload {
   agentCalls?: Record<string, any>;

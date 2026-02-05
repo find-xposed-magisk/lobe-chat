@@ -2,9 +2,10 @@ import type { ChatModelCard } from '@lobechat/types';
 import { ModelProvider } from 'model-bank';
 
 import { convertSenseNovaMessage } from '../../core/contextBuilders/sensenova';
+import type {
+  OpenAICompatibleFactoryOptions} from '../../core/openaiCompatibleFactory';
 import {
-  OpenAICompatibleFactoryOptions,
-  createOpenAICompatibleRuntime,
+  createOpenAICompatibleRuntime
 } from '../../core/openaiCompatibleFactory';
 
 export interface SenseNovaModelCard {

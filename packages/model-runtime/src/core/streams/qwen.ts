@@ -1,22 +1,23 @@
-import OpenAI from 'openai';
-import {
+import type OpenAI from 'openai';
+import type {
   ChatCompletionContentPart,
   ChatCompletionContentPartText,
 } from 'openai/resources/index.mjs';
 import type { Stream } from 'openai/streaming';
 
-import { ChatStreamCallbacks } from '../../types';
+import type { ChatStreamCallbacks } from '../../types';
 import { convertOpenAIUsage } from '../usageConverters';
-import {
+import type {
   StreamContext,
   StreamProtocolChunk,
   StreamProtocolToolCallChunk,
-  StreamToolCallChunkData,
+  StreamToolCallChunkData} from './protocol';
+import {
   convertIterableToStream,
   createCallbacksTransformer,
   createSSEProtocolTransformer,
   createTokenSpeedCalculator,
-  generateToolCallId,
+  generateToolCallId
 } from './protocol';
 
 export const transformQwenStream = (
@@ -46,7 +47,7 @@ export const transformQwenStream = (
   if (Array.isArray(item.delta?.content)) {
     const part = item.delta.content[0];
     const process = (part: ChatCompletionContentPart): ChatCompletionContentPartText => {
-      let [key, value] = Object.entries(part)[0];
+      const [key, value] = Object.entries(part)[0];
       if (key === 'image') {
         return {
           text: `![image](${value})`,
@@ -144,7 +145,7 @@ export const transformQwenStream = (
 export const QwenAIStream = (
   stream: Stream<OpenAI.ChatCompletionChunk> | ReadableStream,
   // TODO: preserve for RFC 097
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, unused-imports/no-unused-vars
+   
   {
     callbacks,
     inputStartAt,

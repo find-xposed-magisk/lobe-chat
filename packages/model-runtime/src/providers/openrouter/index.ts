@@ -1,11 +1,12 @@
 import { ModelProvider } from 'model-bank';
 
+import type {
+  OpenAICompatibleFactoryOptions} from '../../core/openaiCompatibleFactory';
 import {
-  OpenAICompatibleFactoryOptions,
-  createOpenAICompatibleRuntime,
+  createOpenAICompatibleRuntime
 } from '../../core/openaiCompatibleFactory';
 import { processMultiProviderModelList } from '../../utils/modelParse';
-import { OpenRouterModelCard, OpenRouterReasoning } from './type';
+import type { OpenRouterModelCard, OpenRouterReasoning } from './type';
 
 const formatPrice = (price?: string) => {
   if (price === undefined || price === '-1') return undefined;
@@ -16,7 +17,7 @@ export const params = {
   baseURL: 'https://openrouter.ai/api/v1',
   chatCompletion: {
     handlePayload: (payload) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const { reasoning_effort, thinking, reasoning: _reasoning, thinkingLevel, ...rest } = payload;
 
       let reasoning: OpenRouterReasoning | undefined;

@@ -1,11 +1,12 @@
 import { ModelProvider } from 'model-bank';
 
+import type {
+  OpenAICompatibleFactoryOptions} from '../../core/openaiCompatibleFactory';
 import {
-  OpenAICompatibleFactoryOptions,
-  createOpenAICompatibleRuntime,
+  createOpenAICompatibleRuntime
 } from '../../core/openaiCompatibleFactory';
 import { SparkAIStream, transformSparkResponseToStream } from '../../core/streams';
-import { ChatStreamPayload } from '../../types';
+import type { ChatStreamPayload } from '../../types';
 
 const getBaseURLByModel = (model: string): string => {
   if (model.includes('x1-preview')) {

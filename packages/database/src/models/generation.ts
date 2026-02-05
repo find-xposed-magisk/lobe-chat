@@ -1,23 +1,25 @@
-import {
+import type {
   AsyncTaskError,
   AsyncTaskStatus,
-  FileSource,
   Generation,
-  ImageGenerationAsset,
+  ImageGenerationAsset} from '@lobechat/types';
+import {
+  FileSource
 } from '@lobechat/types';
 import debug from 'debug';
 import { and, eq } from 'drizzle-orm';
 
 import { FileService } from '@/server/services/file';
 
-import { NewFile } from '../schemas';
-import {
+import type { NewFile } from '../schemas';
+import type {
   GenerationItem,
   GenerationWithAsyncTask,
-  NewGeneration,
+  NewGeneration} from '../schemas/generation';
+import {
   generations,
 } from '../schemas/generation';
-import { LobeChatDatabase, Transaction } from '../type';
+import type { LobeChatDatabase, Transaction } from '../type';
 import { FileModel } from './file';
 
 // Create debug logger

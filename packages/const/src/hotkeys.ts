@@ -1,9 +1,10 @@
+import type {
+  DesktopHotkeyItem,
+  HotkeyItem} from '@lobechat/types';
 import {
   DesktopHotkeyEnum,
-  DesktopHotkeyItem,
   HotkeyEnum,
   HotkeyGroupEnum,
-  HotkeyItem,
   HotkeyScopeEnum,
   KeyEnum,
 } from '@lobechat/types';

@@ -1,6 +1,7 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { afterEach,beforeEach, describe, expect, it } from 'vitest';
 
-import { UserMemorySourceBenchmarkLoCoMoModel, BenchmarkLoCoMoPart } from '../benchmarkLoCoMo';
+import type { BenchmarkLoCoMoPart} from '../benchmarkLoCoMo';
+import {UserMemorySourceBenchmarkLoCoMoModel } from '../benchmarkLoCoMo';
 
 describe('UserMemorySourceBenchmarkLoCoMoModel', () => {
   const userId = 'test-user-1';

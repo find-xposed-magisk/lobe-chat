@@ -51,10 +51,10 @@ export const InviteAgentInspector = memo<
 
   return (
     <Flexbox
+      horizontal
       align={'center'}
       className={cx(styles.root, (isArgumentsStreaming || isLoading) && shinyTextStyles.shinyText)}
       gap={8}
-      horizontal
     >
       <span className={styles.title}>
         {t('builtins.lobe-group-agent-builder.apiName.inviteAgent')}:

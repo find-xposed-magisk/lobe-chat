@@ -1,18 +1,19 @@
 import { BUILTIN_AGENT_SLUGS } from '@lobechat/builtin-agents';
-import { AgentGroupDetail, AgentGroupMember } from '@lobechat/types';
+import type { AgentGroupDetail, AgentGroupMember } from '@lobechat/types';
 import { cleanObject } from '@lobechat/utils';
 import { and, eq, inArray } from 'drizzle-orm';
 
-import {
+import type {
   AgentItem,
   ChatGroupItem,
   NewChatGroup,
-  NewChatGroupAgent,
+  NewChatGroupAgent} from '../../schemas';
+import {
   agents,
   chatGroups,
-  chatGroupsAgents,
+  chatGroupsAgents
 } from '../../schemas';
-import { LobeChatDatabase } from '../../type';
+import type { LobeChatDatabase } from '../../type';
 
 export interface SupervisorAgentConfig {
   avatar?: string;

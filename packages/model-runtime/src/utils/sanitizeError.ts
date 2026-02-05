@@ -42,7 +42,7 @@ export function sanitizeError(error: any): any {
       const lowerKey = key.toLowerCase();
       
       // Skip sensitive fields entirely
-      if (sensitiveFields.indexOf(lowerKey) !== -1) {
+      if (sensitiveFields.includes(lowerKey)) {
         continue;
       }
 

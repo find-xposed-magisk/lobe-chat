@@ -23,10 +23,10 @@ import {
 } from '../../processors';
 import {
   AgentBuilderContextInjector,
-  GTDPlanInjector,
-  GTDTodoInjector,
   GroupAgentBuilderContextInjector,
   GroupContextInjector,
+  GTDPlanInjector,
+  GTDTodoInjector,
   HistorySummaryProvider,
   KnowledgeInjector,
   PageEditorContextInjector,

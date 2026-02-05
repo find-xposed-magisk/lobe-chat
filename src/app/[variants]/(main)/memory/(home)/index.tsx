@@ -1,6 +1,6 @@
 import { Flexbox } from '@lobehub/ui';
 // import { PencilLineIcon } from 'lucide-react';
-import { type FC } from 'react';
+import type {FC} from 'react';
 
 import MemoryAnalysis from '@/app/[variants]/(main)/memory/features/MemoryAnalysis';
 import MemoryEmpty from '@/app/[variants]/(main)/memory/features/MemoryEmpty';
@@ -31,7 +31,7 @@ const Home: FC = () => {
     <Flexbox flex={1} height={'100%'}>
       <NavHeader
         right={
-          <Flexbox gap={8} horizontal>
+          <Flexbox horizontal gap={8}>
             {/* <ActionIcon icon={PencilLineIcon} onClick={openEditor} /> */}
             <MemoryAnalysis iconOnly />
             <WideScreenButton />

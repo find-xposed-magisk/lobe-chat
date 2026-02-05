@@ -35,7 +35,7 @@ export const createModelPullStream = <
       const encoder = new TextEncoder();
 
       try {
-        // eslint-disable-next-line no-constant-condition
+         
         while (true) {
           // Wait for the next data chunk or iteration completion
           const { value: progress, done } = await iterator.next();

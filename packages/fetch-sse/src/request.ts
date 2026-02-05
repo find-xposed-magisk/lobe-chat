@@ -4,7 +4,7 @@
  * @returns Converted request body data
  */
 export const getRequestBody = async (
-  // eslint-disable-next-line no-undef
+   
   body?: BodyInit | null,
 ): Promise<string | ArrayBuffer | undefined> => {
   if (!body) {

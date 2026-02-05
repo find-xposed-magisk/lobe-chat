@@ -1,13 +1,14 @@
+import type {
+  GenerateContentConfig,
+  GoogleGenAI} from '@google/genai';
 import {
   FunctionCallingConfigMode,
-  GenerateContentConfig,
-  GoogleGenAI,
   Type as SchemaType,
 } from '@google/genai';
 import Debug from 'debug';
 
 import { buildGoogleTool } from '../../core/contextBuilders/google';
-import { ChatCompletionTool, GenerateObjectOptions, GenerateObjectSchema } from '../../types';
+import type { ChatCompletionTool, GenerateObjectOptions, GenerateObjectSchema } from '../../types';
 
 const debug = Debug('lobe-mode-runtime:google:generateObject');
 

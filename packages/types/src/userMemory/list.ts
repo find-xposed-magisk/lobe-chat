@@ -1,22 +1,22 @@
-import {
-  UserMemoryContextWithoutVectors,
-  UserMemoryExperienceWithoutVectors,
-  UserMemoryPreferenceWithoutVectors,
-  UserMemoryContextsListItem,
-  UserMemoryExperiencesListItem,
-  UserMemoryPreferencesListItem,
-  UserMemoryActivitiesListItem,
-  UserMemoryActivityWithoutVectors,
-} from './layers'
-import {
-  UserMemoryIdentityWithoutVectors,
-  UserMemoryIdentitiesListItem,
-} from './identity'
-import {
+import type {
   UserMemoryListItem,
   UserMemoryWithoutVectors,
 } from './base'
-import { LayersEnum } from './shared';
+import type {
+  UserMemoryIdentitiesListItem,
+  UserMemoryIdentityWithoutVectors,
+} from './identity'
+import type {
+  UserMemoryActivitiesListItem,
+  UserMemoryActivityWithoutVectors,
+  UserMemoryContextsListItem,
+  UserMemoryContextWithoutVectors,
+  UserMemoryExperiencesListItem,
+  UserMemoryExperienceWithoutVectors,
+  UserMemoryPreferencesListItem,
+  UserMemoryPreferenceWithoutVectors,
+} from './layers'
+import type { LayersEnum } from './shared';
 
 export interface TopicSource {
   agentId: string | null;

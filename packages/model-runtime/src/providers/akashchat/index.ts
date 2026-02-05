@@ -1,8 +1,9 @@
 import { ModelProvider } from 'model-bank';
 
+import type {
+  OpenAICompatibleFactoryOptions} from '../../core/openaiCompatibleFactory';
 import {
-  OpenAICompatibleFactoryOptions,
-  createOpenAICompatibleRuntime,
+  createOpenAICompatibleRuntime
 } from '../../core/openaiCompatibleFactory';
 import { processMultiProviderModelList } from '../../utils/modelParse';
 
@@ -43,7 +44,7 @@ export const params = {
       const rawList: any[] = modelsPage.data || [];
 
       // Remove `created` field from each model item
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const modelList: AkashChatModelCard[] = rawList.map(({ created: _, ...rest }) => rest);
 
       return await processMultiProviderModelList(modelList, 'akashchat');

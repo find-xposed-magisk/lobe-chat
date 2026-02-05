@@ -1,13 +1,13 @@
 import { encodeAsync } from '../../tokenizer';
 
 export interface Buildable {
-  build(tryCompactIfPossible?: boolean): string | Promise<string>;
+  build: (tryCompactIfPossible?: boolean) => string | Promise<string>;
 }
 
 export type Joiner<T = string> =
   | string
   | ((batch: T[]) => string | Promise<string>)
-  | { join(batch: T[]): string | Promise<string> };
+  | { join: (batch: T[]) => string | Promise<string> };
 
 export interface TrimBatchProbeOptions<T = string | Buildable> {
   builder?: (item: T, tryCompact?: boolean) => string | Promise<string>;
@@ -19,7 +19,7 @@ export interface TrimBatchProbeOptions<T = string | Buildable> {
 
 export type Input<T = string | Buildable> = T | T[] | undefined | null;
 
-const PUNCTUATION_SPLIT_REGEXP = /(?<=[\p{Punctuation}])\s*/u;
+const PUNCTUATION_SPLIT_REGEXP = /(?<=\p{Punctuation})\s*/u;
 
 export const isBuildable = (value: unknown): value is Buildable =>
   Boolean(value) && typeof (value as Buildable).build === 'function';

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AgentState } from '../../types/state';
+import type {GroupOrchestrationSupervisorConfig} from '../GroupOrchestrationSupervisor';
 import {
-  GroupOrchestrationSupervisor,
-  type GroupOrchestrationSupervisorConfig,
+  GroupOrchestrationSupervisor
 } from '../GroupOrchestrationSupervisor';
 import type { ExecutorResult } from '../types';
 

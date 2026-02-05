@@ -1,6 +1,7 @@
-import { ChatTopicMetadata, DBMessageItem, TopicRankItem } from '@lobechat/types';
+import type { ChatTopicMetadata, DBMessageItem, TopicRankItem } from '@lobechat/types';
+import type {
+  SQL} from 'drizzle-orm';
 import {
-  SQL,
   and,
   count,
   desc,
@@ -17,15 +18,16 @@ import {
   sql,
 } from 'drizzle-orm';
 
+import type {
+  TopicItem} from '../schemas';
 import {
-  TopicItem,
   agents,
   agentsToSessions,
   messagePlugins,
   messages,
   topics,
 } from '../schemas';
-import { LobeChatDatabase } from '../type';
+import type { LobeChatDatabase } from '../type';
 import { genEndDateWhere, genRangeWhere, genStartDateWhere, genWhere } from '../utils/genWhere';
 import { idGenerator } from '../utils/idGenerator';
 
@@ -224,7 +226,7 @@ export class TopicModel {
     ]);
 
     // Remove internal fields before returning
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const cleanItems = items.map(({ agentId, sessionId, ...rest }) => rest);
 
     return { items: cleanItems, total: totalResult[0].count };

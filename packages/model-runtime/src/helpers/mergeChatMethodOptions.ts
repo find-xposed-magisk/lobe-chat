@@ -1,12 +1,11 @@
 import debug from 'debug';
 
-import { ChatMethodOptions } from '../types/chat';
+import type { ChatMethodOptions } from '../types/chat';
 
 const log = debug('model-runtime:helpers:mergeChatMethodOptions');
 
 export const mergeMultipleChatMethodOptions = (options: ChatMethodOptions[]): ChatMethodOptions => {
-  let completionOptions: ChatMethodOptions = {};
-  completionOptions.callback = {
+  const completionOptions: ChatMethodOptions = { callback: {
     onCompletion: async (data) => {
       for (const option of options) {
         if (option.callback?.onCompletion) {
@@ -103,7 +102,7 @@ export const mergeMultipleChatMethodOptions = (options: ChatMethodOptions[]): Ch
         }
       }
     },
-  };
+  },};
   completionOptions.headers = options.reduce((acc, option) => {
     if (option)
       return {

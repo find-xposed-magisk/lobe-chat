@@ -1,13 +1,15 @@
 import type { ExperienceListParams, ExperienceListResult } from '@lobechat/types';
-import { type SQL, and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import type {SQL} from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, or,  sql } from 'drizzle-orm';
 
-import {
+import type {
   NewUserMemoryExperience,
-  UserMemoryExperience,
+  UserMemoryExperience} from '../../schemas';
+import {
   userMemories,
-  userMemoriesExperiences,
+  userMemoriesExperiences
 } from '../../schemas';
-import { LobeChatDatabase } from '../../type';
+import type { LobeChatDatabase } from '../../type';
 
 export class UserMemoryExperienceModel {
   private userId: string;

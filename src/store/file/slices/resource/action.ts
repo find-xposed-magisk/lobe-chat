@@ -3,11 +3,12 @@ import debug from 'debug';
 import { documentService } from '@/services/document';
 import { fileService } from '@/services/file';
 import { resourceService } from '@/services/resource';
-import { type StoreSetter } from '@/store/types';
+import type {StoreSetter} from '@/store/types';
 import type { CreateResourceParams, ResourceItem, UpdateResourceParams } from '@/types/resource';
 
 import type { FileStore } from '../../store';
-import { type ResourceState, initialResourceState } from './initialState';
+import type {ResourceState} from './initialState';
+import { initialResourceState } from './initialState';
 import { ResourceSyncEngine } from './syncEngine';
 
 const log = debug('resource-manager:action');

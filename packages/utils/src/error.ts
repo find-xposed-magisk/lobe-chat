@@ -13,7 +13,7 @@ export const isError = (err: null | undefined | unknown): err is Error =>
   err instanceof Error
 
 export const isErrorLike = <C = unknown>(err: null | undefined | unknown): err is ErrorLike<C> => {
-  // eslint-disable-next-line eqeqeq
+   
   if (err == null)
     return false
 
@@ -66,7 +66,7 @@ export const errorStackFrom = (err: null | undefined | unknown): null | string |
  * @returns {unknown | undefined}
  */
 export const errorCauseFrom = <C>(err: null | undefined | unknown): C | undefined => {
-  // eslint-disable-next-line eqeqeq
+   
   if (!isErrorLike(err) || err.cause == null)
     return undefined
 

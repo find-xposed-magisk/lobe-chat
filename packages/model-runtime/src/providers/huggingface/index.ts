@@ -3,9 +3,10 @@ import { ModelProvider } from 'model-bank';
 import urlJoin from 'url-join';
 
 import { convertOpenAIMessagesToHFFormat } from '../../core/contextBuilders/huggingface';
+import type {
+  OpenAICompatibleFactoryOptions} from '../../core/openaiCompatibleFactory';
 import {
-  OpenAICompatibleFactoryOptions,
-  createOpenAICompatibleRuntime,
+  createOpenAICompatibleRuntime
 } from '../../core/openaiCompatibleFactory';
 import { convertIterableToStream } from '../../core/streams';
 import { AgentRuntimeErrorType } from '../../types/error';

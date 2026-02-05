@@ -1,7 +1,6 @@
 import { LOBE_CHAT_OBSERVATION_ID, LOBE_CHAT_TRACE_ID, MESSAGE_CANCEL_FLAT } from '@lobechat/const';
 import { parseToolCalls } from '@lobechat/model-runtime';
-import {
-  ChatErrorType,
+import type {
   ChatImageChunk,
   ChatMessageError,
   GroundingSearch,
@@ -10,7 +9,9 @@ import {
   ModelReasoning,
   ModelUsage,
   ResponseAnimation,
-  ResponseAnimationStyle,
+  ResponseAnimationStyle} from '@lobechat/types';
+import {
+  ChatErrorType
 } from '@lobechat/types';
 import { fetchEventSource } from '@lobechat/utils/client/fetchEventSource/index';
 import { nanoid } from '@lobechat/utils/uuid';
@@ -123,7 +124,7 @@ const createSmoothMessage = (params: {
   const { startSpeed = START_ANIMATION_SPEED } = params;
 
   let buffer = '';
-  let outputQueue: string[] = [];
+  const outputQueue: string[] = [];
   let isAnimationActive = false;
   let animationFrameId: number | null = null;
   let lastFrameTime = 0;
@@ -179,7 +180,7 @@ const createSmoothMessage = (params: {
         if (charsToProcess > 0) {
           accumulatedTime -= (charsToProcess * 1000) / currentSpeed;
 
-          let actualChars = Math.min(charsToProcess, outputQueue.length);
+          const actualChars = Math.min(charsToProcess, outputQueue.length);
           // actualChars = Math.min(speed, actualChars); // Speed upper limit
 
           // if (actualChars * 2 < outputQueue.length && /[\dA-Za-z]/.test(outputQueue[actualChars])) {
@@ -228,7 +229,7 @@ export const standardizeAnimationStyle = (
 /**
  * Fetch data using stream method
  */
-// eslint-disable-next-line no-undef
+ 
 export const fetchSSE = async (url: string, options: RequestInit & FetchSSEOptions = {}) => {
   let toolCalls: undefined | MessageToolCall[];
   let triggerOnMessageHandler = false;
@@ -287,7 +288,7 @@ export const fetchSSE = async (url: string, options: RequestInit & FetchSSEOptio
 
   let grounding: GroundingSearch | undefined = undefined;
   let usage: ModelUsage | undefined = undefined;
-  let images: ChatImageChunk[] = [];
+  const images: ChatImageChunk[] = [];
   let speed: ModelPerformance | undefined = undefined;
 
   await fetchEventSource(url, {

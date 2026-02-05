@@ -1,9 +1,10 @@
-/* eslint-disable unicorn/prefer-top-level-await */
+ 
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { exit } from 'node:process';
 
 import type { BuiltinToolManifest } from '@lobechat/types';
+
 import { MemoryManifest } from '../../builtin-tool-memory';
 
 const OUTPUT_DIR = join(process.cwd(), 'promptfoo/tool-calls');
@@ -24,7 +25,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  // eslint-disable-next-line no-console
+   
   console.error(err);
   exit(1);
 });

@@ -1,13 +1,15 @@
 import type { ActivityListParams, ActivityListResult } from '@lobechat/types';
-import { type SQL, and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
+import type {SQL} from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, or,  sql } from 'drizzle-orm';
 
-import {
+import type {
   NewUserMemoryActivity,
-  UserMemoryActivity,
+  UserMemoryActivity} from '../../schemas';
+import {
   userMemories,
-  userMemoriesActivities,
+  userMemoriesActivities
 } from '../../schemas';
-import { LobeChatDatabase } from '../../type';
+import type { LobeChatDatabase } from '../../type';
 
 export class UserMemoryActivityModel {
   private userId: string;

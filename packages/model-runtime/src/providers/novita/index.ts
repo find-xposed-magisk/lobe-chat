@@ -2,7 +2,7 @@ import { ModelProvider } from 'model-bank';
 
 import { createOpenAICompatibleRuntime } from '../../core/openaiCompatibleFactory';
 import { processMultiProviderModelList } from '../../utils/modelParse';
-import { NovitaModelCard } from './type';
+import type { NovitaModelCard } from './type';
 
 const formatPrice = (price?: number) => {
   if (price === undefined || price === null) return undefined;
