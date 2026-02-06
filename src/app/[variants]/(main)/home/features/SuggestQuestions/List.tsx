@@ -5,7 +5,7 @@ import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Item from './Item';
-import { type QuestionItem } from './useRandomQuestions';
+import type { QuestionItem } from './useRandomQuestions';
 
 interface ListProps {
   questions: QuestionItem[];

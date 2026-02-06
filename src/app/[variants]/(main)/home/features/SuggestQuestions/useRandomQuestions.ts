@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-import { type StarterMode } from '@/store/home';
+import type { StarterMode } from '@/store/home';
 
 const QUESTION_COUNT = 40;
 const DISPLAY_COUNT = 6;

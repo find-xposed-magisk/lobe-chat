@@ -1,11 +1,11 @@
 'use client';
 
-import type {ChatInputProps} from '@lobehub/editor/react';
-import { ChatInput, ChatInputActionBar  } from '@lobehub/editor/react';
+import type { ChatInputProps } from '@lobehub/editor/react';
+import { ChatInput, ChatInputActionBar } from '@lobehub/editor/react';
 import { Center, Flexbox, Text } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
-import type {ReactNode} from 'react';
-import { memo,  useEffect } from 'react';
+import type { ReactNode } from 'react';
+import { memo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useChatInputStore } from '@/features/ChatInput/store';
@@ -15,7 +15,7 @@ import { fileChatSelectors, useFileStore } from '@/store/file';
 import { useGlobalStore } from '@/store/global';
 import { systemStatusSelectors } from '@/store/global/selectors';
 
-import type {ActionToolbarProps} from '../ActionBar';
+import type { ActionToolbarProps } from '../ActionBar';
 import ActionBar from '../ActionBar';
 import InputEditor from '../InputEditor';
 import SendArea from '../SendArea';
@@ -59,7 +59,13 @@ interface DesktopChatInputProps extends ActionToolbarProps {
 }
 
 const DesktopChatInput = memo<DesktopChatInputProps>(
-  ({ showFootnote, inputContainerProps, extenHeaderContent, extraActionItems, dropdownPlacement }) => {
+  ({
+    showFootnote,
+    inputContainerProps,
+    extenHeaderContent,
+    extraActionItems,
+    dropdownPlacement,
+  }) => {
     const { t } = useTranslation('chat');
     const [chatInputHeight, updateSystemStatus] = useGlobalStore((s) => [
       systemStatusSelectors.chatInputHeight(s),
@@ -101,14 +107,14 @@ const DesktopChatInput = memo<DesktopChatInputProps>(
           slashMenuRef={slashMenuRef}
           footer={
             <ChatInputActionBar
+              right={<SendArea />}
+              style={{ paddingRight: 8 }}
               left={
                 <ActionBar
                   dropdownPlacement={dropdownPlacement}
                   extraActionItems={extraActionItems}
                 />
               }
-              right={<SendArea />}
-              style={{ paddingRight: 8 }}
             />
           }
           header={

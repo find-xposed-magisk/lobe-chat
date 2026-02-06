@@ -10,7 +10,7 @@ import { styles } from './styles';
 
 const Overview = memo(() => {
   const { t } = useTranslation(['plugin']);
-  const { author, authorUrl, localizedIntroduction } = useDetailContext();
+  const { author, authorUrl, localizedReadme } = useDetailContext();
 
   const handleAuthorClick = () => {
     if (authorUrl) {
@@ -21,7 +21,7 @@ const Overview = memo(() => {
   return (
     <Flexbox gap={20}>
       {/* Introduction */}
-      <Typography className={styles.introduction}>{localizedIntroduction}</Typography>
+      <Typography className={styles.introduction}>{localizedReadme}</Typography>
 
       {/* Developed by */}
       <Flexbox gap={8}>

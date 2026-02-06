@@ -23,30 +23,30 @@ const Item = memo<ItemProps>(({ title, avatar, backgroundColor, author, descript
       flex={'none'}
       height={RECENT_BLOCK_SIZE.AGENT.HEIGHT}
       justify={'space-between'}
+      variant={'filled'}
+      width={RECENT_BLOCK_SIZE.AGENT.WIDTH}
       style={{
         backgroundColor: cssVar.colorFillQuaternary,
         borderRadius: cssVar.borderRadiusLG,
         overflow: 'hidden',
       }}
-      variant={'filled'}
-      width={RECENT_BLOCK_SIZE.AGENT.WIDTH}
     >
       <Block
         flex={1}
         padding={12}
+        variant={'outlined'}
         style={{
           backgroundColor: isDarkMode ? cssVar.colorFillQuaternary : cssVar.colorBgContainer,
           borderRadius: cssVar.borderRadiusLG,
           boxShadow: '0 4px 8px -2px rgba(0,0,0,.02)',
           overflow: 'hidden',
         }}
-        variant={'outlined'}
       >
         <Text color={cssVar.colorTextSecondary} ellipsis={{ rows: 3 }} fontSize={13}>
           {description}
         </Text>
       </Block>
-      <Flexbox align={'center'} gap={8} horizontal paddingBlock={8} paddingInline={12}>
+      <Flexbox horizontal align={'center'} gap={8} paddingBlock={8} paddingInline={12}>
         <Flexbox
           flex={1}
           gap={1}
@@ -62,9 +62,9 @@ const Item = memo<ItemProps>(({ title, avatar, backgroundColor, author, descript
           </Text>
         </Flexbox>
         <Avatar
+          emojiScaleWithBackground
           avatar={avatar || DEFAULT_AVATAR}
           background={backgroundColor || undefined}
-          emojiScaleWithBackground
           shape={'square'}
           size={30}
           style={{

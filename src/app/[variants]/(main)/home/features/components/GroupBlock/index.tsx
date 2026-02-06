@@ -1,8 +1,8 @@
-import type {FlexboxProps, IconProps} from '@lobehub/ui';
-import { Flexbox,  Icon,  Text } from '@lobehub/ui';
+import type { FlexboxProps, IconProps } from '@lobehub/ui';
+import { Flexbox, Icon, Text } from '@lobehub/ui';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
-import type {ReactNode} from 'react';
-import { memo,  Suspense, useState } from 'react';
+import type { ReactNode } from 'react';
+import { memo, Suspense, useState } from 'react';
 
 interface GroupBlockProps extends Omit<FlexboxProps, 'title'> {
   action?: ReactNode;
@@ -49,13 +49,13 @@ const GroupBlock = memo<GroupBlockProps>(
           <Flexbox
             horizontal
             align={'center'}
+            flex={'none'}
+            gap={2}
+            justify={'flex-end'}
             className={cx(
               styles.action,
               (isHovered || actionAlwaysVisible) && styles.actionVisible,
             )}
-            flex={'none'}
-            gap={2}
-            justify={'flex-end'}
           >
             {action}
           </Flexbox>

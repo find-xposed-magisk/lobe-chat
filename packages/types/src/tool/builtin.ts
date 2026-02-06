@@ -21,6 +21,11 @@ interface Meta {
    */
   description?: string;
   /**
+   * readme
+   * @desc Long-form readme content for the plugin
+   */
+  readme?: string;
+  /**
    * tags
    * @desc Tags of the plugin
    * @nameEN Tags
@@ -33,6 +38,7 @@ interface Meta {
 const MetaSchema = z.object({
   avatar: z.string().optional(),
   description: z.string().optional(),
+  readme: z.string().optional(),
   tags: z.array(z.string()).optional(),
   title: z.string(),
 });

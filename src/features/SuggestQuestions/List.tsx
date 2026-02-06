@@ -7,7 +7,8 @@ import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Item from './Item';
-import { type SuggestMode, useRandomQuestions } from './useRandomQuestions';
+import type { SuggestMode } from './useRandomQuestions';
+import { useRandomQuestions } from './useRandomQuestions';
 
 interface ListProps {
   count?: number;
@@ -38,7 +39,7 @@ const List = memo<ListProps>(({ mode, count = 3 }) => {
           );
         })}
       </Flexbox>
-      <Flexbox align={'center'} gap={4} horizontal onClick={refresh} style={{ cursor: 'pointer' }}>
+      <Flexbox horizontal align={'center'} gap={4} style={{ cursor: 'pointer' }} onClick={refresh}>
         <ActionIcon icon={RefreshCw} size={'small'} />
         <Text color={cssVar.colorTextSecondary} fontSize={12}>
           {tCommon('switch')}

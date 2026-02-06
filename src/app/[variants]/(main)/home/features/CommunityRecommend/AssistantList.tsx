@@ -7,7 +7,7 @@ import urlJoin from 'url-join';
 import GroupSkeleton from '@/app/[variants]/(main)/home/features/components/GroupSkeleton';
 import { RECENT_BLOCK_SIZE } from '@/app/[variants]/(main)/home/features/const';
 import { useDiscoverStore } from '@/store/discover';
-import { type StarterMode } from '@/store/home';
+import type { StarterMode } from '@/store/home';
 import { AssistantCategory } from '@/types/discover';
 
 import Item from './Item';
@@ -46,11 +46,11 @@ const AssistantList = memo<AssistantListProps>(({ mode }) => {
       {assistantList.items.map((item, index) => (
         <Link
           key={index}
+          to={urlJoin('/community/agent', item.identifier)}
           style={{
             color: 'inherit',
             textDecoration: 'none',
           }}
-          to={urlJoin('/community/agent', item.identifier)}
         >
           <Item
             author={item.author}

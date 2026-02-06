@@ -181,6 +181,8 @@ export const PageAgentManifest: BuiltinToolManifest = {
   meta: {
     avatar: '📄',
     description: 'Create, read, update, and delete nodes in XML-structured documents',
+    readme:
+      'Create and edit structured documents with precise node-level control. Initialize from Markdown, perform batch insert/modify/remove operations, and find-and-replace text across documents.',
     title: 'Document',
   },
   systemRole: systemPrompt,

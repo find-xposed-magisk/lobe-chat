@@ -72,6 +72,7 @@ const Item = memo<ItemProps>(
             placement="bottomRight"
             items={[
               {
+                danger: true,
                 icon: <Icon icon={Unplug} />,
                 key: 'disconnect',
                 label: t('tools.lobehubSkill.disconnect'),

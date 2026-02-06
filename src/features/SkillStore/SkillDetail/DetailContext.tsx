@@ -12,11 +12,11 @@ export interface DetailContextValue {
   description: string;
   icon: string | React.ComponentType<any>;
   identifier: string;
-  introduction: string;
   isConnected: boolean;
   label: string;
   localizedDescription: string;
-  localizedIntroduction: string;
+  localizedReadme: string;
+  readme: string;
   serverName?: Klavis.McpServerName;
   tools: Array<{ description?: string; inputSchema?: any; name: string }>;
   toolsLoading: boolean;

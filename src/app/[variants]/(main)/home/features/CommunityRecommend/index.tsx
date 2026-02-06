@@ -109,6 +109,8 @@ const CommunityRecommend = memo<CommunityRecommendProps>(({ mode }) => {
 
   return (
     <GroupBlock
+      icon={isGroupMode ? UsersIcon : BotIcon}
+      title={getTitle()}
       action={
         <DropdownMenu
           items={[
@@ -124,8 +126,6 @@ const CommunityRecommend = memo<CommunityRecommendProps>(({ mode }) => {
           <ActionIcon icon={MoreHorizontal} size="small" />
         </DropdownMenu>
       }
-      icon={isGroupMode ? UsersIcon : BotIcon}
-      title={getTitle()}
     >
       <ScrollShadowWithButton>{renderContent()}</ScrollShadowWithButton>
     </GroupBlock>

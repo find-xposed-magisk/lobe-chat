@@ -252,6 +252,7 @@ const KlavisSkillItem = memo<KlavisSkillItemProps>(({ serverType, server }) => {
           placement="bottomRight"
           items={[
             {
+              danger: true,
               icon: <Icon icon={Unplug} />,
               key: 'disconnect',
               label: t('tools.klavis.disconnect', { defaultValue: 'Disconnect' }),

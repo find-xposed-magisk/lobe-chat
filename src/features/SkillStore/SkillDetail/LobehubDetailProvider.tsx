@@ -39,13 +39,13 @@ export const LobehubDetailProvider = ({ children, identifier }: LobehubDetailPro
 
   if (!config) return null;
 
-  const { author, authorUrl, description, icon, introduction, label } = config;
+  const { author, authorUrl, description, icon, readme, label } = config;
 
   const localizedDescription = t(`tools.lobehubSkill.providers.${identifier}.description`, {
     defaultValue: description,
   });
-  const localizedIntroduction = t(`tools.lobehubSkill.providers.${identifier}.introduction`, {
-    defaultValue: introduction,
+  const localizedReadme = t(`tools.lobehubSkill.providers.${identifier}.readme`, {
+    defaultValue: readme,
   });
 
   const value: DetailContextValue = {
@@ -55,11 +55,11 @@ export const LobehubDetailProvider = ({ children, identifier }: LobehubDetailPro
     description,
     icon,
     identifier,
-    introduction,
     isConnected,
     label,
     localizedDescription,
-    localizedIntroduction,
+    localizedReadme,
+    readme,
     tools,
     toolsLoading,
   };

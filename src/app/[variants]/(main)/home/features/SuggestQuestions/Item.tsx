@@ -25,15 +25,15 @@ const Item = memo<ItemProps>(({ title, description, prompt }) => {
   return (
     <Block
       clickable
-      onClick={handleClick}
+      variant={'outlined'}
       style={{
         borderRadius: cssVar.borderRadiusLG,
         cursor: 'pointer',
       }}
-      variant={'outlined'}
+      onClick={handleClick}
     >
       <Flexbox gap={4} paddingBlock={12} paddingInline={14}>
-        <Flexbox align={'center'} gap={8} horizontal justify={'space-between'}>
+        <Flexbox horizontal align={'center'} gap={8} justify={'space-between'}>
           <Text ellipsis fontSize={14} style={{ fontWeight: 500 }}>
             {title}
           </Text>

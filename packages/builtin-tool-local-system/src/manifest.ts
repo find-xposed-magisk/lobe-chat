@@ -384,6 +384,9 @@ export const LocalSystemManifest: BuiltinToolManifest = {
   identifier: LocalSystemIdentifier,
   meta: {
     avatar: '📁',
+    description: 'Access and manage local files, run shell commands on your desktop',
+    readme:
+      'Access your local filesystem on desktop. Read, write, search, and organize files. Execute shell commands with background task support and grep content with regex patterns.',
     title: 'Local System',
   },
   systemRole: systemPrompt,

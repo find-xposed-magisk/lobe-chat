@@ -45,13 +45,13 @@ export const KlavisDetailProvider = ({
 
   if (!config) return null;
 
-  const { author, authorUrl, description, icon, introduction, label } = config;
+  const { author, authorUrl, description, icon, readme, label } = config;
 
   const localizedDescription = t(`tools.klavis.servers.${identifier}.description`, {
     defaultValue: description,
   });
-  const localizedIntroduction = t(`tools.klavis.servers.${identifier}.introduction`, {
-    defaultValue: introduction,
+  const localizedReadme = t(`tools.klavis.servers.${identifier}.readme`, {
+    defaultValue: readme,
   });
 
   const value: DetailContextValue = {
@@ -61,11 +61,11 @@ export const KlavisDetailProvider = ({
     description,
     icon,
     identifier,
-    introduction,
     isConnected,
     label,
     localizedDescription,
-    localizedIntroduction,
+    localizedReadme,
+    readme,
     serverName,
     tools,
     toolsLoading,

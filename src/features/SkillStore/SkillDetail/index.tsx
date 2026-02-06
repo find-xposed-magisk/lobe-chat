@@ -4,8 +4,24 @@ import { createModal } from '@lobehub/ui';
 import { t } from 'i18next';
 import type { Klavis } from 'klavis';
 
+import { BuiltinSkillDetailContent } from './BuiltinSkillDetailContent';
 import { KlavisSkillDetailContent } from './KlavisSkillDetailContent';
 import { LobehubSkillDetailContent } from './LobehubSkillDetailContent';
+
+export interface CreateBuiltinSkillDetailModalOptions {
+  identifier: string;
+}
+
+export const createBuiltinSkillDetailModal = ({
+  identifier,
+}: CreateBuiltinSkillDetailModalOptions) =>
+  createModal({
+    children: <BuiltinSkillDetailContent identifier={identifier} />,
+    destroyOnHidden: true,
+    footer: null,
+    title: t('dev.title.skillDetails', { ns: 'plugin' }),
+    width: 800,
+  });
 
 export interface CreateKlavisSkillDetailModalOptions {
   identifier: string;

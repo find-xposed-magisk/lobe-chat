@@ -23,12 +23,12 @@ const Item = memo<ItemProps>(({ title, description, prompt }) => {
   return (
     <Block
       clickable
-      onClick={handleClick}
+      variant={'outlined'}
       style={{
         borderRadius: cssVar.borderRadiusLG,
         cursor: 'pointer',
       }}
-      variant={'outlined'}
+      onClick={handleClick}
     >
       <Flexbox gap={4} paddingBlock={12} paddingInline={14}>
         <Text ellipsis fontSize={14} style={{ fontWeight: 500 }}>

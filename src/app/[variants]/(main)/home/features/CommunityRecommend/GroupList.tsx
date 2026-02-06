@@ -36,11 +36,11 @@ const GroupList = memo(() => {
       {groupList.items.map((item, index) => (
         <Link
           key={index}
+          to={urlJoin('/community/group_agent', item.identifier)}
           style={{
             color: 'inherit',
             textDecoration: 'none',
           }}
-          to={urlJoin('/community/group_agent', item.identifier)}
         >
           <Item
             author={item.author}

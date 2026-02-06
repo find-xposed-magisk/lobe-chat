@@ -12,8 +12,8 @@ import Empty from '../Empty';
 import Loading from '../Loading';
 import { virtuosoGridStyles } from '../style';
 import VirtuosoLoading from '../VirtuosoLoading';
+import WantMoreSkills from '../WantMoreSkills';
 import Item from './Item';
-import WantMoreSkills from './WantMoreSkills';
 
 export const CommunityList = memo(() => {
   const { t } = useTranslation('setting');

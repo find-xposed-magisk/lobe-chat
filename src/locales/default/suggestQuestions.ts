@@ -1,5 +1,4 @@
 export default {
-  // === General Life & Learning (28) ===
   'agent.01.prompt':
     "You are a Creative Writing Mentor who helps writers develop their craft. What You Do: Provide constructive feedback on writing (praise strengths, suggest improvements); Teach storytelling techniques: plot structure, character development, pacing, dialogue; Suggest exercises to overcome writer's block; Guide through different genres and styles; Help writers find their unique voice. Tool Usage: Artifacts: Create character cards, plot diagrams (Mermaid), writing prompt generators (React), and story templates; Notebook: Save user's drafts, feedback reports, and writing plans (ask before saving). Be supportive, honest, and passionate about stories. Meet writers where they are.",
   'agent.01.title': 'Help me become a better writer',
@@ -84,8 +83,6 @@ export default {
   'agent.28.prompt':
     'Create a science communicator who can explain complex scientific concepts in engaging ways, discuss the latest discoveries, separate fact from fiction, and help you develop scientific literacy and curiosity.',
   'agent.28.title': 'Explain science concepts to me',
-
-  // === Technical Roles (12) ===
   'agent.29.prompt':
     'Create a senior code reviewer who specializes in identifying code smells, potential bugs, security vulnerabilities, and performance issues. They should provide constructive feedback with specific suggestions for improvement, explain the reasoning behind each recommendation, and help enforce coding standards and best practices across the codebase.',
   'agent.29.title': 'Help me review and improve my code',
@@ -122,7 +119,6 @@ export default {
   'agent.40.prompt':
     'Create a technical project manager who can help with agile methodology implementation, sprint planning, risk management, stakeholder communication, resource allocation, and keeping complex technical projects on track while maintaining team morale and productivity.',
   'agent.40.title': 'Help me manage my technical project',
-  // === General Interest Groups (28) ===
   'group.01.prompt':
     "Form a book club discussion with diverse readers bringing different perspectives - a literary critic analyzing themes and craft, a casual reader sharing emotional reactions, a history buff providing context, and a philosophy enthusiast exploring deeper meanings. Have them discuss the book's impact and what it reveals about human nature.",
   'group.01.title': 'Have a book club discussion with me',
@@ -207,8 +203,6 @@ export default {
   'group.28.prompt':
     'Form a music appreciation group with a music historian, a musician, a producer, and an enthusiastic listener. Have them explore different genres, discuss what makes music powerful, and share discoveries from various eras and cultures.',
   'group.28.title': 'Discover new music together',
-
-  // === Technical Groups (12) ===
   'group.29.prompt':
     'Assemble a complete software development team including a tech lead who oversees architecture decisions, a frontend developer focused on user experience, a backend developer handling data and APIs, and a QA engineer ensuring quality. Have them collaborate to plan, discuss trade-offs, and create an implementation strategy for a new feature.',
   'group.29.title': 'Plan a new feature together',
@@ -245,7 +239,6 @@ export default {
   'group.40.prompt':
     'Assemble a design review panel with a UX designer presenting the design, a frontend developer assessing implementation feasibility, a product manager checking alignment with requirements, and an accessibility expert ensuring inclusive design. Have them provide constructive feedback and iterate.',
   'group.40.title': 'Review my design from multiple perspectives',
-  // === Creative Writing (8) ===
   'write.01.prompt':
     'Write a captivating short story with compelling characters, an engaging plot, and a satisfying ending. Include vivid descriptions that bring scenes to life, natural dialogue that reveals character personalities, rising tension that keeps readers hooked, and a meaningful theme or message woven throughout the narrative.',
   'write.01.title': 'Write a captivating short story',
@@ -270,8 +263,6 @@ export default {
   'write.08.prompt':
     'Create flash fiction or micro-stories that pack a powerful punch in very few words. Every word should count, with tight prose, implied backstory, and endings that surprise or resonate. Aim for complete stories in under 1000 words that leave lasting impressions.',
   'write.08.title': 'Write powerful flash fiction',
-
-  // === Practical Writing (8) ===
   'write.09.prompt':
     'Write a professional email that is clear, concise, and achieves its purpose effectively. Whether requesting information, following up, making a proposal, or addressing a sensitive issue, ensure the tone is appropriate, the structure is logical, and the call to action is clear.',
   'write.09.title': 'Help me draft a professional email',
@@ -296,8 +287,6 @@ export default {
   'write.16.prompt':
     'Write a strong recommendation letter that advocates effectively for someone. Include specific examples of their strengths and accomplishments, provide context for your relationship and observations, and offer genuine endorsement that helps the reader make informed decisions.',
   'write.16.title': 'Write a strong recommendation letter',
-
-  // === Content Creation (8) ===
   'write.17.prompt':
     'Write an honest and helpful product review that guides potential buyers. Cover key features, real-world performance, pros and cons, value for money, and who the product is best suited for. Include specific examples from your experience and a clear recommendation.',
   'write.17.title': 'Write a helpful product review',
@@ -322,8 +311,6 @@ export default {
   'write.24.prompt':
     'Write an insightful interview article that brings a conversation to life. Prepare thoughtful questions, capture the subject personality and voice, weave quotes into a compelling narrative, and provide context that helps readers understand why this person story matters.',
   'write.24.title': 'Write an insightful interview article',
-
-  // === Business & Academic (6) ===
   'write.25.prompt':
     'Write a comprehensive business plan that convinces investors or guides your venture. Include executive summary, market analysis, competitive landscape, business model, marketing strategy, financial projections, team overview, and funding requirements with clear use of funds.',
   'write.25.title': 'Write a comprehensive business plan',
@@ -342,8 +329,6 @@ export default {
   'write.30.prompt':
     'Write a reflective year-end summary or annual review that captures accomplishments and learnings. Include key achievements with metrics, challenges overcome, lessons learned, goals assessment, and objectives for the coming year.',
   'write.30.title': 'Write my year-end summary',
-
-  // === Technical Documentation (10) ===
   'write.31.prompt':
     'Write a comprehensive technical blog post that explains a complex programming concept in an accessible way. Include a clear introduction that hooks the reader, progressive explanations building from basics to advanced topics, practical code examples with detailed comments, visual diagram descriptions, real-world use cases, common pitfalls to avoid, and a conclusion with next steps for learning more.',
   'write.31.title': 'Write an engaging technical blog post',
