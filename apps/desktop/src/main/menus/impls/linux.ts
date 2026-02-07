@@ -104,16 +104,8 @@ export class LinuxMenu extends BaseMenuPlatform implements IMenuPlatform {
             label: t('common.checkUpdates'),
           },
           { type: 'separator' },
-          {
-            accelerator: 'Ctrl+W',
-            label: t('window.close'),
-            role: 'close',
-          },
-          {
-            accelerator: 'Ctrl+M',
-            label: t('window.minimize'),
-            role: 'minimize',
-          },
+          { label: t('window.close'), role: 'close' },
+          { label: t('window.minimize'), role: 'minimize' },
           { type: 'separator' },
           { label: t('file.quit'), role: 'quit' },
         ],
@@ -121,24 +113,24 @@ export class LinuxMenu extends BaseMenuPlatform implements IMenuPlatform {
       {
         label: t('edit.title'),
         submenu: [
-          { accelerator: 'Ctrl+Z', label: t('edit.undo'), role: 'undo' },
-          { accelerator: 'Ctrl+Shift+Z', label: t('edit.redo'), role: 'redo' },
+          { label: t('edit.undo'), role: 'undo' },
+          { label: t('edit.redo'), role: 'redo' },
           { type: 'separator' },
-          { accelerator: 'Ctrl+X', label: t('edit.cut'), role: 'cut' },
-          { accelerator: 'Ctrl+C', label: t('edit.copy'), role: 'copy' },
-          { accelerator: 'Ctrl+V', label: t('edit.paste'), role: 'paste' },
+          { label: t('edit.cut'), role: 'cut' },
+          { label: t('edit.copy'), role: 'copy' },
+          { label: t('edit.paste'), role: 'paste' },
           { type: 'separator' },
-          { accelerator: 'Ctrl+A', label: t('edit.selectAll'), role: 'selectAll' },
+          { label: t('edit.selectAll'), role: 'selectAll' },
         ],
       },
       {
         label: t('view.title'),
         submenu: [
-          { accelerator: 'Ctrl+0', label: t('view.resetZoom'), role: 'resetZoom' },
-          { accelerator: 'Ctrl+Plus', label: t('view.zoomIn'), role: 'zoomIn' },
-          { accelerator: 'Ctrl+-', label: t('view.zoomOut'), role: 'zoomOut' },
+          { label: t('view.resetZoom'), role: 'resetZoom' },
+          { label: t('view.zoomIn'), role: 'zoomIn' },
+          { label: t('view.zoomOut'), role: 'zoomOut' },
           { type: 'separator' },
-          { accelerator: 'F11', label: t('view.toggleFullscreen'), role: 'togglefullscreen' },
+          { label: t('view.toggleFullscreen'), role: 'togglefullscreen' },
         ],
       },
       {
@@ -220,9 +212,9 @@ export class LinuxMenu extends BaseMenuPlatform implements IMenuPlatform {
       template.push({
         label: t('dev.title'),
         submenu: [
-          { accelerator: 'Ctrl+R', label: t('dev.reload'), role: 'reload' },
-          { accelerator: 'Ctrl+Shift+R', label: t('dev.forceReload'), role: 'forceReload' },
-          { accelerator: 'Ctrl+Shift+I', label: t('dev.devTools'), role: 'toggleDevTools' },
+          { label: t('dev.reload'), role: 'reload' },
+          { label: t('dev.forceReload'), role: 'forceReload' },
+          { label: t('dev.devTools'), role: 'toggleDevTools' },
           { type: 'separator' },
           {
             click: () => {
@@ -365,8 +357,8 @@ export class LinuxMenu extends BaseMenuPlatform implements IMenuPlatform {
 
     // Standard edit actions for chat
     template.push(
-      { accelerator: 'Ctrl+C', label: t('edit.copy'), role: 'copy' },
-      { accelerator: 'Ctrl+V', label: t('edit.paste'), role: 'paste' },
+      { label: t('edit.copy'), role: 'copy' },
+      { label: t('edit.paste'), role: 'paste' },
       { type: 'separator' },
       { label: t('edit.selectAll'), role: 'selectAll' },
     );
@@ -406,11 +398,11 @@ export class LinuxMenu extends BaseMenuPlatform implements IMenuPlatform {
 
     // Standard edit actions for editor
     template.push(
-      { accelerator: 'Ctrl+X', label: t('edit.cut'), role: 'cut' },
-      { accelerator: 'Ctrl+C', label: t('edit.copy'), role: 'copy' },
-      { accelerator: 'Ctrl+V', label: t('edit.paste'), role: 'paste' },
+      { label: t('edit.cut'), role: 'cut' },
+      { label: t('edit.copy'), role: 'copy' },
+      { label: t('edit.paste'), role: 'paste' },
       { type: 'separator' },
-      { accelerator: 'Ctrl+A', label: t('edit.selectAll'), role: 'selectAll' },
+      { label: t('edit.selectAll'), role: 'selectAll' },
       { type: 'separator' },
       { label: t('edit.delete'), role: 'delete' },
     );
