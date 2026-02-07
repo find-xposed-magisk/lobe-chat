@@ -55,7 +55,7 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
 
     max-width: 480px;
     padding: 24px;
-    border: 1px solid var(--content-yellow-border, ${cssVar.colorWarningBorder});
+    border: 1px solid ${cssVar.colorFillQuaternary};
     border-radius: ${cssVar.borderRadiusLG};
 
     background: ${cssVar.colorBgContainer};
