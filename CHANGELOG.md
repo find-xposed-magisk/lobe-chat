@@ -6,6 +6,32 @@
 
 <sup>Released on **2026-02-08**</sup>
 
+#### 🐛 Bug Fixes
+
+- **misc**: Add end-user info on OpenAI Responses API call, enable vertical scrolling for topic list on mobile.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Add end-user info on OpenAI Responses API call, closes [#12134](https://github.com/lobehub/lobe-chat/issues/12134) ([72a85ac](https://github.com/lobehub/lobe-chat/commit/72a85ac))
+- **misc**: Enable vertical scrolling for topic list on mobile, closes [#12157](https://github.com/lobehub/lobe-chat/issues/12157) [lobehub/lobe-chat#12029](https://github.com/lobehub/lobe-chat/issues/12029) ([bd4e253](https://github.com/lobehub/lobe-chat/commit/bd4e253))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 2.1.21](https://github.com/lobehub/lobe-chat/compare/v2.1.20...v2.1.21)
+
+<sup>Released on **2026-02-08**</sup>
+
 <br/>
 
 <details>
