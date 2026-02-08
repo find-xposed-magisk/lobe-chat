@@ -1,6 +1,15 @@
 [
   {
     "children": {
+      "fixes": [
+        "Add api/version and api/desktop to public routes, show notification when file upload fails due to storage plan limit."
+      ]
+    },
+    "date": "2026-02-08",
+    "version": "2.1.20"
+  },
+  {
+    "children": {
       "fixes": ["Fixed in community pluings tab the lobehub skills not display."]
     },
     "date": "2026-02-06",
