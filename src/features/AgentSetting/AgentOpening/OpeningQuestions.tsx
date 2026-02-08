@@ -113,7 +113,7 @@ const OpeningQuestions = memo(() => {
         {openingQuestions.length > 0 ? (
           <SortableList
             items={items}
-            renderItem={(item) => (
+            renderItem={(item: QuestionItem) => (
               <SortableList.Item
                 className={styles.questionItemContainer}
                 id={item.id}

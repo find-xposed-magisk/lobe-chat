@@ -1,8 +1,8 @@
 import type { ChatStoreState } from '@/store/chat/initialState';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
 
-import type {Operation, OperationType} from './types';
-import { AI_RUNTIME_OPERATION_TYPES   } from './types';
+import type { Operation, OperationType } from './types';
+import { AI_RUNTIME_OPERATION_TYPES } from './types';
 
 // === Basic Queries ===
 /**
@@ -473,6 +473,26 @@ const isSendingMessage = (s: ChatStoreState): boolean => {
   return hasRunningOperationType('sendMessage')(s);
 };
 
+// === Unread Completion ===
+
+/**
+ * Check if an agent has unread completed generation
+ */
+const isAgentUnreadCompleted =
+  (agentId: string) =>
+  (s: ChatStoreState): boolean => {
+    return s.unreadCompletedAgentIds.has(agentId);
+  };
+
+/**
+ * Check if a topic has unread completed generation
+ */
+const isTopicUnreadCompleted =
+  (topicId: string) =>
+  (s: ChatStoreState): boolean => {
+    return s.unreadCompletedTopicIds.has(topicId);
+  };
+
 /**
  * Operation Selectors
  */
@@ -501,6 +521,7 @@ export const operationSelectors = {
 
   isAgentRunning,
   isAgentRuntimeRunning,
+  isAgentUnreadCompleted,
   isAgentRuntimeRunningByContext,
   isAnyMessageLoading,
   isContinuing,
@@ -516,4 +537,5 @@ export const operationSelectors = {
   isMessageRegenerating,
   isRegenerating,
   isSendingMessage,
+  isTopicUnreadCompleted,
 };

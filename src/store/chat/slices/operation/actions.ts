@@ -1,12 +1,11 @@
-/* eslint-disable sort-keys-fix/sort-keys-fix */
 import { nanoid } from '@lobechat/utils';
 import debug from 'debug';
 import { produce } from 'immer';
 
-import type {ChatStore} from '@/store/chat/store';
-import type {MessageMapKeyInput} from '@/store/chat/utils/messageMapKey';
+import type { ChatStore } from '@/store/chat/store';
+import type { MessageMapKeyInput } from '@/store/chat/utils/messageMapKey';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
-import type {StoreSetter} from '@/store/types';
+import type { StoreSetter } from '@/store/types';
 import { setNamespace } from '@/utils/storeDebug';
 
 import type {
@@ -635,6 +634,56 @@ export class OperationActionsImpl {
       }),
       false,
       n(`associateMessageWithOperation/${messageId}/${operationId}`),
+    );
+  };
+
+  markUnreadCompleted = (agentId: string, topicId?: string | null): void => {
+    const { activeAgentId, activeTopicId } = this.#get();
+
+    // Only mark when user is NOT currently viewing this agent/topic
+    const isViewingAgent = activeAgentId === agentId;
+    const isViewingTopic = isViewingAgent && (activeTopicId ?? null) === (topicId ?? null);
+
+    if (!isViewingAgent) {
+      this.#set(
+        produce((state: ChatStore) => {
+          state.unreadCompletedAgentIds.add(agentId);
+        }),
+        false,
+        n(`markUnreadCompleted/agent/${agentId}`),
+      );
+    }
+
+    if (topicId && !isViewingTopic) {
+      this.#set(
+        produce((state: ChatStore) => {
+          state.unreadCompletedTopicIds.add(topicId);
+        }),
+        false,
+        n(`markUnreadCompleted/topic/${topicId}`),
+      );
+    }
+  };
+
+  clearUnreadCompletedAgent = (agentId: string): void => {
+    if (!this.#get().unreadCompletedAgentIds.has(agentId)) return;
+    this.#set(
+      produce((state: ChatStore) => {
+        state.unreadCompletedAgentIds.delete(agentId);
+      }),
+      false,
+      n(`clearUnreadCompleted/agent/${agentId}`),
+    );
+  };
+
+  clearUnreadCompletedTopic = (topicId: string): void => {
+    if (!this.#get().unreadCompletedTopicIds.has(topicId)) return;
+    this.#set(
+      produce((state: ChatStore) => {
+        state.unreadCompletedTopicIds.delete(topicId);
+      }),
+      false,
+      n(`clearUnreadCompleted/topic/${topicId}`),
     );
   };
 }

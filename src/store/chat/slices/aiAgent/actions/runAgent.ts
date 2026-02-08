@@ -1,12 +1,15 @@
 import { isDesktop } from '@lobechat/const';
-import type {ChatToolPayload} from '@lobechat/types';
+import type { ChatToolPayload } from '@lobechat/types';
 import debug from 'debug';
 import i18n from 'i18next';
 
-import type {StreamEvent} from '@/services/agentRuntime';
+import type { StreamEvent } from '@/services/agentRuntime';
 import { agentRuntimeService } from '@/services/agentRuntime';
-import type {ChatStore} from '@/store/chat/store';
-import type {StoreSetter} from '@/store/types';
+import { getAgentStoreState } from '@/store/agent';
+import { agentSelectors } from '@/store/agent/selectors';
+import type { ChatStore } from '@/store/chat/store';
+import { topicMapKey } from '@/store/chat/utils/topicMapKey';
+import type { StoreSetter } from '@/store/types';
 
 const log = debug('store:chat:ai-agent:runAgent');
 
@@ -240,13 +243,37 @@ export class AgentActionImpl {
           try {
             const { desktopNotificationService } =
               await import('@/services/electron/desktopNotification');
+
+            // Use topic title or agent title as notification title
+            let notificationTitle = i18n.t('desktopNotification.aiReplyCompleted.title', {
+              ns: 'chat',
+            });
+            const opCtx = operation.context;
+            if (opCtx.topicId && opCtx.agentId) {
+              const key = topicMapKey({ agentId: opCtx.agentId, groupId: opCtx.groupId });
+              const topicData = this.#get().topicDataMap[key];
+              const topic = topicData?.items?.find((item) => item.id === opCtx.topicId);
+              if (topic?.title) notificationTitle = topic.title;
+            } else if (opCtx.agentId) {
+              const agentMeta = agentSelectors.getAgentMetaById(opCtx.agentId)(
+                getAgentStoreState(),
+              );
+              if (agentMeta?.title) notificationTitle = agentMeta.title;
+            }
+
             await desktopNotificationService.showNotification({
               body: i18n.t('desktopNotification.aiReplyCompleted.body', { ns: 'chat' }),
-              title: i18n.t('desktopNotification.aiReplyCompleted.title', { ns: 'chat' }),
+              title: notificationTitle,
             });
           } catch (error) {
             console.error('Desktop notification error:', error);
           }
+        }
+
+        // Mark unread completion for background agents
+        const op = this.#get().operations[operationId];
+        if (op?.context.agentId) {
+          this.#get().markUnreadCompleted(op.context.agentId, op.context.topicId);
         }
         break;
       }

@@ -33,6 +33,16 @@ export interface ChatOperationState {
    * key: OperationType, value: operationId[]
    */
   operationsByType: Record<OperationType, string[]>;
+
+  /**
+   * Agent IDs with unread completed generation
+   */
+  unreadCompletedAgentIds: Set<string>;
+
+  /**
+   * Topic IDs with unread completed generation
+   */
+  unreadCompletedTopicIds: Set<string>;
 }
 
 export const initialOperationState: ChatOperationState = {
@@ -41,4 +51,6 @@ export const initialOperationState: ChatOperationState = {
   operationsByContext: {},
   operationsByMessage: {},
   operationsByType: {} as Record<OperationType, string[]>,
+  unreadCompletedAgentIds: new Set(),
+  unreadCompletedTopicIds: new Set(),
 };

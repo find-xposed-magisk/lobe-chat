@@ -1,6 +1,7 @@
 import { ActionIcon, Flexbox, Icon, Skeleton, Tag } from '@lobehub/ui';
-import { cssVar } from 'antd-style';
+import { createStaticStyles, cssVar } from 'antd-style';
 import { MessageSquareDashed, Star } from 'lucide-react';
+import { AnimatePresence, m as motion } from 'motion/react';
 import { memo, Suspense, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +9,7 @@ import { isDesktop } from '@/const/version';
 import NavItem from '@/features/NavPanel/components/NavItem';
 import { useAgentStore } from '@/store/agent';
 import { useChatStore } from '@/store/chat';
+import { operationSelectors } from '@/store/chat/selectors';
 import { useGlobalStore } from '@/store/global';
 
 import { useTopicNavigation } from '../../hooks/useTopicNavigation';
@@ -15,6 +17,32 @@ import ThreadList from '../../TopicListContent/ThreadList';
 import Actions from './Actions';
 import Editing from './Editing';
 import { useTopicItemDropdownMenu } from './useDropdownMenu';
+
+const styles = createStaticStyles(({ css }) => ({
+  neonDotWrapper: css`
+    position: absolute;
+    inset: 0;
+
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+
+    width: 18px;
+    height: 18px;
+  `,
+  dotContainer: css`
+    will-change: width;
+
+    position: relative;
+
+    width: 18px;
+    height: 18px;
+    margin-inline-start: -6px;
+
+    transition: width 0.2s ${cssVar.motionEaseOut};
+  `,
+}));
 
 interface TopicItemProps {
   active?: boolean;
@@ -39,6 +67,10 @@ const TopicItem = memo<TopicItemProps>(({ id, title, fav, active, threadId }) =>
     id ? s.topicRenamingId === id : false,
     id ? s.topicLoadingIds.includes(id) : false,
   ]);
+
+  const isUnreadCompleted = useChatStore(
+    id ? operationSelectors.isTopicUnreadCompleted(id) : () => false,
+  );
 
   const [favoriteTopic] = useChatStore((s) => [s.favoriteTopic]);
 
@@ -67,6 +99,54 @@ const TopicItem = memo<TopicItemProps>(({ id, title, fav, active, threadId }) =>
     id,
     toggleEditing,
   });
+
+  const hasUnread = id && isUnreadCompleted;
+  const successColor = cssVar.colorSuccess;
+  const unreadNode = (
+    <span className={styles.dotContainer} style={{ width: hasUnread ? 18 : 0 }}>
+      <AnimatePresence mode="popLayout">
+        {hasUnread && (
+          <motion.div
+            className={styles.neonDotWrapper}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{
+              scale: 1,
+              opacity: 1,
+            }}
+            exit={{
+              scale: 0,
+              opacity: 0,
+            }}
+          >
+            <motion.span
+              initial={false}
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [1, 0.9, 1],
+                boxShadow: [
+                  `0 0 3px ${successColor}, 0 0 6px ${successColor}`,
+                  `0 0 5px ${successColor}, 0 0 8px color-mix(in srgb, ${successColor} 60%, transparent)`,
+                  `0 0 3px ${successColor}, 0 0 6px ${successColor}`,
+                ],
+              }}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: successColor,
+                boxShadow: `0 0 3px ${successColor}, 0 0 6px ${successColor}`,
+              }}
+              transition={{
+                duration: 1.2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </span>
+  );
 
   // For default topic (no id)
   if (!id) {
@@ -119,6 +199,9 @@ const TopicItem = memo<TopicItemProps>(({ id, title, fav, active, threadId }) =>
             }}
           />
         }
+        slots={{
+          iconPostfix: unreadNode,
+        }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
       />

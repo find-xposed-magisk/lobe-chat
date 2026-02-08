@@ -1,16 +1,9 @@
 'use client';
 
-import type {BlockProps, GenericItemType, IconProps} from '@lobehub/ui';
-import {
-  Block,
-  Center,
-  ContextMenuTrigger,
-  Flexbox,
-  Icon,
-  Text
-} from '@lobehub/ui';
+import type { BlockProps, GenericItemType, IconProps } from '@lobehub/ui';
+import { Block, Center, ContextMenuTrigger, Flexbox, Icon, Text } from '@lobehub/ui';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
-import type {ReactNode} from 'react';
+import type { ReactNode } from 'react';
 import { memo } from 'react';
 
 import NeuralNetworkLoading from '@/components/NeuralNetworkLoading';
@@ -44,6 +37,11 @@ const styles = createStaticStyles(({ css }) => ({
   `,
 }));
 
+export interface NavItemSlots {
+  iconPostfix?: ReactNode;
+  titlePrefix?: ReactNode;
+}
+
 export interface NavItemProps extends Omit<BlockProps, 'children' | 'title'> {
   actions?: ReactNode;
   active?: boolean;
@@ -56,6 +54,7 @@ export interface NavItemProps extends Omit<BlockProps, 'children' | 'title'> {
   href?: string;
   icon?: IconProps['icon'];
   loading?: boolean;
+  slots?: NavItemSlots;
   title: ReactNode;
 }
 
@@ -72,12 +71,14 @@ const NavItem = memo<NavItemProps>(
     disabled,
     loading,
     extra,
+    slots,
     ...rest
   }) => {
     const iconColor = active ? cssVar.colorText : cssVar.colorTextDescription;
     const textColor = active ? cssVar.colorText : cssVar.colorTextSecondary;
     const variant = active ? 'filled' : 'borderless';
 
+    const { titlePrefix, iconPostfix } = slots || {};
     // Link props for cmd+click support
     const linkProps = href
       ? {
@@ -119,8 +120,16 @@ const NavItem = memo<NavItemProps>(
           </Center>
         )}
 
+        {iconPostfix}
         <Flexbox horizontal align={'center'} flex={1} gap={8} style={{ overflow: 'hidden' }}>
-          <Text ellipsis color={textColor} style={{ flex: 1 }}>
+          {titlePrefix}
+          <Text
+            color={textColor}
+            style={{ flex: 1 }}
+            ellipsis={{
+              tooltipWhenOverflow: true,
+            }}
+          >
             {title}
           </Text>
           <Flexbox

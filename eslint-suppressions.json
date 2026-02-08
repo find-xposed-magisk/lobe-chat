@@ -20,11 +20,6 @@
       "count": 1
     }
   },
-  "packages/builtin-tool-cloud-sandbox/src/manifest.ts": {
-    "sort-keys-fix/sort-keys-fix": {
-      "count": 1
-    }
-  },
   "packages/builtin-tool-group-agent-builder/src/manifest.ts": {
     "sort-keys-fix/sort-keys-fix": {
       "count": 2
@@ -1071,11 +1066,6 @@
       "count": 1
     },
     "typescript-sort-keys/interface": {
-      "count": 1
-    }
-  },
-  "src/store/chat/slices/operation/actions.ts": {
-    "sort-keys-fix/sort-keys-fix": {
       "count": 1
     }
   },

@@ -81,10 +81,12 @@ const ChatAppearance = memo(() => {
         active={false}
         collapsible={false}
         desc={t('settingChatAppearance.autoScrollOnStreaming.desc')}
+        title={t('settingChatAppearance.autoScrollOnStreaming.title')}
+        variant={'filled'}
         extra={
-          <Flexbox align={'center'} gap={8} horizontal>
+          <Flexbox horizontal align={'center'} gap={8}>
             {loadingStates.enableAutoScrollOnStreaming && (
-              <Icon icon={Loader2Icon} size={16} spin style={{ opacity: 0.5 }} />
+              <Icon spin icon={Loader2Icon} size={16} style={{ opacity: 0.5 }} />
             )}
             <Switch
               checked={general.enableAutoScrollOnStreaming ?? true}
@@ -92,8 +94,6 @@ const ChatAppearance = memo(() => {
             />
           </Flexbox>
         }
-        title={t('settingChatAppearance.autoScrollOnStreaming.title')}
-        variant={'filled'}
       >
         {null}
       </FormGroup>
