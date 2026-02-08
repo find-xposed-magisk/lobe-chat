@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Register Notebook tool in server runtime."]
+    },
+    "date": "2026-02-08",
+    "version": "2.1.22"
+  },
+  {
+    "children": {
       "fixes": [
         "Add end-user info on OpenAI Responses API call, enable vertical scrolling for topic list on mobile."
       ]
