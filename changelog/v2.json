@@ -2,6 +2,15 @@
   {
     "children": {
       "fixes": [
+        "Add end-user info on OpenAI Responses API call, enable vertical scrolling for topic list on mobile."
+      ]
+    },
+    "date": "2026-02-08",
+    "version": "2.1.21"
+  },
+  {
+    "children": {
+      "fixes": [
         "Add api/version and api/desktop to public routes, show notification when file upload fails due to storage plan limit."
       ]
     },
