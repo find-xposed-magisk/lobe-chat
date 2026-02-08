@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.1.23](https://github.com/lobehub/lobe-chat/compare/v2.1.22...v2.1.23)
+
+<sup>Released on **2026-02-08**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix editor content missing when send error.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix editor content missing when send error, closes [#12205](https://github.com/lobehub/lobe-chat/issues/12205) ([ee7ae5b](https://github.com/lobehub/lobe-chat/commit/ee7ae5b))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.1.22](https://github.com/lobehub/lobe-chat/compare/v2.1.21...v2.1.22)
 
 <sup>Released on **2026-02-08**</sup>
