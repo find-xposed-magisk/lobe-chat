@@ -50,7 +50,7 @@ const ApiKey: FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, params }: { id: number; params: UpdateApiKeyParams }) =>
+    mutationFn: ({ id, params }: { id: string; params: UpdateApiKeyParams }) =>
       lambdaClient.apiKey.updateApiKey.mutate({ id, value: params }),
     onSuccess: () => {
       actionRef.current?.reload();
@@ -58,7 +58,7 @@ const ApiKey: FC = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => lambdaClient.apiKey.deleteApiKey.mutate({ id }),
+    mutationFn: (id: string) => lambdaClient.apiKey.deleteApiKey.mutate({ id }),
     onSuccess: () => {
       actionRef.current?.reload();
     },

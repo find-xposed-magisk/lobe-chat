@@ -21,7 +21,7 @@ export class EvalDatasetModel {
     return result;
   };
 
-  delete = async (id: number) => {
+  delete = async (id: string) => {
     return this.db
       .delete(evalDatasets)
       .where(and(eq(evalDatasets.id, id), eq(evalDatasets.userId, this.userId)));
@@ -46,13 +46,13 @@ export class EvalDatasetModel {
       .orderBy(desc(evalDatasets.createdAt));
   };
 
-  findById = async (id: number) => {
+  findById = async (id: string) => {
     return this.db.query.evalDatasets.findFirst({
       where: and(eq(evalDatasets.id, id), eq(evalDatasets.userId, this.userId)),
     });
   };
 
-  update = async (id: number, value: Partial<NewEvalDatasetsItem>) => {
+  update = async (id: string, value: Partial<NewEvalDatasetsItem>) => {
     return this.db
       .update(evalDatasets)
       .set({ ...value, updatedAt: new Date() })

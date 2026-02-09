@@ -26,7 +26,7 @@ export class EvalEvaluationModel {
     return result;
   };
 
-  delete = async (id: number) => {
+  delete = async (id: string) => {
     return this.db
       .delete(evalEvaluation)
       .where(and(eq(evalEvaluation.id, id), eq(evalEvaluation.userId, this.userId)));
@@ -83,13 +83,13 @@ export class EvalEvaluationModel {
     });
   };
 
-  findById = async (id: number) => {
+  findById = async (id: string) => {
     return this.db.query.evalEvaluation.findFirst({
       where: and(eq(evalEvaluation.id, id), eq(evalEvaluation.userId, this.userId)),
     });
   };
 
-  update = async (id: number, value: Partial<NewEvalEvaluationItem>) => {
+  update = async (id: string, value: Partial<NewEvalEvaluationItem>) => {
     return this.db
       .update(evalEvaluation)
       .set(value)
