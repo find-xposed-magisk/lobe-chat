@@ -4,6 +4,42 @@
 
 ### [Version 2.1.23](https://github.com/lobehub/lobe-chat/compare/v2.1.22...v2.1.23)
 
+<sup>Released on **2026-02-09**</sup>
+
+#### 🐛 Bug Fixes
+
+- **swr**: Prevent useActionSWR isValidating from getting stuck.
+- **misc**: Fix editor content missing when send error, use custom avatar for group chat in sidebar.
+
+#### 💄 Styles
+
+- **misc**: Update i18n.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **swr**: Prevent useActionSWR isValidating from getting stuck, closes [#12059](https://github.com/lobehub/lobe-chat/issues/12059) ([8877bc1](https://github.com/lobehub/lobe-chat/commit/8877bc1))
+- **misc**: Fix editor content missing when send error, closes [#12205](https://github.com/lobehub/lobe-chat/issues/12205) ([ee7ae5b](https://github.com/lobehub/lobe-chat/commit/ee7ae5b))
+- **misc**: Use custom avatar for group chat in sidebar, closes [#12208](https://github.com/lobehub/lobe-chat/issues/12208) ([31145c9](https://github.com/lobehub/lobe-chat/commit/31145c9))
+
+#### Styles
+
+- **misc**: Update i18n, closes [#12025](https://github.com/lobehub/lobe-chat/issues/12025) ([c12d022](https://github.com/lobehub/lobe-chat/commit/c12d022))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
+### [Version 2.1.23](https://github.com/lobehub/lobe-chat/compare/v2.1.22...v2.1.23)
+
 <sup>Released on **2026-02-08**</sup>
 
 #### 🐛 Bug Fixes
