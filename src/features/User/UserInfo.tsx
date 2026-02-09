@@ -1,7 +1,7 @@
 'use client';
 
-import type {FlexboxProps} from '@lobehub/ui';
-import { Flexbox,  Text } from '@lobehub/ui';
+import { type FlexboxProps } from '@lobehub/ui';
+import { Flexbox, Text } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
 import { memo } from 'react';
 
@@ -9,7 +9,7 @@ import PlanTag from '@/features/User/PlanTag';
 import { useUserStore } from '@/store/user';
 import { authSelectors, userProfileSelectors } from '@/store/user/selectors';
 
-import type {UserAvatarProps} from './UserAvatar';
+import { type UserAvatarProps } from './UserAvatar';
 import UserAvatar from './UserAvatar';
 
 export interface UserInfoProps extends FlexboxProps {

@@ -1,6 +1,6 @@
 'use client';
 
-import type {IEditor} from '@lobehub/editor';
+import { type IEditor } from '@lobehub/editor';
 import { Alert, Skeleton } from '@lobehub/ui';
 import { memo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,7 @@ import { useSaveDocumentHotkey } from '@/hooks/useHotkeys';
 import { useDocumentStore } from '@/store/document';
 import { editorSelectors } from '@/store/document/slices/editor';
 
-import type { EditorCanvasProps } from './EditorCanvas';
+import { type EditorCanvasProps } from './EditorCanvas';
 import InternalEditor from './InternalEditor';
 
 /**

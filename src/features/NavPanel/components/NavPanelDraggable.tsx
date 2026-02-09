@@ -3,7 +3,7 @@
 import { DraggablePanel, Freeze } from '@lobehub/ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { AnimatePresence, motion, useIsPresent } from 'motion/react';
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { memo, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { USER_DROPDOWN_ICON_ID } from '@/app/[variants]/(main)/home/_layout/Header/components/User';
@@ -65,12 +65,15 @@ const draggableStyles = createStaticStyles(({ css, cssVar }) => ({
 
     overflow: hidden;
     flex: 1;
+
+    min-width: 240px;
+    max-width: 100%;
     min-height: 100%;
     max-height: 100%;
-    max-width: 100%;
-    min-width: 240px;
   `,
   layer: css`
+    will-change: filter, opacity, transform;
+
     position: absolute;
     inset: 0;
 
@@ -78,12 +81,10 @@ const draggableStyles = createStaticStyles(({ css, cssVar }) => ({
     display: flex;
     flex-direction: column;
 
+    min-width: 240px;
+    max-width: 100%;
     min-height: 100%;
     max-height: 100%;
-    max-width: 100%;
-    min-width: 240px;
-
-    will-change: filter, opacity, transform;
   `,
   panel: css`
     user-select: none;

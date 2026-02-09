@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { useDiscoverStore } from '@/store/discover';
-import type { StarterMode } from '@/store/home';
+import { type StarterMode } from '@/store/home';
 import { AssistantCategory } from '@/types/discover';
 
 import GroupBlock from '../components/GroupBlock';

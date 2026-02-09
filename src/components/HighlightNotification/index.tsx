@@ -5,7 +5,7 @@ import { ActionIcon, Button, Flexbox } from '@lobehub/ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { X } from 'lucide-react';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { memo } from 'react';
 
 export interface HighlightNotificationProps {

@@ -1,6 +1,6 @@
 'use client';
 
-import type { Klavis } from 'klavis';
+import { type Klavis } from 'klavis';
 
 import { KlavisDetailProvider } from './KlavisDetailProvider';
 import SkillDetailInner from './SkillDetailInner';

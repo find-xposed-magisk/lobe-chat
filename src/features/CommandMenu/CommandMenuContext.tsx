@@ -1,17 +1,11 @@
 'use client';
 
-import type {Dispatch, ReactNode, SetStateAction} from 'react';
-import {
-  createContext,
-  use,
-  useCallback,
-  useMemo,
-  useState
-} from 'react';
+import { type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { createContext, use, useCallback, useMemo, useState } from 'react';
 
-import type {MenuContext, PageType, SelectedAgent} from './types';
+import { type MenuContext, type PageType, type SelectedAgent } from './types';
 import { detectContext } from './utils/context';
-import type { ValidSearchType } from './utils/queryParser';
+import { type ValidSearchType } from './utils/queryParser';
 
 interface CommandMenuContextValue {
   menuContext: MenuContext;

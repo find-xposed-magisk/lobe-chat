@@ -3,7 +3,7 @@
 import { ActionIcon, Block, DropdownMenu, Flexbox, Icon } from '@lobehub/ui';
 import { App } from 'antd';
 import { cssVar } from 'antd-style';
-import type { Klavis } from 'klavis';
+import { type Klavis } from 'klavis';
 import { Loader2, MoreVerticalIcon, Plus, Unplug } from 'lucide-react';
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';

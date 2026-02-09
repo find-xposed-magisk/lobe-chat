@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { ComfyUIAuthService } from '@/server/services/comfyui/core/comfyUIAuthService';
 import { ServicesError } from '@/server/services/comfyui/errors';
-import type { ComfyUIKeyVault } from '@/types/user/settings/keyVaults';
+import { type ComfyUIKeyVault } from '@/types/user/settings/keyVaults';
 
 describe('ComfyUIAuthService', () => {
   describe('Constructor and initialization', () => {

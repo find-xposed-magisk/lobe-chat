@@ -1,7 +1,7 @@
 import { Block, Flexbox, Icon } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
 import { ListTodo } from 'lucide-react';
-import type { FC, PropsWithChildren } from 'react';
+import { type FC, type PropsWithChildren } from 'react';
 
 const TaskAvatar: FC<PropsWithChildren> = ({ children }) => {
   return (

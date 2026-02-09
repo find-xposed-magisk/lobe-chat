@@ -23,7 +23,7 @@ import { useFileItemClick } from '../Explorer/hooks/useFileItemClick';
 import { useFileItemDropdown } from '../Explorer/ItemDropdown/useFileItemDropdown';
 import { styles } from './styles';
 import { clearTreeFolderCache } from './treeState';
-import type { TreeItem } from './types';
+import { type TreeItem } from './types';
 
 interface HierarchyNodeProps {
   expandedFolders: Set<string>;

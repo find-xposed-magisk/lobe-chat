@@ -4,7 +4,7 @@
 import { Center } from '@lobehub/ui';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
 import { Image as ImageIcon, X } from 'lucide-react';
-import type { FC } from 'react';
+import { type FC } from 'react';
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -14,9 +14,9 @@ import { useUploadFilesValidation } from '@/app/[variants]/(main)/image/_layout/
 import { configPanelStyles } from '@/app/[variants]/(main)/image/_layout/ConfigPanel/style';
 import Image from '@/libs/next/Image';
 import { useFileStore } from '@/store/file';
-import type { FileUploadStatus } from '@/types/files/upload';
+import { type FileUploadStatus } from '@/types/files/upload';
 
-import type { ImageItem } from './ImageManageModal';
+import { type ImageItem } from './ImageManageModal';
 import ImageManageModal from './ImageManageModal';
 
 // ======== Business Types ======== //

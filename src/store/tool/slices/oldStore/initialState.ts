@@ -1,4 +1,4 @@
-import type {DiscoverPluginItem} from '@/types/discover';
+import { type DiscoverPluginItem } from '@/types/discover';
 
 export type PluginInstallLoadingMap = Record<string, boolean | undefined>;
 
@@ -15,7 +15,6 @@ export enum PluginInstallStep {
   FETCHING_MANIFEST = 'FETCHING_MANIFEST',
   INSTALLING_PLUGIN = 'INSTALLING_PLUGIN',
 }
- 
 
 export interface PluginInstallProgress {
   // Error message

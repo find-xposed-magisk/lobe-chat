@@ -11,7 +11,7 @@ import { agentService } from '@/services/agent';
 import { useGlobalStore } from '@/store/global';
 import { useHomeStore } from '@/store/home';
 
-import type { AgentItemData } from './AgentItem';
+import { type AgentItemData } from './AgentItem';
 import AvailableAgentList from './AvailableAgentList';
 import SelectedAgentList from './SelectedAgentList';
 import { useAgentSelectionStore } from './store';

@@ -16,12 +16,12 @@ import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
-import type { SearchResult } from '@/database/repositories/search';
+import { type SearchResult } from '@/database/repositories/search';
 import { markdownToTxt } from '@/utils/markdownToTxt';
 
 import { CommandItem } from './components';
 import { styles } from './styles';
-import type { ValidSearchType } from './utils/queryParser';
+import { type ValidSearchType } from './utils/queryParser';
 
 interface SearchResultsProps {
   isLoading: boolean;
@@ -185,7 +185,6 @@ const SearchResults = memo<SearchResultsProps>(
       }
     };
 
-     
     const getItemValue = (result: SearchResult) => {
       const meta = [result.title, result.description].filter(Boolean).join(' ');
       // Prefix with "search-result" to ensure these items rank after built-in commands
@@ -193,7 +192,6 @@ const SearchResults = memo<SearchResultsProps>(
       return `search-result ${result.type} ${result.id} ${meta}`.trim();
     };
 
-     
     const getDescription = (result: SearchResult) => {
       if (!result.description) return null;
       // Sanitize markdown content for message search results
@@ -203,7 +201,6 @@ const SearchResults = memo<SearchResultsProps>(
       return result.description;
     };
 
-     
     const getSubtitle = (result: SearchResult) => {
       const description = getDescription(result);
 

@@ -6,14 +6,19 @@ import {
   StdioClientTransport,
 } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.d.ts';
-import type { Progress } from '@modelcontextprotocol/sdk/types.js';
+import { type Transport } from '@modelcontextprotocol/sdk/shared/transport.d.ts';
+import { type Progress } from '@modelcontextprotocol/sdk/types.js';
 import debug from 'debug';
 
-import type {MCPClientParams, MCPError, McpPrompt, McpResource, McpTool, ToolCallResult} from './types';
 import {
-  createMCPError
+  type MCPClientParams,
+  type MCPError,
+  type McpPrompt,
+  type McpResource,
+  type McpTool,
+  type ToolCallResult,
 } from './types';
+import { createMCPError } from './types';
 
 const log = debug('lobe-mcp:client');
 // MCP tool call timeout (milliseconds), configurable via the environment variable MCP_TOOL_TIMEOUT, default is 60000

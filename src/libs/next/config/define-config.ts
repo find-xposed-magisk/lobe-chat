@@ -1,8 +1,8 @@
 import analyzer from '@next/bundle-analyzer';
 import withSerwistInit from '@serwist/next';
 import { codeInspectorPlugin } from 'code-inspector-plugin';
-import type { NextConfig } from 'next';
-import type { Header, Redirect } from 'next/dist/lib/load-custom-routes';
+import { type NextConfig } from 'next';
+import { type Header, type Redirect } from 'next/dist/lib/load-custom-routes';
 import ReactComponentName from 'react-scan/react-component-name/webpack';
 
 interface CustomNextConfig {

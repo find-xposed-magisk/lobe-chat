@@ -4,7 +4,7 @@ import { EDITOR_DEBOUNCE_TIME } from '@lobechat/const';
 import { ActionIcon, Flexbox } from '@lobehub/ui';
 import { useDebounceFn } from 'ahooks';
 import { App, Empty, message } from 'antd';
-import type {Dayjs} from 'dayjs';
+import { type Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { Trash2 } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -14,7 +14,7 @@ import useSWR from 'swr';
 
 import AutoSaveHint from '@/components/Editor/AutoSaveHint';
 import Loading from '@/components/Loading/BrandTextLoading';
-import type { UpdateAgentCronJobData } from '@/database/schemas/agentCronJob';
+import { type UpdateAgentCronJobData } from '@/database/schemas/agentCronJob';
 import NavHeader from '@/features/NavHeader';
 import WideScreenContainer from '@/features/WideScreenContainer';
 import { useQueryRoute } from '@/hooks/useQueryRoute';
@@ -28,7 +28,7 @@ import { serverConfigSelectors, useServerConfigStore } from '@/store/serverConfi
 import { useUserStore } from '@/store/user';
 import { labPreferSelectors } from '@/store/user/selectors';
 
-import type {ScheduleType} from './CronConfig';
+import { type ScheduleType } from './CronConfig';
 import { buildCronPattern, parseCronPattern } from './CronConfig';
 import CronJobContentEditor from './features/CronJobContentEditor';
 import CronJobHeader from './features/CronJobHeader';

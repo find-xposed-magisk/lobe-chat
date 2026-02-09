@@ -4,7 +4,7 @@ import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { indicatorStyles } from './styles';
-import type { MinimapIndicatorProps } from './types';
+import { type MinimapIndicatorProps } from './types';
 
 export const MinimapIndicator = memo<MinimapIndicatorProps>(
   ({ id, width, preview, role, virtuosoIndex, position, activePosition, onJump }) => {

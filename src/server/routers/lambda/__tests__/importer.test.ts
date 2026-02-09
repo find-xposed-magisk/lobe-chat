@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ImportResultData } from '@/types/importer';
+import { type ImportResultData } from '@/types/importer';
 
 import { importerRouter } from '../importer';
 

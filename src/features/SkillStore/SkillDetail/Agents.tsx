@@ -9,7 +9,7 @@ import { VirtuosoGrid } from 'react-virtuoso';
 
 import { useClientDataSWR } from '@/libs/swr';
 import { discoverService } from '@/services/discover';
-import type {DiscoverAssistantItem} from '@/types/discover';
+import { type DiscoverAssistantItem } from '@/types/discover';
 
 import AgentItem from './AgentItem';
 import { useDetailContext } from './DetailContext';

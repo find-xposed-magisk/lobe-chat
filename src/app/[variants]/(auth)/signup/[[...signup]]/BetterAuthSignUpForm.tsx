@@ -10,8 +10,8 @@ import Link from '@/libs/next/Link';
 import { useSearchParams } from '@/libs/next/navigation';
 
 import { AuthCard } from '../../../../../features/AuthCard';
-import type {SignUpFormValues} from './useSignUp';
-import {  useSignUp } from './useSignUp';
+import { type SignUpFormValues } from './useSignUp';
+import { useSignUp } from './useSignUp';
 
 const BetterAuthSignUpForm = () => {
   const [form] = Form.useForm<SignUpFormValues>();

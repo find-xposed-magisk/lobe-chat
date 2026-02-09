@@ -5,8 +5,8 @@ import { DEFAULT_PREFERENCE } from '@/const/user';
 import { userService } from '@/services/user';
 import { useUserStore } from '@/store/user';
 import { userGeneralSettingsSelectors } from '@/store/user/selectors';
-import type { GlobalServerConfig } from '@/types/serverConfig';
-import type { UserInitializationState, UserPreference } from '@/types/user';
+import { type GlobalServerConfig } from '@/types/serverConfig';
+import { type UserInitializationState, type UserPreference } from '@/types/user';
 import { withSWR } from '~test-utils';
 
 vi.mock('zustand/traditional');

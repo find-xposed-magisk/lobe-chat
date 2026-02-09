@@ -1,13 +1,13 @@
 import { BRANDING_LOGO_URL, BRANDING_NAME } from '@lobechat/business-const';
-import type { IconType } from '@lobehub/icons';
-import type {FlexboxProps} from '@lobehub/ui';
-import { Flexbox  } from '@lobehub/ui';
-import type { LobeChatProps } from '@lobehub/ui/brand';
+import { type IconType } from '@lobehub/icons';
+import { type FlexboxProps } from '@lobehub/ui';
+import { Flexbox } from '@lobehub/ui';
+import { type LobeChatProps } from '@lobehub/ui/brand';
 import { createStaticStyles, cssVar } from 'antd-style';
-import type {ReactNode} from 'react';
+import { type ReactNode } from 'react';
 import { memo } from 'react';
 
-import type {ImageProps} from '@/libs/next/Image';
+import { type ImageProps } from '@/libs/next/Image';
 import Image from '@/libs/next/Image';
 
 const styles = createStaticStyles(({ css }) => {

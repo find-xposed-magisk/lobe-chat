@@ -1,4 +1,4 @@
-import type {devtools as _devtools} from 'zustand/middleware';
+import { type devtools as _devtools } from 'zustand/middleware';
 import { optionalDevtools } from 'zustand-utils';
 
 import { isDev } from '@/utils/env';

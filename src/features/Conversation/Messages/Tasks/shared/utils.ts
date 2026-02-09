@@ -1,7 +1,9 @@
-import type {AssistantContentBlock, ModelUsage, TaskCurrentActivity} from '@lobechat/types';
 import {
-  ThreadStatus
+  type AssistantContentBlock,
+  type ModelUsage,
+  type TaskCurrentActivity,
 } from '@lobechat/types';
+import { ThreadStatus } from '@lobechat/types';
 
 /**
  * Format duration in milliseconds to human-readable string

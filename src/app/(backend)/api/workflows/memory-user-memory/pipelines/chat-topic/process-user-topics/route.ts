@@ -2,14 +2,14 @@ import { MemorySourceType } from '@lobechat/types';
 import { Client } from '@upstash/qstash';
 import { serve } from '@upstash/workflow/nextjs';
 
-import type { ListTopicsForMemoryExtractorCursor } from '@/database/models/topic';
+import { type ListTopicsForMemoryExtractorCursor } from '@/database/models/topic';
 import { parseMemoryExtractionConfig } from '@/server/globalConfig/parseMemoryExtractionConfig';
-import type {MemoryExtractionPayloadInput} from '@/server/services/memory/userMemory/extract';
+import { type MemoryExtractionPayloadInput } from '@/server/services/memory/userMemory/extract';
 import {
   buildWorkflowPayloadInput,
   MemoryExtractionExecutor,
   MemoryExtractionWorkflowService,
-  normalizeMemoryExtractionPayload
+  normalizeMemoryExtractionPayload,
 } from '@/server/services/memory/userMemory/extract';
 import { forEachBatchSequential } from '@/server/services/memory/userMemory/topicBatching';
 

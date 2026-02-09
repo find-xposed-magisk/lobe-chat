@@ -5,7 +5,7 @@ import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { styles } from '../styles';
-import type { GroupMode } from '../types';
+import { type GroupMode } from '../types';
 
 interface ToolbarProps {
   groupMode: GroupMode;
@@ -19,7 +19,14 @@ export const Toolbar = memo<ToolbarProps>(
     const { t } = useTranslation('components');
 
     return (
-      <Flexbox horizontal align="center" className={styles.toolbar} gap={4} paddingBlock={8} paddingInline={8}>
+      <Flexbox
+        horizontal
+        align="center"
+        className={styles.toolbar}
+        gap={4}
+        paddingBlock={8}
+        paddingInline={8}
+      >
         <SearchBar
           allowClear
           placeholder={t('ModelSwitchPanel.searchPlaceholder')}

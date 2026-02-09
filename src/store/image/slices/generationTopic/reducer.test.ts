@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ImageGenerationTopic } from '@/types/generation';
+import { type ImageGenerationTopic } from '@/types/generation';
 
-import type { GenerationTopicDispatch} from './reducer';
+import { type GenerationTopicDispatch } from './reducer';
 import { generationTopicReducer } from './reducer';
 
 describe('generationTopicReducer', () => {

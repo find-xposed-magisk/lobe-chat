@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import { memo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { AgentCronJob } from '@/database/schemas/agentCronJob';
+import { type AgentCronJob } from '@/database/schemas/agentCronJob';
 
 // Form data interface - excludes server-managed fields
 interface CronJobFormData {

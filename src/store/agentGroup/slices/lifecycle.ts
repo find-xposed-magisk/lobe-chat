@@ -1,11 +1,11 @@
-import type { NewChatGroup } from '@lobechat/types';
+import { type NewChatGroup } from '@lobechat/types';
 import urlJoin from 'url-join';
 
 import { chatGroupService } from '@/services/chatGroup';
 import { useChatStore } from '@/store/chat';
 import { getHomeStoreState } from '@/store/home';
 
-import type { ChatGroupStore } from '../store';
+import { type ChatGroupStore } from '../store';
 
 type ChatGroupStoreWithSwitchTopic = ChatGroupStore & {
   switchTopic: (topicId?: string | null) => void;

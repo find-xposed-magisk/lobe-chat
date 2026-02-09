@@ -1,6 +1,6 @@
 import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import { isDesktop } from '@lobechat/const';
-import type { LucideIcon } from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
 import {
   Brain,
   ChartColumnBigIcon,
@@ -18,7 +18,7 @@ import {
   UserCircle,
 } from 'lucide-react';
 
-import type { ContextType, MenuContext } from '../types';
+import { type ContextType, type MenuContext } from '../types';
 
 export interface ContextCommand {
   icon: LucideIcon;

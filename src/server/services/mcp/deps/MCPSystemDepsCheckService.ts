@@ -1,12 +1,12 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 
-import type {DeploymentOption, SystemDependency} from '@lobehub/market-sdk';
+import { type DeploymentOption, type SystemDependency } from '@lobehub/market-sdk';
 import debug from 'debug';
 
-import type {SystemDependencyCheckResult} from '@/types/plugins';
+import { type SystemDependencyCheckResult } from '@/types/plugins';
 
-import type {InstallationChecker, PackageInstallCheckResult} from './types';
+import { type InstallationChecker, type PackageInstallCheckResult } from './types';
 
 const execPromise = promisify(exec);
 const log = debug('lobe-mcp:deps-check');
@@ -200,11 +200,11 @@ class MCPSystemDepsCheckService {
     const configSchema = option.connection?.configSchema;
     const needsConfig = Boolean(
       configSchema &&
-        // Check if there's a non-empty required array
-        ((Array.isArray(configSchema.required) && configSchema.required.length > 0) ||
-          // Check if any field in properties is marked as required
-          (configSchema.properties &&
-            Object.values(configSchema.properties).some((prop: any) => prop.required === true))),
+      // Check if there's a non-empty required array
+      ((Array.isArray(configSchema.required) && configSchema.required.length > 0) ||
+        // Check if any field in properties is marked as required
+        (configSchema.properties &&
+          Object.values(configSchema.properties).some((prop: any) => prop.required === true))),
     );
 
     log(

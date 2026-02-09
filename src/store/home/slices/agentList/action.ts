@@ -1,11 +1,11 @@
 import isEqual from 'fast-deep-equal';
-import type { SWRResponse } from 'swr';
+import { type SWRResponse } from 'swr';
 
-import type { SidebarAgentItem, SidebarAgentListResponse } from '@/database/repositories/home';
+import { type SidebarAgentItem, type SidebarAgentListResponse } from '@/database/repositories/home';
 import { mutate, useClientDataSWR, useClientDataSWRWithSync } from '@/libs/swr';
 import { homeService } from '@/services/home';
-import type { HomeStore } from '@/store/home/store';
-import type {StoreSetter} from '@/store/types';
+import { type HomeStore } from '@/store/home/store';
+import { type StoreSetter } from '@/store/types';
 import { setNamespace } from '@/utils/storeDebug';
 
 import { mapResponseToState } from './initialState';

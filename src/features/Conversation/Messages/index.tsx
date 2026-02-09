@@ -4,8 +4,8 @@ import { isDesktop } from '@lobechat/const';
 import { Flexbox } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
 import isEqual from 'fast-deep-equal';
-import type {MouseEvent, ReactNode} from 'react';
-import { memo,   Suspense, useCallback } from 'react';
+import { type MouseEvent, type ReactNode } from 'react';
+import { memo, Suspense, useCallback } from 'react';
 
 import BubblesLoading from '@/components/BubblesLoading';
 

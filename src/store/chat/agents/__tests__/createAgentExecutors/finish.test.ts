@@ -1,4 +1,4 @@
-import type { AgentEventDone } from '@lobechat/agent-runtime';
+import { type AgentEventDone } from '@lobechat/agent-runtime';
 import { describe, expect, it } from 'vitest';
 
 import { createFinishInstruction } from './fixtures';

@@ -7,7 +7,7 @@ import { inMemoryAgentStateManager } from './InMemoryAgentStateManager';
 import { inMemoryStreamEventManager } from './InMemoryStreamEventManager';
 import { getAgentRuntimeRedisClient } from './redis';
 import { StreamEventManager } from './StreamEventManager';
-import type { IAgentStateManager, IStreamEventManager } from './types';
+import { type IAgentStateManager, type IStreamEventManager } from './types';
 
 const log = debug('lobe-server:agent-runtime:factory');
 

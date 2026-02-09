@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useCommandMenuContext } from '../CommandMenuContext';
 import { styles } from '../styles';
 import { useCommandMenu } from '../useCommandMenu';
-import type { ValidSearchType } from '../utils/queryParser';
+import { type ValidSearchType } from '../utils/queryParser';
 
 const CommandInput = memo(() => {
   const { t } = useTranslation('common');

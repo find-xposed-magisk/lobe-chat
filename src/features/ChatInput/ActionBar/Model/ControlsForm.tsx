@@ -1,4 +1,4 @@
-import type { FormItemProps } from '@lobehub/ui';
+import { type FormItemProps } from '@lobehub/ui';
 import { Form } from '@lobehub/ui';
 import { Form as AntdForm, Grid, Switch } from 'antd';
 import isEqual from 'fast-deep-equal';

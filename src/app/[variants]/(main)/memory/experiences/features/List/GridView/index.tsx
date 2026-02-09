@@ -1,4 +1,4 @@
-import type { ExperienceListItem } from '@lobechat/types';
+import { type ExperienceListItem } from '@lobechat/types';
 import { memo } from 'react';
 
 import { useUserMemoryStore } from '@/store/userMemory';

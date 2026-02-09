@@ -1,22 +1,42 @@
-import type {AgentEvent, AgentInstruction, AgentInstructionCallLlm, AgentInstructionCallTool, AgentInstructionCompressContext, AgentInstructionExecClientTask, AgentInstructionExecClientTasks, AgentInstructionExecTask, AgentInstructionExecTasks, AgentRuntimeContext, GeneralAgentCallingToolInstructionPayload, GeneralAgentCallLLMInstructionPayload, GeneralAgentCallLLMResultPayload, GeneralAgentCallToolResultPayload, GeneralAgentCompressionResultPayload, InstructionExecutor, TaskResultPayload, TasksBatchResultPayload} from '@lobechat/agent-runtime';
 import {
-  calculateMessageTokens,
-  UsageCounter
+  type AgentEvent,
+  type AgentInstruction,
+  type AgentInstructionCallLlm,
+  type AgentInstructionCallTool,
+  type AgentInstructionCompressContext,
+  type AgentInstructionExecClientTask,
+  type AgentInstructionExecClientTasks,
+  type AgentInstructionExecTask,
+  type AgentInstructionExecTasks,
+  type AgentRuntimeContext,
+  type GeneralAgentCallingToolInstructionPayload,
+  type GeneralAgentCallLLMInstructionPayload,
+  type GeneralAgentCallLLMResultPayload,
+  type GeneralAgentCallToolResultPayload,
+  type GeneralAgentCompressionResultPayload,
+  type InstructionExecutor,
+  type TaskResultPayload,
+  type TasksBatchResultPayload,
 } from '@lobechat/agent-runtime';
+import { calculateMessageTokens, UsageCounter } from '@lobechat/agent-runtime';
 import { isDesktop } from '@lobechat/const';
 import { chainCompressContext } from '@lobechat/prompts';
-import type { ChatToolPayload, ConversationContext, CreateMessageParams } from '@lobechat/types';
+import {
+  type ChatToolPayload,
+  type ConversationContext,
+  type CreateMessageParams,
+} from '@lobechat/types';
 import debug from 'debug';
 import pMap from 'p-map';
 
 import { LOADING_FLAT } from '@/const/message';
 import { aiAgentService } from '@/services/aiAgent';
 import { chatService } from '@/services/chat';
-import type { ResolvedAgentConfig } from '@/services/chat/mecha';
+import { type ResolvedAgentConfig } from '@/services/chat/mecha';
 import { messageService } from '@/services/message';
 import { agentByIdSelectors } from '@/store/agent/selectors';
 import { getAgentStoreState } from '@/store/agent/store';
-import type { ChatStore } from '@/store/chat/store';
+import { type ChatStore } from '@/store/chat/store';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
 import { sleep } from '@/utils/sleep';
 

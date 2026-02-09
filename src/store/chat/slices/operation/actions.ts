@@ -2,21 +2,21 @@ import { nanoid } from '@lobechat/utils';
 import debug from 'debug';
 import { produce } from 'immer';
 
-import type { ChatStore } from '@/store/chat/store';
-import type { MessageMapKeyInput } from '@/store/chat/utils/messageMapKey';
+import { type ChatStore } from '@/store/chat/store';
+import { type MessageMapKeyInput } from '@/store/chat/utils/messageMapKey';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
-import type { StoreSetter } from '@/store/types';
+import { type StoreSetter } from '@/store/types';
 import { setNamespace } from '@/utils/storeDebug';
 
-import type {
-  AfterCompletionCallback,
-  Operation,
-  OperationCancelContext,
-  OperationContext,
-  OperationFilter,
-  OperationMetadata,
-  OperationStatus,
-  OperationType,
+import {
+  type AfterCompletionCallback,
+  type Operation,
+  type OperationCancelContext,
+  type OperationContext,
+  type OperationFilter,
+  type OperationMetadata,
+  type OperationStatus,
+  type OperationType,
 } from './types';
 
 const n = setNamespace('operation');

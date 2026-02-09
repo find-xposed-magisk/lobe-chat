@@ -8,7 +8,7 @@ import { agentGroupSelectors } from '@/store/agentGroup/selectors';
 import { useChatStore } from '@/store/chat';
 import { displayMessageSelectors } from '@/store/chat/selectors';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
-import type { UIChatMessage } from '@/types/index';
+import { type UIChatMessage } from '@/types/index';
 import { ThreadStatus } from '@/types/index';
 
 import {
@@ -17,7 +17,7 @@ import {
   isProcessingStatus,
   TaskMessages,
 } from '../../Tasks/shared';
-import type {TaskMetrics} from './TaskTitle';
+import { type TaskMetrics } from './TaskTitle';
 import TaskTitle from './TaskTitle';
 
 interface ClientTaskItemProps {

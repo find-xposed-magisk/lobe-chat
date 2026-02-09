@@ -1,4 +1,4 @@
-import type { ResourceItem, ResourceQueryParams, SyncOperation } from '@/types/resource';
+import { type ResourceItem, type ResourceQueryParams, type SyncOperation } from '@/types/resource';
 
 /**
  * Resource slice state

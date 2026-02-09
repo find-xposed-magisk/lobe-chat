@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { marketApiService } from '@/services/marketApi';
 import { useAgentStore } from '@/store/agent';
 import { agentSelectors } from '@/store/agent/selectors';
-import type { AgentForkSourceResponse } from '@/types/discover';
+import { type AgentForkSourceResponse } from '@/types/discover';
 
 /**
  * Agent Fork Tag Component

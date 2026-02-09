@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { DEFAULT_INBOX_AVATAR } from '@/const/index';
 import { conversationSelectors, useConversationStore } from '@/features/Conversation';
-import type { SuggestMode } from '@/features/SuggestQuestions';
+import { type SuggestMode } from '@/features/SuggestQuestions';
 import SuggestQuestions from '@/features/SuggestQuestions';
 import { useAgentStore } from '@/store/agent';
 import { agentByIdSelectors } from '@/store/agent/selectors';

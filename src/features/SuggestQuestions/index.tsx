@@ -5,7 +5,7 @@ import { memo, Suspense } from 'react';
 
 import List from './List';
 import Skeleton from './Skeleton';
-import type { SuggestMode } from './useRandomQuestions';
+import { type SuggestMode } from './useRandomQuestions';
 
 interface SuggestQuestionsProps {
   count?: number;

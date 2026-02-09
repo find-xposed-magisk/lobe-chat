@@ -1,4 +1,4 @@
-import type { SidebarGroup } from '@lobechat/types';
+import { type SidebarGroup } from '@lobechat/types';
 import { AccordionItem, ContextMenuTrigger, Flexbox, Icon, Text } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
 import { HashIcon, Loader2 } from 'lucide-react';

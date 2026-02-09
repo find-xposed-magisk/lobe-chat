@@ -1,6 +1,6 @@
 'use client';
 
-import type { UIChatMessage } from '@lobechat/types';
+import { type UIChatMessage } from '@lobechat/types';
 import { ThreadStatus } from '@lobechat/types';
 import { AccordionItem, Block } from '@lobehub/ui';
 import isEqual from 'fast-deep-equal';
@@ -10,7 +10,7 @@ import { useAgentGroupStore } from '@/store/agentGroup';
 import { agentGroupSelectors } from '@/store/agentGroup/selectors';
 
 import { TaskContent } from '../../Tasks/shared';
-import type {TaskMetrics} from './TaskTitle';
+import { type TaskMetrics } from './TaskTitle';
 import TaskTitle from './TaskTitle';
 
 interface ServerTaskItemProps {

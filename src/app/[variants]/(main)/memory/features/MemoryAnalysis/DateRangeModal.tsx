@@ -2,7 +2,7 @@
 
 import { Flexbox, Text } from '@lobehub/ui';
 import { DatePicker, Modal } from 'antd';
-import type { RangePickerProps } from 'antd/es/date-picker';
+import { type RangePickerProps } from 'antd/es/date-picker';
 import dayjs from 'dayjs';
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';

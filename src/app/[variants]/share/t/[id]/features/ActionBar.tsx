@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 
 import { DEFAULT_AVATAR, DEFAULT_INBOX_AVATAR } from '@/const/meta';
 import GroupAvatar from '@/features/GroupAvatar';
-import type { SharedTopicData } from '@/types/topic';
+import { type SharedTopicData } from '@/types/topic';
 
 interface ActionBarProps {
   data: SharedTopicData;

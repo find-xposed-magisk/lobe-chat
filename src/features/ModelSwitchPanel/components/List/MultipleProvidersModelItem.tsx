@@ -23,7 +23,7 @@ import urlJoin from 'url-join';
 import { ModelItemRender, ProviderItemRender } from '@/components/ModelSelect';
 
 import { styles } from '../../styles';
-import type { ModelWithProviders } from '../../types';
+import { type ModelWithProviders } from '../../types';
 import { menuKey } from '../../utils';
 
 interface MultipleProvidersModelItemProps {

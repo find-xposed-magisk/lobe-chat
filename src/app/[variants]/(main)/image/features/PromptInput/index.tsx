@@ -4,7 +4,7 @@ import { ChatInput } from '@lobehub/editor/react';
 import { Button, Flexbox, TextArea } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
 import { Sparkles } from 'lucide-react';
-import type { KeyboardEvent } from 'react';
+import { type KeyboardEvent } from 'react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 

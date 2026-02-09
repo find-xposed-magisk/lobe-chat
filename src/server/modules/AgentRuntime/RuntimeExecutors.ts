@@ -1,19 +1,23 @@
-import type {AgentEvent, AgentInstruction, CallLLMPayload, GeneralAgentCallLLMResultPayload, InstructionExecutor} from '@lobechat/agent-runtime';
 import {
-  UsageCounter
+  type AgentEvent,
+  type AgentInstruction,
+  type CallLLMPayload,
+  type GeneralAgentCallLLMResultPayload,
+  type InstructionExecutor,
 } from '@lobechat/agent-runtime';
+import { UsageCounter } from '@lobechat/agent-runtime';
 import { ToolNameResolver } from '@lobechat/context-engine';
 import { consumeStreamUntilDone } from '@lobechat/model-runtime';
-import type {ChatToolPayload, MessageToolCall} from '@lobechat/types';
+import { type ChatToolPayload, type MessageToolCall } from '@lobechat/types';
 import { serializePartsForStorage } from '@lobechat/utils';
 import debug from 'debug';
 
-import type {MessageModel} from '@/database/models/message';
-import type {LobeChatDatabase} from '@/database/type';
+import { type MessageModel } from '@/database/models/message';
+import { type LobeChatDatabase } from '@/database/type';
 import { initModelRuntimeFromDB } from '@/server/modules/ModelRuntime';
-import type {ToolExecutionService} from '@/server/services/toolExecution';
+import { type ToolExecutionService } from '@/server/services/toolExecution';
 
-import type { IStreamEventManager } from './types';
+import { type IStreamEventManager } from './types';
 
 const log = debug('lobe-server:agent-runtime:streaming-executors');
 const timing = debug('lobe-server:agent-runtime:timing');
@@ -141,9 +145,9 @@ export const createRuntimeExecutors = (
       const BUFFER_INTERVAL = 50;
       let textBuffer = '';
       let reasoningBuffer = '';
-       
+
       let textBufferTimer: NodeJS.Timeout | null = null;
-       
+
       let reasoningBufferTimer: NodeJS.Timeout | null = null;
 
       const flushTextBuffer = async () => {

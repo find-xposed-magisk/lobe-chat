@@ -1,6 +1,6 @@
 'use client';
 
-import type { AgentGroupDetail, AgentGroupMember } from '@lobechat/types';
+import { type AgentGroupDetail, type AgentGroupMember } from '@lobechat/types';
 import { Text } from '@lobehub/ui';
 import { memo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';

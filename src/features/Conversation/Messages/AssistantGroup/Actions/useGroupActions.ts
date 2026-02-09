@@ -1,4 +1,4 @@
-import type { ActionIconGroupItemType } from '@lobehub/ui';
+import { type ActionIconGroupItemType } from '@lobehub/ui';
 import { copyToClipboard } from '@lobehub/ui';
 import { App } from 'antd';
 import {
@@ -17,7 +17,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { localeOptions } from '@/locales/resources';
-import type {AssistantContentBlock, UIChatMessage} from '@/types/index';
+import { type AssistantContentBlock, type UIChatMessage } from '@/types/index';
 
 import { dataSelectors, messageStateSelectors, useConversationStore } from '../../../store';
 

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { GlobalRuntimeConfig } from '@/types/serverConfig';
+import { type GlobalRuntimeConfig } from '@/types/serverConfig';
 
 import { createServerConfigStore } from './store';
 

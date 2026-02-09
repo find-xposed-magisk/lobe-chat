@@ -9,7 +9,7 @@ import { memo, useCallback, useState } from 'react';
 
 import { PanelContent } from './components/PanelContent';
 import { styles } from './styles';
-import type { ModelSwitchPanelProps } from './types';
+import { type ModelSwitchPanelProps } from './types';
 
 const ModelSwitchPanel = memo<ModelSwitchPanelProps>(
   ({

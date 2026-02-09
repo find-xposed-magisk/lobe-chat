@@ -2,10 +2,13 @@ import {
   getPinnedPages,
   savePinnedPages,
 } from '@/features/Electron/titlebar/RecentlyViewed/storage';
-import type {CachedPageData, PageReference} from '@/features/Electron/titlebar/RecentlyViewed/types';
-import type {StoreSetter} from '@/store/types';
+import {
+  type CachedPageData,
+  type PageReference,
+} from '@/features/Electron/titlebar/RecentlyViewed/types';
+import { type StoreSetter } from '@/store/types';
 
-import type { ElectronStore } from '../store';
+import { type ElectronStore } from '../store';
 
 // ======== Constants ======== //
 

@@ -1,5 +1,5 @@
-import type { ChatToolPayload } from '@lobechat/types';
-import type { LobeChatPluginManifest } from '@lobehub/chat-plugin-sdk';
+import { type ChatToolPayload } from '@lobechat/types';
+import { type LobeChatPluginManifest } from '@lobehub/chat-plugin-sdk';
 import superjson from 'superjson';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

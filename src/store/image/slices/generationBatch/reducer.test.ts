@@ -1,7 +1,7 @@
 import { AsyncTaskStatus } from '@/types/asyncTask';
-import type { Generation, GenerationBatch } from '@/types/generation';
+import { type Generation, type GenerationBatch } from '@/types/generation';
 
-import type { GenerationBatchDispatch} from './reducer';
+import { type GenerationBatchDispatch } from './reducer';
 import { generationBatchReducer } from './reducer';
 
 // Test data factory functions

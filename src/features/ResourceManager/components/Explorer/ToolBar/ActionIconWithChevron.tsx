@@ -1,8 +1,8 @@
 import { Button, Flexbox, Icon } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
-import type { LucideIcon } from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
 import { ChevronDownIcon } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import { type ComponentProps } from 'react';
 import { memo } from 'react';
 
 interface ActionIconWithChevronProps extends ComponentProps<typeof Button> {

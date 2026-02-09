@@ -1,5 +1,5 @@
 // @vitest-environment node
-import type { LobeChatDatabase } from '@lobechat/database';
+import { type LobeChatDatabase } from '@lobechat/database';
 import { users } from '@lobechat/database/schemas';
 import { getTestDB } from '@lobechat/database/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

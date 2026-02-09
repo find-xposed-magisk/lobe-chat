@@ -6,7 +6,7 @@ import useSWR from 'swr';
 
 import { useCreateMenuItems } from '@/app/[variants]/(main)/home/_layout/hooks';
 import { isDesktop } from '@/const/version';
-import type { SearchResult } from '@/database/repositories/search';
+import { type SearchResult } from '@/database/repositories/search';
 import { useCreateNewModal } from '@/features/LibraryModal';
 import { useGroupWizard } from '@/layout/GlobalProvider/GroupWizardProvider';
 import { lambdaClient } from '@/libs/trpc/client';
@@ -19,7 +19,7 @@ import { globalHelpers } from '@/store/global/helpers';
 import { useHomeStore } from '@/store/home';
 
 import { useCommandMenuContext } from './CommandMenuContext';
-import type { ThemeMode } from './types';
+import { type ThemeMode } from './types';
 
 /**
  * Shared methods for CommandMenu

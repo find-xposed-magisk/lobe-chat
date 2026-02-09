@@ -7,9 +7,9 @@ import { chatGroupService } from '@/services/chatGroup';
 import { homeService } from '@/services/home';
 import { sessionService } from '@/services/session';
 import { getAgentStoreState } from '@/store/agent';
-import type { HomeStore } from '@/store/home/store';
-import type {StoreSetter} from '@/store/types';
-import type {SessionGroupItem} from '@/types/session';
+import { type HomeStore } from '@/store/home/store';
+import { type StoreSetter } from '@/store/types';
+import { type SessionGroupItem } from '@/types/session';
 import { setNamespace } from '@/utils/storeDebug';
 
 const n = setNamespace('sidebarUI');

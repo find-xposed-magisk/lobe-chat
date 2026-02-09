@@ -1,11 +1,13 @@
-import type {ActionIconGroupEvent, ActionIconGroupItemType, DropdownItem, GenericItemType} from '@lobehub/ui';
 import {
-  createRawModal,
-  showContextMenu
+  type ActionIconGroupEvent,
+  type ActionIconGroupItemType,
+  type DropdownItem,
+  type GenericItemType,
 } from '@lobehub/ui';
+import { createRawModal, showContextMenu } from '@lobehub/ui';
 import { App } from 'antd';
 import isEqual from 'fast-deep-equal';
-import type { MouseEvent, ReactNode } from 'react';
+import { type MouseEvent, type ReactNode } from 'react';
 import { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -15,7 +17,7 @@ import { sessionSelectors } from '@/store/session/selectors';
 import { useUserStore } from '@/store/user';
 import { userGeneralSettingsSelectors } from '@/store/user/selectors';
 
-import type {ShareModalProps} from '../components/ShareMessageModal';
+import { type ShareModalProps } from '../components/ShareMessageModal';
 import ShareMessageModal from '../components/ShareMessageModal';
 import {
   createStore,

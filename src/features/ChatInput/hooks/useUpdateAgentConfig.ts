@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback } from 'react';
-import type { PartialDeep } from 'type-fest';
+import { type PartialDeep } from 'type-fest';
 
 import { useAgentStore } from '@/store/agent';
-import type {LobeAgentChatConfig, LobeAgentConfig} from '@/types/agent';
+import { type LobeAgentChatConfig, type LobeAgentConfig } from '@/types/agent';
 
 import { useAgentId } from './useAgentId';
 

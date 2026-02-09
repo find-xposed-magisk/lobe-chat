@@ -1,7 +1,7 @@
-import type { ChatToolPayload, UIChatMessage } from '@lobechat/types';
+import { type ChatToolPayload, type UIChatMessage } from '@lobechat/types';
 import i18n from 'i18next';
 
-import type { MessageDispatch} from './reducer';
+import { type MessageDispatch } from './reducer';
 import { messagesReducer } from './reducer';
 
 describe('messagesReducer', () => {

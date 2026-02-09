@@ -1,10 +1,10 @@
 'use client';
 
-import type {IEditor} from '@lobehub/editor';
+import { type IEditor } from '@lobehub/editor';
 import { memo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { EditorCanvasProps } from './EditorCanvas';
+import { type EditorCanvasProps } from './EditorCanvas';
 import InternalEditor from './InternalEditor';
 
 export interface EditorDataModeProps extends EditorCanvasProps {

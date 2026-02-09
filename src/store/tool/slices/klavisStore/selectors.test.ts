@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { initialState } from '../../initialState';
-import type { ToolStore } from '../../store';
+import { type ToolStore } from '../../store';
 import { klavisStoreSelectors } from './selectors';
 import { KlavisServerStatus } from './types';
 

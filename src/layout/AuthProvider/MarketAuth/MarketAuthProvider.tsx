@@ -1,8 +1,8 @@
 'use client';
 
 import { App } from 'antd';
-import type {ReactNode} from 'react';
-import { createContext,  use, useCallback, useEffect, useState } from 'react';
+import { type ReactNode } from 'react';
+import { createContext, use, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate as globalMutate } from 'swr';
 
@@ -17,7 +17,13 @@ import { MarketAuthError } from './errors';
 import MarketAuthConfirmModal from './MarketAuthConfirmModal';
 import { MarketOIDC } from './oidc';
 import ProfileSetupModal from './ProfileSetupModal';
-import type {MarketAuthContextType, MarketAuthSession, MarketUserInfo, MarketUserProfile, OIDCConfig} from './types';
+import {
+  type MarketAuthContextType,
+  type MarketAuthSession,
+  type MarketUserInfo,
+  type MarketUserProfile,
+  type OIDCConfig,
+} from './types';
 import { useMarketUserProfile } from './useMarketUserProfile';
 
 const MarketAuthContext = createContext<MarketAuthContextType | null>(null);

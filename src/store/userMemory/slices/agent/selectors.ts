@@ -1,6 +1,6 @@
-import type { RetrieveMemoryResult } from '@/types/userMemory';
+import { type RetrieveMemoryResult } from '@/types/userMemory';
 
-import type { UserMemoryStoreState } from '../../initialState';
+import { type UserMemoryStoreState } from '../../initialState';
 
 export const agentMemorySelectors = {
   /**

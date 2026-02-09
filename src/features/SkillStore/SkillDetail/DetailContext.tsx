@@ -1,7 +1,7 @@
 'use client';
 
-import type { KlavisServerType, LobehubSkillProviderType } from '@lobechat/const';
-import type { Klavis } from 'klavis';
+import { type KlavisServerType, type LobehubSkillProviderType } from '@lobechat/const';
+import { type Klavis } from 'klavis';
 import type React from 'react';
 import { createContext, use } from 'react';
 

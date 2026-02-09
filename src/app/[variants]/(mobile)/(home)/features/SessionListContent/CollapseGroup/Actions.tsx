@@ -1,9 +1,5 @@
-import type {DropdownMenuProps, MenuProps} from '@lobehub/ui';
-import {
-  ActionIcon,
-  DropdownMenu,
-  Icon
-} from '@lobehub/ui';
+import { type DropdownMenuProps, type MenuProps } from '@lobehub/ui';
+import { ActionIcon, DropdownMenu, Icon } from '@lobehub/ui';
 import { App } from 'antd';
 import { createStaticStyles } from 'antd-style';
 import { MoreVertical, PencilLine, Plus, Settings2, Trash, UsersRound } from 'lucide-react';

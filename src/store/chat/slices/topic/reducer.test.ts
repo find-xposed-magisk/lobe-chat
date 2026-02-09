@@ -1,8 +1,8 @@
 import { expect } from 'vitest';
 
-import type { ChatTopic } from '@/types/topic';
+import { type ChatTopic } from '@/types/topic';
 
-import type { ChatTopicDispatch} from './reducer';
+import { type ChatTopicDispatch } from './reducer';
 import { topicReducer } from './reducer';
 
 describe('topicReducer', () => {

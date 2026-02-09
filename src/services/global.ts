@@ -1,13 +1,13 @@
 import { isDesktop } from '@lobechat/const';
-import type { PartialDeep } from 'type-fest';
+import { type PartialDeep } from 'type-fest';
 
-import type { VersionResponseData } from '@/app/(backend)/api/version/route';
+import { type VersionResponseData } from '@/app/(backend)/api/version/route';
 import { BusinessGlobalService } from '@/business/client/services/BusinessGlobalService';
 import { lambdaClient } from '@/libs/trpc/client';
 import { getElectronStoreState } from '@/store/electron';
 import { electronSyncSelectors } from '@/store/electron/selectors';
-import type {LobeAgentConfig} from '@/types/agent';
-import type {GlobalRuntimeConfig} from '@/types/serverConfig';
+import { type LobeAgentConfig } from '@/types/agent';
+import { type GlobalRuntimeConfig } from '@/types/serverConfig';
 
 const VERSION_URL = 'https://registry.npmmirror.com/@lobehub/chat/latest';
 const SERVER_VERSION_URL = '/api/version';

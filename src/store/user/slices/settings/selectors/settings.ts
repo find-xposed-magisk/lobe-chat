@@ -7,9 +7,15 @@ import {
   DEFAULT_SYSTEM_AGENT_CONFIG,
   DEFAULT_TTS_CONFIG,
 } from '@lobechat/const';
-import type {GlobalLLMProviderKey, HotkeyId, ProviderConfig, UserModelProviderConfig, UserSettings} from '@lobechat/types';
+import {
+  type GlobalLLMProviderKey,
+  type HotkeyId,
+  type ProviderConfig,
+  type UserModelProviderConfig,
+  type UserSettings,
+} from '@lobechat/types';
 
-import type { UserStore } from '@/store/user';
+import { type UserStore } from '@/store/user';
 import { merge } from '@/utils/merge';
 
 export const currentSettings = (s: UserStore): UserSettings => merge(s.defaultSettings, s.settings);

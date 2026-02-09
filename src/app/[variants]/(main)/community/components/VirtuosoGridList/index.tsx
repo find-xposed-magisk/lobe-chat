@@ -1,8 +1,8 @@
-import type {DivProps} from '@lobehub/ui';
-import {  Flexbox, Grid } from '@lobehub/ui';
+import { type DivProps } from '@lobehub/ui';
+import { Flexbox, Grid } from '@lobehub/ui';
 import { memo } from 'react';
-import type {VirtuosoGridProps} from 'react-virtuoso';
-import { VirtuosoGrid  } from 'react-virtuoso';
+import { type VirtuosoGridProps } from 'react-virtuoso';
+import { VirtuosoGrid } from 'react-virtuoso';
 
 import { useScrollParent } from './useScrollParent';
 
@@ -42,7 +42,10 @@ const VirtuosoGridList = memo<VirtuosoGridProps<any, any>>(
         initialItemCount={maxInitialItemCount || count}
         overscan={24}
         components={{
-          List: (({ ref, ...props }: DivProps & { ref?: React.RefObject<HTMLDivElement | null> }) => (
+          List: (({
+            ref,
+            ...props
+          }: DivProps & { ref?: React.RefObject<HTMLDivElement | null> }) => (
             <Grid gap={16} maxItemWidth={280} ref={ref} rows={rows} {...props} />
           )) as any,
         }}

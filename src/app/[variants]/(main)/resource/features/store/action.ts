@@ -1,10 +1,10 @@
-import type {StateCreator} from 'zustand/vanilla';
+import { type StateCreator } from 'zustand/vanilla';
 
-import type {ResourceManagerMode} from '@/features/ResourceManager';
-import type { FilesTabs, SortType } from '@/types/files';
+import { type ResourceManagerMode } from '@/features/ResourceManager';
+import { type FilesTabs, type SortType } from '@/types/files';
 
-import type {State, ViewMode} from './initialState';
-import {   initialState } from './initialState';
+import { type State, type ViewMode } from './initialState';
+import { initialState } from './initialState';
 
 export type MultiSelectActionType =
   | 'addToKnowledgeBase'

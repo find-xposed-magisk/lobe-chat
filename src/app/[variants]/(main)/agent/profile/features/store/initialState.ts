@@ -1,7 +1,6 @@
-import type {IEditor} from '@lobehub/editor';
-import type {EditorState} from '@lobehub/editor/react';
+import { type IEditor } from '@lobehub/editor';
+import { type EditorState } from '@lobehub/editor/react';
 
- 
 export interface PublicState {}
 
 export interface State extends PublicState {

@@ -1,6 +1,6 @@
 'use client';
 
-import type { UIChatMessage } from '@lobechat/types';
+import { type UIChatMessage } from '@lobechat/types';
 import { Avatar, Flexbox } from '@lobehub/ui';
 import { memo } from 'react';
 

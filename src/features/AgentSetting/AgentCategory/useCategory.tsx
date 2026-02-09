@@ -1,10 +1,10 @@
 import { Icon } from '@lobehub/ui';
-import type {MenuItemType} from 'antd/es/menu/interface';
+import { type MenuItemType } from 'antd/es/menu/interface';
 import { Bot, BrainCog, Handshake, MessagesSquare, Mic2, UserCircle } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { MenuProps } from '@/components/Menu';
+import { type MenuProps } from '@/components/Menu';
 import { useAgentStore } from '@/store/agent';
 import { builtinAgentSelectors } from '@/store/agent/selectors';
 import { ChatSettingsTabs } from '@/store/global/initialState';

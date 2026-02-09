@@ -1,11 +1,11 @@
-import type {SWRResponse} from 'swr';
+import { type SWRResponse } from 'swr';
 
 import { useOnlyFetchOnceSWR } from '@/libs/swr';
 import { globalService } from '@/services/global';
-import type {StoreSetter} from '@/store/types';
-import type {GlobalRuntimeConfig} from '@/types/serverConfig';
+import { type StoreSetter } from '@/store/types';
+import { type GlobalRuntimeConfig } from '@/types/serverConfig';
 
-import type { ServerConfigStore } from './store';
+import { type ServerConfigStore } from './store';
 
 const FETCH_SERVER_CONFIG_KEY = 'FETCH_SERVER_CONFIG';
 

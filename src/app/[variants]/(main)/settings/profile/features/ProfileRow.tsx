@@ -1,7 +1,7 @@
 'use client';
 
 import { Flexbox, Text } from '@lobehub/ui';
-import type { CSSProperties, ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 
 interface ProfileRowProps {
   action?: ReactNode;

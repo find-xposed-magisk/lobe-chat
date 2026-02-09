@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { FilesStoreState} from '@/store/file/initialState';
+import { type FilesStoreState } from '@/store/file/initialState';
 import { initialState } from '@/store/file/initialState';
-import type { UploadFileItem } from '@/types/files/upload';
+import { type UploadFileItem } from '@/types/files/upload';
 import { UPLOAD_STATUS_SET } from '@/types/files/upload';
 
 import { fileChatSelectors, filesSelectors } from './selectors';

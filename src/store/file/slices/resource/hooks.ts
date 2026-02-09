@@ -3,7 +3,7 @@ import { shallow } from 'zustand/shallow';
 
 import { mutate, useClientDataSWR } from '@/libs/swr';
 import { resourceService } from '@/services/resource';
-import type { ResourceQueryParams } from '@/types/resource';
+import { type ResourceQueryParams } from '@/types/resource';
 
 import { useFileStore } from '../../store';
 

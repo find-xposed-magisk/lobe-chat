@@ -8,11 +8,11 @@ import {
   useResourceManagerFetchKnowledgeItems,
   useResourceManagerStore,
 } from '@/app/[variants]/(main)/resource/features/store';
-import type { MultiSelectActionType } from '@/app/[variants]/(main)/resource/features/store/action';
+import { type MultiSelectActionType } from '@/app/[variants]/(main)/resource/features/store/action';
 import { selectors, sortFileList } from '@/app/[variants]/(main)/resource/features/store/selectors';
 import { useAddFilesToKnowledgeBaseModal } from '@/features/LibraryModal';
 import { fileManagerSelectors, useFileStore } from '@/store/file';
-import type {FilesTabs} from '@/types/files';
+import { type FilesTabs } from '@/types/files';
 
 import { useFileSelection } from './hooks/useFileSelection';
 import { useCheckTaskStatus } from './useCheckTaskStatus';

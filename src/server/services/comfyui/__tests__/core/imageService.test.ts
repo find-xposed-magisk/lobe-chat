@@ -1,5 +1,5 @@
-import type { CreateImagePayload  } from '@lobechat/model-runtime';
-import { AgentRuntimeErrorType  } from '@lobechat/model-runtime';
+import { type CreateImagePayload } from '@lobechat/model-runtime';
+import { AgentRuntimeErrorType } from '@lobechat/model-runtime';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ComfyUIClientService } from '@/server/services/comfyui/core/comfyUIClientService';

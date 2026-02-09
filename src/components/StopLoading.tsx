@@ -1,4 +1,4 @@
-import type { IconType } from '@lobehub/icons';
+import { type IconType } from '@lobehub/icons';
 import { cssVar, cx } from 'antd-style';
 
 const StopLoadingIcon: IconType = (({ ref, size = 16, className, style, ...rest }) => {

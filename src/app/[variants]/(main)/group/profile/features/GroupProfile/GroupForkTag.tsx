@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { marketApiService } from '@/services/marketApi';
 import { useAgentGroupStore } from '@/store/agentGroup';
 import { agentGroupSelectors } from '@/store/agentGroup/selectors';
-import type { AgentGroupForkSourceResponse } from '@/types/discover';
+import { type AgentGroupForkSourceResponse } from '@/types/discover';
 
 /**
  * Group Fork Tag Component
@@ -35,8 +35,7 @@ const GroupForkTag = memo(() => {
         setLoading(true);
 
         // Get fork source info from market using the marketIdentifier
-        const forkSourceResponse =
-          await marketApiService.getAgentGroupForkSource(marketIdentifier);
+        const forkSourceResponse = await marketApiService.getAgentGroupForkSource(marketIdentifier);
 
         setForkSource(forkSourceResponse.source);
       } catch (error) {

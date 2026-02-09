@@ -1,7 +1,7 @@
 'use client';
 
 import { getLobehubSkillProviderById } from '@lobechat/const';
-import type { Klavis } from 'klavis';
+import { type Klavis } from 'klavis';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useToolStore } from '@/store/tool';

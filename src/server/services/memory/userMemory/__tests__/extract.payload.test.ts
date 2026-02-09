@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { LayersEnum, MemorySourceType } from '@/types/userMemory';
 
-import type {MemoryExtractionNormalizedPayload, MemoryExtractionPayloadInput} from '../extract';
 import {
-  buildWorkflowPayloadInput,
-  normalizeMemoryExtractionPayload
+  type MemoryExtractionNormalizedPayload,
+  type MemoryExtractionPayloadInput,
 } from '../extract';
+import { buildWorkflowPayloadInput, normalizeMemoryExtractionPayload } from '../extract';
 
 describe('normalizeMemoryExtractionPayload', () => {
   it('normalizes sources, layers, ids, and dates with fallback baseUrl', () => {

@@ -1,4 +1,4 @@
-import type { FilesTabs, SortType } from '@/types/files';
+import { type FilesTabs, type SortType } from '@/types/files';
 
 /**
  * Unified resource item that represents both files and documents

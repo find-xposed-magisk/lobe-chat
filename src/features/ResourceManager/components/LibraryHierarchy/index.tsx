@@ -8,7 +8,7 @@ import { useFolderPath } from '@/app/[variants]/(main)/resource/features/hooks/u
 import { useResourceManagerStore } from '@/app/[variants]/(main)/resource/features/store';
 import { fileService } from '@/services/file';
 import { useFileStore } from '@/store/file';
-import type { ResourceQueryParams } from '@/types/resource';
+import { type ResourceQueryParams } from '@/types/resource';
 
 import { HierarchyNode } from './HierarchyNode';
 import TreeSkeleton from './TreeSkeleton';
@@ -18,7 +18,7 @@ import {
   sortTreeItems,
   TREE_REFRESH_EVENT,
 } from './treeState';
-import type { TreeItem } from './types';
+import { type TreeItem } from './types';
 
 // Export for external use
 export { clearTreeFolderCache } from './treeState';

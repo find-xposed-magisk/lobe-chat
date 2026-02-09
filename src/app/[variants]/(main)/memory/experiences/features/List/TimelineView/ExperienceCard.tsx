@@ -1,4 +1,4 @@
-import type { ExperienceListItem } from '@lobechat/types';
+import { type ExperienceListItem } from '@lobechat/types';
 import { memo } from 'react';
 
 import TimeLineCard from '@/app/[variants]/(main)/memory/features/TimeLineView/TimeLineCard';

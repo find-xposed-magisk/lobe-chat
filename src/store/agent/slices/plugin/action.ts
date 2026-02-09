@@ -1,9 +1,9 @@
 import { produce } from 'immer';
 
-import type {StoreSetter} from '@/store/types';
+import { type StoreSetter } from '@/store/types';
 
 import { agentSelectors } from '../../selectors';
-import type { AgentStore } from '../../store';
+import { type AgentStore } from '../../store';
 
 /**
  * Plugin Slice Actions

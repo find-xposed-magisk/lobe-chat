@@ -4,7 +4,7 @@ import { Icon } from '@lobehub/ui';
 import { App } from 'antd';
 import { cssVar } from 'antd-style';
 import { FileText, FolderIcon } from 'lucide-react';
-import type { PropsWithChildren } from 'react';
+import { type PropsWithChildren } from 'react';
 import { createContext, memo, use, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';

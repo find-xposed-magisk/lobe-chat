@@ -1,7 +1,7 @@
 'use client';
 
-import type {ErrorInfo, ReactNode} from 'react';
-import { Component   } from 'react';
+import { type ErrorInfo, type ReactNode } from 'react';
+import { Component } from 'react';
 
 interface BootErrorBoundaryProps {
   children: ReactNode;
@@ -42,7 +42,6 @@ class BootErrorBoundary extends Component<BootErrorBoundaryProps, BootErrorBound
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-     
     console.error('Unexpected boot error captured by BootErrorBoundary', error, errorInfo);
 
     if (!this.hasBooted && this.tryHardReload()) {
@@ -65,7 +64,6 @@ class BootErrorBoundary extends Component<BootErrorBoundaryProps, BootErrorBound
     } catch (error) {
       // Access to sessionStorage can fail in restricted environments; ignore.
       if (process.env.NODE_ENV === 'development') {
-         
         console.warn('BootErrorBoundary failed to reset reload attempts', error);
       }
     }
@@ -80,7 +78,6 @@ class BootErrorBoundary extends Component<BootErrorBoundaryProps, BootErrorBound
       const href = window.location.href;
 
       if (attempts >= maxReloads) {
-         
         console.warn('BootErrorBoundary reached max reload attempts', {
           attempts,
           href,
@@ -89,13 +86,11 @@ class BootErrorBoundary extends Component<BootErrorBoundaryProps, BootErrorBound
         return false;
       }
 
-       
       console.info('BootErrorBoundary forcing hard reload', { attempts, href, maxReloads });
       window.sessionStorage.setItem(RELOAD_SESSION_KEY, String(attempts + 1));
     } catch (error) {
       // If sessionStorage is unavailable, we still attempt a reload once.
       if (process.env.NODE_ENV === 'development') {
-         
         console.warn('BootErrorBoundary failed to persist reload attempts', error);
       }
     }

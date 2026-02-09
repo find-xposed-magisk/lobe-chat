@@ -1,15 +1,15 @@
 import debug from 'debug';
-import type { SWRResponse } from 'swr';
+import { type SWRResponse } from 'swr';
 import useSWR from 'swr';
 
 import { mutate } from '@/libs/swr';
 import { userService } from '@/services/user';
-import type { StoreSetter } from '@/store/types';
+import { type StoreSetter } from '@/store/types';
 import { setNamespace } from '@/utils/storeDebug';
 
-import type { ToolStore } from '../../store';
+import { type ToolStore } from '../../store';
 import { invokeExecutor } from './executors/index';
-import type { BuiltinToolContext, BuiltinToolResult } from './types';
+import { type BuiltinToolContext, type BuiltinToolResult } from './types';
 
 const n = setNamespace('builtinTool');
 const log = debug('lobe-store:builtin-tool');

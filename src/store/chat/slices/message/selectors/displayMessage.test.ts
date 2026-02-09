@@ -1,10 +1,10 @@
-import type {UIChatMessage  } from '@lobechat/types';
+import { type UIChatMessage } from '@lobechat/types';
 import { act } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { INBOX_SESSION_ID } from '@/const/session';
 import { useAgentStore } from '@/store/agent';
-import type { ChatStore } from '@/store/chat';
+import { type ChatStore } from '@/store/chat';
 import { initialState } from '@/store/chat/initialState';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
 import { createServerConfigStore } from '@/store/serverConfig/store';

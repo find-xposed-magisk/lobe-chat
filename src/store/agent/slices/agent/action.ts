@@ -1,22 +1,26 @@
 import { getSingletonAnalyticsOptional } from '@lobehub/analytics';
 import isEqual from 'fast-deep-equal';
 import { produce } from 'immer';
-import type { SWRResponse } from 'swr';
-import type { PartialDeep } from 'type-fest';
+import { type SWRResponse } from 'swr';
+import { type PartialDeep } from 'type-fest';
 
 import { MESSAGE_CANCEL_FLAT } from '@/const/message';
 import { mutate, useClientDataSWR } from '@/libs/swr';
-import type {CreateAgentParams, CreateAgentResult} from '@/services/agent';
-import { agentService  } from '@/services/agent';
-import type {StoreSetter} from '@/store/types';
+import { type CreateAgentParams, type CreateAgentResult } from '@/services/agent';
+import { agentService } from '@/services/agent';
+import { type StoreSetter } from '@/store/types';
 import { getUserStoreState } from '@/store/user';
 import { userProfileSelectors } from '@/store/user/selectors';
-import type {LobeAgentChatConfig, LobeAgentConfig, LocalSystemConfig} from '@/types/agent';
-import type {MetaData} from '@/types/meta';
+import {
+  type LobeAgentChatConfig,
+  type LobeAgentConfig,
+  type LocalSystemConfig,
+} from '@/types/agent';
+import { type MetaData } from '@/types/meta';
 import { merge } from '@/utils/merge';
 
-import type { AgentStore } from '../../store';
-import type {AgentSliceState, LoadingState, SaveStatus} from './initialState';
+import { type AgentStore } from '../../store';
+import { type AgentSliceState, type LoadingState, type SaveStatus } from './initialState';
 
 const FETCH_AGENT_CONFIG_KEY = 'FETCH_AGENT_CONFIG';
 

@@ -1,7 +1,7 @@
-import type { ChatStoreState } from '@/store/chat/initialState';
+import { type ChatStoreState } from '@/store/chat/initialState';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
 
-import type { Operation, OperationType } from './types';
+import { type Operation, type OperationType } from './types';
 import { AI_RUNTIME_OPERATION_TYPES } from './types';
 
 // === Basic Queries ===

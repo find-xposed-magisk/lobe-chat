@@ -2,9 +2,9 @@ import './initiallize';
 
 import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import type { ResolvingViewport } from 'next';
+import { type ResolvingViewport } from 'next';
 import Script from 'next/script';
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Suspense } from 'react';
 import { isRtlLang } from 'rtl-detect';
 
@@ -14,8 +14,8 @@ import { DEFAULT_LANG } from '@/const/locale';
 import { isDesktop } from '@/const/version';
 import AuthProvider from '@/layout/AuthProvider';
 import GlobalProvider from '@/layout/GlobalProvider';
-import type { Locales } from '@/locales/resources';
-import type { DynamicLayoutProps } from '@/types/next';
+import { type Locales } from '@/locales/resources';
+import { type DynamicLayoutProps } from '@/types/next';
 import { RouteVariants } from '@/utils/server/routeVariants';
 
 const inVercel = process.env.VERCEL === '1';

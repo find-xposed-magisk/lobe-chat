@@ -1,9 +1,9 @@
-import type {AgentState} from '@lobechat/agent-runtime';
+import { type AgentState } from '@lobechat/agent-runtime';
 import debug from 'debug';
 
-import type {AgentOperationMetadata, StepResult} from './AgentStateManager';
+import { type AgentOperationMetadata, type StepResult } from './AgentStateManager';
 import { createAgentStateManager, createStreamEventManager } from './factory';
-import type { IAgentStateManager, IStreamEventManager } from './types';
+import { type IAgentStateManager, type IStreamEventManager } from './types';
 
 const log = debug('lobe-server:agent-runtime:coordinator');
 

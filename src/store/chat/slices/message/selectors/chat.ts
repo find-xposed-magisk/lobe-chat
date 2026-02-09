@@ -31,9 +31,9 @@
  * Before: chatSelectors.getMessageById(id)(state)  // For display
  * After:  displayMessageSelectors.getDisplayMessageById(id)(state)
  */
-import type {ChatFileItem} from '@lobechat/types';
+import { type ChatFileItem } from '@lobechat/types';
 
-import type { ChatStoreState } from '../../../initialState';
+import { type ChatStoreState } from '../../../initialState';
 import { dbMessageSelectors } from './dbMessage';
 import { displayMessageSelectors } from './displayMessage';
 

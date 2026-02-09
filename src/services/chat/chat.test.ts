@@ -1,6 +1,6 @@
 import { WebBrowsingManifest } from '@lobechat/builtin-tool-web-browsing';
-import type {ChatStreamPayload, LobeTool, UIChatMessage} from '@lobechat/types';
-import { ChatErrorType   } from '@lobechat/types';
+import { type ChatStreamPayload, type LobeTool, type UIChatMessage } from '@lobechat/types';
+import { ChatErrorType } from '@lobechat/types';
 import { act } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,7 +11,7 @@ import { aiModelSelectors } from '@/store/aiInfra';
 import { useToolStore } from '@/store/tool';
 
 import { chatService } from './index';
-import type { ResolvedAgentConfig } from './mecha';
+import { type ResolvedAgentConfig } from './mecha';
 
 /**
  * Default mock resolvedAgentConfig for tests

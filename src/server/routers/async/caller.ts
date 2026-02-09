@@ -8,7 +8,7 @@ import { createAsyncCallerFactory } from '@/libs/trpc/async';
 import { signInternalJWT } from '@/libs/trpc/utils/internalJwt';
 import { KeyVaultsGateKeeper } from '@/server/modules/KeyVaultsEncrypt';
 
-import type { AsyncRouter } from './index';
+import { type AsyncRouter } from './index';
 import { asyncRouter } from './index';
 
 export const createAsyncServerClient = async (userId: string) => {

@@ -9,7 +9,7 @@ import urlJoin from 'url-join';
 import { ModelItemRender, ProviderItemRender } from '@/components/ModelSelect';
 
 import { styles } from '../../styles';
-import type { ListItem } from '../../types';
+import { type ListItem } from '../../types';
 import { menuKey } from '../../utils';
 import { MultipleProvidersModelItem } from './MultipleProvidersModelItem';
 import { SingleProviderModelItem } from './SingleProviderModelItem';

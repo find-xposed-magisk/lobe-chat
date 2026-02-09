@@ -1,9 +1,9 @@
-import type { LobeTool } from '@lobechat/types';
+import { type LobeTool } from '@lobechat/types';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { pluginService } from '@/services/plugin';
-import type { DiscoverPluginItem } from '@/types/discover';
+import { type DiscoverPluginItem } from '@/types/discover';
 import { merge } from '@/utils/merge';
 
 import { useToolStore } from '../../store';

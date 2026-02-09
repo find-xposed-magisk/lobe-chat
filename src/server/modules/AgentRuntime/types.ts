@@ -1,7 +1,7 @@
-import type { AgentState } from '@lobechat/agent-runtime';
+import { type AgentState } from '@lobechat/agent-runtime';
 
-import type { AgentOperationMetadata, StepResult } from './AgentStateManager';
-import type { StreamChunkData, StreamEvent } from './StreamEventManager';
+import { type AgentOperationMetadata, type StepResult } from './AgentStateManager';
+import { type StreamChunkData, type StreamEvent } from './StreamEventManager';
 
 /**
  * Agent State Manager Interface

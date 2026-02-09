@@ -4,7 +4,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentRuntimeService } from './AgentRuntimeService';
-import type { AgentExecutionParams, OperationCreationParams, StartExecutionParams } from './types';
+import {
+  type AgentExecutionParams,
+  type OperationCreationParams,
+  type StartExecutionParams,
+} from './types';
 
 // Mock trusted client to avoid server-side env access
 vi.mock('@/libs/trusted-client', () => ({

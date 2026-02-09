@@ -1,8 +1,8 @@
-import type { NewChunkItem, NewUnstructuredChunkItem } from '@/database/schemas';
+import { type NewChunkItem, type NewUnstructuredChunkItem } from '@/database/schemas';
 import { knowledgeEnv } from '@/envs/knowledge';
 import { ChunkingLoader } from '@/libs/langchain';
 
-import type { ChunkingService } from './rules';
+import { type ChunkingService } from './rules';
 import { ChunkingRuleParser } from './rules';
 
 export interface ChunkContentParams {

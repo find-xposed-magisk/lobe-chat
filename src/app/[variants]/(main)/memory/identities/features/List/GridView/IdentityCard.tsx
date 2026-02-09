@@ -1,4 +1,4 @@
-import type { IdentityListItem } from '@lobechat/types';
+import { type IdentityListItem } from '@lobechat/types';
 import { memo } from 'react';
 
 import GridCard from '@/app/[variants]/(main)/memory/features/GridView/GridCard';

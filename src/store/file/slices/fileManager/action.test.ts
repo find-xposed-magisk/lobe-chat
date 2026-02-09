@@ -6,8 +6,8 @@ import { mutate } from '@/libs/swr';
 import { lambdaClient } from '@/libs/trpc/client';
 import { fileService } from '@/services/file';
 import { ragService } from '@/services/rag';
-import type { FileListItem } from '@/types/files';
-import type { UploadFileItem } from '@/types/files/upload';
+import { type FileListItem } from '@/types/files';
+import { type UploadFileItem } from '@/types/files/upload';
 import { unzipFile } from '@/utils/unzipFile';
 import { withSWR } from '~test-utils';
 

@@ -2,7 +2,7 @@ import { Flexbox } from '@lobehub/ui';
 import { memo } from 'react';
 
 import AgentBuilderWelcome from '@/features/AgentBuilder/AgentBuilderWelcome';
-import type { ActionKeys } from '@/features/ChatInput';
+import { type ActionKeys } from '@/features/ChatInput';
 import { ChatInput, ChatList } from '@/features/Conversation';
 
 import TopicSelector from './TopicSelector';

@@ -1,14 +1,14 @@
-import type {TRPCLink} from '@trpc/client';
+import { type TRPCLink } from '@trpc/client';
 import { createTRPCClient, httpBatchLink, httpLink, splitLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import debug from 'debug';
-import type {ModelProvider} from 'model-bank';
+import { type ModelProvider } from 'model-bank';
 import superjson from 'superjson';
 
 import { withElectronProtocolIfElectron } from '@/const/protocol';
 import { isDesktop } from '@/const/version';
-import type { LambdaRouter } from '@/server/routers/lambda';
+import { type LambdaRouter } from '@/server/routers/lambda';
 
 const log = debug('lobe-image:lambda-client');
 
@@ -76,23 +76,20 @@ const errorHandlingLink: TRPCLink<LambdaRouter> = () => {
 
 // 2. Shared link options
 const linkOptions = {
-   
   fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
     // Ensure credentials are included to send cookies (like mp_token)
-     
+
     const fetchOptions: RequestInit = {
       ...init,
       credentials: 'include',
     };
 
     if (isDesktop) {
-       
       const res = await fetch(input as string, fetchOptions);
 
       if (res) return res;
     }
 
-     
     return await fetch(input, fetchOptions);
   },
   headers: async () => {

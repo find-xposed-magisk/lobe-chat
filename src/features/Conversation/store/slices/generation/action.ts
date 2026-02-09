@@ -1,10 +1,10 @@
-import type { StateCreator } from 'zustand';
+import { type StateCreator } from 'zustand';
 
 import { MESSAGE_CANCEL_FLAT } from '@/const/index';
 import { useChatStore } from '@/store/chat';
 import { AI_RUNTIME_OPERATION_TYPES } from '@/store/chat/slices/operation/types';
 
-import type { Store as ConversationStore } from '../../action';
+import { type Store as ConversationStore } from '../../action';
 
 /**
  * Generation Actions

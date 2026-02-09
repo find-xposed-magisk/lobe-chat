@@ -1,8 +1,8 @@
-import type { LobeToolMeta } from '@lobechat/types';
+import { type LobeToolMeta } from '@lobechat/types';
 
 import { shouldEnableTool } from '@/helpers/toolFilters';
 
-import type { ToolStoreState } from '../../initialState';
+import { type ToolStoreState } from '../../initialState';
 import { KlavisServerStatus } from '../klavisStore';
 
 export interface LobeToolMetaWithAvailability extends LobeToolMeta {

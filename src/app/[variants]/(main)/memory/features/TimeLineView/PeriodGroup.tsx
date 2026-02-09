@@ -3,10 +3,10 @@
 import { Flexbox, Text } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
 import dayjs from 'dayjs';
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { memo } from 'react';
 
-import type { GroupBy } from './index';
+import { type GroupBy } from './index';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   itemWrapper: css`

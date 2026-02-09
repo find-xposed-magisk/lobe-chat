@@ -1,11 +1,11 @@
-import type {AssistantContentBlock, UIChatMessage} from '@lobechat/types';
+import { type AssistantContentBlock, type UIChatMessage } from '@lobechat/types';
 
 import { INBOX_SESSION_ID } from '@/const/session';
 import { useAgentStore } from '@/store/agent';
 import { agentChatConfigSelectors } from '@/store/agent/selectors';
 
 import { chatHelpers } from '../../../helpers';
-import type { ChatStoreState } from '../../../initialState';
+import { type ChatStoreState } from '../../../initialState';
 import { messageMapKey } from '../../../utils/messageMapKey';
 
 /**

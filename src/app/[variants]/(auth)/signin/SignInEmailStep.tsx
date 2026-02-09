@@ -1,6 +1,6 @@
 import { BRANDING_NAME } from '@lobechat/business-const';
 import { Alert, Button, Flexbox, Icon, Input, Skeleton, Text } from '@lobehub/ui';
-import type { FormInstance, InputRef } from 'antd';
+import { type FormInstance, type InputRef } from 'antd';
 import { Divider, Form } from 'antd';
 import { createStaticStyles } from 'antd-style';
 import { ChevronRight, Mail } from 'lucide-react';

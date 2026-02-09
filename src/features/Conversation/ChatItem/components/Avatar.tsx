@@ -1,8 +1,8 @@
 import { Avatar as A } from '@lobehub/ui';
-import type {CSSProperties} from 'react';
-import {  memo } from 'react';
+import { type CSSProperties } from 'react';
+import { memo } from 'react';
 
-import type { ChatItemProps } from '../type';
+import { type ChatItemProps } from '../type';
 
 export interface AvatarProps {
   alt?: string;

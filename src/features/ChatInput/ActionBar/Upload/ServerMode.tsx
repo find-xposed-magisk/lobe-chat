@@ -1,6 +1,6 @@
 import { validateVideoFileSize } from '@lobechat/utils/client';
-import type {ItemType} from '@lobehub/ui';
-import { Icon,  Tooltip } from '@lobehub/ui';
+import { type ItemType } from '@lobehub/ui';
+import { Icon, Tooltip } from '@lobehub/ui';
 import { Upload } from 'antd';
 import { css, cx } from 'antd-style';
 import isEqual from 'fast-deep-equal';
@@ -22,7 +22,7 @@ import { preferenceSelectors } from '@/store/user/selectors';
 
 import { useAgentId } from '../../hooks/useAgentId';
 import Action from '../components/Action';
-import type { ActionDropdownMenuItems } from '../components/ActionDropdown';
+import { type ActionDropdownMenuItems } from '../components/ActionDropdown';
 import CheckboxItem from '../components/CheckboxWithLoading';
 
 const hotArea = css`

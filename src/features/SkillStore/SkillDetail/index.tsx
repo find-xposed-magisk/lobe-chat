@@ -2,7 +2,7 @@
 
 import { createModal } from '@lobehub/ui';
 import { t } from 'i18next';
-import type { Klavis } from 'klavis';
+import { type Klavis } from 'klavis';
 
 import { BuiltinSkillDetailContent } from './BuiltinSkillDetailContent';
 import { KlavisSkillDetailContent } from './KlavisSkillDetailContent';

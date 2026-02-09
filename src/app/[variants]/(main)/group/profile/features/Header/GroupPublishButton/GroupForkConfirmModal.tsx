@@ -4,7 +4,7 @@ import { Avatar, Flexbox, Modal } from '@lobehub/ui';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { OriginalGroupInfo } from './types';
+import { type OriginalGroupInfo } from './types';
 
 interface GroupForkConfirmModalProps {
   loading?: boolean;

@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { memo } from 'react';
 
 import { styles } from '../style';
-import type { ChatItemProps } from '../type';
+import { type ChatItemProps } from '../type';
 
 export interface LoadingProps {
   loading?: ChatItemProps['loading'];

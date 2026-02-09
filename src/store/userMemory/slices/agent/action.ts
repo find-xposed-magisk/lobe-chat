@@ -1,13 +1,13 @@
 import { omit } from 'es-toolkit';
-import type { SWRResponse } from 'swr';
+import { type SWRResponse } from 'swr';
 
 import { useClientDataSWRWithSync } from '@/libs/swr';
 import { userMemoryService } from '@/services/userMemory';
-import type {StoreSetter} from '@/store/types';
-import type { RetrieveMemoryResult } from '@/types/userMemory';
+import { type StoreSetter } from '@/store/types';
+import { type RetrieveMemoryResult } from '@/types/userMemory';
 import { setNamespace } from '@/utils/storeDebug';
 
-import type {UserMemoryStore} from '../../store';
+import { type UserMemoryStore } from '../../store';
 
 const n = setNamespace('userMemory/agent');
 

@@ -1,4 +1,12 @@
-import type {AWSBedrockKeyVault, AzureOpenAIKeyVault, ClientSecretPayload, CloudflareKeyVault, ComfyUIKeyVault, OpenAICompatibleKeyVault, VertexAIKeyVault} from '@lobechat/types';
+import {
+  type AWSBedrockKeyVault,
+  type AzureOpenAIKeyVault,
+  type ClientSecretPayload,
+  type CloudflareKeyVault,
+  type ComfyUIKeyVault,
+  type OpenAICompatibleKeyVault,
+  type VertexAIKeyVault,
+} from '@lobechat/types';
 import { clientApiKeyManager } from '@lobechat/utils/client';
 import { ModelProvider } from 'model-bank';
 
@@ -103,14 +111,14 @@ const createAuthTokenWithPayload = (payload = {}) => {
 };
 
 interface AuthParams {
-   
   headers?: HeadersInit;
   payload?: Record<string, any>;
   provider?: string;
 }
 
 export const createPayloadWithKeyVaults = (provider: string) => {
-  const keyVaults = aiProviderSelectors.providerKeyVaults(provider)(useAiInfraStore.getState()) || {};
+  const keyVaults =
+    aiProviderSelectors.providerKeyVaults(provider)(useAiInfraStore.getState()) || {};
 
   const runtimeProvider = resolveRuntimeProvider(provider);
 
@@ -125,7 +133,6 @@ export const createXorKeyVaultsPayload = (provider: string) => {
   return obfuscatePayloadWithXOR(payload, SECRET_XOR_KEY);
 };
 
- 
 export const createHeaderWithAuth = async (params?: AuthParams): Promise<HeadersInit> => {
   let payload = params?.payload || {};
 
@@ -135,6 +142,5 @@ export const createHeaderWithAuth = async (params?: AuthParams): Promise<Headers
 
   const token = createAuthTokenWithPayload(payload);
 
-   
   return { ...params?.headers, [LOBE_CHAT_AUTH_HEADER]: token };
 };

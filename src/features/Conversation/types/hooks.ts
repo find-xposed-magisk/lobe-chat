@@ -1,8 +1,8 @@
-import type {
-  ChatToolPayload,
-  MessageToolCall,
-  SendMessageParams,
-  UIChatMessage,
+import {
+  type ChatToolPayload,
+  type MessageToolCall,
+  type SendMessageParams,
+  type UIChatMessage,
 } from '@lobechat/types';
 
 /**

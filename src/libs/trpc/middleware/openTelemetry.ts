@@ -1,6 +1,6 @@
 import { env } from 'node:process';
 
-import type { Attributes, Span } from '@lobechat/observability-otel/api';
+import { type Attributes, type Span } from '@lobechat/observability-otel/api';
 import { context, diag, SpanKind, SpanStatusCode, trace } from '@lobechat/observability-otel/api';
 import {
   ATTR_ERROR_TYPE,

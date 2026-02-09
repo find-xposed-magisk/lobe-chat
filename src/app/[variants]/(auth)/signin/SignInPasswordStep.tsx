@@ -1,5 +1,5 @@
 import { Button, Icon, InputPassword, Text } from '@lobehub/ui';
-import type { FormInstance, InputRef } from 'antd';
+import { type FormInstance, type InputRef } from 'antd';
 import { Form } from 'antd';
 import { cssVar } from 'antd-style';
 import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';

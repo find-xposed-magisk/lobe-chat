@@ -1,6 +1,6 @@
 'use client';
 
-import type { ActivityListItem } from '@lobechat/types';
+import { type ActivityListItem } from '@lobechat/types';
 import { memo } from 'react';
 
 import { useUserMemoryStore } from '@/store/userMemory';

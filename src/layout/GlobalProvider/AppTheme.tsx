@@ -3,13 +3,13 @@
 import 'antd/dist/reset.css';
 
 import { TITLE_BAR_HEIGHT } from '@lobechat/desktop-bridge';
-import type { NeutralColors, PrimaryColors } from '@lobehub/ui';
+import { type NeutralColors, type PrimaryColors } from '@lobehub/ui';
 import { ConfigProvider, FontLoader, ThemeProvider } from '@lobehub/ui';
 import { message as antdMessage } from 'antd';
 import { AppConfigContext } from 'antd/es/app/context';
 import { createStaticStyles, cx, useTheme } from 'antd-style';
 import * as motion from 'motion/react-m';
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { memo, useEffect, useMemo, useState } from 'react';
 
 import AntdStaticMethods from '@/components/AntdStaticMethods';

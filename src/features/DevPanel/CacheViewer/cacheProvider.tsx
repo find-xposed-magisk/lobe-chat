@@ -1,18 +1,12 @@
 'use client';
 
-import type {PropsWithChildren} from 'react';
-import {
-  createContext,
-  use,
-  useEffect,
-  useState,
-  useTransition
-} from 'react';
+import { type PropsWithChildren } from 'react';
+import { createContext, use, useEffect, useState, useTransition } from 'react';
 
 import { usePathname } from '@/libs/router/navigation';
 
 import { getCacheFiles } from './getCacheEntries';
-import type { NextCacheFileData } from './schema';
+import { type NextCacheFileData } from './schema';
 
 interface CachePanelContextProps {
   entries: NextCacheFileData[];

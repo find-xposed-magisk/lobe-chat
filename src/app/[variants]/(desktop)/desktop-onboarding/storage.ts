@@ -1,4 +1,4 @@
-import type { DesktopOnboardingScreen} from './types';
+import { type DesktopOnboardingScreen } from './types';
 import { isDesktopOnboardingScreen } from './types';
 
 export const DESKTOP_ONBOARDING_STORAGE_KEY = 'lobechat:desktop:onboarding:completed:v1';

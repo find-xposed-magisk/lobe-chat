@@ -1,9 +1,9 @@
-import type {LobeChatPluginManifest} from '@lobehub/chat-plugin-sdk';
+import { type LobeChatPluginManifest } from '@lobehub/chat-plugin-sdk';
 import { uniq } from 'es-toolkit/compat';
 
-import type {InstallPluginMeta, LobeToolCustomPlugin} from '@/types/tool/plugin';
+import { type InstallPluginMeta, type LobeToolCustomPlugin } from '@/types/tool/plugin';
 
-import type { ToolStoreState } from '../../initialState';
+import { type ToolStoreState } from '../../initialState';
 
 const installedPlugins = (s: ToolStoreState) => s.installedPlugins;
 

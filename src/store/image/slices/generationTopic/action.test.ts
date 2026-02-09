@@ -6,7 +6,7 @@ import { mutate } from '@/libs/swr';
 import { chatService } from '@/services/chat';
 import { generationTopicService } from '@/services/generationTopic';
 import { useImageStore } from '@/store/image';
-import type { ImageGenerationTopic } from '@/types/generation';
+import { type ImageGenerationTopic } from '@/types/generation';
 
 // Mock @/libs/swr mutate
 vi.mock('@/libs/swr', async () => {

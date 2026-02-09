@@ -17,8 +17,8 @@ import { Switch } from 'antd';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
 import { omit } from 'es-toolkit/compat';
 import { Users } from 'lucide-react';
-import type {ChangeEvent} from 'react';
-import {  memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ChangeEvent } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { DEFAULT_AVATAR } from '@/const/meta';
@@ -26,11 +26,11 @@ import GroupAvatar from '@/features/GroupAvatar';
 import ModelSelect from '@/features/ModelSelect';
 import { useEnabledChatModels } from '@/hooks/useEnabledChatModels';
 import { useSessionStore } from '@/store/session';
-import type {LobeAgentSession} from '@/types/session';
-import {  LobeSessionType } from '@/types/session';
+import { type LobeAgentSession } from '@/types/session';
+import { LobeSessionType } from '@/types/session';
 
-import type {GroupTemplate} from './templates';
-import {  useGroupTemplates } from './templates';
+import { type GroupTemplate } from './templates';
+import { useGroupTemplates } from './templates';
 
 const TemplateItem = memo<{
   cx: (..._args: any[]) => string;
@@ -441,43 +441,41 @@ const ChatGroupWizard = memo<ChatGroupWizardProps>(
     );
 
     const selectedAgentListItems = useMemo(() => {
-      return (
-        selectedAgents
-          .map((agentId) => {
-            const agent = agentSessions.find((session) => session.config?.id === agentId);
-            if (!agent) return null;
+      return selectedAgents
+        .map((agentId) => {
+          const agent = agentSessions.find((session) => session.config?.id === agentId);
+          if (!agent) return null;
 
-            const title = agent.meta?.title || t('defaultSession', { ns: 'common' });
-            const avatar = agent.meta?.avatar || DEFAULT_AVATAR;
-            const avatarBackground = agent.meta?.backgroundColor;
-            const description = agent.meta?.description || '';
+          const title = agent.meta?.title || t('defaultSession', { ns: 'common' });
+          const avatar = agent.meta?.avatar || DEFAULT_AVATAR;
+          const avatarBackground = agent.meta?.backgroundColor;
+          const description = agent.meta?.description || '';
 
-            return {
-              actions: (
-                <Switch
-                  checked
-                  size="small"
-                  onChange={(checked) => {
-                    if (!checked) handleRemoveAgent(agentId);
-                  }}
-                />
-              ),
-              avatar: <Avatar avatar={avatar} background={avatarBackground} size={40} />,
-              description: description ? (
-                <Tooltip title={description}>
-                  <Text className={memberDescriptionClass} ellipsis={{ rows: 1 }}>
-                    {description}
-                  </Text>
-                </Tooltip>
-              ) : null,
-              key: agentId,
-              showAction: true,
-              title,
-            };
-          })
-           
-          .filter((item): item is NonNullable<typeof item> => Boolean(item))
-      );
+          return {
+            actions: (
+              <Switch
+                checked
+                size="small"
+                onChange={(checked) => {
+                  if (!checked) handleRemoveAgent(agentId);
+                }}
+              />
+            ),
+            avatar: <Avatar avatar={avatar} background={avatarBackground} size={40} />,
+            description: description ? (
+              <Tooltip title={description}>
+                <Text className={memberDescriptionClass} ellipsis={{ rows: 1 }}>
+                  {description}
+                </Text>
+              </Tooltip>
+            ) : null,
+            key: agentId,
+            showAction: true,
+            title,
+          };
+        })
+
+        .filter((item): item is NonNullable<typeof item> => Boolean(item));
     }, [selectedAgents, agentSessions, t, handleRemoveAgent, memberDescriptionClass]);
 
     const normalizedHostModelConfig = useMemo(() => {

@@ -1,8 +1,8 @@
 import { fileService } from '@/services/file';
 import { useFileStore } from '@/store/file';
-import type { ResourceItem } from '@/types/resource';
+import { type ResourceItem } from '@/types/resource';
 
-import type { TreeItem } from './types';
+import { type TreeItem } from './types';
 
 export const sortTreeItems = <T extends TreeItem>(items: T[]): T[] => {
   return [...items].sort((a, b) => {

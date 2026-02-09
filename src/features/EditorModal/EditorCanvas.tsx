@@ -1,5 +1,4 @@
-import type {
-  IEditor} from '@lobehub/editor';
+import { type IEditor } from '@lobehub/editor';
 import {
   ReactCodemirrorPlugin,
   ReactCodePlugin,
@@ -11,7 +10,7 @@ import {
 } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
 import { Flexbox } from '@lobehub/ui';
-import type { FC } from 'react';
+import { type FC } from 'react';
 
 import TypoBar from './Typobar';
 

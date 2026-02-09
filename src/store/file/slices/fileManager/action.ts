@@ -6,7 +6,7 @@ import {
 } from '@lobechat/utils';
 import { t } from 'i18next';
 import pMap from 'p-map';
-import type { SWRResponse } from 'swr';
+import { type SWRResponse } from 'swr';
 
 import { message } from '@/components/AntdStaticMethods';
 import { FILE_UPLOAD_BLACKLIST, MAX_UPLOAD_FILE_COUNT } from '@/const/file';
@@ -14,16 +14,14 @@ import { mutate, useClientDataSWR } from '@/libs/swr';
 import { documentService } from '@/services/document';
 import { FileService, fileService } from '@/services/file';
 import { ragService } from '@/services/rag';
-import type {UploadFileListDispatch} from '@/store/file/reducers/uploadFileList';
-import {
-  uploadFileListReducer
-} from '@/store/file/reducers/uploadFileList';
-import type {StoreSetter} from '@/store/types';
-import type {FileListItem, QueryFileListParams} from '@/types/files';
+import { type UploadFileListDispatch } from '@/store/file/reducers/uploadFileList';
+import { uploadFileListReducer } from '@/store/file/reducers/uploadFileList';
+import { type StoreSetter } from '@/store/types';
+import { type FileListItem, type QueryFileListParams } from '@/types/files';
 import { isChunkingUnsupported } from '@/utils/isChunkingUnsupported';
 import { unzipFile } from '@/utils/unzipFile';
 
-import type {FileStore} from '../../store';
+import { type FileStore } from '../../store';
 import { fileManagerSelectors } from './selectors';
 
 const serverFileService = new FileService();

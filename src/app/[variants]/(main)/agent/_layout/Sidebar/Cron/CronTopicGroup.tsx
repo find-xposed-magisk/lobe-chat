@@ -6,7 +6,7 @@ import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
-import type { AgentCronJob } from '@/database/schemas/agentCronJob';
+import { type AgentCronJob } from '@/database/schemas/agentCronJob';
 import { useRouter } from '@/libs/router/navigation';
 
 import Actions from './Actions';

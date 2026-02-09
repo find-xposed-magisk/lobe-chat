@@ -1,10 +1,10 @@
-import type {FormItemProps} from '@lobehub/ui';
-import { Checkbox, Flexbox,Form,  SliderWithInput, Tag  } from '@lobehub/ui';
+import { type FormItemProps } from '@lobehub/ui';
+import { Checkbox, Flexbox, Form, SliderWithInput, Tag } from '@lobehub/ui';
 import { Form as AntdForm, Switch } from 'antd';
 import { createStaticStyles } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
 import isEqual from 'fast-deep-equal';
-import type { ComponentType } from 'react';
+import { type ComponentType } from 'react';
 import { memo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 

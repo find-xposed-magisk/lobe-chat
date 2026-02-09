@@ -10,7 +10,7 @@ import { useMarketAuth } from '@/layout/AuthProvider/MarketAuth';
 import { resolveMarketAuthError } from '@/layout/AuthProvider/MarketAuth/errors';
 import { useServerConfigStore } from '@/store/serverConfig';
 
-import type { MarketPublishAction } from './types';
+import { type MarketPublishAction } from './types';
 import { useMarketPublish } from './useMarketPublish';
 
 interface MarketPublishButtonProps {

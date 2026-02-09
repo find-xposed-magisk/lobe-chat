@@ -1,5 +1,5 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import type { NextRequest } from 'next/server';
+import { type NextRequest } from 'next/server';
 
 import { createAsyncRouteContext } from '@/libs/trpc/async/context';
 import { prepareRequestForTRPC } from '@/libs/trpc/utils/request-adapter';

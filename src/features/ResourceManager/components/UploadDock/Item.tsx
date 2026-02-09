@@ -1,13 +1,13 @@
 import { ActionIcon, Flexbox, Text } from '@lobehub/ui';
 import { createStaticStyles } from 'antd-style';
 import { XIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import FileIcon from '@/components/FileIcon';
 import { useFileStore } from '@/store/file';
-import type { UploadFileItem } from '@/types/files/upload';
+import { type UploadFileItem } from '@/types/files/upload';
 import { formatSize, formatSpeed, formatTime } from '@/utils/format';
 
 const styles = createStaticStyles(({ css, cssVar }) => {

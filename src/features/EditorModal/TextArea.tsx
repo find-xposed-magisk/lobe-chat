@@ -1,5 +1,5 @@
 import { TextArea } from '@lobehub/ui';
-import type { FC } from 'react';
+import { type FC } from 'react';
 
 interface EditorCanvasProps {
   defaultValue?: string;

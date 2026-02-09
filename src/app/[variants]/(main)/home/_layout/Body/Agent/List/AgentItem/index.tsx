@@ -1,10 +1,10 @@
 import { SESSION_CHAT_URL } from '@lobechat/const';
-import type { SidebarAgentItem } from '@lobechat/types';
+import { type SidebarAgentItem } from '@lobechat/types';
 import { ActionIcon, Icon } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
 import { Loader2, PinIcon } from 'lucide-react';
-import type {CSSProperties, DragEvent} from 'react';
-import {   memo, useCallback, useMemo } from 'react';
+import { type CSSProperties, type DragEvent } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 

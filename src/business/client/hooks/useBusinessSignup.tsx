@@ -1,6 +1,5 @@
-import type { BaseSignUpFormValues } from '@/app/[variants]/(auth)/signup/[[...signup]]/types';
+import { type BaseSignUpFormValues } from '@/app/[variants]/(auth)/signup/[[...signup]]/types';
 
- 
 export interface BusinessSignupFomData {}
 
 // eslint-disable-next-line unused-imports/no-unused-vars

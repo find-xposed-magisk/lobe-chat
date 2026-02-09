@@ -1,4 +1,4 @@
-import type { ExperienceListItem } from '@lobechat/types';
+import { type ExperienceListItem } from '@lobechat/types';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { memo } from 'react';

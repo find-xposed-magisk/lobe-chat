@@ -2,8 +2,8 @@ import { produce } from 'immer';
 
 import { INBOX_SESSION_ID } from '@/const/session';
 import { SESSION_CHAT_URL } from '@/const/url';
-import type { GlobalStore } from '@/store/global';
-import type {StoreSetter} from '@/store/types';
+import { type GlobalStore } from '@/store/global';
+import { type StoreSetter } from '@/store/types';
 import { setNamespace } from '@/utils/storeDebug';
 
 const n = setNamespace('w');

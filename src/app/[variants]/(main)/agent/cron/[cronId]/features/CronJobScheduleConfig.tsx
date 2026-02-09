@@ -3,13 +3,13 @@
 import { Checkbox, Flexbox, FormGroup, LobeSelect as Select, Text } from '@lobehub/ui';
 import { Divider, InputNumber, TimePicker } from 'antd';
 import { createStaticStyles, cx } from 'antd-style';
-import type { Dayjs } from 'dayjs';
+import { type Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type {ScheduleType} from '../CronConfig';
-import { SCHEDULE_TYPE_OPTIONS,  TIMEZONE_OPTIONS } from '../CronConfig';
+import { type ScheduleType } from '../CronConfig';
+import { SCHEDULE_TYPE_OPTIONS, TIMEZONE_OPTIONS } from '../CronConfig';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
   label: css`

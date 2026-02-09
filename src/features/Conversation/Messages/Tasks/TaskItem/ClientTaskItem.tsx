@@ -6,11 +6,11 @@ import { memo, useMemo, useState } from 'react';
 import { useChatStore } from '@/store/chat';
 import { displayMessageSelectors } from '@/store/chat/selectors';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
-import type { UIChatMessage } from '@/types/index';
+import { type UIChatMessage } from '@/types/index';
 import { ThreadStatus } from '@/types/index';
 
-import { ErrorState, InitializingState, isProcessingStatus,TaskMessages } from '../shared';
-import type {TaskMetrics} from './TaskTitle';
+import { ErrorState, InitializingState, isProcessingStatus, TaskMessages } from '../shared';
+import { type TaskMetrics } from './TaskTitle';
 import TaskTitle from './TaskTitle';
 
 interface ClientTaskItemProps {

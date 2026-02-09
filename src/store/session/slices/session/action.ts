@@ -1,9 +1,9 @@
 import { getSingletonAnalyticsOptional } from '@lobehub/analytics';
 import isEqual from 'fast-deep-equal';
 import { t } from 'i18next';
-import type {SWRResponse} from 'swr';
+import { type SWRResponse } from 'swr';
 import useSWR from 'swr';
-import type { PartialDeep } from 'type-fest';
+import { type PartialDeep } from 'type-fest';
 
 import { message } from '@/components/AntdStaticMethods';
 import { DEFAULT_AGENT_LOBE_SESSION, INBOX_SESSION_ID } from '@/const/session';
@@ -11,19 +11,23 @@ import { mutate, useClientDataSWR } from '@/libs/swr';
 import { chatGroupService } from '@/services/chatGroup';
 import { sessionService } from '@/services/session';
 import { getChatGroupStoreState } from '@/store/agentGroup';
-import type {SessionStore} from '@/store/session';
-import type {StoreSetter} from '@/store/types';
+import { type SessionStore } from '@/store/session';
+import { type StoreSetter } from '@/store/types';
 import { getUserStoreState, useUserStore } from '@/store/user';
 import { settingsSelectors, userProfileSelectors } from '@/store/user/selectors';
-import type {ChatSessionList, LobeAgentSession, LobeSessionGroups, LobeSessions, UpdateSessionParams} from '@/types/session';
 import {
-  LobeSessionType
+  type ChatSessionList,
+  type LobeAgentSession,
+  type LobeSessionGroups,
+  type LobeSessions,
+  type UpdateSessionParams,
 } from '@/types/session';
+import { LobeSessionType } from '@/types/session';
 import { merge } from '@/utils/merge';
 import { setNamespace } from '@/utils/storeDebug';
 
-import type {SessionDispatch} from './reducers';
-import {  sessionsReducer } from './reducers';
+import { type SessionDispatch } from './reducers';
+import { sessionsReducer } from './reducers';
 import { sessionSelectors } from './selectors';
 import { sessionMetaSelectors } from './selectors/meta';
 

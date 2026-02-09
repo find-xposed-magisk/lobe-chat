@@ -1,13 +1,16 @@
-import type {NetworkProxySettings, ShortcutUpdateResult} from '@lobechat/electron-client-ipc';
+import {
+  type NetworkProxySettings,
+  type ShortcutUpdateResult,
+} from '@lobechat/electron-client-ipc';
 import isEqual from 'fast-deep-equal';
-import type {SWRResponse} from 'swr';
+import { type SWRResponse } from 'swr';
 import useSWR from 'swr';
 
 import { mutate } from '@/libs/swr';
 import { desktopSettingsService } from '@/services/electron/settings';
-import type {StoreSetter} from '@/store/types';
+import { type StoreSetter } from '@/store/types';
 
-import type { ElectronStore } from '../store';
+import { type ElectronStore } from '../store';
 
 /**
  * Settings actions

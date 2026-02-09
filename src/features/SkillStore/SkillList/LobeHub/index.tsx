@@ -1,7 +1,7 @@
 'use client';
 
 import { KLAVIS_SERVER_TYPES, LOBEHUB_SKILL_PROVIDERS } from '@lobechat/const';
-import type { LobeToolMeta } from '@lobechat/types';
+import { type LobeToolMeta } from '@lobechat/types';
 import isEqual from 'fast-deep-equal';
 import { memo, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +13,7 @@ import {
 } from '@/features/SkillStore/SkillDetail';
 import { serverConfigSelectors, useServerConfigStore } from '@/store/serverConfig';
 import { useToolStore } from '@/store/tool';
-import type { ToolStoreState } from '@/store/tool/initialState';
+import { type ToolStoreState } from '@/store/tool/initialState';
 import { klavisStoreSelectors, lobehubSkillStoreSelectors } from '@/store/tool/selectors';
 import { KlavisServerStatus } from '@/store/tool/slices/klavisStore';
 import { LobehubSkillStatus } from '@/store/tool/slices/lobehubSkillStore/types';

@@ -3,7 +3,7 @@ import { LucideSettings } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { PluginDetailModalProps } from '@/features/PluginDetailModal';
+import { type PluginDetailModalProps } from '@/features/PluginDetailModal';
 import dynamic from '@/libs/next/dynamic';
 import { pluginHelpers, useToolStore } from '@/store/tool';
 import { pluginSelectors } from '@/store/tool/selectors';

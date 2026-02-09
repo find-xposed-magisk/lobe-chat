@@ -1,6 +1,6 @@
-import type { UIChatMessage } from '@lobechat/types';
+import { type UIChatMessage } from '@lobechat/types';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import type { Mock} from 'vitest';
+import { type Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LOADING_FLAT } from '@/const/message';
@@ -11,7 +11,7 @@ import { topicService } from '@/services/topic';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
 import { topicMapKey } from '@/store/chat/utils/topicMapKey';
 import { useSessionStore } from '@/store/session';
-import type { ChatTopic } from '@/types/topic';
+import { type ChatTopic } from '@/types/topic';
 
 import { useChatStore } from '../../store';
 

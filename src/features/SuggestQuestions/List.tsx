@@ -7,7 +7,7 @@ import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Item from './Item';
-import type { SuggestMode } from './useRandomQuestions';
+import { type SuggestMode } from './useRandomQuestions';
 import { useRandomQuestions } from './useRandomQuestions';
 
 interface ListProps {

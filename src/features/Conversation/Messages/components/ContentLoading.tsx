@@ -6,7 +6,7 @@ import BubblesLoading from '@/components/BubblesLoading';
 import NeuralNetworkLoading from '@/components/NeuralNetworkLoading';
 import { useChatStore } from '@/store/chat';
 import { operationSelectors } from '@/store/chat/selectors';
-import type { OperationType } from '@/store/chat/slices/operation/types';
+import { type OperationType } from '@/store/chat/slices/operation/types';
 import { shinyTextStyles } from '@/styles/loading';
 
 const ELAPSED_TIME_THRESHOLD = 2100; // Show elapsed time after 2 seconds

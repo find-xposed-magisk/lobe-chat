@@ -1,11 +1,15 @@
 import { isDesktop } from '@lobechat/const';
-import type {UserInitializationState, UserPreference, UserSettings} from '@lobechat/types';
+import {
+  type UserInitializationState,
+  type UserPreference,
+  type UserSettings,
+} from '@lobechat/types';
 import {
   Plans,
   UserGuideSchema,
   UserOnboardingSchema,
   UserPreferenceSchema,
-  UserSettingsSchema
+  UserSettingsSchema,
 } from '@lobechat/types';
 import { TRPCError } from '@trpc/server';
 import { after } from 'next/server';

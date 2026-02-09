@@ -6,7 +6,7 @@ import { Lightbulb, RefreshCw } from 'lucide-react';
 import { memo, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { StarterMode } from '@/store/home';
+import { type StarterMode } from '@/store/home';
 
 import GroupBlock from '../components/GroupBlock';
 import List from './List';

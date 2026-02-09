@@ -1,11 +1,11 @@
-import type {KnowledgeItem} from '@lobechat/types';
-import type { SWRResponse } from 'swr';
+import { type KnowledgeItem } from '@lobechat/types';
+import { type SWRResponse } from 'swr';
 
 import { mutate, useClientDataSWR } from '@/libs/swr';
 import { agentService } from '@/services/agent';
-import type {StoreSetter} from '@/store/types';
+import { type StoreSetter } from '@/store/types';
 
-import type { AgentStore } from '../../store';
+import { type AgentStore } from '../../store';
 
 const FETCH_AGENT_KNOWLEDGE_KEY = 'FETCH_AGENT_KNOWLEDGE';
 

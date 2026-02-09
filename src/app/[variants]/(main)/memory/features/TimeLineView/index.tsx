@@ -2,8 +2,8 @@
 
 import { createStaticStyles, cx } from 'antd-style';
 import dayjs from 'dayjs';
-import type {ReactNode} from 'react';
-import { memo,  useMemo } from 'react';
+import { type ReactNode } from 'react';
+import { memo, useMemo } from 'react';
 import { GroupedVirtuoso } from 'react-virtuoso';
 
 import Loading from '@/app/[variants]/(main)/memory/features/Loading';

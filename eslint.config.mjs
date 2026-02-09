@@ -48,6 +48,8 @@ export default eslint(
       '@typescript-eslint/no-useless-constructor': 0,
       'no-extra-boolean-cast': 0,
       'react/no-unknown-property': 0,
+      'regexp/match-any': 0,
+      'unicorn/better-regex': 0,
     },
   },
   // MDX files

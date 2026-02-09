@@ -1,16 +1,22 @@
 'use client';
 
-import type {DropdownMenuPopupProps, DropdownMenuProps, MenuItemType, MenuProps, PopoverTrigger} from '@lobehub/ui';
+import {
+  type DropdownMenuPopupProps,
+  type DropdownMenuProps,
+  type MenuItemType,
+  type MenuProps,
+  type PopoverTrigger,
+} from '@lobehub/ui';
 import {
   DropdownMenuPopup,
   DropdownMenuPortal,
   DropdownMenuPositioner,
   DropdownMenuRoot,
   DropdownMenuTrigger,
-  renderDropdownMenuItems
+  renderDropdownMenuItems,
 } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
-import type {CSSProperties, ReactNode} from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 import {
   isValidElement,
   memo,
@@ -19,7 +25,7 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
 } from 'react';
 
 import DebugNode from '@/components/DebugNode';

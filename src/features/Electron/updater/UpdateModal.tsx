@@ -1,9 +1,7 @@
-import type {ProgressInfo, UpdateInfo} from '@lobechat/electron-client-ipc';
-import {
-  useWatchBroadcast
-} from '@lobechat/electron-client-ipc';
-import type {ModalInstance} from '@lobehub/ui';
-import { Button, createModal,Flexbox  } from '@lobehub/ui';
+import { type ProgressInfo, type UpdateInfo } from '@lobechat/electron-client-ipc';
+import { useWatchBroadcast } from '@lobechat/electron-client-ipc';
+import { type ModalInstance } from '@lobehub/ui';
+import { Button, createModal, Flexbox } from '@lobehub/ui';
 import { App, Progress, Spin } from 'antd';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';

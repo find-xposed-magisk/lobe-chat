@@ -1,10 +1,14 @@
-import type {SearchParams, UniformSearchResponse, UniformSearchResult} from '@lobechat/types';
+import {
+  type SearchParams,
+  type UniformSearchResponse,
+  type UniformSearchResult,
+} from '@lobechat/types';
 import { TRPCError } from '@trpc/server';
 import debug from 'debug';
 import urlJoin from 'url-join';
 
-import type {SearchServiceImpl} from '../type';
-import type {FirecrawlResponse, FirecrawlSearchParameters} from './type';
+import { type SearchServiceImpl } from '../type';
+import { type FirecrawlResponse, type FirecrawlSearchParameters } from './type';
 
 const log = debug('lobe-search:Firecrawl');
 

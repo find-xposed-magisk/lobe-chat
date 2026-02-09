@@ -1,22 +1,19 @@
-import type {StoreApiWithSelector} from '@lobechat/types';
-import type {StoreApi} from 'zustand';
+import { type StoreApiWithSelector } from '@lobechat/types';
+import { type StoreApi } from 'zustand';
 import { shallow } from 'zustand/shallow';
 import { createWithEqualityFn } from 'zustand/traditional';
-import type {StateCreator} from 'zustand/vanilla';
+import { type StateCreator } from 'zustand/vanilla';
 import { createContext } from 'zustand-utils';
 
-import type {IFeatureFlagsState} from '@/config/featureFlags';
-import {
-  DEFAULT_FEATURE_FLAGS,
-  mapFeatureFlagsEnvToState
-} from '@/config/featureFlags';
+import { type IFeatureFlagsState } from '@/config/featureFlags';
+import { DEFAULT_FEATURE_FLAGS, mapFeatureFlagsEnvToState } from '@/config/featureFlags';
 import { createDevtools } from '@/store/middleware/createDevtools';
-import type {GlobalServerConfig} from '@/types/serverConfig';
+import { type GlobalServerConfig } from '@/types/serverConfig';
 import { merge } from '@/utils/merge';
 
 import { flattenActions } from '../utils/flattenActions';
-import type {ServerConfigAction} from './action';
-import {  createServerConfigSlice } from './action';
+import { type ServerConfigAction } from './action';
+import { createServerConfigSlice } from './action';
 
 interface ServerConfigState {
   featureFlags: IFeatureFlagsState;

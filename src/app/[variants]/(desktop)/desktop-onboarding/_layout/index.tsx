@@ -4,7 +4,7 @@ import { TITLE_BAR_HEIGHT } from '@lobechat/desktop-bridge';
 import { Center, Flexbox, Text } from '@lobehub/ui';
 import { Divider } from 'antd';
 import { css, cx } from 'antd-style';
-import type { FC, PropsWithChildren } from 'react';
+import { type FC, type PropsWithChildren } from 'react';
 
 import SimpleTitleBar from '@/features/Electron/titlebar/SimpleTitleBar';
 import LangButton from '@/features/User/UserPanel/LangButton';

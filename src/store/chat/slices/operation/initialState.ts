@@ -1,4 +1,4 @@
-import type { Operation, OperationType } from './types';
+import { type Operation, type OperationType } from './types';
 
 /**
  * Chat Operation State

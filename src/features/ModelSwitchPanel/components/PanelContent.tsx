@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { type FC } from 'react';
 import { useState } from 'react';
 import { Rnd } from 'react-rnd';
 

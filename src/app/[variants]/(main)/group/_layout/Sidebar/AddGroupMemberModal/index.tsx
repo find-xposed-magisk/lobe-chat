@@ -9,7 +9,7 @@ import useSWR from 'swr';
 
 import { agentService } from '@/services/agent';
 
-import type { AgentItemData } from './AgentItem';
+import { type AgentItemData } from './AgentItem';
 import AvailableAgentList from './AvailableAgentList';
 import SelectedAgentList from './SelectedAgentList';
 import { useAgentSelectionStore } from './store';

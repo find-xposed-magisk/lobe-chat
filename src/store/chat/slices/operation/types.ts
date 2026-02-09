@@ -1,5 +1,5 @@
 /* eslint-disable typescript-sort-keys/interface, sort-keys-fix/sort-keys-fix */
-import type { ConversationContext } from '@lobechat/types';
+import { type ConversationContext } from '@lobechat/types';
 
 /**
  * Operation Type Definitions

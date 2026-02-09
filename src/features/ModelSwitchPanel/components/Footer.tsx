@@ -1,7 +1,7 @@
 import { Block, Flexbox, Icon } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
 import { LucideArrowRight, LucideBolt } from 'lucide-react';
-import type { FC } from 'react';
+import { type FC } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 

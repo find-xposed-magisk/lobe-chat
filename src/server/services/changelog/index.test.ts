@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ChangelogIndexItem } from '@/types/changelog';
+import { type ChangelogIndexItem } from '@/types/changelog';
 
 import { ChangelogService } from './index';
 

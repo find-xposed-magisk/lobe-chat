@@ -4,7 +4,7 @@ import { COPYRIGHT_FULL } from '@lobechat/business-const';
 import { Center, Flexbox, Text } from '@lobehub/ui';
 import { Divider } from 'antd';
 import { cx } from 'antd-style';
-import type { FC, PropsWithChildren } from 'react';
+import { type FC, type PropsWithChildren } from 'react';
 
 import { ProductLogo } from '@/components/Branding';
 import LangButton from '@/features/User/UserPanel/LangButton';

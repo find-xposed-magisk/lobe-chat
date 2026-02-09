@@ -7,7 +7,7 @@ import { Calendar, Clock, Edit, Trash2 } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { AgentCronJob } from '@/database/schemas/agentCronJob';
+import { type AgentCronJob } from '@/database/schemas/agentCronJob';
 
 import { useAgentCronJobs } from './hooks/useAgentCronJobs';
 
