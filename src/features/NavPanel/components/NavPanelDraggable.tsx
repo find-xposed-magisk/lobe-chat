@@ -3,7 +3,7 @@
 import { DraggablePanel, Freeze } from '@lobehub/ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { AnimatePresence, motion, useIsPresent } from 'motion/react';
-import { type ReactNode } from 'react';
+import  { type ReactNode } from 'react';
 import { memo, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { USER_DROPDOWN_ICON_ID } from '@/app/[variants]/(main)/home/_layout/Header/components/User';
@@ -32,15 +32,13 @@ const getMotionDirectionByHistory = (history: string[], nextKey: string): Motion
 };
 
 const motionVariants = {
-  animate: { filter: 'blur(0px)', opacity: 1, x: 0 },
+  animate: { opacity: 1, x: 0 },
   exit: (direction: MotionDirection) => ({
-    filter: 'blur(4px)',
-    opacity: 0.3,
+    opacity: 0,
     x: -direction * MOTION_OFFSET,
   }),
   initial: (direction: MotionDirection) => ({
-    filter: 'blur(4px)',
-    opacity: 0.35,
+    opacity: 0,
     x: direction * MOTION_OFFSET,
   }),
   transition: {
@@ -72,7 +70,7 @@ const draggableStyles = createStaticStyles(({ css, cssVar }) => ({
     max-height: 100%;
   `,
   layer: css`
-    will-change: filter, opacity, transform;
+    will-change: opacity, transform;
 
     position: absolute;
     inset: 0;
@@ -227,7 +225,7 @@ export const NavPanelDraggable = memo<NavPanelDraggableProps>(({ activeContent }
     >
       <div className={draggableStyles.inner}>
         {shouldUseMotion ? (
-          <AnimatePresence custom={motionDirection} initial={false} mode="popLayout">
+          <AnimatePresence custom={motionDirection} initial={false} mode="sync">
             <motion.div
               animate="animate"
               className={draggableStyles.layer}
