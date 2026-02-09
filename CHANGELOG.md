@@ -2,6 +2,31 @@
 
 # Changelog
 
+### [Version 2.1.24](https://github.com/lobehub/lobe-chat/compare/v2.1.23...v2.1.24)
+
+<sup>Released on **2026-02-09**</sup>
+
+#### 🐛 Bug Fixes
+
+- **misc**: Fix multimodal content_part images rendered as base64 text.
+
+<br/>
+
+<details>
+<summary><kbd>Improvements and Fixes</kbd></summary>
+
+#### What's fixed
+
+- **misc**: Fix multimodal content_part images rendered as base64 text, closes [#12210](https://github.com/lobehub/lobe-chat/issues/12210) ([00ff5b9](https://github.com/lobehub/lobe-chat/commit/00ff5b9))
+
+</details>
+
+<div align="right">
+
+[![](https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square)](#readme-top)
+
+</div>
+
 ### [Version 2.1.23](https://github.com/lobehub/lobe-chat/compare/v2.1.22...v2.1.23)
 
 <sup>Released on **2026-02-09**</sup>
