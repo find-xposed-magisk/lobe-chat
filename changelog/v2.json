@@ -1,6 +1,13 @@
 [
   {
     "children": {
+      "fixes": ["Fix multimodal content_part images rendered as base64 text."]
+    },
+    "date": "2026-02-09",
+    "version": "2.1.24"
+  },
+  {
+    "children": {
       "fixes": [
         "Fix editor content missing when send error, use custom avatar for group chat in sidebar."
       ],
