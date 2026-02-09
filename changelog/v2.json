@@ -1,5 +1,10 @@
 [
   {
+    "children": {},
+    "date": "2026-02-09",
+    "version": "2.1.25"
+  },
+  {
     "children": {
       "fixes": ["Fix multimodal content_part images rendered as base64 text."]
     },
