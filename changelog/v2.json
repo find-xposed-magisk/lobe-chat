@@ -1,6 +1,16 @@
 [
   {
     "children": {
+      "fixes": [
+        "Fix editor content missing when send error, use custom avatar for group chat in sidebar."
+      ],
+      "improvements": ["Update i18n."]
+    },
+    "date": "2026-02-09",
+    "version": "2.1.23"
+  },
+  {
+    "children": {
       "fixes": ["Register Notebook tool in server runtime."]
     },
     "date": "2026-02-08",
