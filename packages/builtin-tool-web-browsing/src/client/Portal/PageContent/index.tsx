@@ -9,6 +9,7 @@ import {
   Markdown,
   Segmented,
   Text,
+  stopPropagation,
 } from '@lobehub/ui';
 import { Descriptions } from 'antd';
 import { createStaticStyles } from 'antd-style';
@@ -168,7 +169,7 @@ const PageContent = memo<PageContentProps>(({ result }) => {
             rel={'nofollow'}
             style={{ display: 'flex', gap: 4 }}
             target={'_blank'}
-            onClick={(e) => e.stopPropagation()}
+            onClick={stopPropagation}
           >
             {result.originalUrl}
             <Icon icon={ExternalLink} />

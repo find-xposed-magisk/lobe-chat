@@ -1,7 +1,7 @@
 'use client';
 
 import { CaretDownFilled, LoadingOutlined } from '@ant-design/icons';
-import { ActionIcon, Block, Flexbox, Icon, showContextMenu } from '@lobehub/ui';
+import { ActionIcon, Block, Flexbox, Icon, showContextMenu, stopPropagation } from '@lobehub/ui';
 import { App, Input } from 'antd';
 import { cx } from 'antd-style';
 import { FileText, FolderIcon, FolderOpenIcon } from 'lucide-react';
@@ -296,8 +296,8 @@ export const HierarchyNode = memo<HierarchyNodeProps>(
                   value={renamingValue}
                   onBlur={handleRenameConfirm}
                   onChange={(e) => setRenamingValue(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={stopPropagation}
+                  onPointerDown={stopPropagation}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();

@@ -1,4 +1,4 @@
-import { Input, Popover } from '@lobehub/ui';
+import { Input, Popover, stopPropagation } from '@lobehub/ui';
 import { memo, useCallback, useEffect, useState } from 'react';
 
 import { useKnowledgeBaseStore } from '@/store/library';
@@ -42,7 +42,7 @@ const Editing = memo<EditingProps>(({ id, name, toggleEditing }) => {
           defaultValue={name}
           maxLength={64}
           onChange={(e) => setNewName(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
+          onClick={stopPropagation}
           onBlur={() => {
             handleUpdate();
             toggleEditing(false);

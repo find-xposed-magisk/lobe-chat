@@ -1,6 +1,6 @@
 'use client';
 
-import { type IEditor } from '@lobehub/editor';
+import type { IEditor } from '@lobehub/editor';
 import {
   ReactCodemirrorPlugin,
   ReactCodePlugin,
@@ -17,7 +17,7 @@ import { Editor, useEditorState } from '@lobehub/editor/react';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { type EditorCanvasProps } from './EditorCanvas';
+import type { EditorCanvasProps } from './EditorCanvas';
 import InlineToolbar from './InlineToolbar';
 
 /**

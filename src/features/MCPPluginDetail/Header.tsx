@@ -1,7 +1,17 @@
 'use client';
 
 import { Github } from '@lobehub/icons';
-import { ActionIcon, Avatar, Button, Flexbox, Icon, Tag, Text, Tooltip } from '@lobehub/ui';
+import {
+  ActionIcon,
+  Avatar,
+  Button,
+  Flexbox,
+  Icon,
+  Tag,
+  Text,
+  Tooltip,
+  stopPropagation,
+} from '@lobehub/ui';
 import { App } from 'antd';
 import { createStaticStyles, cssVar, useResponsive } from 'antd-style';
 import {
@@ -195,12 +205,7 @@ const Header = memo<{ inModal?: boolean; mobile?: boolean }>(({ mobile: isMobile
                 <InstallationIcon type={recommendedDeployment.installationMethod} />
               )}
               {github?.url && (
-                <a
-                  href={github.url}
-                  rel="noreferrer"
-                  target={'_blank'}
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <a href={github.url} rel="noreferrer" target={'_blank'} onClick={stopPropagation}>
                   <ActionIcon fill={cssVar.colorTextDescription} icon={Github} />
                 </a>
               )}

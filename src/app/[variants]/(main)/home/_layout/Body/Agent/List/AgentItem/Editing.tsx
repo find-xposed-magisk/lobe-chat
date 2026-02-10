@@ -1,4 +1,4 @@
-import { Avatar, Block, Flexbox, Input, Popover } from '@lobehub/ui';
+import { Avatar, Block, Flexbox, Input, Popover, stopPropagation } from '@lobehub/ui';
 import { memo, useCallback, useState } from 'react';
 
 import EmojiPicker from '@/components/EmojiPicker';
@@ -58,7 +58,7 @@ const Editing = memo<EditingProps>(({ id, title, avatar, toggleEditing }) => {
       placement="bottomLeft"
       trigger="click"
       content={
-        <Flexbox horizontal gap={4} style={{ width: 320 }} onClick={(e) => e.stopPropagation()}>
+        <Flexbox horizontal gap={4} style={{ width: 320 }} onClick={stopPropagation}>
           <EmojiPicker
             locale={locale}
             shape={'square'}
@@ -71,7 +71,7 @@ const Editing = memo<EditingProps>(({ id, title, avatar, toggleEditing }) => {
                 justify={'center'}
                 variant={isDarkMode ? 'filled' : 'outlined'}
                 width={36}
-                onClick={(e) => e.stopPropagation()}
+                onClick={stopPropagation}
               >
                 <Avatar emojiScaleWithBackground avatar={avatarValue} shape={'square'} size={32} />
               </Block>

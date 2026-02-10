@@ -1,6 +1,16 @@
 'use client';
 
-import { Avatar, Block, Flexbox, Grid, Icon, Tag, Text, Tooltip } from '@lobehub/ui';
+import {
+  Avatar,
+  Block,
+  Flexbox,
+  Grid,
+  Icon,
+  Tag,
+  Text,
+  Tooltip,
+  stopPropagation,
+} from '@lobehub/ui';
 import { App } from 'antd';
 import { createStaticStyles, cx } from 'antd-style';
 import { ClockIcon, Heart } from 'lucide-react';
@@ -144,7 +154,7 @@ const FavoritePluginCard = memo<FavoritePluginCardProps>(
                 <Link
                   style={{ color: 'inherit', flex: 1, overflow: 'hidden' }}
                   to={link}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={stopPropagation}
                 >
                   <Text ellipsis as={'h3'} className={styles.title} style={{ flex: 1 }}>
                     {name}

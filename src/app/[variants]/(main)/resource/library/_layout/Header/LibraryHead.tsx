@@ -1,7 +1,15 @@
 'use client';
 
 import { type DropdownItem } from '@lobehub/ui';
-import { ActionIcon, Block, Center, DropdownMenu, Skeleton, Text } from '@lobehub/ui';
+import {
+  ActionIcon,
+  Block,
+  Center,
+  DropdownMenu,
+  Skeleton,
+  Text,
+  stopPropagation,
+} from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
 import { ChevronsUpDownIcon } from 'lucide-react';
 import { type DragEvent } from 'react';
@@ -121,7 +129,7 @@ const Head = memo<{ id: string }>(({ id }) => {
             horizontal
             gap={4}
             style={{ cursor: 'pointer', flex: 1, overflow: 'hidden' }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={stopPropagation}
           >
             <Text ellipsis style={{ flex: 1 }} weight={500}>
               {name}

@@ -1,4 +1,4 @@
-import { Checkbox, showContextMenu } from '@lobehub/ui';
+import { Checkbox, showContextMenu, stopPropagation } from '@lobehub/ui';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -393,7 +393,7 @@ const MasonryFileItem = memo<MasonryFileItemProps>(
       >
         <div
           className={cx('checkbox', styles.checkbox)}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={stopPropagation}
           onClick={(e) => {
             e.stopPropagation();
             onSelectedChange(id, !selected);
@@ -404,8 +404,8 @@ const MasonryFileItem = memo<MasonryFileItemProps>(
 
         <div
           className={cx('dropdown', styles.dropdown)}
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
+          onClick={stopPropagation}
+          onPointerDown={stopPropagation}
         >
           <DropdownMenu items={menuItems} />
         </div>

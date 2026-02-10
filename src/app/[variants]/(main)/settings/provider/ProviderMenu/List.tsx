@@ -7,6 +7,7 @@ import {
   ContextMenuTrigger,
   Flexbox,
   Text,
+  stopPropagation,
 } from '@lobehub/ui';
 import isEqual from 'fast-deep-equal';
 import { ArrowDownUpIcon } from 'lucide-react';
@@ -115,7 +116,7 @@ const ProviderList = (props: {
           paddingBlock={4}
           paddingInline={'8px 4px'}
           action={
-            <div onClick={(e) => e.stopPropagation()}>
+            <div onClick={stopPropagation}>
               <ActionIcon
                 icon={ArrowDownUpIcon}
                 size={'small'}

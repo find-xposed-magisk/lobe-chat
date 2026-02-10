@@ -1,7 +1,7 @@
 'use client';
 
 import { type InputProps } from '@lobehub/ui';
-import { Input, Popover } from '@lobehub/ui';
+import { Input, Popover, stopPropagation } from '@lobehub/ui';
 import { type InputRef, type PopoverProps } from 'antd';
 import { type KeyboardEvent } from 'react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
@@ -95,7 +95,7 @@ const InlineRename = memo<InlineRenameProps>(
             defaultValue={title}
             onBlur={handleSave}
             onChange={(e) => setNewTitle(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
+            onClick={stopPropagation}
             onKeyDown={handleKeyDown}
             onPressEnter={() => {
               handleSave();

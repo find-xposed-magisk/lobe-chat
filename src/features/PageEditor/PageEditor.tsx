@@ -4,7 +4,7 @@ import { BUILTIN_AGENT_SLUGS } from '@lobechat/builtin-agents';
 import { EditorProvider } from '@lobehub/editor/react';
 import { Flexbox } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
-import { type FC } from 'react';
+import type { FC } from 'react';
 import { memo, useEffect } from 'react';
 
 import Loading from '@/components/Loading/BrandTextLoading';
@@ -150,7 +150,7 @@ export const PageEditor: FC<PageEditorProps> = ({
           onDelete={() => deletePage(pageId || '')}
           onDocumentIdChange={onDocumentIdChange}
           onEmojiChange={onEmojiChange}
-          onSave={onSave}
+          onSave={(e) => void console.log('1', e)}
           onTitleChange={onTitleChange}
         >
           <PageEditorCanvas />

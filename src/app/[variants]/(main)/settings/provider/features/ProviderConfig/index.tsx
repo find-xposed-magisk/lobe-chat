@@ -4,7 +4,16 @@ import { ENABLE_BUSINESS_FEATURES } from '@lobechat/business-const';
 import { AES_GCM_URL, BASE_PROVIDER_DOC_URL, FORM_STYLE, isDesktop } from '@lobechat/const';
 import { ProviderCombine } from '@lobehub/icons';
 import { type FormGroupItemType, type FormItemProps } from '@lobehub/ui';
-import { Avatar, Center, Flexbox, Form, Icon, Skeleton, Tooltip } from '@lobehub/ui';
+import {
+  Avatar,
+  Center,
+  Flexbox,
+  Form,
+  Icon,
+  Skeleton,
+  Tooltip,
+  stopPropagation,
+} from '@lobehub/ui';
 import { useDebounceFn } from 'ahooks';
 import { Form as AntdForm, Switch } from 'antd';
 import { createStaticStyles, cssVar, cx, responsive } from 'antd-style';
@@ -443,7 +452,7 @@ const ProviderConfig = memo<ProviderConfigProps>(
                 href={urlJoin(BASE_PROVIDER_DOC_URL, id)}
                 rel="noreferrer"
                 target="_blank"
-                onClick={(e) => e.stopPropagation()}
+                onClick={stopPropagation}
               >
                 <Center className={styles.help} height={20} width={20}>
                   ?

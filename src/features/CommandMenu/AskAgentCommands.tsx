@@ -1,5 +1,5 @@
 import { DEFAULT_AVATAR, DEFAULT_INBOX_AVATAR } from '@lobechat/const';
-import { Avatar } from '@lobehub/ui';
+import { Avatar, preventDefault } from '@lobehub/ui';
 import { Command } from 'cmdk';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -63,7 +63,7 @@ const AskAgentCommands = memo(() => {
       {showLobeAI && (
         <Command.Item
           value="@lobe-ai"
-          onMouseDown={(e) => e.preventDefault()}
+          onMouseDown={preventDefault}
           onSelect={() => handleAgentSelect(inboxAgentId, 'Lobe AI', DEFAULT_INBOX_AVATAR)}
         >
           <Avatar emojiScaleWithBackground avatar={DEFAULT_INBOX_AVATAR} shape="square" size={18} />
@@ -78,7 +78,7 @@ const AskAgentCommands = memo(() => {
         <Command.Item
           key={agent.id}
           value={`@${agent.title || 'agent'}-${agent.id}`}
-          onMouseDown={(e) => e.preventDefault()}
+          onMouseDown={preventDefault}
           onSelect={() =>
             handleAgentSelect(
               agent.id,

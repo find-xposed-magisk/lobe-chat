@@ -12,6 +12,7 @@ import {
   SearchBar,
   Text,
   Tooltip,
+  stopPropagation,
 } from '@lobehub/ui';
 import { Switch } from 'antd';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
@@ -47,7 +48,7 @@ const TemplateItem = memo<{
         <Checkbox
           checked={isSelected}
           onChange={() => onToggle(template.id)}
-          onClick={(e) => e.stopPropagation()}
+          onClick={stopPropagation}
         />
         <GroupAvatar
           size={40}
@@ -100,7 +101,7 @@ const ExistingMemberItem = memo<{
         <Checkbox
           checked={isSelected}
           onChange={() => onToggle(agentId)}
-          onClick={(e) => e.stopPropagation()}
+          onClick={stopPropagation}
         />
         <Avatar avatar={avatar} background={avatarBackground} size={40} />
         <Flexbox flex={1} gap={2} style={{ minWidth: 0 }}>

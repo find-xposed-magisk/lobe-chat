@@ -1,4 +1,4 @@
-import { Checkbox, Flexbox, Icon } from '@lobehub/ui';
+import { Checkbox, Flexbox, Icon, stopPropagation } from '@lobehub/ui';
 import { Loader2, SquareArrowOutUpRight } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -240,7 +240,7 @@ const KlavisServerItem = memo<KlavisServerItemProps>(
       // 正在连接中
       if (isConnecting) {
         return (
-          <Flexbox horizontal align="center" gap={4} onClick={(e) => e.stopPropagation()}>
+          <Flexbox horizontal align="center" gap={4} onClick={stopPropagation}>
             <Icon spin icon={Loader2} />
           </Flexbox>
         );
@@ -286,7 +286,7 @@ const KlavisServerItem = memo<KlavisServerItemProps>(
           // 正在等待认证
           if (isWaitingAuth) {
             return (
-              <Flexbox horizontal align="center" gap={4} onClick={(e) => e.stopPropagation()}>
+              <Flexbox horizontal align="center" gap={4} onClick={stopPropagation}>
                 <Icon spin icon={Loader2} />
               </Flexbox>
             );

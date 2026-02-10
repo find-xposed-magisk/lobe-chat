@@ -1,9 +1,9 @@
 'use client';
 
-import { ActionIcon, Block, DropdownMenu, Flexbox, Icon } from '@lobehub/ui';
+import { ActionIcon, Block, DropdownMenu, Flexbox, Icon, stopPropagation } from '@lobehub/ui';
 import { App } from 'antd';
 import { cssVar } from 'antd-style';
-import { type Klavis } from 'klavis';
+import type { Klavis } from 'klavis';
 import { Loader2, MoreVerticalIcon, Plus, Unplug } from 'lucide-react';
 import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -109,7 +109,7 @@ const Item = memo<ItemProps>(
             <span className={styles.description}>{localizedDescription}</span>
           )}
         </Flexbox>
-        <div onClick={(e) => e.stopPropagation()}>{renderAction()}</div>
+        <div onClick={stopPropagation}>{renderAction()}</div>
       </Block>
     );
   },

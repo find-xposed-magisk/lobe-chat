@@ -1,4 +1,4 @@
-import { Button, DropdownMenu, Flexbox, Icon } from '@lobehub/ui';
+import { Button, DropdownMenu, Flexbox, Icon, stopPropagation } from '@lobehub/ui';
 import { App, Space } from 'antd';
 import { MoreHorizontalIcon, Trash2 } from 'lucide-react';
 import { memo, useState } from 'react';
@@ -68,7 +68,7 @@ const Actions = memo<ActionsProps>(({ identifier, type, isMCP }) => {
 
   return (
     <>
-      <Flexbox horizontal align={'center'} gap={8} onClick={(e) => e.stopPropagation()}>
+      <Flexbox horizontal align={'center'} gap={8} onClick={stopPropagation}>
         {installed ? (
           <Space.Compact>
             {showConfigureButton &&

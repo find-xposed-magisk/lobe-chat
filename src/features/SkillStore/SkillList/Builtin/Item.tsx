@@ -1,6 +1,14 @@
 'use client';
 
-import { ActionIcon, Avatar, Block, DropdownMenu, Flexbox, Icon } from '@lobehub/ui';
+import {
+  ActionIcon,
+  Avatar,
+  Block,
+  DropdownMenu,
+  Flexbox,
+  Icon,
+  stopPropagation,
+} from '@lobehub/ui';
 import { App } from 'antd';
 import { MoreVerticalIcon, Plus, Trash2 } from 'lucide-react';
 import { memo } from 'react';
@@ -87,7 +95,7 @@ const Item = memo<ItemProps>(({ avatar, description, identifier, onOpenDetail, t
         <span className={styles.title}>{title || identifier}</span>
         {description && <span className={styles.description}>{description}</span>}
       </Flexbox>
-      <div onClick={(e) => e.stopPropagation()}>{renderAction()}</div>
+      <div onClick={stopPropagation}>{renderAction()}</div>
     </Block>
   );
 });

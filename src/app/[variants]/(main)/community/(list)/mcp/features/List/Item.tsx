@@ -1,7 +1,17 @@
 'use client';
 
 import { Github } from '@lobehub/icons';
-import { ActionIcon, Avatar, Block, Flexbox, Icon, Tag, Text, Tooltip } from '@lobehub/ui';
+import {
+  ActionIcon,
+  Avatar,
+  Block,
+  Flexbox,
+  Icon,
+  Tag,
+  Text,
+  Tooltip,
+  stopPropagation,
+} from '@lobehub/ui';
 import { Spotlight } from '@lobehub/ui/awesome';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { ClockIcon } from 'lucide-react';
@@ -159,7 +169,7 @@ const McpItem = memo<DiscoverMcpItem>(
                 href={github.url}
                 rel="noopener noreferrer"
                 target={'_blank'}
-                onClick={(e) => e.stopPropagation()}
+                onClick={stopPropagation}
               >
                 <ActionIcon fill={cssVar.colorTextDescription} icon={Github} />
               </a>

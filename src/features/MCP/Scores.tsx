@@ -1,6 +1,6 @@
 'use client';
 
-import { Center, Flexbox, Icon, Tooltip } from '@lobehub/ui';
+import { Center, Flexbox, Icon, Tooltip, stopPropagation } from '@lobehub/ui';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
 import { CircleDashedIcon, HammerIcon, LayersIcon, MessageSquareQuoteIcon } from 'lucide-react';
 import qs from 'query-string';
@@ -198,13 +198,7 @@ const Scores = memo<ScoresProps>(
     );
 
     return (
-      <Flexbox
-        horizontal
-        align={'center'}
-        flex={'none'}
-        gap={8}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <Flexbox horizontal align={'center'} flex={'none'} gap={8} onClick={stopPropagation}>
         {identifier && (
           <Link
             href={qs.stringifyUrl({

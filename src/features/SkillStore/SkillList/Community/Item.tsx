@@ -1,6 +1,14 @@
 'use client';
 
-import { ActionIcon, Block, DropdownMenu, Flexbox, Icon, Modal } from '@lobehub/ui';
+import {
+  ActionIcon,
+  Block,
+  DropdownMenu,
+  Flexbox,
+  Icon,
+  Modal,
+  stopPropagation,
+} from '@lobehub/ui';
 import { App, Button } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { MoreVerticalIcon, Plus, Trash2 } from 'lucide-react';
@@ -133,7 +141,7 @@ const Item = memo<DiscoverMcpItem>(({ name, description, icon, identifier }) => 
             <span className={styles.title}>{name}</span>
             {description && <span className={styles.description}>{description}</span>}
           </Flexbox>
-          <div onClick={(e) => e.stopPropagation()}>{renderAction()}</div>
+          <div onClick={stopPropagation}>{renderAction()}</div>
         </Block>
 
         {!!installProgress && (

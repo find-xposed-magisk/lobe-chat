@@ -1,6 +1,6 @@
 'use client';
 
-import { Avatar, Checkbox,Flexbox, Text  } from '@lobehub/ui';
+import { Avatar, Checkbox, Flexbox, stopPropagation, Text } from '@lobehub/ui';
 import { useHover } from 'ahooks';
 import { createStaticStyles } from 'antd-style';
 import { X } from 'lucide-react';
@@ -98,11 +98,7 @@ const AgentItem = memo<AgentItemProps>(({ agent, defaultTitle, showCheckbox, sho
     >
       <Flexbox horizontal align="center" gap={8} width="100%">
         {showCheckbox && (
-          <Checkbox
-            checked={isSelected}
-            onChange={handleClick}
-            onClick={(e) => e.stopPropagation()}
-          />
+          <Checkbox checked={isSelected} onChange={handleClick} onClick={stopPropagation} />
         )}
         <Avatar
           emojiScaleWithBackground

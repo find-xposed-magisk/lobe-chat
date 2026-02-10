@@ -1,4 +1,12 @@
-import { Button, Center, Checkbox, ContextMenuTrigger, Flexbox, Icon } from '@lobehub/ui';
+import {
+  Button,
+  Center,
+  Checkbox,
+  ContextMenuTrigger,
+  Flexbox,
+  Icon,
+  stopPropagation,
+} from '@lobehub/ui';
 import { App, Input } from 'antd';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
 import dayjs from 'dayjs';
@@ -459,8 +467,8 @@ const FileListItem = memo<FileListItemProps>(
                   value={renamingValue}
                   onBlur={handleRenameConfirm}
                   onChange={(e) => setRenamingValue(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={stopPropagation}
+                  onPointerDown={stopPropagation}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -483,10 +491,8 @@ const FileListItem = memo<FileListItemProps>(
               align={'center'}
               gap={8}
               paddingInline={8}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
+              onPointerDown={stopPropagation}
+              onClick={stopPropagation}
             >
               {!isFolder &&
                 !isPage &&

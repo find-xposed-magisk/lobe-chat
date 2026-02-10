@@ -1,4 +1,4 @@
-import { Button, Tooltip } from '@lobehub/ui';
+import { Button, Tooltip, stopPropagation } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
 import { isNull } from 'es-toolkit/compat';
 import { FileBoxIcon } from 'lucide-react';
@@ -188,7 +188,7 @@ const MarkdownFileItem = memo<MarkdownFileItemProps>(
         {!isNull(chunkingStatus) && chunkingStatus ? (
           <div
             className={cx('floatingChunkBadge', styles.floatingChunkBadge)}
-            onClick={(e) => e.stopPropagation()}
+            onClick={stopPropagation}
           >
             <ChunksBadge
               chunkCount={chunkCount}

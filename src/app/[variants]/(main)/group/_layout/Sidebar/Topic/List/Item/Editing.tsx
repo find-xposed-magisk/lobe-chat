@@ -1,4 +1,4 @@
-import { Input, Popover } from '@lobehub/ui';
+import { Input, Popover, stopPropagation } from '@lobehub/ui';
 import { memo, useCallback, useState } from 'react';
 
 import { useChatStore } from '@/store/chat';
@@ -54,7 +54,7 @@ const Editing = memo<EditingProps>(({ id, title, toggleEditing }) => {
           autoFocus
           defaultValue={title}
           onChange={(e) => setNewTitle(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
+          onClick={stopPropagation}
           onBlur={() => {
             handleUpdate();
             toggleEditing(false);

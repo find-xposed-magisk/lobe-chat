@@ -11,6 +11,7 @@ import {
   Text,
   Tooltip,
   TooltipGroup,
+  stopPropagation,
 } from '@lobehub/ui';
 import { App } from 'antd';
 import { createStaticStyles, cx } from 'antd-style';
@@ -261,7 +262,7 @@ const UserAgentCard = memo<UserAgentCardProps>(
         onClick={() => navigate(link)}
       >
         {isOwner && (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={stopPropagation}>
             <DropdownMenu items={menuItems as any}>
               <div className={cx('more-button', styles.moreButton)}>
                 <Icon icon={MoreVerticalIcon} size={16} style={{ cursor: 'pointer' }} />

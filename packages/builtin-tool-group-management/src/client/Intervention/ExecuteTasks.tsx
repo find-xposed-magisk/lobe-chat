@@ -2,7 +2,15 @@
 
 import { DEFAULT_AVATAR } from '@lobechat/const';
 import type { BuiltinInterventionProps } from '@lobechat/types';
-import { Accordion, AccordionItem, Avatar, Flexbox, Icon, Tooltip } from '@lobehub/ui';
+import {
+  Accordion,
+  AccordionItem,
+  Avatar,
+  Flexbox,
+  Icon,
+  Tooltip,
+  stopPropagation,
+} from '@lobehub/ui';
 import { Input, InputNumber } from 'antd';
 import { createStaticStyles, useTheme } from 'antd-style';
 import isEqual from 'fast-deep-equal';
@@ -134,7 +142,7 @@ const TaskEditor = memo<TaskEditorProps>(({ task, index, onChange, onDelete }) =
             variant={'filled'}
             onChange={handleTitleChange}
           />
-          <Flexbox horizontal align={'center'} gap={8} onClick={(e) => e.stopPropagation()}>
+          <Flexbox horizontal align={'center'} gap={8} onClick={stopPropagation}>
             <Tooltip title={t('agentGroupManagement.executeTask.intervention.timeout')}>
               <Clock size={14} />
             </Tooltip>

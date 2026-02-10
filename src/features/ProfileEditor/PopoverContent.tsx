@@ -1,5 +1,5 @@
 import { type ItemType } from '@lobehub/ui';
-import { Flexbox, Icon, Segmented } from '@lobehub/ui';
+import { Flexbox, Icon, Segmented, stopPropagation } from '@lobehub/ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { ChevronRight, ExternalLink, Settings, Store } from 'lucide-react';
 import { memo } from 'react';
@@ -51,7 +51,7 @@ const PopoverContent = memo<PopoverContentProps>(
     return (
       <Flexbox style={{ maxHeight: 500, width: '100%' }}>
         {/* stopPropagation prevents dropdown's onClick from calling preventDefault on Segmented */}
-        <div className={styles.header} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.header} onClick={stopPropagation}>
           <Segmented
             block
             size="small"

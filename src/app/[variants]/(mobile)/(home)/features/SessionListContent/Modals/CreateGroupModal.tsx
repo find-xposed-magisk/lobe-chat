@@ -1,5 +1,5 @@
 import { type ModalProps } from '@lobehub/ui';
-import { Flexbox, Input, Modal } from '@lobehub/ui';
+import { Flexbox, Input, Modal, stopPropagation } from '@lobehub/ui';
 import { App } from 'antd';
 import { type MouseEvent } from 'react';
 import { memo, useState } from 'react';
@@ -26,7 +26,7 @@ const CreateGroupModal = memo<CreateGroupModalProps>(
     const [loading, setLoading] = useState(false);
 
     return (
-      <div onClick={(e) => e.stopPropagation()}>
+      <div onClick={stopPropagation}>
         <Modal
           allowFullscreen
           destroyOnHidden

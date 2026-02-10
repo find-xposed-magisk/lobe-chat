@@ -11,6 +11,7 @@ import {
   Text,
   Tooltip,
   TooltipGroup,
+  stopPropagation,
 } from '@lobehub/ui';
 import { createStaticStyles, cx } from 'antd-style';
 import {
@@ -197,7 +198,7 @@ const UserGroupCard = memo<UserGroupCardProps>(
         onClick={handleCardClick}
       >
         {isOwner && (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={stopPropagation}>
             <DropdownMenu items={menuItems as any}>
               <div className={cx('more-button', styles.moreButton)}>
                 <Icon icon={MoreVerticalIcon} size={16} style={{ cursor: 'pointer' }} />
@@ -232,7 +233,7 @@ const UserGroupCard = memo<UserGroupCardProps>(
                 <Link
                   style={{ color: 'inherit', flex: 1, overflow: 'hidden' }}
                   to={link}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={stopPropagation}
                 >
                   <Text ellipsis as={'h3'} className={styles.title} style={{ flex: 1 }}>
                     {title}

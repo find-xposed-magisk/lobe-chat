@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Flexbox, Modal } from '@lobehub/ui';
+import { Button, Flexbox, Modal, stopPropagation } from '@lobehub/ui';
 import { App } from 'antd';
 import { createStaticStyles } from 'antd-style';
 import { memo, useEffect, useState } from 'react';
@@ -111,7 +111,7 @@ const CreateGroupModal = memo<CreateGroupModalProps>(({ id, onCancel, open }) =>
   const isConfirmDisabled = groupName.trim() === '' || selectedAgentIds.length === 0 || isCreating;
 
   return (
-    <div onClick={(e) => e.stopPropagation()}>
+    <div onClick={stopPropagation}>
       <Modal
         allowFullscreen
         destroyOnHidden

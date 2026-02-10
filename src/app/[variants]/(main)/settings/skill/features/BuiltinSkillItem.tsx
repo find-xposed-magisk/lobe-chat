@@ -1,6 +1,6 @@
 'use client';
 
-import { Avatar, Button, DropdownMenu, Flexbox, Icon } from '@lobehub/ui';
+import { Avatar, Button, DropdownMenu, Flexbox, Icon, stopPropagation } from '@lobehub/ui';
 import { App } from 'antd';
 import { MoreHorizontalIcon, Plus, Trash2 } from 'lucide-react';
 import { memo } from 'react';
@@ -111,7 +111,7 @@ const BuiltinSkillItem = memo<BuiltinSkillItemProps>(({ identifier, title, avata
           </Flexbox>
         </Flexbox>
       </Flexbox>
-      <Flexbox horizontal align="center" gap={12} onClick={(e) => e.stopPropagation()}>
+      <Flexbox horizontal align="center" gap={12} onClick={stopPropagation}>
         {isInstalled && renderStatus()}
         {renderActions()}
       </Flexbox>

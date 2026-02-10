@@ -1,7 +1,7 @@
 'use client';
 
 import type { CrawlErrorResult, CrawlSuccessResult } from '@lobechat/web-crawler';
-import { ActionIcon, Alert, Block, Flexbox, Text } from '@lobehub/ui';
+import { ActionIcon, Alert, Block, Flexbox, Text, stopPropagation } from '@lobehub/ui';
 import { Descriptions } from 'antd';
 import { createStaticStyles } from 'antd-style';
 import { ExternalLink } from 'lucide-react';
@@ -114,7 +114,7 @@ const CrawlerResultCard = memo<CrawlerData>(({ result, messageId, crawler, origi
       <Flexbox gap={8} paddingBlock={8} paddingInline={12}>
         <Flexbox horizontal align={'center'} className={styles.titleRow} justify={'space-between'}>
           <Text ellipsis>{title || originalUrl}</Text>
-          <Link href={url} target={'_blank'} onClick={(e) => e.stopPropagation()}>
+          <Link href={url} target={'_blank'} onClick={stopPropagation}>
             <ActionIcon icon={ExternalLink} size={'small'} />
           </Link>
         </Flexbox>
