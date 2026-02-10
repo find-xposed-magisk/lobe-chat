@@ -1,4 +1,3 @@
-/* eslint-disable sort-keys-fix/sort-keys-fix, typescript-sort-keys/interface */
 // Disable the auto sort key eslint rule to make the code more logic and readable
 import {
   type AgentRuntimeContext,
@@ -37,6 +36,7 @@ import { pageAgentRuntime } from '@/store/tool/slices/builtin/executors/lobe-pag
 import { type StoreSetter } from '@/store/types';
 import { toolInterventionSelectors } from '@/store/user/selectors';
 import { getUserStoreState } from '@/store/user/store';
+import { dynamicInterventionAudits } from '@/tools/dynamicInterventionAudits';
 import { markdownToTxt } from '@/utils/markdownToTxt';
 
 import { topicSelectors } from '../../../selectors';
@@ -182,6 +182,10 @@ export class StreamingExecutorActionImpl {
       provider: agentConfigData.provider!,
     };
 
+    const topicWorkingDirectory = topicSelectors.currentTopicWorkingDirectory(this.#get());
+    const agentWorkingDirectory = agentSelectors.currentAgentWorkingDirectory(getAgentStoreState());
+    const workingDirectory = topicWorkingDirectory ?? agentWorkingDirectory;
+
     // Create initial state or use provided state
     const state =
       initialState ||
@@ -192,6 +196,7 @@ export class StreamingExecutorActionImpl {
           sessionId: agentId,
           threadId,
           topicId,
+          workingDirectory,
         },
         modelRuntimeConfig,
         operationId: operationId ?? agentId,
@@ -666,6 +671,7 @@ export class StreamingExecutorActionImpl {
       compressionConfig: {
         enabled: agentConfigData.chatConfig?.enableContextCompression ?? true, // Default to enabled
       },
+      dynamicInterventionAudits,
       operationId: `${messageKey}/${params.parentMessageId}`,
       modelRuntimeConfig,
     });
