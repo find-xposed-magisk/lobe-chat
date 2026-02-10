@@ -150,7 +150,7 @@ export const PageEditor: FC<PageEditorProps> = ({
           onDelete={() => deletePage(pageId || '')}
           onDocumentIdChange={onDocumentIdChange}
           onEmojiChange={onEmojiChange}
-          onSave={(e) => void console.log('1', e)}
+          onSave={onSave}
           onTitleChange={onTitleChange}
         >
           <PageEditorCanvas />
