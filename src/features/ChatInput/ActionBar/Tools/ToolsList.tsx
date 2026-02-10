@@ -1,13 +1,14 @@
-import { type ItemType } from '@lobehub/ui';
+import type { ItemType } from '@lobehub/ui';
 import { Flexbox, Icon, Text } from '@lobehub/ui';
 import { Divider } from 'antd';
 import { createStaticStyles, cssVar } from 'antd-style';
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Fragment, isValidElement, memo } from 'react';
 
 export const toolsListStyles = createStaticStyles(({ css }) => ({
   groupLabel: css`
-    padding-block: 4px;
+    padding-block-start: 12px;
+    padding-block-end: 4px;
     padding-inline: 12px;
   `,
   item: css`
