@@ -43,4 +43,4 @@ jobs:
           git push origin $SYNC_BRANCH_CANARY -f
           gh pr create --base canary --head $SYNC_BRANCH_CANARY --title "Sync main branch to canary branch" --body "Automatic sync" || exit 0
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
