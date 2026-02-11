@@ -70,6 +70,7 @@
     "e2e": "cd e2e && npm run test",
     "e2e:install": "playwright install",
     "e2e:ui": "playwright test --ui",
+    "hotfix:branch": "tsx ./scripts/hotfixWorkflow/index.ts",
     "i18n": "npm run workflow:i18n && lobe-i18n && prettier -c --write \"locales/**\"",
     "i18n:unused": "tsx ./scripts/i18nWorkflow/analyzeUnusedKeys.ts",
     "i18n:unused-clean": "tsx ./scripts/i18nWorkflow/cleanUnusedKeys.ts",
@@ -220,7 +221,7 @@
     "@lobehub/icons": "^4.1.0",
     "@lobehub/market-sdk": "0.29.2",
     "@lobehub/tts": "^4.0.2",
-    "@lobehub/ui": "^4.35.0",
+    "@lobehub/ui": "^4.36.2",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@napi-rs/canvas": "^0.1.88",
     "@neondatabase/serverless": "^1.0.2",
@@ -403,7 +404,7 @@
     "@types/oidc-provider": "^9.5.0",
     "@types/pdfkit": "^0.17.4",
     "@types/pg": "^8.16.0",
-    "@types/react": "^19.2.9",
+    "@types/react": "19.2.13",
     "@types/react-dom": "^19.2.3",
     "@types/rtl-detect": "^1.0.3",
     "@types/semver": "^7.7.1",
@@ -469,6 +470,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@types/react": "19.2.13",
       "better-auth": "1.4.6",
       "better-call": "1.1.8",
       "drizzle-orm": "0.44.7"
