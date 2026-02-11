@@ -1,8 +1,8 @@
-import type {
-  ChatImageItem,
-  ChatToolPayload,
-  MessageContentPart,
-  MessageToolCall,
+import {
+  type ChatImageItem,
+  type ChatToolPayload,
+  type MessageContentPart,
+  type MessageToolCall,
 } from '@lobechat/types';
 import { serializePartsForStorage } from '@lobechat/utils';
 import debug from 'debug';
@@ -10,14 +10,14 @@ import { throttle } from 'es-toolkit/compat';
 import pMap from 'p-map';
 
 import { cleanSpeakerTag } from '../../../utils/cleanSpeakerTag';
-import type {
-  FinishData,
-  GroundingData,
-  ReasoningState,
-  StreamChunk,
-  StreamingCallbacks,
-  StreamingContext,
-  StreamingResult,
+import {
+  type FinishData,
+  type GroundingData,
+  type ReasoningState,
+  type StreamChunk,
+  type StreamingCallbacks,
+  type StreamingContext,
+  type StreamingResult,
 } from './types/streaming';
 
 const log = debug('lobe-store:streaming-handler');

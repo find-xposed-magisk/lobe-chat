@@ -4,7 +4,8 @@ import type { Store as ConversationStore } from '../../../action';
 import { type MessageCRUDAction, messageCRUDSlice } from './crud';
 import { type MessageReactionAction, messageReactionSlice } from './reaction';
 import { sendMessage } from './sendMessage';
-import { type MessageStateAction, messageStateSlice } from './state';
+import type {MessageStateAction} from './state';
+import {  messageStateSlice } from './state';
 
 /**
  * Message Actions

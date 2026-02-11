@@ -1,6 +1,5 @@
 import {
   type AssistantContentBlock,
-  ChatErrorType,
   type ChatImageItem,
   type ChatMessageError,
   type ChatMessagePluginError,
@@ -8,20 +7,20 @@ import {
   type ChatToolPayloadWithResult,
   type ChatVideoItem,
   type CreateMessageParams,
-
   type GroundingSearch,
   type MessageMetadata,
   type MessagePluginItem,
   type ModelReasoning,
   type UpdateMessageRAGParams,
 } from '@lobechat/types';
+import { ChatErrorType } from '@lobechat/types';
 import { merge, nanoid, safeParseJSON } from '@lobechat/utils';
 import isEqual from 'fast-deep-equal';
-import type { StateCreator } from 'zustand';
+import { type StateCreator } from 'zustand';
 
 import { messageService } from '@/services/message';
 
-import type { Store as ConversationStore } from '../../../action';
+import { type Store as ConversationStore } from '../../../action';
 import { dataSelectors } from '../../data/selectors';
 
 /**

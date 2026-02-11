@@ -36,7 +36,7 @@ const ConfigGroupModal = memo<ModalProps>(({ open, onCancel }) => {
         sort: g.sort,
       })),
     isEqual,
-  );
+  ) as SessionGroupItemBase[];
   const [addGroup, updateGroupSort] = useHomeStore((s) => [s.addGroup, s.updateGroupSort]);
   const [loading, setLoading] = useState(false);
 

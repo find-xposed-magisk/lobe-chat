@@ -1,6 +1,6 @@
-import { type AssistantContentBlock, type UIChatMessage } from '@lobechat/types';
-import { ActionIconGroup, Flexbox, createRawModal } from '@lobehub/ui';
+import type {AssistantContentBlock, UIChatMessage} from '@lobechat/types';
 import type { ActionIconGroupEvent, ActionIconGroupItemType } from '@lobehub/ui';
+import { ActionIconGroup, createRawModal , Flexbox} from '@lobehub/ui';
 import { memo, useCallback, useMemo } from 'react';
 
 import { ReactionPicker } from '../../../components/Reaction';

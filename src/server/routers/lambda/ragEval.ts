@@ -1,9 +1,11 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix  */
 import {
   type EvalDatasetRecord,
-  EvalEvaluationStatus,
   type InsertEvalDatasetRecord,
   type RAGEvalDataSetItem,
+} from '@lobechat/types';
+import {
+  EvalEvaluationStatus,
   insertEvalDatasetRecordSchema,
   insertEvalDatasetsSchema,
   insertEvalEvaluationSchema,

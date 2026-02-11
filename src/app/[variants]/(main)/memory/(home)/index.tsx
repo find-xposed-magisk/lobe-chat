@@ -31,7 +31,7 @@ const Home: FC = () => {
     <Flexbox flex={1} height={'100%'}>
       <NavHeader
         right={
-          <Flexbox gap={8} horizontal>
+          <Flexbox horizontal gap={8}>
             {/* <ActionIcon icon={PencilLineIcon} onClick={openEditor} /> */}
             <MemoryAnalysis iconOnly />
             <WideScreenButton />
