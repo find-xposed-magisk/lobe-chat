@@ -4,9 +4,37 @@
       "count": 1
     }
   },
+  "src/app/[variants]/(main)/agent/profile/features/Header/AgentPublishButton/PublishButton.tsx": {
+    "import-x/consistent-type-specifier-style": {
+      "count": 1
+    }
+  },
+  "src/app/[variants]/(main)/community/(detail)/agent/features/Details/Capabilities/PluginItem.tsx": {
+    "simple-import-sort/imports": {
+      "count": 1
+    }
+  },
+  "src/app/[variants]/(main)/community/(detail)/agent/features/Header.tsx": {
+    "simple-import-sort/imports": {
+      "count": 1
+    }
+  },
   "src/app/[variants]/(main)/community/components/VirtuosoGridList/index.tsx": {
     "@eslint-react/no-nested-component-definitions": {
       "count": 2
+    }
+  },
+  "src/app/[variants]/(main)/home/_layout/Body/Agent/Modals/ConfigGroupModal/GroupItem.tsx": {
+    "import-x/consistent-type-specifier-style": {
+      "count": 1
+    }
+  },
+  "src/app/[variants]/(main)/home/_layout/Body/Agent/Modals/ConfigGroupModal/index.tsx": {
+    "@typescript-eslint/consistent-type-imports": {
+      "count": 1
+    },
+    "simple-import-sort/imports": {
+      "count": 1
     }
   },
   "src/app/[variants]/(main)/home/features/RecentPage/Item.tsx": {
@@ -86,6 +114,9 @@
     }
   },
   "src/envs/auth.ts": {
+    "perfectionist/sort-interfaces": {
+      "count": 19
+    },
     "sort-keys-fix/sort-keys-fix": {
       "count": 1
     },
@@ -124,6 +155,16 @@
       "count": 1
     },
     "regexp/no-obscure-range": {
+      "count": 1
+    }
+  },
+  "src/features/Conversation/Messages/CompressedGroup/index.tsx": {
+    "import-x/consistent-type-specifier-style": {
+      "count": 1
+    }
+  },
+  "src/features/Conversation/Messages/Supervisor/components/ContentBlock.tsx": {
+    "simple-import-sort/imports": {
       "count": 1
     }
   },
@@ -269,6 +310,22 @@
   "src/server/routers/lambda/user.ts": {
     "sort-keys-fix/sort-keys-fix": {
       "count": 2
+    }
+  },
+  "src/server/routers/lambda/userMemory.ts": {
+    "@typescript-eslint/consistent-type-imports": {
+      "count": 1
+    },
+    "import-x/no-duplicates": {
+      "count": 2
+    },
+    "simple-import-sort/imports": {
+      "count": 1
+    }
+  },
+  "src/server/routers/tools/_helpers/scheduleToolCallReport.test.ts": {
+    "simple-import-sort/imports": {
+      "count": 1
     }
   },
   "src/server/routers/tools/mcp.ts": {
@@ -425,6 +482,14 @@
   },
   "src/store/chat/slices/aiAgent/actions/runAgent.ts": {
     "no-unused-private-class-members": {
+      "count": 1
+    }
+  },
+  "src/store/chat/slices/aiChat/actions/__tests__/StreamingHandler.test.ts": {
+    "import-x/consistent-type-specifier-style": {
+      "count": 1
+    },
+    "unused-imports/no-unused-imports": {
       "count": 1
     }
   },
@@ -651,14 +716,6 @@
       "count": 1
     }
   },
-  "src/store/home/slices/sidebarUI/action.ts": {
-    "sort-keys-fix/sort-keys-fix": {
-      "count": 1
-    },
-    "typescript-sort-keys/interface": {
-      "count": 1
-    }
-  },
   "src/store/image/slices/generationConfig/initialState.ts": {
     "sort-keys-fix/sort-keys-fix": {
       "count": 1
@@ -692,6 +749,11 @@
       "count": 1
     },
     "typescript-sort-keys/interface": {
+      "count": 1
+    }
+  },
+  "src/store/tool/slices/builtin/executors/index.ts": {
+    "import-x/consistent-type-specifier-style": {
       "count": 1
     }
   },
