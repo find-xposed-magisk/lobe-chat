@@ -26,12 +26,12 @@ export class HomeActionImpl {
     this.#get = get;
   }
 
-  useFetchPersona = (): SWRResponse<PersonaData> => {
+  useFetchPersona = (): SWRResponse<PersonaData | null> => {
     return useClientDataSWR(FETCH_PERSONA_KEY, () => userMemoryService.getPersona(), {
-      onSuccess: (data: PersonaData | undefined) => {
+      onSuccess: (data: PersonaData | null | undefined) => {
         this.#set(
           {
-            persona: data,
+            persona: data ?? undefined,
             personaInit: true,
           },
           false,

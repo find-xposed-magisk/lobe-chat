@@ -1,4 +1,3 @@
-/* eslint-disable sort-keys-fix/sort-keys-fix,typescript-sort-keys/interface */
 import { t } from 'i18next';
 
 import { message } from '@/components/AntdStaticMethods';
@@ -9,7 +8,7 @@ import { sessionService } from '@/services/session';
 import { getAgentStoreState } from '@/store/agent';
 import { type HomeStore } from '@/store/home/store';
 import { type StoreSetter } from '@/store/types';
-import { type SessionGroupItem } from '@/types/session';
+import { type SessionGroupItemBase } from '@/types/session';
 import { setNamespace } from '@/utils/storeDebug';
 
 const n = setNamespace('sidebarUI');
@@ -127,7 +126,7 @@ export class SidebarUIActionImpl {
     await this.#get().refreshAgentList();
   };
 
-  updateGroupSort = async (items: SessionGroupItem[]): Promise<void> => {
+  updateGroupSort = async (items: SessionGroupItemBase[]): Promise<void> => {
     const sortMap = items.map((item, index) => ({ id: item.id, sort: index }));
 
     message.loading({

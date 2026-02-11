@@ -95,7 +95,6 @@ export class FileUploadActionImpl {
     abortController,
   }: UploadWithProgressParams): Promise<UploadWithProgressResult | undefined> => {
     try {
-    const fileArrayBuffer = await file.arrayBuffer();
       const fileArrayBuffer = await file.arrayBuffer();
 
       // 1. extract image dimensions if applicable
@@ -194,7 +193,7 @@ export class FileUploadActionImpl {
       }
       throw error;
     }
-  }
+  };
 }
 
 export type FileUploadAction = Pick<FileUploadActionImpl, keyof FileUploadActionImpl>;
