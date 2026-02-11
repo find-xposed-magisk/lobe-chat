@@ -43,6 +43,10 @@ export interface ChatInputProps {
    * Send menu configuration (for send options like Enter/Cmd+Enter, Add AI/User message)
    */
   sendMenu?: MenuProps;
+  /**
+   * 与 ChatList 共同挨在一起的时候，将一点间距去掉
+   */
+  skipScrollMarginWithList?: boolean;
 }
 
 /**
@@ -60,6 +64,7 @@ const ChatInput = memo<ChatInputProps>(
     sendMenu,
     sendButtonProps: customSendButtonProps,
     onEditorReady,
+    skipScrollMarginWithList,
   }) => {
     const { t } = useTranslation('chat');
 
@@ -132,7 +137,7 @@ const ChatInput = memo<ChatInputProps>(
     };
 
     const defaultContent = (
-      <WideScreenContainer>
+      <WideScreenContainer style={skipScrollMarginWithList ? { marginTop: -12 } : undefined}>
         {sendMessageErrorMsg && (
           <Flexbox paddingBlock={'0 6px'} paddingInline={12}>
             <Alert

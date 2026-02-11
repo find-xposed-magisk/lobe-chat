@@ -14,6 +14,7 @@ import {
   MessageCleanupProcessor,
   MessageContentProcessor,
   PlaceholderVariablesProcessor,
+  ReactionFeedbackProcessor,
   SupervisorRoleRestoreProcessor,
   TaskMessageProcessor,
   TasksFlattenProcessor,
@@ -299,6 +300,8 @@ export class MessagesEngine {
       // =============================================
       // Phase 5: Content Processing
       // =============================================
+      // 22. Reaction feedback injection (append user reaction feedback to assistant messages)
+      new ReactionFeedbackProcessor({ enabled: true }),
 
       // 22. Message content processing (image encoding, etc.)
       new MessageContentProcessor({
