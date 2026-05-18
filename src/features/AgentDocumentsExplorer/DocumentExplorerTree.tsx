@@ -12,7 +12,7 @@ import type {
   ExplorerTreeHandle,
   ExplorerTreeNode,
 } from '@/features/ExplorerTree';
-import { ExplorerTree } from '@/features/ExplorerTree';
+import { ExplorerTree, FOLDER_ICON_CSS } from '@/features/ExplorerTree';
 import { useChatStore } from '@/store/chat';
 
 import DocumentExplorerToolbar from './DocumentExplorerToolbar';
@@ -41,6 +41,11 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     --trees-padding-inline-override: 0px;
     --trees-font-size-override: 12px;
     --trees-border-radius-override: 6px;
+
+    /* Drop the doubled outline pierre/trees draws via ::before on a
+     * focused+selected row — the filled background from
+     * --trees-selected-bg-override is already a clear selection signal. */
+    --trees-selected-focused-border-color-override: transparent;
   `,
 }));
 
@@ -98,6 +103,10 @@ const DocumentExplorerTree = memo<Props>(({ agentId, data, mutate, style }) => {
         parentId: resolveParentRowId(doc.parentId),
       })),
     [documents, resolveParentRowId],
+  );
+  const defaultExpandedIds = useMemo(
+    () => nodes.filter((node) => node.isFolder && node.parentId == null).map((node) => node.id),
+    [nodes],
   );
 
   const parentMap = useMemo(() => {
@@ -233,14 +242,18 @@ const DocumentExplorerTree = memo<Props>(({ agentId, data, mutate, style }) => {
   return (
     <div className={styles.tree} style={style}>
       <ExplorerTree<AgentDocumentItem>
+        iconsColored
         canDrag={canDrag}
         canDrop={canDrop}
         canRename={canRename}
-        density="relaxed"
+        defaultExpandedIds={defaultExpandedIds}
+        density="compact"
         getContextMenuItems={getContextMenuItems}
+        iconSet="complete"
         nodes={nodes}
         ref={treeRef}
         style={{ height: '100%' }}
+        unsafeCSS={FOLDER_ICON_CSS}
         header={
           <DocumentExplorerToolbar
             onCreateDocument={() => handleCreateDocument(null)}
