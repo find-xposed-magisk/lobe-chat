@@ -25,7 +25,6 @@ export interface AgentSelfIterationChatConfig {
 }
 
 export interface LobeAgentChatConfig extends AgentMemoryChatConfig, AgentSelfIterationChatConfig {
-  autoCreateTopicThreshold: number;
   codexMaxReasoningEffort?: 'low' | 'medium' | 'high' | 'xhigh';
   /**
    * Model ID to use for generating compression summaries
@@ -49,7 +48,6 @@ export interface LobeAgentChatConfig extends AgentMemoryChatConfig, AgentSelfIte
    * Treat undefined as `true` — agent mode is the default.
    */
   enableAgentMode?: boolean;
-  enableAutoCreateTopic?: boolean;
   /**
    * Whether to auto-scroll during AI streaming output
    * undefined = use global setting
@@ -199,7 +197,6 @@ export const SelfIterationChatConfigSchema = z.object({
 
 export const AgentChatConfigSchema = z
   .object({
-    autoCreateTopicThreshold: z.number().default(2),
     codexMaxReasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh']).optional(),
     deepseekV4ReasoningEffort: z.enum(['none', 'high', 'max']).optional(),
     compressionModelId: z.string().optional(),
@@ -207,7 +204,6 @@ export const AgentChatConfigSchema = z
     effort: z.enum(['low', 'medium', 'high', 'max']).optional(),
     enableAdaptiveThinking: z.boolean().optional(),
     enableAgentMode: z.boolean().optional(),
-    enableAutoCreateTopic: z.boolean().optional(),
     enableAutoScrollOnStreaming: z.boolean().optional(),
     enableCompressHistory: z.boolean().optional(),
     enableContextCompression: z.boolean().optional(),

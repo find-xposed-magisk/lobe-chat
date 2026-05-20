@@ -9,7 +9,6 @@ import { resolveModelExtendParams } from './modelParamsResolver';
 describe('resolveModelExtendParams', () => {
   const mockAiInfraStoreState = { someState: true };
   const createChatConfig = (config: Partial<LobeAgentChatConfig> = {}): LobeAgentChatConfig => ({
-    autoCreateTopicThreshold: 2,
     ...config,
   });
 
