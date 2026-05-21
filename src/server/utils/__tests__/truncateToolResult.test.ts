@@ -14,7 +14,18 @@ const endsWithHighSurrogate = (value: string) => {
 };
 
 describe('truncateToolResult', () => {
-  it('should not split an emoji surrogate pair at the truncation boundary', () => {
+  it('returns content unchanged when within the limit', () => {
+    expect(truncateToolResult('hello', 100)).toBe('hello');
+  });
+
+  it('truncates and appends a notice when over the limit', () => {
+    const result = truncateToolResult('0123456789', 5);
+
+    expect(result.startsWith('01234')).toBe(true);
+    expect(result).toContain('Content truncated');
+  });
+
+  it('does not leave a lone high surrogate when the cutoff splits an emoji', () => {
     const content = `prefix ${'a'.repeat(10)}${validEmoji} suffix`;
     const limit = 'prefix '.length + 10 + 1;
     const result = truncateToolResult(content, limit);
@@ -23,10 +34,10 @@ describe('truncateToolResult', () => {
     expect(result).toContain('[Content truncated:');
     expect(truncatedPortion).toBe(`prefix ${'a'.repeat(10)}`);
     expect(endsWithHighSurrogate(truncatedPortion)).toBe(false);
-    expect(JSON.stringify({ content: result })).not.toContain('\\ud83d');
+    expect(JSON.stringify(result)).not.toContain('\\ud83d"');
   });
 
-  it('should keep a full emoji when the complete surrogate pair fits', () => {
+  it('keeps a full emoji when the complete surrogate pair fits', () => {
     const content = `prefix ${'a'.repeat(10)}${validEmoji} suffix`;
     const limit = 'prefix '.length + 10 + validEmoji.length;
     const result = truncateToolResult(content, limit);
@@ -35,19 +46,19 @@ describe('truncateToolResult', () => {
     expect(result).toContain('[Content truncated:');
   });
 
-  it('should never leave a lone high surrogate inside a ZWJ-composed emoji at any cutoff', () => {
+  it('never leaves a lone high surrogate inside a ZWJ-composed emoji at any cutoff', () => {
     const content = `ab${familyEmoji}cd`;
 
     for (let cutoff = 1; cutoff < content.length; cutoff += 1) {
       const result = truncateToolResult(content, cutoff);
       const truncatedPortion = getTruncatedPortion(result);
 
-      expect(endsWithHighSurrogate(truncatedPortion)).toBe(false);
+      expect(endsWithHighSurrogate(truncatedPortion), `cutoff=${cutoff}`).toBe(false);
       expect(() => JSON.parse(JSON.stringify(result))).not.toThrow();
     }
   });
 
-  it('should preserve state while truncating content safely', () => {
+  it('preserves state while truncating content safely', () => {
     const result = truncateToolResultWithState(
       { content: `value ${'x'.repeat(4)}${validEmoji} tail`, state: { ok: true } },
       'value '.length + 4 + 1,
