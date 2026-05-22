@@ -77,6 +77,7 @@ import {
 import { DocumentService } from '@/server/services/document';
 import { FileService } from '@/server/services/file';
 import { HeterogeneousAgentService } from '@/server/services/heterogeneousAgent';
+import type { ConversationHistoryEntry } from '@/server/services/heterogeneousAgent/cloudHeteroContext';
 import { KlavisService } from '@/server/services/klavis';
 import { MarketService } from '@/server/services/market';
 import { deviceProxy } from '@/server/services/toolExecution/deviceProxy';
@@ -733,11 +734,40 @@ export class AiAgentService {
         log('execAgent: failed to resolve GitHub token: %O', err);
       }
 
+      // When resuming, inject the recent conversation turns as context so CC can
+      // orient itself even if the native session file was cleared (sandbox recycled
+      // or context overflow caused the CLI to start a fresh session).
+      // Only fetch when there IS a stored session id — for first-turn runs CC has
+      // no prior history to inject.
+      let conversationHistory: ConversationHistoryEntry[] | undefined;
+      if (resumeSessionId) {
+        try {
+          const recentMsgs = await this.messageModel.query({ topicId, pageSize: 200 });
+          const turns = recentMsgs
+            .filter(
+              (m) =>
+                (m.role === 'user' || m.role === 'assistant') &&
+                !m.threadId &&
+                m.content &&
+                m.content !== LOADING_FLAT,
+            )
+            .slice(-30)
+            .map((m) => ({
+              content: m.content ?? '',
+              role: m.role as 'assistant' | 'user',
+            }));
+          if (turns.length > 0) conversationHistory = turns;
+        } catch (err) {
+          log('execAgent: failed to load conversation history for hetero context: %O', err);
+        }
+      }
+
       // Build cloud-specific system context (repo list + workspace info + optional agent-level static context).
       const { buildCloudHeteroContext } =
         await import('@/server/services/heterogeneousAgent/cloudHeteroContext');
       const systemContext = buildCloudHeteroContext({
         agentSystemContext: agentConfig.agencyConfig?.heterogeneousProvider?.systemContext,
+        conversationHistory,
         githubToken,
         repos: topicRepos,
       });
