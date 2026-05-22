@@ -423,7 +423,7 @@ export class GatewayActionImpl {
     // never block the local cancel flow.
     this.#get().onOperationCancel(gatewayOpId, async () => {
       await aiAgentService
-        .interruptTask({ operationId: result.operationId })
+        .interruptTask({ operationId: result.operationId, topicId: result.topicId })
         .catch((err) => console.error('[Gateway] interruptTask failed:', err));
     });
 
