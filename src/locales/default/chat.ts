@@ -359,8 +359,8 @@ export default {
   'newGroupChat': 'Create Group',
 
   // Platform agent: per-platform descriptions shown in step 0 of the creation modal
-  'platformAgent.create.desc.openclaw': 'Run OpenClaw agents on your local machine',
-  'platformAgent.create.desc.hermes': 'Run Hermes agents on your local machine',
+  'platformAgent.create.desc.openclaw': 'Connect to OpenClaw running on one of your devices',
+  'platformAgent.create.desc.hermes': 'Connect to Hermes running on one of your devices',
 
   // Platform agent: shared device status label (used in Select option labels)
   'platformAgent.device.online': 'Online',
@@ -378,13 +378,20 @@ export default {
   'platformAgent.create.descriptionPlaceholder': 'Brief description (optional)',
   'platformAgent.create.fetchingProfile': 'Fetching profile...',
   'platformAgent.create.noDevices': 'No devices connected',
-  'platformAgent.create.noDevicesHint': 'Run `lh connect` on the target machine first',
+  'platformAgent.create.noDevicesDesktopHint':
+    'Install the Desktop App — it connects automatically after login',
+  'platformAgent.create.downloadDesktop': 'Download Desktop App',
+  'platformAgent.create.noDevicesCliHint': 'Or connect any machine via CLI, then click Refresh:',
+  'platformAgent.create.noDevicesCmd': 'lh connect',
   'platformAgent.create.refresh': 'Refresh',
   'platformAgent.create.selectDevice': 'Select a device',
   'platformAgent.create.checking': 'Checking availability...',
   'platformAgent.create.available': 'Available',
   'platformAgent.create.notInstalled': '{{name}} not installed on this device',
   'platformAgent.create.checkFailed': 'Check failed',
+  'platformAgent.create.versionTooLow': 'lh version is too low',
+  'platformAgent.create.versionTooLowHint': 'Update lh to the latest version:',
+  'platformAgent.create.upgradeCmd': 'npm install -g @lobehub/cli',
   'platformAgent.create.comingSoon': 'Coming Soon',
 
   // Platform agent device guard banner
