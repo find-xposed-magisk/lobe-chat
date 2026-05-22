@@ -2069,9 +2069,39 @@ export class AiAgentService {
         name: skill.name,
       }));
 
+      // Project skills are filesystem SKILL.md discovered on the device. They
+      // are only meaningful when a device is active (readFile resolves against
+      // it). Only `location` (absolute SKILL.md path) flows through — the
+      // skill's directory tree is enumerated lazily at activation time via
+      // `local-system.listFiles` over the device gateway, keeping the op-param
+      // payload small.
+      const projectMetas =
+        activeDeviceId && params.projectSkills?.length
+          ? params.projectSkills.map((s) => ({
+              description: s.description ?? '',
+              identifier: `project:${s.name}`,
+              location: s.path,
+              name: s.name,
+              source: 'project' as const,
+            }))
+          : [];
+
+      // Precedence on name collision: project > db > agent-skills > builtin.
+      // Agent-skills carry the `agent-skills:` prefix in their `name`, so they
+      // can only collide with each other — but we still dedupe by name to keep
+      // a single shape for the SkillEngine input.
+      const seenNames = new Set<string>();
+      const skills = [...projectMetas, ...dbMetas, ...agentSkillMetas, ...builtinMetas].filter(
+        (skill) => {
+          if (seenNames.has(skill.name)) return false;
+          seenNames.add(skill.name);
+          return true;
+        },
+      );
+
       const skillEngine = new SkillEngine({
         enableChecker: (skill) => shouldEnableBuiltinSkill(skill.identifier),
-        skills: [...builtinMetas, ...dbMetas, ...agentSkillMetas],
+        skills,
       });
       operationSkillSet = skillEngine.generate(agentPlugins ?? []);
     } catch (error) {
