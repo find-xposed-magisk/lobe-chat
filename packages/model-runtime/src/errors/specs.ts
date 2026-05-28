@@ -510,6 +510,17 @@ export const ERROR_CODE_SPECS: SpecMap = {
     countAsFailure: false,
     description: 'ComfyUI model load / inference failed.',
   },
+  [AgentRuntimeErrorType.ProviderContentPolicyViolation]: {
+    code: AgentRuntimeErrorType.ProviderContentPolicyViolation,
+    numericId: 8010,
+    category: 'provider',
+    severity: 'warning',
+    attribution: 'user',
+    httpStatus: 471,
+    retryable: false,
+    countAsFailure: false,
+    description: 'Image-generation provider blocked the request due to content policy.',
+  },
 
   // ─── 9xxx Config ──────────────────────────────────────────────────────
   [AgentRuntimeErrorType.InvalidOllamaArgs]: {
