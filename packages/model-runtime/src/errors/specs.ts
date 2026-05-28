@@ -30,6 +30,14 @@ export interface ErrorCodeSpec {
   httpStatus: number;
 
   /**
+   * Marks a catch-all / under-classified bucket (ProviderBizError,
+   * UpstreamHttpError, AgentRuntimeError, DatabasePersistError, …). Orthogonal
+   * to `category`: monitoring tracks total fallback volume to decide where
+   * finer codes are still worth carving out. Omitted (falsy) for terminal codes.
+   */
+  isFallback?: boolean;
+
+  /**
    * Stable numeric identifier surfaced as `E<numericId>` (e.g. `E1001`).
    *
    * Append-only: once assigned, a (code, numericId) pair must never change so
@@ -384,6 +392,7 @@ export const ERROR_CODE_SPECS: SpecMap = {
     httpStatus: 500,
     retryable: false,
     countAsFailure: true,
+    isFallback: true,
     description: 'Persistence-layer query / transaction failed (Drizzle "Failed query: …").',
   },
   [AgentRuntimeErrorType.StateStorePersistError]: {
@@ -420,6 +429,7 @@ export const ERROR_CODE_SPECS: SpecMap = {
     httpStatus: 470,
     retryable: false,
     countAsFailure: true,
+    isFallback: true,
     description: 'Generic Agent Runtime module error.',
   },
   [AgentRuntimeErrorType.ProviderBizError]: {
@@ -431,6 +441,7 @@ export const ERROR_CODE_SPECS: SpecMap = {
     httpStatus: 471,
     retryable: false,
     countAsFailure: true,
+    isFallback: true,
     description: 'Generic provider biz error (unclassified upstream failure).',
   },
   [AgentRuntimeErrorType.ProviderNoImageGenerated]: {
@@ -520,6 +531,44 @@ export const ERROR_CODE_SPECS: SpecMap = {
     retryable: false,
     countAsFailure: false,
     description: 'Image-generation provider blocked the request due to content policy.',
+  },
+  [AgentRuntimeErrorType.UpstreamGatewayError]: {
+    code: AgentRuntimeErrorType.UpstreamGatewayError,
+    numericId: 8011,
+    category: 'provider',
+    severity: 'error',
+    attribution: 'provider',
+    httpStatus: 471,
+    // Gateway hiccups (502/525/HTML bodies) are usually transient.
+    retryable: true,
+    countAsFailure: true,
+    description:
+      'Upstream proxy / gateway layer failed (openresty, litellm, HTML 5xx, Cloudflare 525).',
+  },
+  [AgentRuntimeErrorType.UpstreamMalformedResponse]: {
+    code: AgentRuntimeErrorType.UpstreamMalformedResponse,
+    numericId: 8012,
+    category: 'provider',
+    severity: 'error',
+    attribution: 'provider',
+    httpStatus: 471,
+    // Deterministic payload corruption — retrying the same request reproduces it.
+    retryable: false,
+    countAsFailure: true,
+    description:
+      'Provider returned a malformed / unparseable payload (marshal failure, bad tool-call JSON, upstream TypeError).',
+  },
+  [AgentRuntimeErrorType.UpstreamHttpError]: {
+    code: AgentRuntimeErrorType.UpstreamHttpError,
+    numericId: 8013,
+    category: 'provider',
+    severity: 'error',
+    attribution: 'provider',
+    httpStatus: 471,
+    retryable: false,
+    countAsFailure: true,
+    isFallback: true,
+    description: 'Bare upstream HTTP error with no further context (e.g. "400 status code").',
   },
 
   // ─── 9xxx Config ──────────────────────────────────────────────────────
