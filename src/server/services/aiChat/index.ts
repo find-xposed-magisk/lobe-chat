@@ -59,8 +59,7 @@ export class AiChatService {
       'lambda.aiChat.messagesAndTopics.messageModel.query',
       () =>
         this.messageModel.query(messageParams, {
-          postProcessUrl: (path, file) =>
-            this.fileService.getFileAccessUrl({ id: file.id, url: path }),
+          postProcessUrl: (path) => this.fileService.getFullFileUrl(path),
           ...(messageTiming ? { timing: messageTiming } : {}),
         }),
       {

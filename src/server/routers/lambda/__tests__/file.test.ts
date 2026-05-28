@@ -4,8 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fileRouter } from '@/server/routers/lambda/file';
 import { AsyncTaskStatus } from '@/types/asyncTask';
 
-const buildMockFileAccessUrl = ({ id }: { id: string }) => `https://lobehub.com/f/${id}`;
-
 const routerMocks = vi.hoisted(() => {
   const transactionClient = {};
 
@@ -36,7 +34,6 @@ function createCallerWithCtx(partialCtx: any = {}) {
   };
 
   const fileService = {
-    getFileAccessUrl: vi.fn(async (file: { id: string }) => buildMockFileAccessUrl(file)),
     getFullFileUrl: vi.fn().mockResolvedValue('full-url'),
     getFileMetadata: vi.fn().mockResolvedValue({ contentLength: 2048, contentType: 'text/plain' }),
     deleteFile: vi.fn().mockResolvedValue(undefined),
@@ -150,14 +147,12 @@ vi.mock('@/database/models/file', () => ({
 }));
 
 const mockFileServiceGetFullFileUrl = vi.fn();
-const mockFileServiceGetFileAccessUrl = vi.fn();
 const mockFileServiceGetFileMetadata = vi.fn();
 
 vi.mock('@/server/services/file', () => ({
   FileService: vi.fn(() => ({
     deleteFile: vi.fn(),
     deleteFiles: vi.fn(),
-    getFileAccessUrl: mockFileServiceGetFileAccessUrl,
     getFullFileUrl: mockFileServiceGetFullFileUrl,
     getFileMetadata: mockFileServiceGetFileMetadata,
   })),
@@ -213,9 +208,6 @@ describe('fileRouter', () => {
       contentLength: 100,
       contentType: 'text/plain',
     });
-    mockFileServiceGetFileAccessUrl.mockImplementation(async (file: { id: string }) =>
-      buildMockFileAccessUrl(file),
-    );
 
     // Use actual context with default mocks
     ({ ctx, caller } = createCallerWithCtx());

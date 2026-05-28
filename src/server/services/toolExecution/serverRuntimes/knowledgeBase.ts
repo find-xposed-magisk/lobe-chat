@@ -5,11 +5,13 @@ import { AgentModel } from '@/database/models/agent';
 import { FileModel } from '@/database/models/file';
 import { KnowledgeBaseModel } from '@/database/models/knowledgeBase';
 import { KnowledgeRepo } from '@/database/repositories/knowledge';
+import { appEnv } from '@/envs/app';
 import { DocumentService } from '@/server/services/document';
-import { FileService } from '@/server/services/file';
 import { KnowledgeBaseSearchService } from '@/server/services/knowledgeBase';
 
 import { type ServerRuntimeRegistration } from './types';
+
+const getFileProxyUrl = (fileId: string): string => `${appEnv.APP_URL}/f/${fileId}`;
 
 export const knowledgeBaseRuntime: ServerRuntimeRegistration = {
   factory: (context) => {
@@ -22,7 +24,6 @@ export const knowledgeBaseRuntime: ServerRuntimeRegistration = {
     const knowledgeBaseModel = new KnowledgeBaseModel(serverDB, userId);
     const knowledgeRepo = new KnowledgeRepo(serverDB, userId);
     const documentService = new DocumentService(serverDB, userId);
-    const fileService = new FileService(serverDB, userId);
     const searchService = new KnowledgeBaseSearchService(serverDB, userId);
     const agentModel = agentId ? new AgentModel(serverDB, userId) : null;
 
@@ -144,7 +145,7 @@ export const knowledgeBaseRuntime: ServerRuntimeRegistration = {
             size: item.size,
             sourceType: 'file',
             updatedAt: item.updatedAt,
-            url: await fileService.getFileAccessUrl(item),
+            url: getFileProxyUrl(item.id),
           };
         },
         getKnowledgeItems: async ({ category, limit, offset, q, showFilesInKnowledgeBase }) => {
@@ -159,22 +160,20 @@ export const knowledgeBaseRuntime: ServerRuntimeRegistration = {
           const slice = hasMore ? items.slice(0, limit) : items;
           return {
             hasMore,
-            items: await Promise.all(
-              slice.map(async (item) => ({
-                createdAt: item.createdAt,
-                fileType: item.fileType,
-                id: item.id,
-                metadata: item.metadata ?? null,
-                name: item.name,
-                size: item.size,
-                sourceType: item.sourceType,
-                updatedAt: item.updatedAt,
-                url:
-                  item.sourceType === 'file'
-                    ? await fileService.getFileAccessUrl(item)
-                    : item.url || '',
-              })),
-            ),
+            items: slice.map((item) => ({
+              createdAt: item.createdAt,
+              fileType: item.fileType,
+              id: item.id,
+              metadata: item.metadata ?? null,
+              name: item.name,
+              size: item.size,
+              sourceType: item.sourceType,
+              updatedAt: item.updatedAt,
+              url:
+                item.sourceType === 'file'
+                  ? getFileProxyUrl(item.fileId || item.id)
+                  : item.url || '',
+            })),
           };
         },
       },

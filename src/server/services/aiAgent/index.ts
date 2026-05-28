@@ -1076,10 +1076,9 @@ export class AiAgentService {
     // Model metadata is needed both for tool support checks and agent-management context.
     const { loadModels } = await import('@/business/client/model-bank/loadModels');
     const builtinModels = await loadModels();
-    // Resolve file URLs before visual tool activation checks and context build.
+    // Resolve S3 keys in imageList/videoList before visual tool activation checks and context build.
     const fileService = new FileService(this.db, this.userId);
-    const postProcessUrl = (path: string | null, file: { id?: string | null }) =>
-      fileService.getFileAccessUrl({ id: file.id, url: path });
+    const postProcessUrl = (path: string | null) => fileService.getFullFileUrl(path);
     let historyMessagesCache: any[] | undefined;
     const loadHistoryMessages = async () => {
       if (historyMessagesCache) return historyMessagesCache;
@@ -1800,7 +1799,7 @@ export class AiAgentService {
           }
 
           fileIds.push(file.id);
-          const resolvedUrl = (await fileService.getFileAccessUrl(file)) || file.url;
+          const resolvedUrl = (await fileService.getFullFileUrl(file.url)) || file.url;
           const fileType = file.fileType || '';
 
           if (fileType.startsWith('image')) {

@@ -42,14 +42,7 @@ const DailyBrief = memo(() => {
   }
 
   if (briefs.length === 0) {
-    // Without a titled brief block above it, the bare recommendations list
-    // doesn't need the full section gap below the input area — offset the
-    // parent's gap so it sits closer to the input.
-    return recommendationsVisible ? (
-      <Flexbox style={{ marginBlockStart: -24 }}>
-        <Recommendations />
-      </Flexbox>
-    ) : null;
+    return recommendationsVisible ? <Recommendations /> : null;
   }
 
   return (

@@ -9,6 +9,7 @@ import { ChunkModel } from '@/database/models/chunk';
 import { DocumentModel } from '@/database/models/document';
 import { FileModel } from '@/database/models/file';
 import { KnowledgeRepo } from '@/database/repositories/knowledge';
+import { appEnv } from '@/envs/app';
 import { authedProcedure, router } from '@/libs/trpc/lambda';
 import { serverDatabase } from '@/libs/trpc/lambda/middleware';
 import { DocumentService } from '@/server/services/document';
@@ -16,6 +17,12 @@ import { FileService } from '@/server/services/file';
 import { AsyncTaskStatus, AsyncTaskType, type IAsyncTaskError } from '@/types/asyncTask';
 import type { FileListItem, KnowledgeItemStatus } from '@/types/files';
 import { QueryFileListSchema, UploadFileSchema } from '@/types/files';
+
+/**
+ * Generate file proxy URL
+ * Returns a unified proxy URL format: ${APP_URL}/f/:id
+ */
+const getFileProxyUrl = (fileId: string): string => `${appEnv.APP_URL}/f/${fileId}`;
 
 const filterKnowledgeItems = <
   T extends {
@@ -229,7 +236,7 @@ export const fileRouter = router({
         );
       });
 
-      return { id, url: await ctx.fileService.getFileAccessUrl({ id, url: input.url }) };
+      return { id, url: getFileProxyUrl(id) };
     }),
   findById: fileProcedure
     .input(
@@ -255,7 +262,7 @@ export const fileRouter = router({
         size: item.size,
         source: item.source,
         updatedAt: item.updatedAt,
-        url: await ctx.fileService.getFileAccessUrl(item),
+        url: getFileProxyUrl(item.id),
         userId: item.userId,
       };
     }),
@@ -289,7 +296,7 @@ export const fileRouter = router({
         size: item.size,
         sourceType: 'file' as const,
         updatedAt: item.updatedAt,
-        url: await ctx.fileService.getFileAccessUrl(item),
+        url: getFileProxyUrl(item.id),
       };
     }),
 
@@ -303,7 +310,7 @@ export const fileRouter = router({
       const fileItem = {
         ...item,
         sourceType: 'file' as const,
-        url: await ctx.fileService.getFileAccessUrl(item),
+        url: getFileProxyUrl(item.id),
         ...status,
       } as FileListItem;
       resultFiles.push(fileItem);
@@ -360,7 +367,7 @@ export const fileRouter = router({
         resultItems.push({
           ...item,
           editorData: null,
-          url: await ctx.fileService.getFileAccessUrl(item),
+          url: getFileProxyUrl(item.fileId || item.id),
           ...status,
         } as FileListItem);
       } else {
@@ -521,7 +528,7 @@ export const fileRouter = router({
           embeddingStatus: embeddingTask?.status as AsyncTaskStatus,
           finishEmbedding: embeddingTask?.status === AsyncTaskStatus.Success,
           sourceType: 'file' as const,
-          url: await ctx.fileService.getFileAccessUrl(item),
+          url: getFileProxyUrl(item.fileId || item.id),
         } as FileListItem);
       }
 

@@ -210,8 +210,7 @@ export const messageRouter = router({
         return messageModel.query(
           { ...queryParams, topicId: share.topicId },
           {
-            postProcessUrl: (path, file) =>
-              fileService.getFileAccessUrl({ id: file.id, url: path }),
+            postProcessUrl: (path) => fileService.getFullFileUrl(path),
           },
         );
       }
@@ -225,7 +224,7 @@ export const messageRouter = router({
       const fileService = new FileService(ctx.serverDB, ctx.userId);
 
       return messageModel.query(queryParams, {
-        postProcessUrl: (path, file) => fileService.getFileAccessUrl({ id: file.id, url: path }),
+        postProcessUrl: (path) => fileService.getFullFileUrl(path),
       });
     }),
 
