@@ -362,13 +362,52 @@ export const ERROR_CODE_SPECS: SpecMap = {
   [AgentRuntimeErrorType.ConversationParentMissing]: {
     code: AgentRuntimeErrorType.ConversationParentMissing,
     numericId: 7003,
+    // Usually the user deleted the topic / parent message mid-operation, so
+    // attribution is `user` and it does not count as an operational failure.
+    // (category stays `stream` — numericId 7003 is append-only — even though
+    // attribution is user-side; the two dimensions are orthogonal.)
+    category: 'stream',
+    severity: 'warning',
+    attribution: 'user',
+    httpStatus: 500,
+    retryable: false,
+    countAsFailure: false,
+    description:
+      'Conversation chain broken — the referenced parent message no longer exists, usually because the user deleted the topic mid-operation.',
+  },
+  [AgentRuntimeErrorType.DatabasePersistError]: {
+    code: AgentRuntimeErrorType.DatabasePersistError,
+    numericId: 7004,
     category: 'stream',
     severity: 'error',
     attribution: 'harness',
     httpStatus: 500,
     retryable: false,
     countAsFailure: true,
-    description: 'Conversation chain broken because an assistant/tool message lost its parent.',
+    description: 'Persistence-layer query / transaction failed (Drizzle "Failed query: …").',
+  },
+  [AgentRuntimeErrorType.StateStorePersistError]: {
+    code: AgentRuntimeErrorType.StateStorePersistError,
+    numericId: 7005,
+    category: 'stream',
+    severity: 'error',
+    attribution: 'harness',
+    httpStatus: 500,
+    retryable: false,
+    countAsFailure: true,
+    description: 'State-store (Redis / Upstash) connection dropped or command aborted mid-flight.',
+  },
+  [AgentRuntimeErrorType.ContextEnginePipelineError]: {
+    code: AgentRuntimeErrorType.ContextEnginePipelineError,
+    numericId: 7006,
+    category: 'stream',
+    severity: 'error',
+    attribution: 'harness',
+    httpStatus: 500,
+    retryable: false,
+    countAsFailure: true,
+    description:
+      'Context-engine pipeline processor crashed ("Processor [<name>] execution failed").',
   },
 
   // ─── 8xxx Provider (catch-all) ────────────────────────────────────────
@@ -538,6 +577,10 @@ export const ERROR_CODE_SPECS: SpecMap = {
  */
 const CODE_ALIASES: Record<string, ILobeAgentRuntimeErrorType> = {
   [AgentRuntimeErrorType.QuotaLimitReached]: AgentRuntimeErrorType.RateLimitExceeded,
+  // The context-engine throws `PipelineError` (its `error.name`), which lands
+  // in stored error records as `errorType: 'PipelineError'`. Resolve it to the
+  // disambiguated runtime code.
+  PipelineError: AgentRuntimeErrorType.ContextEnginePipelineError,
 };
 
 /** Look up the spec for an error code; falls back to `undefined` when unknown. */

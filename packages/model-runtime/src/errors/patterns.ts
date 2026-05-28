@@ -48,6 +48,18 @@ const sub = (value: string, opts?: { caseInsensitive?: boolean }): ErrorPattern[
  */
 export const ERROR_PATTERNS: ErrorPattern[] = [
   // ─────────────────────────────────────────────────────────────────────────
+  // DatabasePersistError — MUST stay first. Drizzle stringifies failed queries
+  // as `Failed query: <sql> params: <values>`, embedding arbitrary parameter
+  // text (model names, user messages, error_log rows) that otherwise trips
+  // unrelated provider patterns below. First-match-wins, so claim it up front.
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    code: AgentRuntimeErrorType.DatabasePersistError,
+    match: sub('Failed query:'),
+    note: 'Drizzle wrapper around a failed Postgres query / transaction.',
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
   // ExceededContextWindow
   // ─────────────────────────────────────────────────────────────────────────
   {
@@ -488,11 +500,25 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
   { code: AgentRuntimeErrorType.ProviderNetworkError, match: sub('request to http://') },
   { code: AgentRuntimeErrorType.ProviderNetworkError, match: sub('request to https://') },
   { code: AgentRuntimeErrorType.ProviderNetworkError, match: sub('self-signed certificate') },
-  {
-    code: AgentRuntimeErrorType.ProviderNetworkError,
-    match: sub('Command aborted due to connection close'),
-  },
   { code: AgentRuntimeErrorType.ProviderNetworkError, match: sub('Network connection lost') },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // StateStorePersistError — Redis / Upstash agent-state store (NOT the LLM
+  // provider). ioredis aborts, request-size cap, suspended DB.
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    code: AgentRuntimeErrorType.StateStorePersistError,
+    match: sub('Command aborted due to connection close'),
+    note: 'ioredis aborts queued commands when the Upstash connection drops.',
+  },
+  {
+    code: AgentRuntimeErrorType.StateStorePersistError,
+    match: sub('max request size exceeded'),
+  },
+  {
+    code: AgentRuntimeErrorType.StateStorePersistError,
+    match: sub('database has been suspended'),
+  },
 
   // ─────────────────────────────────────────────────────────────────────────
   // NoAvailableChannel — router / proxy has no upstream
@@ -934,5 +960,32 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
     code: AgentRuntimeErrorType.ProviderBizError,
     match: sub('codewhisperer#ValidationException'),
     note: 'kiro / AWS CodeWhisperer proxy malformed payload',
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ContextEnginePipelineError — a context-engine pipeline processor crashed.
+  // Sits before the generic JS-crash fallbacks so "Processor [X] execution
+  // failed: Cannot read properties …" is attributed to the pipeline, not the
+  // raw TypeError below.
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    code: AgentRuntimeErrorType.ContextEnginePipelineError,
+    match: sub('Processor ['),
+    note: 'context-engine PipelineError: `Processor [<name>] execution failed`.',
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // AgentRuntimeError — harness-side JS runtime crashes (V8 TypeError /
+  // RangeError). Our bugs, not upstream provider errors, so they stay LAST: a
+  // more specific provider/harness pattern above wins first, and only genuine
+  // bare crashes fall through to here.
+  // ─────────────────────────────────────────────────────────────────────────
+  { code: AgentRuntimeErrorType.AgentRuntimeError, match: sub('is not a function') },
+  { code: AgentRuntimeErrorType.AgentRuntimeError, match: sub('Cannot read properties of') },
+  { code: AgentRuntimeErrorType.AgentRuntimeError, match: sub('Maximum call stack size exceeded') },
+  {
+    code: AgentRuntimeErrorType.AgentRuntimeError,
+    match: sub('[object Object]'),
+    note: 'harness stringified an error object instead of extracting its message',
   },
 ];

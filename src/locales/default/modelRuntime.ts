@@ -20,6 +20,10 @@ export default {
     'The request returned empty. Please check if the API proxy address does not end with `/v1`.',
   ContentModeration:
     'Sorry, the content was rejected by the upstream safety filter. Please revise your prompt and try again.',
+  ContextEnginePipelineError:
+    'Failed to assemble the conversation context for this request. Please try again; if it persists, contact support.',
+  DatabasePersistError:
+    'A database operation failed while saving or loading this conversation. Please try again; if it persists, contact support.',
   ExceededContextWindow:
     'The current request content exceeds the length that the model can handle. Please reduce the amount of content and try again.',
   InsufficientQuota:
@@ -61,6 +65,8 @@ export default {
     "Sorry, the token usage or request count has reached the quota limit for this key. Please increase the key's quota or try again later.",
   RateLimitExceeded:
     "Sorry, the token usage or request count has reached the rate limit for this key. Please try again later or increase the key's quota.",
+  StateStorePersistError:
+    'A temporary issue with the conversation state store interrupted this operation. Please try again; if it persists, contact support.',
   StreamChunkError:
     'Error parsing the message chunk of the streaming request. Please check if the current API interface complies with the standard specifications, or contact your API provider for assistance.',
   UserConfigError:

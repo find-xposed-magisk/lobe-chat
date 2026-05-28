@@ -54,6 +54,60 @@ describe('matchErrorPattern', () => {
   it('returns undefined for genuinely unknown errors', () => {
     expect(matchErrorPattern({ message: 'something we have never seen before' })).toBeUndefined();
   });
+
+  it('classifies Drizzle "Failed query:" wraps as DatabasePersistError', () => {
+    expect(matchErrorPattern({ message: 'Failed query: rollback params:' })?.code).toBe(
+      AgentRuntimeErrorType.DatabasePersistError,
+    );
+  });
+
+  it('does not let a Failed-query SQL blob trip an unrelated provider pattern', () => {
+    // The SQL text embeds parameter values (model names, error_log rows) that
+    // contain substrings matching other patterns. DatabasePersistError sits
+    // first in the registry, so it must win regardless of the embedded blob.
+    const msg =
+      'Failed query: insert into "error_logs" ("type") values ($1) -- InsufficientQuota / context length exceeded';
+    expect(matchErrorPattern({ message: msg })?.code).toBe(
+      AgentRuntimeErrorType.DatabasePersistError,
+    );
+  });
+
+  it('classifies Redis/Upstash state-store aborts as StateStorePersistError (not provider network)', () => {
+    expect(matchErrorPattern({ message: 'Command aborted due to connection close' })?.code).toBe(
+      AgentRuntimeErrorType.StateStorePersistError,
+    );
+    expect(
+      matchErrorPattern({ message: 'ERR max request size exceeded. Limit: 10485760 bytes' })?.code,
+    ).toBe(AgentRuntimeErrorType.StateStorePersistError);
+  });
+
+  it('classifies harness JS runtime crashes as AgentRuntimeError', () => {
+    for (const message of [
+      'e.trim is not a function',
+      "Cannot read properties of undefined (reading '0')",
+      'Maximum call stack size exceeded',
+      '[object Object]',
+    ]) {
+      expect(matchErrorPattern({ message })?.code, message).toBe(
+        AgentRuntimeErrorType.AgentRuntimeError,
+      );
+    }
+  });
+
+  it('routes context-engine processor crashes to ContextEnginePipelineError', () => {
+    expect(
+      matchErrorPattern({ message: 'Processor [PlaceholderVariablesProcessor] execution failed' })
+        ?.code,
+    ).toBe(AgentRuntimeErrorType.ContextEnginePipelineError);
+    // …even when the nested cause is a bare TypeError (pipeline wins, not the
+    // generic "Cannot read properties" fallback).
+    expect(
+      matchErrorPattern({
+        message:
+          "Processor [X] execution failed: Cannot read properties of undefined (reading 'y')",
+      })?.code,
+    ).toBe(AgentRuntimeErrorType.ContextEnginePipelineError);
+  });
 });
 
 describe('isUserSideError', () => {
