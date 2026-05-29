@@ -237,6 +237,12 @@ export const topicRouter = router({
         pageSize: z.number().max(100).optional(),
         sessionId: z.string().nullable().optional(),
         triggers: z.array(z.string()).optional(),
+        /**
+         * When true, returns extra card-detail columns (firstUserMessage,
+         * messageCount, cost, tokenUsage, description, trigger). Default false
+         * so the sidebar list stays cheap — only the management page opts in.
+         */
+        withDetails: z.boolean().optional(),
       }),
     )
     .query(async ({ input, ctx }) => {
@@ -625,6 +631,13 @@ export const topicRouter = router({
           runningOperation: z
             .object({
               assistantMessageId: z.string(),
+              completionWebhook: z
+                .object({
+                  body: z.record(z.unknown()).optional(),
+                  delivery: z.enum(['fetch', 'qstash']).optional(),
+                  url: z.string(),
+                })
+                .optional(),
               operationId: z.string(),
               scope: z.string().optional(),
               threadId: z.string().nullable().optional(),

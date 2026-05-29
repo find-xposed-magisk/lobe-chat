@@ -15,11 +15,11 @@ import { useNavLayout } from '@/hooks/useNavLayout';
 import Recents from '@/routes/(main)/home/features/Recents';
 import { useGlobalStore } from '@/store/global';
 import { systemStatusSelectors } from '@/store/global/selectors';
+import { SIDEBAR_SPACER_ID } from '@/store/global/selectors/systemStatus';
 import { isModifierClick } from '@/utils/navigation';
-import { prefetchRoute } from '@/utils/router';
 
 import Agent from './Agent';
-import { CustomizeSidebarModal, openCustomizeSidebarModal } from './CustomizeSidebarModal';
+import { openCustomizeSidebarModal } from './CustomizeSidebarModal';
 
 export enum GroupKey {
   Agent = 'agent',
@@ -103,7 +103,7 @@ const Body = memo(() => {
 
   // Items that must always be visible regardless of hiddenSections
   const isVisible = useCallback(
-    (k: string) => k === GroupKey.Agent || !hiddenSections.includes(k),
+    (k: string) => k === GroupKey.Agent || k === SIDEBAR_SPACER_ID || !hiddenSections.includes(k),
     [hiddenSections],
   );
 
@@ -120,7 +120,6 @@ const Body = memo(() => {
         <Link
           key={key}
           to={navItem.url!}
-          onMouseEnter={() => prefetchRoute(navItem.url!)}
           onClick={(e) => {
             if (isModifierClick(e)) return;
             e.preventDefault();
@@ -157,8 +156,9 @@ const Body = memo(() => {
     [sidebarExpandedKeys, updateSystemStatus],
   );
 
-  // Render the flat list: group consecutive accordion items into an Accordion,
-  // interleave non-accordion keys as nav links.
+  // Render the flat list in `sidebarItems` order: group consecutive accordion
+  // items into an Accordion, interleave non-accordion keys as nav links, and
+  // emit a flex spacer wherever the spacer sentinel appears.
   const content = useMemo(() => {
     const elements: ReactElement[] = [];
     let accGroup: { element: ReactElement; key: string }[] = [];
@@ -182,7 +182,17 @@ const Body = memo(() => {
     };
 
     for (const key of visibleKeys) {
-      if (ACCORDION_KEYS.has(key)) {
+      if (key === SIDEBAR_SPACER_ID) {
+        flushAccordion();
+        elements.push(
+          <div
+            aria-hidden
+            data-sidebar-bottom-spacer
+            key={`spacer-${elements.length}`}
+            style={{ flex: '1 1 0', minHeight: 0 }}
+          />,
+        );
+      } else if (ACCORDION_KEYS.has(key)) {
         const comp = accordionComponents[key]?.(key);
         if (comp) accGroup.push({ element: comp, key });
       } else {
@@ -192,13 +202,13 @@ const Body = memo(() => {
       }
     }
     flushAccordion();
+
     return elements;
   }, [visibleKeys, renderNavLink, sidebarExpandedKeys, handleAccordionExpandedChange]);
 
   return (
-    <Flexbox flex={1} gap={1} paddingInline={4}>
+    <Flexbox flex={1} gap={1} paddingInline={4} style={{ minHeight: '100%' }}>
       {content}
-      <CustomizeSidebarModal />
     </Flexbox>
   );
 });

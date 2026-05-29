@@ -1,4 +1,5 @@
 import { log } from '../utils/logger';
+import { checkPlatformCapability } from './checkPlatformCapability';
 import {
   editLocalFile,
   globLocalFiles,
@@ -8,9 +9,14 @@ import {
   searchLocalFiles,
   writeLocalFile,
 } from './file';
+import { getAgentProfile } from './getAgentProfile';
+import { cancelHeteroTask, runHeteroTask } from './heteroTask';
 import { getCommandOutput, killCommand, runCommand } from './shell';
 
 const methodMap: Record<string, (args: any) => Promise<unknown>> = {
+  cancelHeteroTask,
+  checkPlatformCapability,
+  getAgentProfile,
   editFile: editLocalFile,
   getCommandOutput,
   globFiles: globLocalFiles,
@@ -19,6 +25,7 @@ const methodMap: Record<string, (args: any) => Promise<unknown>> = {
   listFiles: listLocalFiles,
   readFile: readLocalFile,
   runCommand,
+  runHeteroTask,
   searchFiles: searchLocalFiles,
   writeFile: writeLocalFile,
 
@@ -34,6 +41,7 @@ const methodMap: Record<string, (args: any) => Promise<unknown>> = {
 export async function executeToolCall(
   apiName: string,
   argsStr: string,
+  timeout?: number,
 ): Promise<{
   content: string;
   error?: string;
@@ -46,8 +54,12 @@ export async function executeToolCall(
 
   try {
     const args = JSON.parse(argsStr);
+    const finalArgs =
+      typeof timeout === 'number' && Number.isFinite(timeout) && !('timeout' in args)
+        ? { ...args, timeout }
+        : args;
 
-    const result = await handler(args);
+    const result = await handler(finalArgs);
     const content = typeof result === 'string' ? result : JSON.stringify(result);
 
     return { content, success: true };

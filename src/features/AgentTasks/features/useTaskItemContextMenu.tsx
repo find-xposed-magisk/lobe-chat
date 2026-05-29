@@ -7,6 +7,7 @@ import {
   Icon,
   type MenuInfo,
 } from '@lobehub/ui';
+import { confirmModal } from '@lobehub/ui/base-ui';
 import { App } from 'antd';
 import { cssVar } from 'antd-style';
 import {
@@ -25,6 +26,7 @@ import { useAgentStore } from '@/store/agent';
 import { builtinAgentSelectors } from '@/store/agent/selectors';
 import { useTaskStore } from '@/store/task';
 
+import { taskDetailPath } from '../shared/taskDetailPath';
 import { renderMenuExtra } from './menuExtra';
 import { PRIORITY_META } from './TaskPriorityTag';
 import { STATUS_META, USER_SELECTABLE_STATUSES } from './TaskStatusTag';
@@ -54,7 +56,7 @@ export interface TaskContextMenuActions {
 
 export const useTaskContextMenuActions = (): TaskContextMenuActions => {
   const { t } = useTranslation(['chat', 'common']);
-  const { modal, message } = App.useApp();
+  const { message } = App.useApp();
   const appOrigin = useAppOrigin();
 
   const updateTaskStatus = useTaskStore((s) => s.updateTaskStatus);
@@ -71,8 +73,7 @@ export const useTaskContextMenuActions = (): TaskContextMenuActions => {
 
   return useMemo<TaskContextMenuActions>(() => {
     const triggerDelete = (identifier: string) => {
-      modal.confirm({
-        centered: true,
+      confirmModal({
         content: t('taskDetail.deleteConfirm.content'),
         okButtonProps: { danger: true },
         okText: t('taskDetail.deleteConfirm.ok'),
@@ -80,7 +81,6 @@ export const useTaskContextMenuActions = (): TaskContextMenuActions => {
           await deleteTask(identifier);
         },
         title: t('taskDetail.deleteConfirm.title'),
-        type: 'error',
       });
     };
 
@@ -125,7 +125,10 @@ export const useTaskContextMenuActions = (): TaskContextMenuActions => {
         } as ContextMenuItem;
       });
 
-      const taskUrl = `${appOrigin}/task/${task.identifier}`;
+      const taskUrl = `${appOrigin}${taskDetailPath(
+        task.identifier,
+        task.assigneeAgentId ?? undefined,
+      )}`;
       const canRunNow = RUN_NOW_STATUSES.has(currentStatus);
 
       return [
@@ -273,7 +276,6 @@ export const useTaskContextMenuActions = (): TaskContextMenuActions => {
 
     return { buildItems, installKeyboardHandlers };
   }, [
-    modal,
     message,
     t,
     appOrigin,
@@ -288,13 +290,10 @@ export const useTaskContextMenuActions = (): TaskContextMenuActions => {
 
 export const useTaskItemContextMenu = (task: TaskContextMenuTarget): TaskItemContextMenu => {
   const { buildItems, installKeyboardHandlers } = useTaskContextMenuActions();
-  const items = useMemo(
-    () => buildItems(task),
-    [buildItems, task.identifier, task.status, task.priority, task.assigneeAgentId],
-  );
+  const items = useMemo(() => buildItems(task), [buildItems, task]);
   const onContextMenu = useCallback(
     () => installKeyboardHandlers(task),
-    [installKeyboardHandlers, task.identifier, task.status, task.priority],
+    [installKeyboardHandlers, task],
   );
   return { items, onContextMenu };
 };

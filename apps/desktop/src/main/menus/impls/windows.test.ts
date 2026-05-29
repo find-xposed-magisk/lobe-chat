@@ -205,6 +205,9 @@ describe('WindowsMenu', () => {
 
   describe('menu item click handlers', () => {
     it('should handle preferences click', () => {
+      const mainWindow = { broadcast: vi.fn(), loadUrl: vi.fn(), show: vi.fn() };
+      (mockApp.browserManager.getMainWindow as any).mockReturnValue(mainWindow);
+
       windowsMenu.buildAndSetAppMenu();
 
       const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
@@ -213,7 +216,9 @@ describe('WindowsMenu', () => {
 
       expect(preferencesItem).toBeDefined();
       preferencesItem.click();
-      expect(mockApp.browserManager.retrieveByIdentifier).toHaveBeenCalledWith('settings');
+      expect(mockApp.browserManager.getMainWindow).toHaveBeenCalled();
+      expect(mainWindow.show).toHaveBeenCalled();
+      expect(mainWindow.broadcast).toHaveBeenCalledWith('navigate', { path: '/settings' });
     });
 
     it('should handle check for updates click', () => {
@@ -416,13 +421,20 @@ describe('WindowsMenu', () => {
       const template = (Menu.buildFromTemplate as any).mock.calls[0][0];
       const viewMenu = template.find((item: any) => item.label === 'View');
 
-      const resetZoomItem = viewMenu.submenu.find((item: any) => item.role === 'resetZoom');
-      const zoomInItem = viewMenu.submenu.find((item: any) => item.role === 'zoomIn');
-      const zoomOutItem = viewMenu.submenu.find((item: any) => item.role === 'zoomOut');
+      const resetZoomItem = viewMenu.submenu.find((item: any) => item.label === 'Reset Zoom');
+      const zoomInItems = viewMenu.submenu.filter((item: any) => item.label === 'Zoom In');
+      const zoomInItem = zoomInItems.find((item: any) => item.visible !== false);
+      const alternateZoomInItem = zoomInItems.find((item: any) => item.visible === false);
+      const zoomOutItem = viewMenu.submenu.find((item: any) => item.label === 'Zoom Out');
 
-      expect(resetZoomItem).toBeDefined();
-      expect(zoomInItem).toBeDefined();
-      expect(zoomOutItem).toBeDefined();
+      expect(resetZoomItem.accelerator).toBe('CmdOrCtrl+0');
+      expect(typeof resetZoomItem.click).toBe('function');
+      expect(zoomInItem.accelerator).toBe('CmdOrCtrl+=');
+      expect(typeof zoomInItem.click).toBe('function');
+      expect(alternateZoomInItem.accelerator).toBe('CmdOrCtrl+Plus');
+      expect(typeof alternateZoomInItem.click).toBe('function');
+      expect(zoomOutItem.accelerator).toBe('CmdOrCtrl+-');
+      expect(typeof zoomOutItem.click).toBe('function');
     });
   });
 

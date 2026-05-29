@@ -14,7 +14,6 @@ import { agentService } from '@/services/agent';
 import {
   agentDocumentService,
   agentDocumentSWRKeys,
-  mapAgentDocumentsToContext,
   resolveAgentDocumentsContext,
 } from '@/services/agentDocument';
 import type { StoreSetter } from '@/store/types';
@@ -26,6 +25,7 @@ import type {
   LobeAgentConfig,
   RuntimeEnvConfig,
 } from '@/types/agent';
+import { toAgentContextDocuments } from '@/utils/agentDocumentContextMapping';
 import { merge } from '@/utils/merge';
 
 import type { AgentStore } from '../../store';
@@ -227,6 +227,13 @@ export class AgentSliceActionImpl {
 
     if (isDesktop && 'workingDirectory' in config) {
       setLocalAgentWorkingDirectory(agentId, config.workingDirectory);
+      const nextMap = { ...this.#get().localAgentWorkingDirectoryMap };
+      if (config.workingDirectory) {
+        nextMap[agentId] = config.workingDirectory;
+      } else {
+        delete nextMap[agentId];
+      }
+      this.#set({ localAgentWorkingDirectoryMap: nextMap }, false, 'updateAgentWorkingDirectory');
     }
 
     const restConfig = { ...config };
@@ -318,7 +325,7 @@ export class AgentSliceActionImpl {
     return useClientDataSWRWithSync<AgentContextDocument[]>(
       agentId ? agentDocumentSWRKeys.documents(agentId) : null,
       async () =>
-        mapAgentDocumentsToContext(await agentDocumentService.getDocuments({ agentId: agentId! })),
+        toAgentContextDocuments(await agentDocumentService.getDocuments({ agentId: agentId! })),
       {
         onData: (data) => {
           if (!agentId) return;

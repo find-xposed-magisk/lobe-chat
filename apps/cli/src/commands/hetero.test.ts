@@ -8,9 +8,18 @@ import { registerHeteroCommand } from './hetero';
 const { mockSpawnAgent } = vi.hoisted(() => ({
   mockSpawnAgent: vi.fn(),
 }));
+const { mockGetTrpcClient, mockHeteroFinishMutate, mockHeteroIngestMutate } = vi.hoisted(() => ({
+  mockGetTrpcClient: vi.fn(),
+  mockHeteroFinishMutate: vi.fn(),
+  mockHeteroIngestMutate: vi.fn(),
+}));
 
 vi.mock('@lobechat/heterogeneous-agents/spawn', () => ({
   spawnAgent: mockSpawnAgent,
+}));
+
+vi.mock('../api/client', () => ({
+  getTrpcClient: mockGetTrpcClient,
 }));
 
 vi.mock('../utils/logger', () => ({
@@ -77,6 +86,17 @@ describe('hetero exec command', () => {
     }) as any);
     stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     mockSpawnAgent.mockReset();
+    mockHeteroIngestMutate.mockReset();
+    mockHeteroFinishMutate.mockReset();
+    mockGetTrpcClient.mockReset();
+    mockHeteroIngestMutate.mockResolvedValue({ ack: true });
+    mockHeteroFinishMutate.mockResolvedValue({ ack: true });
+    mockGetTrpcClient.mockResolvedValue({
+      aiAgent: {
+        heteroFinish: { mutate: mockHeteroFinishMutate },
+        heteroIngest: { mutate: mockHeteroIngestMutate },
+      },
+    });
   });
 
   afterEach(() => {
@@ -340,5 +360,289 @@ describe('hetero exec command', () => {
     ]);
     expect(exitSpy).toHaveBeenCalledWith(2);
     expect(mockSpawnAgent).not.toHaveBeenCalled();
+  });
+
+  describe('--resume auto-retry on session-not-found', () => {
+    it('retries without --resume when the error stream event indicates the session is gone', async () => {
+      // First spawn: exits non-zero, emits a resume-not-found error event
+      const resumeNotFoundEvent = {
+        data: {
+          error: 'No conversation found with session ID cc-stale',
+          message: 'No conversation found with session ID cc-stale',
+        },
+        operationId: 'op-r1',
+        stepIndex: 0,
+        timestamp: 1,
+        type: 'error',
+      };
+      mockSpawnAgent
+        .mockReturnValueOnce(createFakeHandle({ events: [resumeNotFoundEvent], exitCode: 1 }))
+        // Second spawn: succeeds
+        .mockReturnValueOnce(createFakeHandle({ exitCode: 0 }));
+
+      await runCmd([
+        'hetero',
+        'exec',
+        '--type',
+        'claude-code',
+        '--prompt',
+        'do the thing',
+        '--resume',
+        'cc-stale',
+        '--operation-id',
+        'op-r1',
+      ]);
+
+      // Two spawns: first with --resume, retry without
+      expect(mockSpawnAgent).toHaveBeenCalledTimes(2);
+      expect(mockSpawnAgent.mock.calls[0][0]).toMatchObject({ resumeSessionId: 'cc-stale' });
+      expect(mockSpawnAgent.mock.calls[1][0]).not.toHaveProperty('resumeSessionId');
+      expect(mockSpawnAgent.mock.calls[1][0].resumeSessionId).toBeUndefined();
+
+      // Final exit code comes from the retry (0 → success)
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    });
+
+    it('retries without --resume when stderr contains a session-not-found message', async () => {
+      // First spawn: exits non-zero with no events, but stderr has the pattern
+      mockSpawnAgent
+        .mockReturnValueOnce(
+          createFakeHandle({
+            exitCode: 1,
+            stderrChunks: ['Error: No conversation found with session ID xyz\n'],
+          }),
+        )
+        .mockReturnValueOnce(createFakeHandle({ exitCode: 0 }));
+
+      await runCmd([
+        'hetero',
+        'exec',
+        '--type',
+        'claude-code',
+        '--prompt',
+        'continue',
+        '--resume',
+        'xyz',
+        '--operation-id',
+        'op-r2',
+      ]);
+
+      expect(mockSpawnAgent).toHaveBeenCalledTimes(2);
+      expect(mockSpawnAgent.mock.calls[1][0].resumeSessionId).toBeUndefined();
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    });
+
+    it('retries without --resume when the error indicates context overflow', async () => {
+      const contextOverflowEvent = {
+        data: {
+          error: 'prompt is too long: 215168 tokens > 200000 maximum',
+          message: 'prompt is too long: 215168 tokens > 200000 maximum',
+        },
+        operationId: 'op-ctx',
+        stepIndex: 0,
+        timestamp: 1,
+        type: 'error',
+      };
+      mockSpawnAgent
+        .mockReturnValueOnce(createFakeHandle({ events: [contextOverflowEvent], exitCode: 1 }))
+        .mockReturnValueOnce(createFakeHandle({ exitCode: 0 }));
+
+      await runCmd([
+        'hetero',
+        'exec',
+        '--type',
+        'claude-code',
+        '--prompt',
+        'next question',
+        '--resume',
+        'cc-longctx',
+        '--operation-id',
+        'op-ctx',
+      ]);
+
+      expect(mockSpawnAgent).toHaveBeenCalledTimes(2);
+      expect(mockSpawnAgent.mock.calls[0][0]).toMatchObject({ resumeSessionId: 'cc-longctx' });
+      expect(mockSpawnAgent.mock.calls[1][0].resumeSessionId).toBeUndefined();
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    });
+
+    it('does NOT retry on a non-resume error exit', async () => {
+      // Exit code 1 but no resume-related error message
+      mockSpawnAgent.mockReturnValueOnce(
+        createFakeHandle({ exitCode: 1, stderrChunks: ['rate limit exceeded\n'] }),
+      );
+
+      await runCmd([
+        'hetero',
+        'exec',
+        '--type',
+        'claude-code',
+        '--prompt',
+        'hi',
+        '--resume',
+        'cc-valid',
+      ]);
+
+      expect(mockSpawnAgent).toHaveBeenCalledTimes(1);
+      expect(exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('does NOT retry when --resume is not provided', async () => {
+      const errorEvent = {
+        data: { error: 'No conversation found', message: 'No conversation found' },
+        operationId: 'op-nr',
+        stepIndex: 0,
+        timestamp: 1,
+        type: 'error',
+      };
+      mockSpawnAgent.mockReturnValueOnce(createFakeHandle({ events: [errorEvent], exitCode: 1 }));
+
+      await runCmd([
+        'hetero',
+        'exec',
+        '--type',
+        'claude-code',
+        '--prompt',
+        'fresh run',
+        '--operation-id',
+        'op-nr',
+      ]);
+
+      // No --resume → no interception → no retry
+      expect(mockSpawnAgent).toHaveBeenCalledTimes(1);
+      expect(exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('does NOT suppress the resume-error event from JSONL output', async () => {
+      const resumeNotFoundEvent = {
+        data: {
+          error: 'No conversation found with session ID old',
+          message: 'No conversation found with session ID old',
+        },
+        operationId: 'op-jsonl',
+        stepIndex: 0,
+        timestamp: 1,
+        type: 'error',
+      };
+      mockSpawnAgent
+        .mockReturnValueOnce(createFakeHandle({ events: [resumeNotFoundEvent], exitCode: 1 }))
+        .mockReturnValueOnce(createFakeHandle({ exitCode: 0 }));
+
+      await runCmd([
+        'hetero',
+        'exec',
+        '--type',
+        'claude-code',
+        '--prompt',
+        'do thing',
+        '--resume',
+        'old',
+        '--render',
+        'jsonl',
+      ]);
+
+      // The error event is still emitted to JSONL (for observability) even
+      // though it was withheld from the ingester.
+      const lines = stdoutSpy.mock.calls
+        .map((c) => c[0])
+        .filter((s): s is string => typeof s === 'string');
+      const errorLine = lines.find((l) => {
+        try {
+          return JSON.parse(l).type === 'error';
+        } catch {
+          return false;
+        }
+      });
+      expect(errorLine).toBeDefined();
+    });
+  });
+
+  it('sends full text snapshots before tools and waits for finish until all server ingests ack', async () => {
+    const callOrder: string[] = [];
+    mockHeteroIngestMutate.mockImplementation(async ({ events }: any) => {
+      const first = events[0];
+      callOrder.push(`ingest:${first.type}:${first.data?.chunkType ?? 'terminal'}`);
+      return { ack: true };
+    });
+    mockHeteroFinishMutate.mockImplementation(async () => {
+      callOrder.push('finish');
+      return { ack: true };
+    });
+
+    mockSpawnAgent.mockReturnValue(
+      createFakeHandle({
+        events: [
+          {
+            data: { chunkType: 'text', content: 'hello ' },
+            operationId: 'op-server',
+            stepIndex: 0,
+            timestamp: 1,
+            type: 'stream_chunk',
+          },
+          {
+            data: { chunkType: 'text', content: 'world' },
+            operationId: 'op-server',
+            stepIndex: 0,
+            timestamp: 2,
+            type: 'stream_chunk',
+          },
+          {
+            data: {
+              chunkType: 'tools_calling',
+              toolsCalling: [
+                {
+                  apiName: 'Bash',
+                  arguments: '{"cmd":"ls"}',
+                  id: 'tc-1',
+                  identifier: 'bash',
+                  type: 'default',
+                },
+              ],
+            },
+            operationId: 'op-server',
+            stepIndex: 1,
+            timestamp: 3,
+            type: 'stream_chunk',
+          },
+          {
+            data: { reason: 'success' },
+            operationId: 'op-server',
+            stepIndex: 1,
+            timestamp: 4,
+            type: 'agent_runtime_end',
+          },
+        ],
+        exitCode: 0,
+      }),
+    );
+
+    await runCmd([
+      'hetero',
+      'exec',
+      '--type',
+      'claude-code',
+      '--prompt',
+      'hi',
+      '--topic',
+      'topic-1',
+      '--operation-id',
+      'op-server',
+      '--render',
+      'none',
+    ]);
+
+    expect(mockHeteroIngestMutate).toHaveBeenCalledTimes(3);
+    expect(mockHeteroIngestMutate.mock.calls[0][0].events[0].data).toMatchObject({
+      chunkType: 'text',
+      content: 'hello world',
+      snapshotMode: 'replace',
+      snapshotSeq: 1,
+    });
+    expect(callOrder).toEqual([
+      'ingest:stream_chunk:text',
+      'ingest:stream_chunk:tools_calling',
+      'ingest:agent_runtime_end:terminal',
+      'finish',
+    ]);
   });
 });

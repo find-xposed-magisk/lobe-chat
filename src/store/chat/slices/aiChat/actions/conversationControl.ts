@@ -41,11 +41,11 @@ export class ConversationControlActionImpl {
    * Decide whether approve/reject/reject_continue should go through the
    * Gateway resume path (new op carrying `resumeApproval`) instead of the
    * local `executeClientAgent` path. Mirrors the "interrupt + new op"
-   * pattern from LOBE-7142.
+   * pattern from .
    *
    * Routes via `selectRuntimeType` so approve/reject align with how the
    * conversation was dispatched at sendMessage time. Hetero resume is not yet
-   * implemented and falls through to client local resume — see LOBE-8519.
+   * implemented and falls through to client local resume — see .
    *
    * We deliberately do **not** look for a living `execServerAgentRuntime`
    * op here. The server's `waiting_for_human` → `agent_runtime_end` signal
@@ -61,6 +61,7 @@ export class ConversationControlActionImpl {
       : undefined;
     return (
       selectRuntimeType({
+        executionTarget: agentConfig?.agencyConfig?.executionTarget,
         heterogeneousProvider: agentConfig?.agencyConfig?.heterogeneousProvider,
         isGatewayMode: this.#get().isGatewayModeEnabled(),
       }) === 'gateway'
@@ -820,7 +821,12 @@ export class ConversationControlActionImpl {
     // CC stream resumes so flip it back to `running`. The natural completion
     // (`runtime_end` → `writeTopicStatus('active')`) takes over from there.
     if (effectiveContext.topicId) {
-      void this.#get().updateTopicStatus?.(effectiveContext.topicId, 'running');
+      void this.#get().updateTopicStatus?.({
+        agentId: effectiveContext.agentId,
+        groupId: effectiveContext.groupId,
+        status: 'running',
+        topicId: effectiveContext.topicId,
+      });
     }
   };
 

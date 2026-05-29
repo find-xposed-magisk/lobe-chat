@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { getDefaultReasonDetail, StreamEventManager } from '../StreamEventManager';
+import {
+  getDefaultReasonDetail,
+  StreamEventManager,
+  stripFinalStateInEventData,
+} from '../StreamEventManager';
 
 // Mock Redis client
 const mockRedis = {
@@ -75,7 +79,11 @@ describe('StreamEventManager', () => {
 
       mockRedis.xadd.mockResolvedValue('event-id-456');
 
-      const result = await streamManager.publishAgentRuntimeEnd(operationId, stepIndex, finalState);
+      const result = await streamManager.publishAgentRuntimeEnd({
+        finalState,
+        operationId,
+        stepIndex,
+      });
 
       expect(result).toBe('event-id-456');
       expect(mockRedis.xadd).toHaveBeenCalledWith(
@@ -103,6 +111,50 @@ describe('StreamEventManager', () => {
       );
     });
 
+    // agent_runtime_end optionally carries the canonical UIChatMessage[]
+    // snapshot so the client can use the pushed payload as Source of Truth
+    // instead of refetching from DB.
+    it('should include uiMessages in serialized data when provided', async () => {
+      const operationId = 'test-operation-id';
+      const stepIndex = 5;
+      const finalState = { status: 'done', stepCount: 5 };
+      const uiMessages = [{ id: 'msg_a', role: 'assistantGroup' }] as any;
+
+      mockRedis.xadd.mockResolvedValue('event-id-ui');
+
+      await streamManager.publishAgentRuntimeEnd({
+        finalState,
+        operationId,
+        reason: 'done',
+        stepIndex,
+        uiMessages,
+      });
+
+      // Find the serialized `data` argument inline so this test stays robust
+      // if other positional args shift around.
+      const dataArg = mockRedis.xadd.mock.calls[0]?.find(
+        (a: any) => typeof a === 'string' && a.startsWith('{'),
+      );
+      const parsed = JSON.parse(dataArg);
+      expect(parsed.uiMessages).toEqual(uiMessages);
+      expect(parsed.finalState).toEqual(finalState);
+    });
+
+    it('should omit uiMessages from serialized data when not provided', async () => {
+      const operationId = 'test-operation-id';
+      const finalState = { status: 'done', stepCount: 3 };
+
+      mockRedis.xadd.mockResolvedValue('event-id-noui');
+
+      await streamManager.publishAgentRuntimeEnd({ finalState, operationId, stepIndex: 3 });
+
+      const dataArg = mockRedis.xadd.mock.calls[0]?.find(
+        (a: any) => typeof a === 'string' && a.startsWith('{'),
+      );
+      const parsed = JSON.parse(dataArg);
+      expect(parsed).not.toHaveProperty('uiMessages');
+    });
+
     it('should accept custom reason and reasonDetail', async () => {
       const operationId = 'test-operation-id';
       const stepIndex = 3;
@@ -112,13 +164,13 @@ describe('StreamEventManager', () => {
 
       mockRedis.xadd.mockResolvedValue('event-id-789');
 
-      await streamManager.publishAgentRuntimeEnd(
-        operationId,
-        stepIndex,
+      await streamManager.publishAgentRuntimeEnd({
         finalState,
+        operationId,
         reason,
         reasonDetail,
-      );
+        stepIndex,
+      });
 
       expect(mockRedis.xadd).toHaveBeenCalledWith(
         expect.any(String),
@@ -158,7 +210,12 @@ describe('StreamEventManager', () => {
 
       mockRedis.xadd.mockResolvedValue('event-id-790');
 
-      await streamManager.publishAgentRuntimeEnd(operationId, stepIndex, finalState, 'error');
+      await streamManager.publishAgentRuntimeEnd({
+        finalState,
+        operationId,
+        reason: 'error',
+        stepIndex,
+      });
 
       expect(mockRedis.xadd).toHaveBeenCalledWith(
         expect.any(String),
@@ -183,6 +240,100 @@ describe('StreamEventManager', () => {
         expect.any(String),
         expect.any(String),
       );
+    });
+
+    // Heavy reconstructible fields (notably `messages` with
+    // compressedGroup envelopes) must be stripped before xadd so a
+    // single event can't blow past Upstash's 10 MB request limit.
+    it('strips messages + tool-set fields from finalState before xadd', async () => {
+      const operationId = 'test-operation-id';
+      const messages = [
+        { content: 'msg', role: 'user' },
+        { content: 'reply', role: 'assistant' },
+      ];
+      const finalState = {
+        cost: { total: 42 },
+        error: { message: 'boom', type: 'BoomError' },
+        messages,
+        operationToolSet: { enabledToolIds: ['x'] },
+        status: 'error',
+        stepCount: 4,
+        toolManifestMap: { x: { name: 'x' } },
+        toolSourceMap: { x: 'plugin' },
+        tools: [{ name: 'x' }],
+        usage: { llm: { tokens: { total: 100 } } },
+      };
+
+      mockRedis.xadd.mockResolvedValue('event-id-strip');
+
+      await streamManager.publishAgentRuntimeEnd({
+        finalState,
+        operationId,
+        reason: 'error',
+        stepIndex: 4,
+      });
+
+      const dataArg = mockRedis.xadd.mock.calls[0]?.find(
+        (a: any) => typeof a === 'string' && a.startsWith('{'),
+      );
+      const parsed = JSON.parse(dataArg);
+
+      // Stripped: heavy / reconstructible fields gone
+      expect(parsed.finalState.messages).toBeUndefined();
+      expect(parsed.finalState.operationToolSet).toBeUndefined();
+      expect(parsed.finalState.toolManifestMap).toBeUndefined();
+      expect(parsed.finalState.toolSourceMap).toBeUndefined();
+      expect(parsed.finalState.tools).toBeUndefined();
+
+      // Preserved: lightweight observability fields downstream consumers use
+      expect(parsed.finalState.status).toBe('error');
+      expect(parsed.finalState.cost).toEqual({ total: 42 });
+      expect(parsed.finalState.error).toEqual({ message: 'boom', type: 'BoomError' });
+      expect(parsed.finalState.stepCount).toBe(4);
+      expect(parsed.finalState.usage).toEqual({ llm: { tokens: { total: 100 } } });
+
+      // reasonDetail derivation runs against the un-stripped in-process
+      // finalState passed as a param, so the error message survives.
+      expect(parsed.reasonDetail).toBe('boom');
+    });
+  });
+
+  describe('stripFinalStateInEventData', () => {
+    it('returns data unchanged when finalState is absent', () => {
+      const data = { phase: 'execution_complete', reason: 'done' };
+      expect(stripFinalStateInEventData(data)).toBe(data);
+    });
+
+    it('returns data unchanged when finalState is falsy', () => {
+      const data = { finalState: null, reason: 'done' };
+      expect(stripFinalStateInEventData(data)).toBe(data);
+    });
+
+    it('strips reconstructible fields off finalState while preserving others', () => {
+      const result = stripFinalStateInEventData({
+        finalState: {
+          cost: { total: 1 },
+          messages: [{ role: 'user' }],
+          operationToolSet: {},
+          status: 'done',
+          toolManifestMap: {},
+          toolSourceMap: {},
+          tools: [],
+        },
+        reason: 'done',
+      });
+
+      expect(result).toEqual({
+        finalState: { cost: { total: 1 }, status: 'done' },
+        reason: 'done',
+      });
+    });
+
+    it('handles non-object data defensively', () => {
+      expect(stripFinalStateInEventData(undefined)).toBeUndefined();
+      expect(stripFinalStateInEventData(null)).toBeNull();
+      expect(stripFinalStateInEventData('chunk')).toBe('chunk');
+      expect(stripFinalStateInEventData(123)).toBe(123);
     });
   });
 

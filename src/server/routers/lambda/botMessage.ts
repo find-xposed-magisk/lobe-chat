@@ -11,8 +11,11 @@ import {
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import { getMessengerTelegramConfig } from '@/config/messenger';
 import type { DecryptedBotProvider } from '@/database/models/agentBotProvider';
 import { AgentBotProviderModel } from '@/database/models/agentBotProvider';
+import { MessengerAccountLinkModel } from '@/database/models/messengerAccountLink';
+import { MessengerInstallationModel } from '@/database/models/messengerInstallation';
 import { authedProcedure, router } from '@/libs/trpc/lambda';
 import { serverDatabase } from '@/libs/trpc/lambda/middleware';
 import { KeyVaultsGateKeeper } from '@/server/modules/KeyVaultsEncrypt';
@@ -26,6 +29,7 @@ import { SlackMessageService } from '@/server/services/bot/platforms/slack/servi
 import { TelegramApi } from '@/server/services/bot/platforms/telegram/api';
 import { TelegramMessageService } from '@/server/services/bot/platforms/telegram/service';
 import { WechatMessageService } from '@/server/services/bot/platforms/wechat/service';
+import { TELEGRAM_INSTALLATION_KEY } from '@/server/services/messenger/installations/telegram';
 
 // ── Middleware ────────────────────────────────────────────
 
@@ -40,11 +44,43 @@ const botMessageProcedure = authedProcedure.use(serverDatabase).use(async (opts)
   });
 });
 
+// ── Shared input schemas ─────────────────────────────────
+
+/**
+ * Mirror of `SendMessageAttachment` (builtin-tool-message types). Shared
+ * across `sendMessage`, `sendDirectMessage`, and `replyToThread` so the
+ * three procedures stay in lockstep — the platform-specific helpers
+ * downstream only see one shape.
+ */
+const attachmentsInputSchema = z.array(
+  z.object({
+    data: z.string().optional(),
+    fetchUrl: z.string().url().optional(),
+    mimeType: z.string().optional(),
+    name: z.string().optional(),
+    type: z.enum(['image', 'file', 'video', 'audio']),
+  }),
+);
+
 // ── Service Factory ──────────────────────────────────────
 
-const createServiceForBot = (provider: DecryptedBotProvider): MessageRuntimeService => {
-  const { platform, applicationId, credentials } = provider;
-
+/**
+ * Build a `MessageRuntimeService` from raw platform + applicationId +
+ * credentials. Shared between two resolution sources:
+ *
+ * 1. Per-agent bot channels (`agent_bot_providers` row) — `resolveBot`
+ * 2. System Bot messenger installs (`messenger_installations` row) —
+ *    `resolveMessengerInstall`
+ *
+ * Both paths produce the same underlying outbound API client, so the
+ * downstream `MessageRuntimeService` behavior (attachments included) is
+ * identical regardless of where the credentials came from.
+ */
+const createServiceForCredentials = (
+  platform: string,
+  applicationId: string,
+  credentials: Record<string, any>,
+): MessageRuntimeService => {
   switch (platform) {
     case 'discord': {
       return new DiscordMessageService(new DiscordApi(credentials.botToken));
@@ -85,6 +121,13 @@ const createServiceForBot = (provider: DecryptedBotProvider): MessageRuntimeServ
   }
 };
 
+const createServiceForBot = (provider: DecryptedBotProvider): MessageRuntimeService =>
+  createServiceForCredentials(
+    provider.platform,
+    provider.applicationId,
+    provider.credentials as Record<string, any>,
+  );
+
 const resolveBot = async (
   model: AgentBotProviderModel,
   botId: string,
@@ -111,6 +154,109 @@ const resolveBot = async (
   };
 };
 
+/**
+ * Resolve a system-bot messenger installation row into a runnable
+ * `MessageRuntimeService`. Authorization: only the user who installed the
+ * row can target it — workspace admins who installed under a different
+ * LobeHub account need their own session.
+ */
+const resolveMessengerInstall = async (
+  ctx: { serverDB: any; userId: string },
+  installationId: string,
+): Promise<{
+  platform: MessagePlatformType;
+  service: MessageRuntimeService;
+  settings: Record<string, unknown>;
+}> => {
+  // Telegram is env-backed and never lives in `messenger_installations`. The
+  // synthetic id surfaced by `listMessengers` would 404 on `findById`, so
+  // short-circuit here: pull the bot token from env config and gate on the
+  // caller having an account link (analogue of the per-row ownership check).
+  if (installationId === TELEGRAM_INSTALLATION_KEY) {
+    const telegramConfig = await getMessengerTelegramConfig();
+    if (!telegramConfig) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Telegram messenger is not configured on this deployment',
+      });
+    }
+    const link = await new MessengerAccountLinkModel(ctx.serverDB, ctx.userId).findByPlatform(
+      'telegram',
+    );
+    if (!link) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message:
+          'You can only send through Telegram after linking your account. ' +
+          'Open the Telegram bot and run /start to create the link.',
+      });
+    }
+    return {
+      platform: 'telegram',
+      service: createServiceForCredentials('telegram', TELEGRAM_INSTALLATION_KEY, {
+        botToken: telegramConfig.botToken,
+      }),
+      settings: {},
+    };
+  }
+
+  const gateKeeper = await KeyVaultsGateKeeper.initWithEnvKey().catch(() => undefined);
+  const row = await MessengerInstallationModel.findById(ctx.serverDB, installationId, gateKeeper);
+  if (!row) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: `Messenger installation not found: ${installationId}`,
+    });
+  }
+  if (row.revokedAt) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: `Messenger installation has been revoked: ${installationId}`,
+    });
+  }
+  if (row.installedByUserId !== ctx.userId) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'You can only send through messenger installs you initiated',
+    });
+  }
+  return {
+    platform: row.platform as MessagePlatformType,
+    service: createServiceForCredentials(
+      row.platform,
+      row.applicationId,
+      row.credentials as Record<string, any>,
+    ),
+    settings: {},
+  };
+};
+
+/**
+ * Common dispatcher: either a per-agent `botId` or a system-bot
+ * `messengerInstallationId`. Each procedure's zod input enforces the
+ * "exactly one of" constraint at the boundary; this helper assumes that
+ * invariant has already been checked.
+ */
+const resolveSendTarget = async (
+  ctx: { agentBotProviderModel: AgentBotProviderModel; serverDB: any; userId: string },
+  input: { botId?: string; messengerInstallationId?: string },
+): Promise<{
+  platform: MessagePlatformType;
+  service: MessageRuntimeService;
+  settings: Record<string, unknown>;
+}> => {
+  if (input.botId) return resolveBot(ctx.agentBotProviderModel, input.botId);
+  if (input.messengerInstallationId)
+    return resolveMessengerInstall(
+      { serverDB: ctx.serverDB, userId: ctx.userId },
+      input.messengerInstallationId,
+    );
+  throw new TRPCError({
+    code: 'BAD_REQUEST',
+    message: 'Provide exactly one of botId or messengerInstallationId',
+  });
+};
+
 // ── Router ───────────────────────────────────────────────
 
 export const botMessageRouter = router({
@@ -118,14 +264,20 @@ export const botMessageRouter = router({
 
   sendDirectMessage: botMessageProcedure
     .input(
-      z.object({
-        botId: z.string(),
-        content: z.string(),
-        userId: z.string(),
-      }),
+      z
+        .object({
+          attachments: attachmentsInputSchema.optional(),
+          botId: z.string().optional(),
+          content: z.string(),
+          messengerInstallationId: z.string().optional(),
+          userId: z.string(),
+        })
+        .refine((v) => !!v.botId !== !!v.messengerInstallationId, {
+          message: 'Provide exactly one of botId or messengerInstallationId',
+        }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { service, platform } = await resolveBot(ctx.agentBotProviderModel, input.botId);
+      const { service, platform } = await resolveSendTarget(ctx, input);
       if (!service.sendDirectMessage) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -133,6 +285,7 @@ export const botMessageRouter = router({
         });
       }
       return service.sendDirectMessage({
+        attachments: input.attachments,
         content: input.content,
         platform,
         userId: input.userId,
@@ -143,17 +296,24 @@ export const botMessageRouter = router({
 
   sendMessage: botMessageProcedure
     .input(
-      z.object({
-        botId: z.string(),
-        channelId: z.string(),
-        content: z.string(),
-        embeds: z.array(z.record(z.unknown())).optional(),
-        replyTo: z.string().optional(),
-      }),
+      z
+        .object({
+          attachments: attachmentsInputSchema.optional(),
+          botId: z.string().optional(),
+          channelId: z.string(),
+          content: z.string(),
+          embeds: z.array(z.record(z.unknown())).optional(),
+          messengerInstallationId: z.string().optional(),
+          replyTo: z.string().optional(),
+        })
+        .refine((v) => !!v.botId !== !!v.messengerInstallationId, {
+          message: 'Provide exactly one of botId or messengerInstallationId',
+        }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { service, platform } = await resolveBot(ctx.agentBotProviderModel, input.botId);
+      const { service, platform } = await resolveSendTarget(ctx, input);
       return service.sendMessage({
+        attachments: input.attachments,
         channelId: input.channelId,
         content: input.content,
         embeds: input.embeds,
@@ -438,15 +598,22 @@ export const botMessageRouter = router({
 
   replyToThread: botMessageProcedure
     .input(
-      z.object({
-        botId: z.string(),
-        content: z.string(),
-        threadId: z.string(),
-      }),
+      z
+        .object({
+          attachments: attachmentsInputSchema.optional(),
+          botId: z.string().optional(),
+          content: z.string(),
+          messengerInstallationId: z.string().optional(),
+          threadId: z.string(),
+        })
+        .refine((v) => !!v.botId !== !!v.messengerInstallationId, {
+          message: 'Provide exactly one of botId or messengerInstallationId',
+        }),
     )
     .mutation(async ({ input, ctx }) => {
-      const { service, platform } = await resolveBot(ctx.agentBotProviderModel, input.botId);
+      const { service, platform } = await resolveSendTarget(ctx, input);
       return service.replyToThread({
+        attachments: input.attachments,
         content: input.content,
         platform,
         threadId: input.threadId,

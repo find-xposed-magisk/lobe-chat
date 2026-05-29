@@ -8,7 +8,8 @@ import type { ClientOptions } from 'openai';
 import OpenAI from 'openai';
 import type { Stream } from 'openai/streaming';
 
-import { responsesAPIModels } from '../../const/models';
+import { isGPT5ProResponsesModel, responsesAPIModels } from '../../const/models';
+import { ErrorClassifier } from '../../errors';
 import type {
   ChatCompletionErrorPayload,
   ChatCompletionTool,
@@ -39,10 +40,6 @@ import { desensitizeUrl } from '../../utils/desensitizeUrl';
 import { getModelPropertyWithFallback } from '../../utils/getFallbackModelProperty';
 import { getModelPricing } from '../../utils/getModelPricing';
 import { handleOpenAIError } from '../../utils/handleOpenAIError';
-import { isAccountDeactivatedError } from '../../utils/isAccountDeactivatedError';
-import { isExceededContextWindowError } from '../../utils/isExceededContextWindowError';
-import { isInsufficientQuotaError } from '../../utils/isInsufficientQuotaError';
-import { isQuotaLimitError } from '../../utils/isQuotaLimitError';
 import { postProcessModelList } from '../../utils/postProcessModelList';
 import {
   assertContextWithinWindow,
@@ -80,6 +77,13 @@ export const CHAT_MODELS_BLOCK_LIST = [
 
 type ConstructorOptions<T extends Record<string, any> = any> = ClientOptions & T;
 type OpenAIExtraParams = { prompt_cache_key?: string; safety_identifier?: string };
+type ChatCompletionCreateParamsWithPromptCacheKey = Omit<
+  OpenAI.ChatCompletionCreateParamsNonStreaming,
+  'reasoning_effort'
+> &
+  Pick<OpenAIExtraParams, 'prompt_cache_key'> &
+  Pick<GenerateObjectPayload, 'reasoning_effort'>;
+type GenerateObjectReasoningParams = Pick<GenerateObjectPayload, 'reasoning_effort' | 'thinking'>;
 type ResponseCreateParamsWithPromptCacheKey = (
   | OpenAI.Responses.ResponseCreateParamsStreaming
   | OpenAI.Responses.ResponseCreateParams
@@ -88,6 +92,37 @@ type ResponseCreateParamsWithPromptCacheKey = (
 export type CreateImageOptions = Omit<ClientOptions, 'apiKey'> & {
   apiKey: string;
   provider: string;
+};
+
+const getGenerateObjectReasoningParams = ({
+  reasoning_effort,
+  thinking,
+}: GenerateObjectReasoningParams) => ({
+  // `thinking` is a Lobe runtime abstraction, not a generic OpenAI-compatible API field.
+  // Use it here only to suppress `reasoning_effort`; providers that support thinking
+  // must translate it via `generateObject.handlePayload`.
+  ...(reasoning_effort && thinking?.type !== 'disabled' ? { reasoning_effort } : {}),
+});
+
+const supportsResponsesReasoningEffortNone = (model: string): boolean =>
+  /(?:^|\/)gpt-5\.[1-9]\d*(?:-(?!pro(?:-|$))|$)/.test(model);
+
+const getGenerateObjectResponsesReasoningParams = ({
+  model,
+  reasoning_effort,
+  thinking,
+}: GenerateObjectReasoningParams & { model: string }) => {
+  if (isGPT5ProResponsesModel(model)) {
+    return reasoning_effort && reasoning_effort !== 'max' ? { reasoning: { effort: 'high' } } : {};
+  }
+
+  if (thinking?.type === 'disabled') {
+    return supportsResponsesReasoningEffortNone(model) ? { reasoning: { effort: 'none' } } : {};
+  }
+
+  return reasoning_effort && reasoning_effort !== 'max'
+    ? { reasoning: { effort: reasoning_effort } }
+    : {};
 };
 
 export type CreateVideoOptions = Omit<ClientOptions, 'apiKey'> & {
@@ -113,7 +148,7 @@ export interface OpenAICompatibleFactoryOptions<T extends Record<string, any> = 
      * provided model list before dispatching to upstream. If the estimated
      * prompt tokens strictly exceed the model's context window, the
      * request is aborted with a structured `ExceededContextWindow` error
-     * — see LOBE-8974.
+     * — see .
      *
      * This is for providers like NVIDIA / DeepSeek where the harness does
      * not cap `max_tokens` itself but we still want to fail fast on doomed
@@ -185,6 +220,14 @@ export interface OpenAICompatibleFactoryOptions<T extends Record<string, any> = 
      * Transform schema before sending to the provider (e.g., filter unsupported properties)
      */
     handleSchema?: (schema: any) => any;
+    /**
+     * Transform Chat Completions payload before sending generateObject requests to the provider.
+     */
+    handlePayload?: (
+      payload: GenerateObjectPayload,
+      requestPayload: ChatCompletionCreateParamsWithPromptCacheKey,
+      options: ConstructorOptions<T>,
+    ) => ChatCompletionCreateParamsWithPromptCacheKey;
     /**
      * If true, route generateObject requests to Responses API path directly
      */
@@ -395,6 +438,15 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
       return promptCacheKey ? { prompt_cache_key: promptCacheKey } : {};
     }
 
+    private handleGenerateObjectPayload(
+      payload: GenerateObjectPayload,
+      requestPayload: ChatCompletionCreateParamsWithPromptCacheKey,
+    ) {
+      return generateObjectConfig?.handlePayload
+        ? generateObjectConfig.handlePayload(payload, requestPayload, this._options)
+        : requestPayload;
+    }
+
     async chat({ responseMode, ...payload }: ChatStreamPayload, options?: ChatMethodOptions) {
       try {
         const log = debug(`${this.logPrefix}:chat`);
@@ -430,7 +482,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
 
         // Pre-flight: abort doomed requests before invoking handlePayload so
         // providers don't waste a round-trip to upstream just to get a 400.
-        // See LOBE-8974.
+        // See .
         if (chatCompletion?.contextPreFlight) {
           const { models: preFlightModels, ...preFlightOptions } = chatCompletion.contextPreFlight;
           assertContextWithinWindow(processedPayload, preFlightModels, preFlightOptions);
@@ -806,14 +858,15 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
           };
 
           const res = await this.client.chat.completions.create(
-            {
+            this.handleGenerateObjectPayload(payload, {
+              ...getGenerateObjectReasoningParams(payload),
               messages,
               model,
               ...this.resolvePromptCacheKeyParams(model, options?.user),
               tool_choice: { function: { name: tool.function.name }, type: 'function' },
               tools: [tool],
               user: options?.user,
-            },
+            }) as OpenAI.ChatCompletionCreateParamsNonStreaming,
             { headers: options?.headers, signal: options?.signal },
           );
 
@@ -864,6 +917,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
             {
               input: messages,
               model,
+              ...getGenerateObjectResponsesReasoningParams(payload),
               ...this.resolvePromptCacheKeyParams(model, options?.user),
               text: { format: { strict: true, type: 'json_schema', ...processedSchema } },
               // Responses API replaced `user` with `safety_identifier`; some endpoints reject `user`
@@ -891,13 +945,14 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
 
         log('calling chat.completions.create for structured output');
         const res = await this.client.chat.completions.create(
-          {
+          this.handleGenerateObjectPayload(payload, {
+            ...getGenerateObjectReasoningParams(payload),
             messages,
             model,
             response_format: { json_schema: processedSchema, type: 'json_schema' },
             ...this.resolvePromptCacheKeyParams(model, options?.user),
             user: options?.user,
-          },
+          }) as OpenAI.ChatCompletionCreateParamsNonStreaming,
           { headers: options?.headers, signal: options?.signal },
         );
         if (res.usage) {
@@ -1000,7 +1055,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
 
       // Pre-flight context-window failures get a structured payload so the
       // UI can offer fork / switch-model affordances instead of surfacing a
-      // raw provider 400. See LOBE-8974.
+      // raw provider 400. See .
       if (error instanceof ContextExceededPreFlightError) {
         log('pre-flight context exceeded: %s', error.message);
         return AgentRuntimeError.chat({
@@ -1087,7 +1142,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
 
       const errorMsg = errorResult.error?.message || errorResult.message;
 
-      if (isAccountDeactivatedError(errorMsg)) {
+      if (ErrorClassifier.isAccountDeactivated(errorMsg)) {
         log('account deactivated error detected from message');
         return AgentRuntimeError.chat({
           endpoint: desensitizedEndpoint,
@@ -1098,7 +1153,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
         });
       }
 
-      if (isInsufficientQuotaError(errorMsg)) {
+      if (ErrorClassifier.isInsufficientQuota(errorMsg)) {
         log('insufficient quota error detected from message');
         return AgentRuntimeError.chat({
           endpoint: desensitizedEndpoint,
@@ -1109,7 +1164,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
         });
       }
 
-      if (isExceededContextWindowError(errorMsg)) {
+      if (ErrorClassifier.isExceededContextWindow(errorMsg)) {
         log('context length exceeded detected from message');
         return AgentRuntimeError.chat({
           endpoint: desensitizedEndpoint,
@@ -1120,7 +1175,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
         });
       }
 
-      if (isQuotaLimitError(errorMsg)) {
+      if (ErrorClassifier.isRateLimitExceeded(errorMsg)) {
         log('quota limit reached detected from message');
         return AgentRuntimeError.chat({
           endpoint: desensitizedEndpoint,
@@ -1357,14 +1412,15 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
       const msgs = messages;
 
       const res = await this.client.chat.completions.create(
-        {
+        this.handleGenerateObjectPayload(payload, {
+          ...getGenerateObjectReasoningParams(payload),
           messages: msgs,
           model,
           ...this.resolvePromptCacheKeyParams(model, options?.user),
           tool_choice: 'required',
           tools,
           user: options?.user,
-        },
+        }) as OpenAI.ChatCompletionCreateParamsNonStreaming,
         { headers: options?.headers, signal: options?.signal },
       );
 

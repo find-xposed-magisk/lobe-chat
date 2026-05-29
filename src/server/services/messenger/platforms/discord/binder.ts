@@ -82,7 +82,7 @@ const openDM = async (api: DiscordApi, recipientId: string): Promise<string | nu
  *
  * MVP scope is DM-only: agent picker / interactive components ARE wired up
  * (see `sendAgentPicker` / `updateAgentPicker`), but the router defaults to
- * the text-based `/agents <n>` flow until LOBE-8489 lands native slash
+ * the text-based `/agents <n>` flow until lands native slash
  * registration.
  */
 export class MessengerDiscordBinder implements MessengerPlatformBinder {
@@ -159,7 +159,7 @@ export class MessengerDiscordBinder implements MessengerPlatformBinder {
     // where the unlinked message handler runs after the chat-sdk has already
     // dispatched the message — so we stick to a markdown link for v1.
     const text = [
-      "Hi, I'm LobeHub — your AI agent in Discord.",
+      "Hi, I'm LobeHub — your AI agent on Discord.",
       'To start, link your LobeHub account.',
       '',
       `🔗 [Link Account](${verifyUrl})`,

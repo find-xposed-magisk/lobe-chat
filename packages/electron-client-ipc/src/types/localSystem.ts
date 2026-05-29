@@ -234,12 +234,22 @@ export interface RunCommandResult {
 export interface GetCommandOutputParams {
   filter?: string;
   shell_id: string;
+  /**
+   * Maximum time to wait for this observation before returning.
+   * Does not kill the process when the timeout elapses.
+   */
+  timeout?: number;
 }
 
 export interface GetCommandOutputResult {
   error?: string;
+  /**
+   * Present only after the command has exited.
+   * `0` means success, non-zero means the command finished with an error.
+   * `undefined` means the command is still running.
+   */
+  exit_code?: number;
   output: string;
-  running: boolean;
   stderr: string;
   stdout: string;
   success: boolean;
@@ -254,7 +264,10 @@ export interface KillCommandResult {
   success: boolean;
 }
 
-// Grep types
+// Grep types — declared locally to keep this package leaf-only (no reverse
+// dependency on `@lobechat/local-file-shell`). The shape mirrors the
+// definition in `local-file-shell/types`; the two must stay in sync, but
+// they're structurally compatible by design.
 export interface GrepContentParams {
   '-A'?: number;
   '-B'?: number;
@@ -264,14 +277,14 @@ export interface GrepContentParams {
   'glob'?: string;
   'head_limit'?: number;
   'multiline'?: boolean;
-  'output_mode'?: 'content' | 'files_with_matches' | 'count';
+  'output_mode'?: 'content' | 'count' | 'files_with_matches';
   /** Legacy alias for `scope`. Takes precedence when set; prefer `scope` (the manifest-documented name) for new callers. */
   'path'?: string;
   'pattern': string;
   /** Working directory scope. Limits the search to this directory. Defaults to `process.cwd()`. */
   'scope'?: string;
   /** Preferred search tool: 'rg' | 'ag' | 'grep' */
-  'tool'?: 'rg' | 'ag' | 'grep';
+  'tool'?: 'ag' | 'grep' | 'rg';
   'type'?: string;
 }
 
@@ -284,7 +297,7 @@ export interface GrepContentResult {
   total_matches: number;
 }
 
-// Glob types
+// Glob types — same rationale as Grep above.
 export interface GlobFilesParams {
   pattern: string;
   /** Working directory scope. When `pattern` is relative, it is joined with this scope. Defaults to the current working directory. */

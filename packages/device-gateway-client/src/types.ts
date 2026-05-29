@@ -44,6 +44,16 @@ export interface ToolCallResponseMessage {
   type: 'tool_call_response';
 }
 
+export interface MessageApiResponseMessage {
+  requestId: string;
+  result: {
+    content: string;
+    error?: string;
+    success: boolean;
+  };
+  type: 'message_api_response';
+}
+
 // Server → Client
 export interface HeartbeatAckMessage {
   type: 'heartbeat_ack';
@@ -72,6 +82,16 @@ export interface ToolCallRequestMessage {
   type: 'tool_call_request';
 }
 
+export interface MessageApiRequestMessage {
+  api: {
+    apiName: string;
+    payload: Record<string, unknown>;
+    platform: string;
+  };
+  requestId: string;
+  type: 'message_api_request';
+}
+
 // Server → Client
 export interface SystemInfoRequestMessage {
   requestId: string;
@@ -90,7 +110,7 @@ export interface SystemInfoResponseMessage {
 
 /** Server → Client: request the desktop to spawn `lh hetero exec`. */
 export interface AgentRunRequestMessage {
-  agentType: 'claude-code' | 'codex';
+  agentType: string;
   cwd?: string;
   jwt: string;
   operationId: string;
@@ -112,6 +132,7 @@ export type ClientMessage =
   | AgentRunAckMessage
   | AuthMessage
   | HeartbeatMessage
+  | MessageApiResponseMessage
   | SystemInfoResponseMessage
   | ToolCallResponseMessage;
 export type ServerMessage =
@@ -120,6 +141,7 @@ export type ServerMessage =
   | AuthFailedMessage
   | AuthSuccessMessage
   | HeartbeatAckMessage
+  | MessageApiRequestMessage
   | SystemInfoRequestMessage
   | ToolCallRequestMessage;
 
@@ -140,6 +162,7 @@ export interface GatewayClientEvents {
   disconnected: () => void;
   error: (error: Error) => void;
   heartbeat_ack: () => void;
+  message_api_request: (request: MessageApiRequestMessage) => void;
   reconnecting: (delay: number) => void;
   status_changed: (status: ConnectionStatus) => void;
   system_info_request: (request: SystemInfoRequestMessage) => void;

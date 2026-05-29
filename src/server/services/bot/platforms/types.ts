@@ -79,6 +79,42 @@ export interface FieldSchema {
   visibleWhen?: { field: string; value: unknown };
 }
 
+// --------------- Bot Message Attachment ---------------
+
+/**
+ * JSON-safe attachment carried through the bot callback path
+ * (agent runtime → webhook body → BotCallbackService → PlatformMessenger).
+ *
+ * Either `data` (base64-encoded bytes) or `fetchUrl` (remote URL the
+ * messenger can fetch) must be set. Prefer `fetchUrl` when possible to keep
+ * webhook payload sizes manageable.
+ */
+export interface BotMessageAttachment {
+  /** Base64-encoded bytes. Used when no fetchable URL exists. */
+  data?: string;
+  /** Remote URL the messenger can GET to retrieve the bytes. */
+  fetchUrl?: string;
+  mimeType?: string;
+  name?: string;
+  type: 'image' | 'file' | 'video' | 'audio';
+}
+
+/**
+ * Input accepted by `PlatformMessenger.createMessage` / `editMessage`.
+ *
+ * Plain string is the legacy form; object form carries optional attachments.
+ * Platforms that don't support attachments treat the object form as
+ * `{ content }` and silently drop attachments.
+ */
+export type MessengerContent = string | { attachments?: BotMessageAttachment[]; content?: string };
+
+/**
+ * Helper for messenger implementations that don't (yet) support attachments:
+ * coerces `MessengerContent` to its text payload.
+ */
+export const messengerContentText = (input: MessengerContent): string =>
+  typeof input === 'string' ? input : (input.content ?? '');
+
 // --------------- Platform Messenger ---------------
 
 /**
@@ -90,8 +126,8 @@ export interface PlatformMessenger {
    * can omit this). Callers must no-op on platforms that don't implement it.
    */
   addReaction?: (messageId: string, emoji: string) => Promise<void>;
-  createMessage: (content: string) => Promise<void>;
-  editMessage: (messageId: string, content: string) => Promise<void>;
+  createMessage: (content: MessengerContent) => Promise<void>;
+  editMessage: (messageId: string, content: MessengerContent) => Promise<void>;
   removeReaction: (messageId: string, emoji: string) => Promise<void>;
   /**
    * Transition the bot's reaction on a message from `prevEmoji` to
@@ -223,7 +259,7 @@ export interface PlatformClient {
 
   /**
    * Optional hook called from the router when a non-DM message wakes the
-   * bot via a watch-keyword match (LOBE-8891). Platforms that prefer to
+   * bot via a watch-keyword match (). Platforms that prefer to
    * isolate the reply in a sub-thread (Discord, where the chat-sdk
    * auto-creates a thread only on @-mention) should spawn one off the
    * triggering message and return the upgraded composite threadId so the
@@ -319,6 +355,7 @@ export interface BotPlatformRuntimeContext {
   appUrl?: string;
   redisClient?: BotPlatformRedisClient;
   registerByToken?: (token: string) => void;
+  userId?: string;
 }
 
 // --------------- Validation ---------------

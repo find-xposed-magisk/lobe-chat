@@ -17,6 +17,7 @@ export default {
   'config.quality.options.hd': 'High Definition',
   'config.quality.options.standard': 'Standard',
   'config.resolution.label': 'Resolution',
+  'config.resolution.options.512': '512px',
   'config.resolution.options.1K': '1K',
   'config.resolution.options.2K': '2K',
   'config.resolution.options.4K': '4K',
@@ -48,7 +49,7 @@ export default {
   'generation.actions.seedCopied': 'Seed Copied to Clipboard',
   'generation.actions.seedCopyFailed': 'Failed to Copy Seed',
   'generation.metadata.count': '{{count}} Images',
-  'generation.status.failed': 'Generation Failed',
+  'generation.status.failed': 'Generation hit a problem. Adjust the prompt and try again',
   'generation.status.generating': 'Generating...',
   'notSupportGuide.desc':
     'The current deployment mode does not support AI image generation. Switch to the <1>server database deployment mode</1>, or use <3>LobeHub Cloud</3>.',

@@ -721,6 +721,20 @@
       "when": 1778602304603,
       "tag": "0102_add_agent_operations_table",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1779464293586,
+      "tag": "0103_add_llm_tracing_and_eval_experiments",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1779966336116,
+      "tag": "0104_add_devices_connectors_push_tokens",
+      "breakpoints": true
     }
   ],
   "version": "6"

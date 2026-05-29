@@ -77,14 +77,14 @@ export const createServerToolsEngine = (
   // Get builtin tool manifests from the (possibly pre-filtered) list. The
   // filter is one half of the hard wall keeping device tools out of an
   // external bot sender's manifestSchemas — see `buildAllowedBuiltinTools`
-  // and LOBE-8768. The enableChecker rules below are defense-in-depth
+  // and . The enableChecker rules below are defense-in-depth
   // because `allowExplicitActivation` lets activator-driven activation
   // bypass them.
   const builtinManifests = builtinToolsOverride.map((tool) => tool.manifest as LobeToolManifest);
 
   // Combine all manifests, then drop anything whose identifier the caller
   // has explicitly forbidden for this turn. The post-merge filter closes
-  // the second half of the LOBE-8768 wall: an installed plugin or a
+  // the second half of the wall: an installed plugin or a
   // Skill/Klavis manifest claiming `lobe-remote-device` would otherwise
   // slip through `buildAllowedBuiltinTools` (which only touches the
   // builtin source).
@@ -126,7 +126,6 @@ export const createServerAgentToolsEngine = (
     additionalManifests,
     agentConfig,
     canUseDevice = false,
-    clientRuntime,
     deviceContext,
     disableLocalSystem = false,
     globalMemoryEnabled = false,
@@ -137,28 +136,17 @@ export const createServerAgentToolsEngine = (
     provider,
   } = params;
 
-  // ─── Tool-dispatch capability flags ───
-  //
-  // Two orthogonal signals control whether client-side tools can run.
-  //
-  //  1. `hasClientExecutor` — the caller itself is an Electron desktop
-  //     client and can receive `tool_execute` events over the Agent
-  //     Gateway WebSocket (Phase 6.4).
-  //  2. `hasDeviceProxy` — the server has a device-proxy configured that
-  //     can tunnel commands to a *separately registered* desktop device
-  //     (legacy Remote Device flow).
-  //
-  // Either, both, or neither can be true independently.
-  const hasClientExecutor = clientRuntime === 'desktop';
+  // Tools that need a user-side execution target (local-system, stdio MCP)
+  // run on a device registered with the device-gateway. Desktop, CLI, and
+  // bot/IM callers all converge on this single path; the previous Phase 6.4
+  // `clientRuntime === 'desktop'` short-circuit (Agent Gateway WS dispatch
+  // back to the caller) is removed.
   const hasDeviceProxy = !!deviceContext?.gatewayConfigured;
 
-  // ─── Platform / runtime mode ───
-  //
-  // `platform` is a property of the caller, not of the server. Prefer the
-  // explicit `clientRuntime` signal; fall back to treating a server with
-  // a configured device-proxy as desktop for callers that don't yet send
-  // `clientRuntime` (backwards compat).
-  const platform: RuntimePlatform = clientRuntime ?? (hasDeviceProxy ? 'desktop' : 'web');
+  // Platform key is used only to look up the user's per-platform
+  // `runtimeMode` preference. A server configured with a device-gateway is
+  // serving desktop-class users; otherwise the caller is treated as web.
+  const platform: RuntimePlatform = hasDeviceProxy ? 'desktop' : 'web';
 
   // User-configured runtime mode for the current platform, with a
   // platform-appropriate default when unset.
@@ -171,14 +159,13 @@ export const createServerAgentToolsEngine = (
   const isChatMode = agentConfig.chatConfig?.enableAgentMode === false;
 
   log(
-    'Creating agent tools engine model=%s provider=%s searchMode=%s platform=%s runtimeMode=%s additionalManifests=%d hasClientExecutor=%s hasDeviceProxy=%s canUseDevice=%s isChatMode=%s',
+    'Creating agent tools engine model=%s provider=%s searchMode=%s platform=%s runtimeMode=%s additionalManifests=%d hasDeviceProxy=%s canUseDevice=%s isChatMode=%s',
     model,
     provider,
     searchMode,
     platform,
     runtimeMode,
     additionalManifests?.length ?? 0,
-    hasClientExecutor,
     hasDeviceProxy,
     canUseDevice,
     isChatMode,
@@ -206,24 +193,20 @@ export const createServerAgentToolsEngine = (
     // Local-system: gated by `canUseDevice` (resolveDeviceAccessPolicy)
     // first — keeps external bot senders out before runtime checks even
     // run. Then user must have opted into local runtime on this platform
-    // (`runtimeMode === 'local'`), AND one execution channel must exist:
-    //  - `hasClientExecutor` — Phase 6.4 dispatch over the Agent Gateway
-    //    WS that this request is already riding on; no extra server-side
-    //    prerequisite needed;
-    //  - legacy device-proxy with an online & auto-activated device.
+    // (`runtimeMode === 'local'`) AND have an online, auto-activated
+    // device registered with the device-gateway.
     [LocalSystemManifest.identifier]:
       canUseDevice &&
       !disableLocalSystem &&
       runtimeMode === 'local' &&
-      (hasClientExecutor ||
-        (hasDeviceProxy && !!deviceContext?.deviceOnline && !!deviceContext?.autoActivated)),
+      hasDeviceProxy &&
+      !!deviceContext?.deviceOnline &&
+      !!deviceContext?.autoActivated,
     [MemoryManifest.identifier]: globalMemoryEnabled,
     // Only auto-enable in bot conversations; otherwise let user's plugin selection take effect
     ...(isBotConversation && { [MessageManifest.identifier]: true }),
     // Remote-device proxy: shown only when the server has a proxy but
-    // no specific device is auto-activated yet (user must pick). When
-    // the caller itself can execute `executor: 'client'` tools, the
-    // proxy is redundant — local-system goes directly to the caller.
+    // no specific device is auto-activated yet (user must pick).
     //
     // `canUseDevice` is the first short-circuit: external bot senders
     // (and unconfigured bot owners) never reach the proxy, both because
@@ -231,7 +214,7 @@ export const createServerAgentToolsEngine = (
     // systemRole would otherwise leak the device list into the LLM
     // context — see the gated injection in `aiAgent.execAgent`.
     [RemoteDeviceManifest.identifier]:
-      canUseDevice && hasDeviceProxy && !deviceContext?.autoActivated && !hasClientExecutor,
+      canUseDevice && hasDeviceProxy && !deviceContext?.autoActivated,
     [AgentDocumentsManifest.identifier]: hasAgentDocuments,
     [WebBrowsingManifest.identifier]: isSearchEnabled,
   };
@@ -242,7 +225,7 @@ export const createServerAgentToolsEngine = (
     // Physically drop device-tool manifests for turns whose access policy
     // denies them. Without this filter, `lobe-activator`'s explicit
     // activation could resolve the manifest and bypass the rule-layer
-    // gates below (LOBE-8768).
+    // gates below ().
     builtinTools: buildAllowedBuiltinTools({ canUseDevice, disableLocalSystem }),
     // Add default tools based on configuration
     defaultToolIds: isChatMode ? chatModeAllowedToolIds : defaultToolIds,

@@ -1,6 +1,7 @@
 import type { ChatTopicStatus } from '@lobechat/types';
 import { type MenuProps } from '@lobehub/ui';
 import { Icon } from '@lobehub/ui';
+import { confirmModal } from '@lobehub/ui/base-ui';
 import { App } from 'antd';
 import {
   CheckCircle2,
@@ -19,7 +20,6 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { isDesktop } from '@/const/version';
-import { pluginRegistry } from '@/features/Electron/titlebar/RecentlyViewed/plugins';
 import { useAppOrigin } from '@/hooks/useAppOrigin';
 import { useAgentGroupStore } from '@/store/agentGroup';
 import { useChatStore } from '@/store/chat';
@@ -38,7 +38,7 @@ export const useTopicItemDropdownMenu = ({
   toggleEditing,
 }: TopicItemDropdownMenuProps): (() => MenuProps['items']) => {
   const { t } = useTranslation(['topic', 'common']);
-  const { modal, message } = App.useApp();
+  const { message } = App.useApp();
   const navigate = useNavigate();
 
   const openGroupTopicInNewWindow = useGlobalStore((s) => s.openGroupTopicInNewWindow);
@@ -109,11 +109,8 @@ export const useTopicItemDropdownMenu = ({
               onClick: () => {
                 if (!activeGroupId) return;
                 const url = `/group/${activeGroupId}?topic=${id}`;
-                const reference = pluginRegistry.parseUrl(`/group/${activeGroupId}`, `topic=${id}`);
-                if (reference) {
-                  addTab(reference);
-                  navigate(url);
-                }
+                addTab(url);
+                navigate(url);
               },
             },
             {
@@ -166,8 +163,7 @@ export const useTopicItemDropdownMenu = ({
         key: 'delete',
         label: t('delete', { ns: 'common' }),
         onClick: () => {
-          modal.confirm({
-            centered: true,
+          confirmModal({
             okButtonProps: { danger: true },
             onOk: async () => {
               await removeTopic(id);
@@ -192,7 +188,6 @@ export const useTopicItemDropdownMenu = ({
     navigate,
     toggleEditing,
     t,
-    modal,
     message,
   ]);
 };

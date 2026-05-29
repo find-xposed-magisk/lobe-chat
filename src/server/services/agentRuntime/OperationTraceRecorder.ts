@@ -1,4 +1,5 @@
 import type { ISnapshotStore, StepSnapshot } from '@lobechat/agent-tracing';
+import type { ChatMessageErrorAttribution, ChatMessageErrorSeverity } from '@lobechat/types';
 import debug from 'debug';
 
 import type { StepCompletionReason, StepPresentationData } from './types';
@@ -15,6 +16,17 @@ export interface AppendStepParams {
    */
   agentState: any;
   beforeStepSignalEvents: SignalEvent[];
+  /**
+   * Context engine input/output captured for this step. Delivered via
+   * `RuntimeExecutorContext.tracingContextEngine` rather than through the
+   * `events` array, so CE payloads (agentDocuments, systemRole, …) stay out
+   * of the Redis state pipeline.
+   *
+   * Context: agent-runtime state blob was hitting Upstash Redis 10MB limit
+   * because ~97% of each step payload was tracing-only fields. Routing CE
+   * via tracingContextEngine keeps it in trace only, keeping Redis state lean.
+   */
+  contextEngine?: { input?: unknown; output?: unknown };
   currentContext?: { payload?: unknown; phase?: string; stepContext?: unknown };
   externalRetryCount: number;
   presentation: StepPresentationData;
@@ -35,12 +47,28 @@ export interface FinalizeParams {
    */
   appendEventsToLastStep?: SignalEvent[];
   completionReason: StepCompletionReason;
-  error?: { message: string; type: string };
+  /**
+   * Top-level error on the persisted snapshot. The classification fields
+   * (`attribution`, `category`, `severity`, …) mirror `ChatMessageError` and
+   * are sourced from `ERROR_CODE_SPECS` at the runtime catch site; unknown
+   * codes simply omit them.
+   */
+  error?: {
+    attribution?: ChatMessageErrorAttribution;
+    category?: string;
+    countAsFailure?: boolean;
+    httpStatus?: number;
+    message: string;
+    numericId?: number;
+    retryable?: boolean;
+    severity?: ChatMessageErrorSeverity;
+    type: string;
+  };
   /**
    * Synthetic step record for the error path. The real failing step never
    * reached `appendStep` because the executor threw before the partial push,
    * so the catch caller passes this to keep step counts aligned with the
-   * assistant message that triggered the call. See LOBE-8533.
+   * assistant message that triggered the call. See .
    */
   failedStep?: { startedAt: number; stepIndex: number };
   state: any;
@@ -220,6 +248,7 @@ export class OperationTraceRecorder {
       agentState,
       afterStepSignalEvents,
       beforeStepSignalEvents,
+      contextEngine: ceInput,
       currentContext,
       externalRetryCount,
       presentation,
@@ -237,21 +266,20 @@ export class OperationTraceRecorder {
     const isBaseline = stepIndex === 0 || isCompression;
     const messagesDelta = afterMessages.slice(prevMessages.length);
 
-    // Extract context_engine_result into contextEngine (dedicated typed field).
-    // CE data is structural state, not a streaming event — it lives separately
-    // from events and uses the same delta pattern as messagesBaseline/messagesDelta.
-    const rawEvents = (stepResult.events as any[]) ?? [];
-    const ceEvent = rawEvents.find((e: any) => e.type === 'context_engine_result') as any;
-    const contextEngine: StepSnapshot['contextEngine'] = ceEvent
-      ? { input: ceEvent.input, output: ceEvent.output }
+    // CE data is structural state, not a streaming event — delivered via the
+    // typed `contextEngine` field on AppendStepParams (sourced from
+    // RuntimeExecutorContext.tracingContextEngine). Uses the same delta
+    // pattern as messagesBaseline/messagesDelta.
+    const contextEngine: StepSnapshot['contextEngine'] = ceInput
+      ? { input: ceInput.input, output: ceInput.output }
       : undefined;
 
     // Strip heavy/redundant data from events before persisting to snapshot.
-    // context_engine_result is excluded — stored in contextEngine instead.
+    const rawEvents = (stepResult.events as any[]) ?? [];
     const snapshotEvents = [
       ...beforeStepSignalEvents,
       ...rawEvents
-        .filter((e) => e.type !== 'llm_stream' && e.type !== 'context_engine_result')
+        .filter((e) => e.type !== 'llm_stream')
         .map((e) => {
           if (e.type === 'done' && e.finalState) {
             // Remove reconstructible fields from finalState:

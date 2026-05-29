@@ -3,6 +3,10 @@ import { dirname, join, resolve } from 'node:path';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { coverageConfigDefaults, defineConfig } from 'vitest/config';
 
+if (process.env.NODE_ENV === 'production') {
+  Reflect.set(process.env, 'NODE_ENV', 'test');
+}
+
 const alias = {
   // Downstream workspaces sometimes pnpm-override @lobechat/business-* packages to
   // internal implementations whose source files import alias paths that only exist
@@ -11,6 +15,14 @@ const alias = {
   '@lobechat/business-model-runtime': resolve(
     __dirname,
     './packages/business/model-runtime/src/index.ts',
+  ),
+  '@lobechat/business-model-bank/model-config': resolve(
+    __dirname,
+    './packages/business/model-bank/src/model-config.ts',
+  ),
+  '@lobechat/business-model-bank': resolve(
+    __dirname,
+    './packages/business/model-bank/src/index.ts',
   ),
   '@emoji-mart/data': resolve(__dirname, './tests/mocks/emojiMartData.ts'),
   '@emoji-mart/react': resolve(__dirname, './tests/mocks/emojiMartReact.tsx'),

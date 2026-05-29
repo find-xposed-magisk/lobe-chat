@@ -19,6 +19,7 @@ import HeterogeneousAgentStatusGuide from '@/features/Electron/HeterogeneousAgen
 import { useProviderName } from '@/hooks/useProviderName';
 import dynamic from '@/libs/next/dynamic';
 import { serverConfigSelectors, useServerConfigStore } from '@/store/serverConfig';
+import { getRuntimeErrorMessage } from '@/utils/locale/runtimeErrorMessage';
 
 import ChatInvalidAPIKey from './ChatInvalidApiKey';
 
@@ -77,6 +78,7 @@ const OllamaSetupGuide = dynamic(() => import('./OllamaSetupGuide'), {
 const HETEROGENEOUS_AGENT_STATUS_GUIDE_ERROR_CODES = new Set<string>([
   HeterogeneousAgentSessionErrorCode.AuthRequired,
   HeterogeneousAgentSessionErrorCode.CliNotFound,
+  HeterogeneousAgentSessionErrorCode.Overloaded,
   HeterogeneousAgentSessionErrorCode.RateLimit,
 ]);
 
@@ -134,7 +136,7 @@ const getErrorAlertConfig = (
 };
 
 export const useErrorContent = (error: any) => {
-  const { t } = useTranslation('error');
+  const { t } = useTranslation(['error', 'modelRuntime']);
   const providerName = useProviderName(error?.body?.provider || '');
   const businessAlertConfig = useBusinessErrorAlertConfig(error?.type);
   const { errorType: businessErrorType, hideMessage } = useBusinessErrorContent(error?.type);
@@ -160,7 +162,7 @@ export const useErrorContent = (error: any) => {
     const finalErrorType = businessErrorType ?? messageError.type;
     const translatedMessage = hideMessage
       ? undefined
-      : t(`response.${finalErrorType}` as any, { provider: providerName });
+      : getRuntimeErrorMessage(t, finalErrorType, { provider: providerName });
 
     return {
       message: translatedMessage || rawErrorMessage,

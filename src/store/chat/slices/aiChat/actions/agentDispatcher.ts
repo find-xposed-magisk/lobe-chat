@@ -1,5 +1,6 @@
 import { isDesktop as defaultIsDesktop } from '@lobechat/const';
-import { type HeterogeneousProviderConfig } from '@lobechat/types';
+import { isRemoteHeterogeneousType } from '@lobechat/heterogeneous-agents';
+import { type HeteroExecutionTarget, type HeterogeneousProviderConfig } from '@lobechat/types';
 
 /**
  * Which agent runtime should handle an operation.
@@ -10,7 +11,52 @@ import { type HeterogeneousProviderConfig } from '@lobechat/types';
  */
 export type AgentRuntimeType = 'client' | 'gateway' | 'hetero';
 
+/**
+ * Unified intent for a non-hetero, non-group sub-agent invocation.
+ *
+ * All three caller patterns (`callSubAgent` / `callAgent` / `@agent`) map
+ * their parameters into this shape before handing off to
+ * `dispatchNonHeteroSubAgent`. Runtime routing is entirely the dispatcher's
+ * responsibility — callers only declare *what* they want, not *how* to run it.
+ *
+ * Excluded from this contract:
+ * - Hetero agents (handled by the heterogeneous pipeline)
+ * - Group orchestration (handled by `groupOrchestration.triggerSpeak`)
+ * - Async task mode (handled by the `execSubAgent` executor via state.type)
+ */
+export interface AgentInvocationIntent {
+  /**
+   * Instruction delivered to the sub-agent.
+   * In client mode it is injected as a virtual user message prepended to the
+   * existing message history. In gateway mode it becomes the `message` param
+   * of `executeGatewayAgent` (i.e. a real user message on the server).
+   */
+  instruction: string;
+  /**
+   * Which invocation pattern produced this intent.
+   * Preserved for logging / debugging; has no effect on runtime selection.
+   */
+  kind: 'callAgent' | 'callSubAgent' | 'mention';
+  /**
+   * ID of the tool result message that triggered this invocation.
+   * Used as `parentMessageId` by the client executor.
+   */
+  parentMessageId: string;
+  /** Target agent to execute. */
+  targetAgentId: string;
+}
+
 export interface RuntimeSelectionContext {
+  /**
+   * Per-agent execution device choice from the composer's Execution Device
+   * switcher. Only meaningful when `heterogeneousProvider` is a local CLI
+   * (claude-code / codex). Controls the desktop fork:
+   *   - `'device'` / `'sandbox'` → route through Gateway so the server can
+   *     dispatch to an `lh connect` device or spawn a sandbox.
+   *   - `'local'` / `undefined`  → keep today's default (desktop → `hetero`
+   *     in-process spawn, web → `gateway` sandbox).
+   */
+  executionTarget?: HeteroExecutionTarget;
   /** Per-agent heterogeneous provider config (desktop only — takes priority over gateway). */
   heterogeneousProvider?: HeterogeneousProviderConfig;
   /** Result of `chatStore.isGatewayModeEnabled()`. */
@@ -45,10 +91,21 @@ export const selectRuntimeType = (
   { isDesktop = defaultIsDesktop }: SelectRuntimeTypeOptions = {},
 ): AgentRuntimeType => {
   if (ctx.parentRuntime) return ctx.parentRuntime;
-  if (isDesktop && ctx.heterogeneousProvider) return 'hetero';
-  // On web, heterogeneous agents always run via Gateway sandbox regardless of the
-  // isGatewayMode user preference — the sandbox is the only execution environment.
-  if (!isDesktop && ctx.heterogeneousProvider) return 'gateway';
+  // Remote device agents (openclaw / hermes) always use the gateway path regardless of
+  // desktop/web — they communicate via a device connected with `lh connect`, not via
+  // local desktop IPC. No special desktop handling needed.
+  if (ctx.heterogeneousProvider && isRemoteHeterogeneousType(ctx.heterogeneousProvider.type)) {
+    return 'gateway';
+  }
+  // Local CLI hetero (claude-code / codex) — route by executionTarget.
+  // `device` / `sandbox` need server-side dispatch; `local` runs in-process
+  // on the desktop. Default (unset) preserves legacy behavior: desktop → hetero,
+  // web → gateway sandbox.
+  if (ctx.heterogeneousProvider) {
+    if (ctx.executionTarget === 'device' || ctx.executionTarget === 'sandbox') return 'gateway';
+    if (ctx.executionTarget === 'local') return isDesktop ? 'hetero' : 'gateway';
+    return isDesktop ? 'hetero' : 'gateway';
+  }
   if (ctx.isGatewayMode) return 'gateway';
   return 'client';
 };

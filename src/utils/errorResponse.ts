@@ -29,6 +29,7 @@ const getStatus = (errorType: ILobeAgentRuntimeErrorType | ErrorType) => {
     }
 
     case AgentRuntimeErrorType.ExceededContextWindow:
+    case AgentRuntimeErrorType.ExceededToolLimit:
     case ChatErrorType.SubscriptionKeyMismatch:
     case ChatErrorType.SystemTimeNotMatchError:
     case ChatErrorType.LobeHubModelDeprecated: {
@@ -57,7 +58,8 @@ const getStatus = (errorType: ILobeAgentRuntimeErrorType | ErrorType) => {
       return 470;
     }
 
-    case AgentRuntimeErrorType.ProviderBizError: {
+    case AgentRuntimeErrorType.ProviderBizError:
+    case AgentRuntimeErrorType.ProviderContentPolicyViolation: {
       return 471;
     }
 

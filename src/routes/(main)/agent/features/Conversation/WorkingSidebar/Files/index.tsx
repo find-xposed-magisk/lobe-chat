@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 
 import NeuralNetworkLoading from '@/components/NeuralNetworkLoading';
 import type { ExplorerTreeNode } from '@/features/ExplorerTree';
-import { ExplorerTree, FOLDER_ICON_CSS } from '@/features/ExplorerTree';
+import { ExplorerTree, FOLDER_ICON_CSS, getExplorerTreeStyleVars } from '@/features/ExplorerTree';
 import type { ExplorerTreeHandle } from '@/features/ExplorerTree/types';
 import { localFileService } from '@/services/electron/localFileService';
 import { useChatStore } from '@/store/chat';
@@ -117,6 +117,10 @@ const Files = memo<FilesProps>(({ workingDirectory }) => {
     () => nodes.filter((node) => node.isFolder && node.parentId == null).map((node) => node.id),
     [nodes],
   );
+  const treeStyleVars = useMemo(
+    () => getExplorerTreeStyleVars({ reserveChevronSlot: nodes.some((node) => node.isFolder) }),
+    [nodes],
+  );
 
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
 
@@ -140,23 +144,15 @@ const Files = memo<FilesProps>(({ workingDirectory }) => {
     const { path, nonce: _nonce } = revealRequest;
 
     const nodeIds = new Set(nodes.map((n) => n.id));
-    if (!nodeIds.has(path)) {
-      // Data may still be loading — retry silently instead of showing a warning.
-      if (!isLoading) {
-        void message.warning(t('workingPanel.review.revealNotFound'));
-      }
-      return;
-    }
+    if (!nodeIds.has(path)) return;
 
     const ancestors = getAncestorIds(path);
     const nextExpanded = Array.from(new Set([...expandedIds, ...ancestors]));
     treeRef.current?.setExpanded(nextExpanded);
     treeRef.current?.select(path);
     treeRef.current?.focus(path);
-    // Re-run when nonce changes (user re-triggers) or when nodes/isLoading
-    // update (data arrives after initial reveal attempt).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [revealRequest?.nonce, nodes, isLoading]);
+  }, [revealRequest?.nonce, nodes]);
 
   const openLocalFile = useChatStore((s) => s.openLocalFile);
 
@@ -258,11 +254,10 @@ const Files = memo<FilesProps>(({ workingDirectory }) => {
           <Empty description={t('workingPanel.files.empty')} icon={FileIcon} />
         </Center>
       ) : (
-        <div className={styles.tree}>
+        <div className={styles.tree} style={treeStyleVars}>
           <ExplorerTree<ProjectFileIndexEntry>
             iconsColored
             defaultExpandedIds={defaultExpandedIds}
-            density="compact"
             getContextMenuItems={getContextMenuItems}
             gitStatus={gitStatus}
             iconSet="complete"

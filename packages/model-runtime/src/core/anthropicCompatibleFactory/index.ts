@@ -6,6 +6,7 @@ import debug from 'debug';
 import type { Pricing } from 'model-bank';
 
 import { shouldDropUnsupportedClaudeAssistantPrefill } from '../../const/models';
+import { ErrorClassifier } from '../../errors';
 import type {
   ChatCompletionErrorPayload,
   ChatMethodOptions,
@@ -20,9 +21,6 @@ import { AgentRuntimeError } from '../../utils/createError';
 import { debugStream } from '../../utils/debugStream';
 import { desensitizeUrl } from '../../utils/desensitizeUrl';
 import { getModelPricing } from '../../utils/getModelPricing';
-import { isAccountDeactivatedError } from '../../utils/isAccountDeactivatedError';
-import { isExceededContextWindowError } from '../../utils/isExceededContextWindowError';
-import { isQuotaLimitError } from '../../utils/isQuotaLimitError';
 import { MODEL_LIST_CONFIGS, processModelList } from '../../utils/modelParse';
 import { StreamingResponse } from '../../utils/response';
 import type { LobeRuntimeAI } from '../BaseAI';
@@ -44,6 +42,24 @@ type ConstructorOptions<T extends Record<string, any> = any> = ClientOptions & T
 type AnthropicTools = Anthropic.Tool | Anthropic.WebSearchTool20250305;
 
 export const DEFAULT_ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
+const ANTHROPIC_CLIENT_TIMEOUT_ENV = 'ANTHROPIC_CLIENT_TIMEOUT';
+/**
+ * Keep Anthropic SDK's timeout explicit so non-streaming structured output
+ * calls with large max_tokens do not hit the SDK's long-request guard before
+ * the request is sent. The default stays below Vercel Hobby's 300s function
+ * duration limit while provider/router options can still override it.
+ */
+export const DEFAULT_ANTHROPIC_TIMEOUT = 295_000;
+const ANTHROPIC_SDK_MESSAGES_PATH_PATTERN = /\/v1(?:\/messages)?\/?$/;
+
+const normalizeAnthropicCompatibleBaseURL = (baseURL?: string | null) =>
+  baseURL?.replace(ANTHROPIC_SDK_MESSAGES_PATH_PATTERN, '');
+
+const resolveDefaultAnthropicTimeout = () => {
+  const timeout = Number(process.env[ANTHROPIC_CLIENT_TIMEOUT_ENV]);
+
+  return Number.isInteger(timeout) && timeout > 0 ? timeout : DEFAULT_ANTHROPIC_TIMEOUT;
+};
 
 export interface CustomClientOptions<T extends Record<string, any> = any> {
   createClient?: (options: ConstructorOptions<T>) => Anthropic;
@@ -250,13 +266,19 @@ export const createDefaultAnthropicClient = <T extends Record<string, any> = any
   options: ConstructorOptions<T>,
 ) => {
   const betaHeaders = process.env.ANTHROPIC_BETA_HEADERS;
+  const baseURL = normalizeAnthropicCompatibleBaseURL(options.baseURL);
   const defaultHeaders = {
     'User-Agent': `lobehub/${CURRENT_VERSION}`,
     ...options.defaultHeaders,
     ...(betaHeaders ? { 'anthropic-beta': betaHeaders } : {}),
   };
 
-  return new Anthropic({ ...options, defaultHeaders });
+  return new Anthropic({
+    ...options,
+    ...(baseURL ? { baseURL } : {}),
+    defaultHeaders,
+    timeout: options.timeout ?? resolveDefaultAnthropicTimeout(),
+  });
 };
 
 /**
@@ -299,7 +321,7 @@ export const handleDefaultAnthropicError = <T extends Record<string, any> = any>
 
   const errorMsg = errorResult.message || errorResult.error?.message;
 
-  if (isAccountDeactivatedError(errorMsg)) {
+  if (ErrorClassifier.isAccountDeactivated(errorMsg)) {
     return {
       endpoint: desensitizedEndpoint,
       error: errorResult,
@@ -308,7 +330,7 @@ export const handleDefaultAnthropicError = <T extends Record<string, any> = any>
     };
   }
 
-  if (isExceededContextWindowError(errorMsg)) {
+  if (ErrorClassifier.isExceededContextWindow(errorMsg)) {
     return {
       endpoint: desensitizedEndpoint,
       error: errorResult,
@@ -317,7 +339,7 @@ export const handleDefaultAnthropicError = <T extends Record<string, any> = any>
     };
   }
 
-  if (isQuotaLimitError(errorMsg)) {
+  if (ErrorClassifier.isRateLimitExceeded(errorMsg)) {
     return {
       endpoint: desensitizedEndpoint,
       error: errorResult,
@@ -435,13 +457,17 @@ export const createAnthropicCompatibleRuntime = <T extends Record<string, any> =
 
     constructor(options: ClientOptions & Record<string, any> = {}) {
       const apiKey = typeof options.apiKey === 'string' ? options.apiKey.trim() : options.apiKey;
-      const baseURL =
+      const inputBaseURL =
         typeof options.baseURL === 'string' ? options.baseURL.trim() : options.baseURL;
+      // Anthropic SDK appends `/v1/messages`; normalize gateway URLs that already
+      // include that SDK-managed path segment before constructing any client.
+      const baseURL = normalizeAnthropicCompatibleBaseURL(inputBaseURL);
+      const defaultBaseURL = normalizeAnthropicCompatibleBaseURL(DEFAULT_BASE_URL);
 
       const resolvedOptions = {
         ...options,
         apiKey: apiKey || DEFAULT_API_KEY,
-        baseURL: baseURL || DEFAULT_BASE_URL,
+        baseURL: baseURL || defaultBaseURL,
       };
       const {
         apiKey: finalApiKey,
@@ -457,6 +483,7 @@ export const createAnthropicCompatibleRuntime = <T extends Record<string, any> =
         baseURL: finalBaseURL,
         ...constructorOptions,
         ...rest,
+        timeout: rest.timeout ?? constructorOptions?.timeout ?? resolveDefaultAnthropicTimeout(),
       };
 
       if (customClient?.createClient) {
@@ -465,7 +492,7 @@ export const createAnthropicCompatibleRuntime = <T extends Record<string, any> =
         this.client = new Anthropic(initOptions as ConstructorOptions<T>);
       }
 
-      this.baseURL = baseURL || this.client.baseURL;
+      this.baseURL = finalBaseURL || this.client.baseURL;
       this.id = options.id || provider;
       this.logPrefix = `lobe-model-runtime:${this.id}`;
     }
@@ -697,7 +724,7 @@ export const createAnthropicCompatibleRuntime = <T extends Record<string, any> =
 
       const errorMsg = errorResult.message || errorResult.error?.message;
 
-      if (isAccountDeactivatedError(errorMsg)) {
+      if (ErrorClassifier.isAccountDeactivated(errorMsg)) {
         return AgentRuntimeError.chat({
           endpoint: desensitizedEndpoint,
           error: errorResult,
@@ -707,7 +734,7 @@ export const createAnthropicCompatibleRuntime = <T extends Record<string, any> =
         });
       }
 
-      if (isExceededContextWindowError(errorMsg)) {
+      if (ErrorClassifier.isExceededContextWindow(errorMsg)) {
         return AgentRuntimeError.chat({
           endpoint: desensitizedEndpoint,
           error: errorResult,
@@ -717,7 +744,7 @@ export const createAnthropicCompatibleRuntime = <T extends Record<string, any> =
         });
       }
 
-      if (isQuotaLimitError(errorMsg)) {
+      if (ErrorClassifier.isRateLimitExceeded(errorMsg)) {
         return AgentRuntimeError.chat({
           endpoint: desensitizedEndpoint,
           error: errorResult,

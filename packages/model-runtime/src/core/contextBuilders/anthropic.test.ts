@@ -13,9 +13,12 @@ import {
 
 // Mock the parseDataUri function since it's an implementation detail
 vi.mock('../../utils/uriParser');
-vi.mock('@lobechat/utils', () => ({
+vi.mock('@lobechat/utils', async (importOriginal) => ({
+  ...((await importOriginal()) as object),
   imageUrlToBase64: vi.fn(),
 }));
+
+const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ';
 
 describe('anthropicHelpers', () => {
   beforeEach(() => {
@@ -46,6 +49,30 @@ describe('anthropicHelpers', () => {
         source: {
           data: 'base64EncodedString',
           media_type: 'image/jpeg',
+          type: 'base64',
+        },
+        type: 'image',
+      });
+    });
+
+    it('should correct data URL MIME type when declared type does not match image bytes', async () => {
+      vi.mocked(parseDataUri).mockReturnValueOnce({
+        mimeType: 'image/jpeg',
+        base64: PNG_BASE64,
+        type: 'base64',
+      });
+
+      const content: UserMessageContentPart = {
+        type: 'image_url',
+        image_url: { url: `data:image/jpeg;base64,${PNG_BASE64}` },
+      };
+
+      const result = await buildAnthropicBlock(content);
+
+      expect(result).toEqual({
+        source: {
+          data: PNG_BASE64,
+          media_type: 'image/png',
           type: 'base64',
         },
         type: 'image',
@@ -283,7 +310,7 @@ describe('anthropicHelpers', () => {
             type: 'function',
             function: {
               name: 'search',
-              // LOBE-7761 Qwen shape — upstream sanitize should catch this, but
+              // Qwen shape — upstream sanitize should catch this, but
               // if it doesn't we want noise in the logs rather than a silent drop.
               arguments: '{, "query": "anthropic"}',
             },
@@ -342,7 +369,7 @@ describe('anthropicHelpers', () => {
     });
 
     it('recovers tool_call input from element[0] when arguments parse to a multi-element array', async () => {
-      // LOBE-8201 — model emitted long writeLocalFile args containing many
+      // — model emitted long writeLocalFile args containing many
       // unescaped quotes, which JSON.parse re-segmented into a top-level array.
       // element[0] usually still carries the first legit key (e.g. `content`),
       // so prefer partial recovery over total loss.

@@ -14,6 +14,10 @@ interface MockGlobalState {
 
 const mocks = vi.hoisted(() => ({
   globalState: undefined as unknown as MockGlobalState,
+  navLayout: {
+    bottomMenuItems: [] as { key: string; title: string; url: string }[],
+    topNavItems: [] as { key: string; title: string; url: string }[],
+  },
   updateSystemStatus: vi.fn(),
 }));
 
@@ -34,7 +38,9 @@ vi.mock('@lobehub/ui', () => ({
   ),
   ActionIcon: () => <span />,
   DropdownMenu: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Flexbox: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Flexbox: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="sidebar-body">{children}</div>
+  ),
   Icon: () => <span />,
 }));
 
@@ -58,15 +64,11 @@ vi.mock('@/hooks/useActiveTabKey', () => ({
 }));
 
 vi.mock('@/hooks/useNavLayout', () => ({
-  useNavLayout: () => ({ bottomMenuItems: [], topNavItems: [] }),
+  useNavLayout: () => mocks.navLayout,
 }));
 
 vi.mock('@/utils/navigation', () => ({
   isModifierClick: () => false,
-}));
-
-vi.mock('@/utils/router', () => ({
-  prefetchRoute: vi.fn(),
 }));
 
 vi.mock('@/routes/(main)/home/features/Recents', () => ({
@@ -78,7 +80,6 @@ vi.mock('./Agent', () => ({
 }));
 
 vi.mock('./CustomizeSidebarModal', () => ({
-  CustomizeSidebarModal: () => null,
   openCustomizeSidebarModal: vi.fn(),
 }));
 
@@ -88,6 +89,10 @@ vi.mock('@/store/global', () => ({
 
 beforeEach(() => {
   mocks.updateSystemStatus.mockReset();
+  mocks.navLayout = {
+    bottomMenuItems: [],
+    topNavItems: [],
+  };
   mocks.globalState = {
     status: {
       hiddenSidebarSections: [],
@@ -120,5 +125,59 @@ describe('Home sidebar body', () => {
     fireEvent.click(screen.getByRole('button', { name: 'collapse recents' }));
 
     expect(mocks.updateSystemStatus).toHaveBeenCalledWith({ sidebarExpandedKeys: ['agent'] });
+  });
+
+  it('renders items strictly in sidebarItems order with the spacer at its stored position', () => {
+    mocks.navLayout = {
+      bottomMenuItems: [
+        { key: 'image', title: 'Image', url: '/image' },
+        { key: 'resource', title: 'Resource', url: '/resource' },
+      ],
+      topNavItems: [
+        { key: 'pages', title: 'Pages', url: '/page' },
+        { key: 'tasks', title: 'Tasks', url: '/tasks' },
+      ],
+    };
+    mocks.globalState.status.sidebarItems = [
+      'pages',
+      'recents',
+      'agent',
+      '__spacer__',
+      'image',
+      'tasks',
+      'resource',
+    ];
+
+    render(<Body />);
+
+    const children = Array.from(screen.getByTestId('sidebar-body').children);
+    const spacerIndex = children.findIndex((child) =>
+      child.hasAttribute('data-sidebar-bottom-spacer'),
+    );
+
+    expect(spacerIndex).toBe(2);
+    expect(children[0]).toHaveTextContent('Pages');
+    expect(children[1]).toHaveAttribute('data-testid', 'sidebar-accordion');
+    expect(children[3]).toHaveTextContent('Image');
+    expect(children[4]).toHaveTextContent('Tasks');
+    expect(children[5]).toHaveTextContent('Resource');
+  });
+
+  it('keeps a top item that was dragged past the spacer in its new position', () => {
+    mocks.navLayout = {
+      bottomMenuItems: [{ key: 'image', title: 'Image', url: '/image' }],
+      topNavItems: [{ key: 'tasks', title: 'Tasks', url: '/tasks' }],
+    };
+    // User dragged `tasks` from the top section to sit after `image`.
+    mocks.globalState.status.sidebarItems = ['recents', 'agent', '__spacer__', 'image', 'tasks'];
+
+    render(<Body />);
+
+    const children = Array.from(screen.getByTestId('sidebar-body').children);
+
+    expect(children[0]).toHaveAttribute('data-testid', 'sidebar-accordion');
+    expect(children[1]).toHaveAttribute('data-sidebar-bottom-spacer');
+    expect(children[2]).toHaveTextContent('Image');
+    expect(children[3]).toHaveTextContent('Tasks');
   });
 });

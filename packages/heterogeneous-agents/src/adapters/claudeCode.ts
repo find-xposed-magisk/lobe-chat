@@ -15,8 +15,9 @@
  *   {type: 'result', is_error, result, ...}
  *   {type: 'rate_limit_event', ...}
  *
- * With `--include-partial-messages` (enabled by default in this adapter), CC
- * also emits token-level deltas wrapped as:
+ * When the spawn site passes `--include-partial-messages` (desktop driver
+ * does, CLI / sandbox runs do not), CC also emits token-level deltas wrapped
+ * as:
  *
  *   {type: 'stream_event', event: {type: 'message_start', message: {id, model, ...}}}
  *   {type: 'stream_event', event: {type: 'content_block_delta', index, delta: {type: 'text_delta', text}}}
@@ -35,7 +36,6 @@
  */
 
 import type {
-  AgentCLIPreset,
   AgentEventAdapter,
   ExternalSignalContext,
   HeterogeneousAgentEvent,
@@ -95,7 +95,7 @@ const TASK_CREATE_RESULT_PATTERN = /^Task #(\d+) created successfully/;
 const TASK_UPDATE_RESULT_PATTERN = /^Updated task #\d+/;
 
 /**
- * One line of `TaskList`'s plain-text output: `#1 [in_progress] 读 hosts`.
+ * One line of `TaskList`'s plain-text output: `#1 [in_progress] read hosts`.
  * Used as the resume reconciliation path — when this adapter joins a CC
  * session mid-stream and missed earlier Create / Update events, parsing
  * TaskList rebuilds id / subject / status. `activeForm` and `description`
@@ -185,6 +185,12 @@ const CLI_AUTH_REQUIRED_PATTERNS = [
 
 const CLI_RATE_LIMIT_PATTERNS = [/you'?ve hit your limit/i, /rate limit/i] as const;
 
+const CLI_OVERLOADED_PATTERNS = [
+  /overloaded_error/i,
+  /\boverloaded\b/i,
+  /api error:\s*529\b/i,
+] as const;
+
 const getCliResultMessage = (result: unknown): string | undefined => {
   if (typeof result === 'string') return result;
   if (
@@ -236,6 +242,27 @@ const toRateLimitInfo = (value: unknown): HeterogeneousRateLimitInfo | undefined
     rateLimitType: typeof raw.rateLimitType === 'string' ? raw.rateLimitType : undefined,
     resetsAt: typeof raw.resetsAt === 'number' ? raw.resetsAt : undefined,
     status: typeof raw.status === 'string' ? raw.status : undefined,
+  };
+};
+
+const getOverloadedTerminalError = (
+  result: unknown,
+  apiErrorStatus?: unknown,
+): HeterogeneousTerminalErrorData | undefined => {
+  const rawMessage = getCliResultMessage(result);
+  const looksOverloaded =
+    apiErrorStatus === 529 ||
+    (!!rawMessage && CLI_OVERLOADED_PATTERNS.some((pattern) => pattern.test(rawMessage)));
+
+  if (!looksOverloaded || !rawMessage) return;
+
+  return {
+    agentType: 'claude-code',
+    clearEchoedContent: true,
+    code: 'overloaded',
+    error: rawMessage,
+    message: rawMessage,
+    stderr: rawMessage,
   };
 };
 
@@ -359,24 +386,6 @@ const toUsageData = (
     totalOutputTokens,
     totalTokens: totalInputTokens + totalOutputTokens,
   };
-};
-
-// ─── CLI Preset ───
-
-export const claudeCodePreset: AgentCLIPreset = {
-  baseArgs: [
-    '-p',
-    '--input-format',
-    'stream-json',
-    '--output-format',
-    'stream-json',
-    '--verbose',
-    '--include-partial-messages',
-    '--permission-mode',
-    'acceptEdits',
-  ],
-  promptMode: 'stdin',
-  resumeArgs: (sessionId) => ['--resume', sessionId],
 };
 
 // ─── Adapter ───
@@ -569,7 +578,7 @@ export class ClaudeCodeAdapter implements AgentEventAdapter {
   // ─── Private handlers ───
 
   private handleSystem(raw: any): HeterogeneousAgentEvent[] {
-    // CC's long-running task lifecycle (Monitor, etc., LOBE-8998).
+    // CC's long-running task lifecycle (Monitor, etc., ).
     // `task_started` registers a task that may fire callback turns;
     // `task_notification` (terminal) drops it. While a task is alive,
     // any new turn without preceding user input is treated as a signal
@@ -641,10 +650,10 @@ export class ClaudeCodeAdapter implements AgentEventAdapter {
 
     // Track the latest model — emitted alongside authoritative usage on the
     // matching `message_delta`. We deliberately do NOT emit turn_metadata
-    // here: under `--include-partial-messages` (our default), every
-    // content-block `assistant` event echoes a STALE usage snapshot from
-    // `message_start` (e.g. `output_tokens: 8`); the per-turn total only
-    // arrives on `stream_event: message_delta`.
+    // here: under `--include-partial-messages`, every content-block
+    // `assistant` event echoes a STALE usage snapshot from `message_start`
+    // (e.g. `output_tokens: 8`); the per-turn total only arrives on
+    // `stream_event: message_delta`.
     if (raw.message?.model) this.currentStreamEventModel = raw.message.model;
 
     // Each content array here is usually ONE block (thinking OR tool_use OR text)
@@ -732,11 +741,16 @@ export class ClaudeCodeAdapter implements AgentEventAdapter {
       reasoningParts.join(''),
       this.streamedThinkingByMessageId,
     );
-    if (textCompletion) {
-      events.push(this.makeChunkEvent({ chunkType: 'text', content: textCompletion }));
-    }
+    // Emit reasoning before text so the gateway event handler starts the
+    // reasoning operation first — matching Claude's natural output order
+    // (thinking → response). Without this, batch-mode runs (CLI / sandbox
+    // without --include-partial-messages) emit text first, causing the
+    // brain icon to appear below the already-rendered text content.
     if (thinkingCompletion) {
       events.push(this.makeChunkEvent({ chunkType: 'reasoning', reasoning: thinkingCompletion }));
+    }
+    if (textCompletion) {
+      events.push(this.makeChunkEvent({ chunkType: 'text', content: textCompletion }));
     }
     if (messageId) {
       this.clearStreamedBuffers(messageId, {
@@ -829,20 +843,21 @@ export class ClaudeCodeAdapter implements AgentEventAdapter {
     // `messagesWithStreamedText` (unlike the main-agent path) because
     // subagent events don't arrive via `stream_event` partial-messages
     // deltas; the full block IS the only emission.
-    if (textParts.length > 0) {
-      events.push(
-        this.makeChunkEvent({
-          chunkType: 'text',
-          content: textParts.join(''),
-          subagent: subagentCtx,
-        }),
-      );
-    }
+    // Reasoning before text — same ordering fix as the main-agent batch path.
     if (reasoningParts.length > 0) {
       events.push(
         this.makeChunkEvent({
           chunkType: 'reasoning',
           reasoning: reasoningParts.join(''),
+          subagent: subagentCtx,
+        }),
+      );
+    }
+    if (textParts.length > 0) {
+      events.push(
+        this.makeChunkEvent({
+          chunkType: 'text',
+          content: textParts.join(''),
           subagent: subagentCtx,
         }),
       );
@@ -967,11 +982,11 @@ export class ClaudeCodeAdapter implements AgentEventAdapter {
                   // blocks — no `text` / `content` field. Without this branch the
                   // mapper returns '' for every reference, filter drops them all,
                   // and the tool message lands in DB with empty content — leaving
-                  // the UI's StatusIndicator stuck on the spinner (LOBE-7369).
+                  // the UI's StatusIndicator stuck on the spinner ().
                   if (c?.type === 'tool_reference' && c.tool_name) return c.tool_name;
                   // `Read` on images yields `{type: 'image', source: {...}}` blocks
                   // with no text. Drop a minimal placeholder so the tool message
-                  // has non-empty content (LOBE-7338); richer image echo is a
+                  // has non-empty content (); richer image echo is a
                   // follow-up that needs structured ToolResultData.
                   if (c?.type === 'image') {
                     const mediaType = c.source?.media_type || 'image';
@@ -1160,6 +1175,7 @@ export class ClaudeCodeAdapter implements AgentEventAdapter {
       ? this.makeEvent(
           'error',
           rateLimitError ||
+            getOverloadedTerminalError(raw.result, raw.api_error_status) ||
             getAuthRequiredTerminalError(raw.result) || {
               error: resultMessage,
               message: resultMessage,
@@ -1280,7 +1296,7 @@ export class ClaudeCodeAdapter implements AgentEventAdapter {
 
     this.currentMessageId = messageId;
     this.stepIndex++;
-    // Signal-callback detection (LOBE-8998): if this turn opened
+    // Signal-callback detection (): if this turn opened
     // WITHOUT a preceding `user` event AND a long-running task is
     // still active, the LLM was re-invoked by the task pushing an
     // update — tag the resulting assistant turn accordingly. Otherwise

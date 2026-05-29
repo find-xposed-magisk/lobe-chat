@@ -1,6 +1,6 @@
 import { ActionIcon, DropdownMenu, Flexbox, Icon } from '@lobehub/ui';
+import { confirmModal } from '@lobehub/ui/base-ui';
 import { ShapesUploadIcon } from '@lobehub/ui/icons';
-import { App, Modal } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { BotMessageSquareIcon, MoreHorizontal, Settings2Icon, Trash } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -15,6 +15,8 @@ import { useMarketAuth } from '@/layout/AuthProvider/MarketAuth';
 import { resolveMarketAuthError } from '@/layout/AuthProvider/MarketAuth/errors';
 import { useAgentStore } from '@/store/agent';
 import { agentSelectors } from '@/store/agent/selectors';
+import { useGlobalStore } from '@/store/global';
+import { systemStatusSelectors } from '@/store/global/selectors';
 import { useHomeStore } from '@/store/home';
 
 import AgentForkTag from './AgentForkTag';
@@ -27,13 +29,18 @@ import AutoSaveHint from './AutoSaveHint';
 
 const Header = memo(() => {
   const { t } = useTranslation(['setting', 'marketAuth', 'chat']);
-  const { modal } = App.useApp();
   const navigate = useNavigate();
 
   const meta = useAgentStore(agentSelectors.currentAgentMeta, isEqual);
   const systemRole = useAgentStore(agentSelectors.currentAgentSystemRole);
   const activeAgentId = useAgentStore((s) => s.activeAgentId);
   const isHeterogeneous = useAgentStore(agentSelectors.isCurrentAgentHeterogeneous);
+  const canPublishToCommunity = useAgentStore(agentSelectors.canCurrentAgentPublishToCommunity);
+  const [showAgentBuilderPanel, toggleAgentBuilderPanel, isStatusInit] = useGlobalStore((s) => [
+    systemStatusSelectors.showAgentBuilderPanel(s),
+    s.toggleAgentBuilderPanel,
+    systemStatusSelectors.isStatusInit(s),
+  ]);
   const removeAgent = useHomeStore((s) => s.removeAgent);
   const { isAuthenticated, isLoading: isAuthLoading, signIn } = useMarketAuth();
   const { isUnderReview } = useVersionReviewStatus();
@@ -89,8 +96,7 @@ const Header = memo(() => {
       return;
     }
 
-    Modal.confirm({
-      okButtonProps: { type: 'primary' },
+    confirmModal({
       onOk: async () => {
         if (!isAuthenticated) {
           try {
@@ -120,8 +126,7 @@ const Header = memo(() => {
 
   const handleDelete = useCallback(() => {
     if (!activeAgentId) return;
-    modal.confirm({
-      centered: true,
+    confirmModal({
       okButtonProps: { danger: true },
       onOk: async () => {
         await removeAgent(activeAgentId);
@@ -130,7 +135,7 @@ const Header = memo(() => {
       },
       title: t('confirmRemoveSessionItemAlert', { ns: 'chat' }),
     });
-  }, [activeAgentId, modal, navigate, removeAgent, t]);
+  }, [activeAgentId, navigate, removeAgent, t]);
 
   const menuItems = useMemo(
     () => [
@@ -141,13 +146,17 @@ const Header = memo(() => {
         onClick: () => useAgentStore.setState({ showAgentSetting: true }),
       },
       { type: 'divider' as const },
-      {
-        icon: <Icon icon={ShapesUploadIcon} />,
-        key: 'publish',
-        label: t('publishToCommunity', { ns: 'setting' }),
-        onClick: handlePublishClick,
-      },
-      { type: 'divider' as const },
+      ...(canPublishToCommunity
+        ? [
+            {
+              icon: <Icon icon={ShapesUploadIcon} />,
+              key: 'publish',
+              label: t('publishToCommunity', { ns: 'setting' }),
+              onClick: handlePublishClick,
+            },
+            { type: 'divider' as const },
+          ]
+        : []),
       {
         danger: true,
         icon: <Icon icon={Trash} />,
@@ -156,7 +165,7 @@ const Header = memo(() => {
         onClick: handleDelete,
       },
     ],
-    [handlePublishClick, handleDelete, t],
+    [canPublishToCommunity, handlePublishClick, handleDelete, t],
   );
 
   return (
@@ -175,12 +184,17 @@ const Header = memo(() => {
             <DropdownMenu items={menuItems}>
               <ActionIcon
                 icon={MoreHorizontal}
-                loading={isPublishing || isAuthLoading}
+                loading={canPublishToCommunity && (isPublishing || isAuthLoading)}
                 size={DESKTOP_HEADER_ICON_SMALL_SIZE}
               />
             </DropdownMenu>
-            {!isHeterogeneous && (
-              <ToggleRightPanelButton icon={BotMessageSquareIcon} showActive={true} />
+            {!isHeterogeneous && isStatusInit && (
+              <ToggleRightPanelButton
+                expand={showAgentBuilderPanel}
+                icon={BotMessageSquareIcon}
+                showActive={true}
+                onToggle={() => toggleAgentBuilderPanel()}
+              />
             )}
           </Flexbox>
         }

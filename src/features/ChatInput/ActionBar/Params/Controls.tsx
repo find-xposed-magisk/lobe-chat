@@ -1,5 +1,5 @@
 import { DEFAULT_AGENT_CONFIG } from '@lobechat/const';
-import { Flexbox, Icon, SliderWithInput } from '@lobehub/ui';
+import { Flexbox, Icon, Select, SliderWithInput, TextArea } from '@lobehub/ui';
 import { Form as AntdForm, Switch } from 'antd';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
 import { debounce } from 'es-toolkit/compat';
@@ -16,6 +16,8 @@ import ControlsForm from '@/features/ModelSwitchPanel/components/ControlsForm';
 import { useAgentStore } from '@/store/agent';
 import { agentByIdSelectors, chatConfigByIdSelectors } from '@/store/agent/selectors';
 import { aiModelSelectors, useAiInfraStore } from '@/store/aiInfra';
+import { useUserStore } from '@/store/user';
+import { systemAgentSelectors } from '@/store/user/selectors';
 import type { LobeAgentConfig } from '@/types/agent';
 
 import { useAgentId } from '../../hooks/useAgentId';
@@ -113,6 +115,11 @@ const styles = createStaticStyles(({ css }) => ({
   divider: css`
     height: 1px;
     background: ${cssVar.colorSplit};
+  `,
+  hint: css`
+    font-size: 12px;
+    line-height: 18px;
+    color: ${cssVar.colorTextTertiary};
   `,
   form: css`
     margin: 0;
@@ -435,7 +442,7 @@ const ControlLabel = memo<ControlLabelProps>(({ title, tooltip, tag }) => (
 ));
 
 interface ControlRowProps {
-  action: ReactNode;
+  action?: ReactNode;
   children?: ReactNode;
   muted?: boolean;
   tag?: string;
@@ -527,6 +534,22 @@ const Controls = memo<ControlsProps>(({ setUpdating, updating, variant = 'popove
   const enableHistoryCount = form.getFieldValue(['chatConfig', 'enableHistoryCount']);
   const historyCountValue = form.getFieldValue(['chatConfig', 'historyCount']);
   const maxTokensValue = form.getFieldValue(['params', 'max_tokens']);
+  const inputTemplateValue = form.getFieldValue(['chatConfig', 'inputTemplate']);
+  const enableAutoScrollOnStreaming = form.getFieldValue([
+    'chatConfig',
+    'enableAutoScrollOnStreaming',
+  ]);
+  const enableStreaming = form.getFieldValue(['chatConfig', 'enableStreaming']);
+  const enableFollowUpChips = form.getFieldValue(['chatConfig', 'enableFollowUpChips']);
+  const globalFollowUp = useUserStore(systemAgentSelectors.followUpAction, isEqual);
+  const globalFollowUpReady =
+    globalFollowUp.enabled === true && !!globalFollowUp.model && !!globalFollowUp.provider;
+  const showFollowUpHint = !globalFollowUpReady && Boolean(enableFollowUpChips);
+  const enableReasoningEffort = form.getFieldValue(['chatConfig', 'enableReasoningEffort']);
+  const reasoningEffortValue = form.getFieldValue(['params', 'reasoning_effort']);
+  const disabledParams = useAiInfraStore(
+    aiModelSelectors.modelDisabledParams(agentModel ?? '', agentProvider ?? ''),
+  );
   const { frequency_penalty, presence_penalty, temperature, top_p } = config.params ?? {};
 
   const historyCountFromStore = useAgentStore((s) =>
@@ -657,7 +680,7 @@ const Controls = memo<ControlsProps>(({ setUpdating, updating, variant = 'popove
   );
 
   const handleFieldChange = useCallback(
-    (namePath: (string | number)[], value: boolean | number) => {
+    (namePath: (string | number)[], value: boolean | number | string) => {
       form.setFieldValue(namePath, value);
       if (
         namePath[0] === 'params' &&
@@ -744,6 +767,67 @@ const Controls = memo<ControlsProps>(({ setUpdating, updating, variant = 'popove
                 />
               )}
             </ControlRow>
+            <ControlRow
+              tag="autoScroll"
+              title={t('settingChat.enableAutoScrollOnStreaming.title')}
+              tooltip={t('settingChat.enableAutoScrollOnStreaming.desc')}
+              action={
+                <Switch
+                  checked={Boolean(enableAutoScrollOnStreaming)}
+                  size={'small'}
+                  onChange={(checked) => {
+                    handleFieldChange(['chatConfig', 'enableAutoScrollOnStreaming'], checked);
+                  }}
+                />
+              }
+            />
+            <ControlRow
+              tag="streaming"
+              title={t('settingChat.enableStreaming.title')}
+              tooltip={t('settingChat.enableStreaming.desc')}
+              action={
+                <Switch
+                  checked={enableStreaming !== false}
+                  size={'small'}
+                  onChange={(checked) => {
+                    handleFieldChange(['chatConfig', 'enableStreaming'], checked);
+                  }}
+                />
+              }
+            />
+            <ControlRow
+              tag="followUpChips"
+              title={t('settingChat.enableFollowUpChips.title')}
+              tooltip={t('settingChat.enableFollowUpChips.desc')}
+              action={
+                <Switch
+                  checked={Boolean(enableFollowUpChips)}
+                  size={'small'}
+                  onChange={(checked) => {
+                    handleFieldChange(['chatConfig', 'enableFollowUpChips'], checked);
+                  }}
+                />
+              }
+            >
+              {showFollowUpHint && (
+                <div className={styles.hint}>
+                  {t('settingChat.enableFollowUpChips.notConfiguredHint')}
+                </div>
+              )}
+            </ControlRow>
+            <ControlRow
+              tag="inputTemplate"
+              title={t('settingChat.inputTemplate.title')}
+              tooltip={t('settingChat.inputTemplate.desc')}
+            >
+              <TextArea
+                placeholder={t('settingChat.inputTemplate.placeholder')}
+                value={typeof inputTemplateValue === 'string' ? inputTemplateValue : ''}
+                onChange={(e) => {
+                  handleFieldChange(['chatConfig', 'inputTemplate'], e.target.value);
+                }}
+              />
+            </ControlRow>
           </div>
           {hasModelConfig && (
             <>
@@ -774,7 +858,7 @@ const Controls = memo<ControlsProps>(({ setUpdating, updating, variant = 'popove
               />
               {advancedOpen && (
                 <div className={styles.advancedContent}>
-                  {PARAM_ORDER.map((key) => {
+                  {PARAM_ORDER.filter((key) => !disabledParams?.includes(key)).map((key) => {
                     const meta = PARAM_CONFIG[key];
                     const enabled = enabledMap[key];
 
@@ -816,6 +900,9 @@ const Controls = memo<ControlsProps>(({ setUpdating, updating, variant = 'popove
                         checked={Boolean(enableMaxTokens)}
                         size={'small'}
                         onChange={(checked) => {
+                          if (checked && typeof maxTokensValue !== 'number') {
+                            form.setFieldValue(['params', 'max_tokens'], 4096);
+                          }
                           handleFieldChange(['chatConfig', 'enableMaxTokens'], checked);
                         }}
                       />
@@ -828,9 +915,47 @@ const Controls = memo<ControlsProps>(({ setUpdating, updating, variant = 'popove
                         max={32_000}
                         min={0}
                         step={100}
-                        value={typeof maxTokensValue === 'number' ? maxTokensValue : 0}
+                        value={typeof maxTokensValue === 'number' ? maxTokensValue : 4096}
                         onChange={(value) => {
                           handleFieldChange(['params', 'max_tokens'], value);
+                        }}
+                      />
+                    )}
+                  </ControlRow>
+                  <ControlRow
+                    tag="reasoning_effort"
+                    title={t('settingModel.reasoningEffort.title')}
+                    tooltip={t('settingModel.reasoningEffort.desc')}
+                    action={
+                      <Switch
+                        checked={Boolean(enableReasoningEffort)}
+                        size={'small'}
+                        onChange={(checked) => {
+                          if (checked && typeof reasoningEffortValue !== 'string') {
+                            form.setFieldValue(['params', 'reasoning_effort'], 'medium');
+                          }
+                          handleFieldChange(['chatConfig', 'enableReasoningEffort'], checked);
+                        }}
+                      />
+                    }
+                  >
+                    {enableReasoningEffort && (
+                      <Select
+                        size={'small'}
+                        style={{ width: '100%' }}
+                        options={[
+                          { label: t('settingModel.reasoningEffort.options.low'), value: 'low' },
+                          {
+                            label: t('settingModel.reasoningEffort.options.medium'),
+                            value: 'medium',
+                          },
+                          { label: t('settingModel.reasoningEffort.options.high'), value: 'high' },
+                        ]}
+                        value={
+                          typeof reasoningEffortValue === 'string' ? reasoningEffortValue : 'medium'
+                        }
+                        onChange={(value) => {
+                          handleFieldChange(['params', 'reasoning_effort'], value);
                         }}
                       />
                     )}

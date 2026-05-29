@@ -53,7 +53,7 @@ export interface StreamStartData {
    * `metadata.signal` so MessageCollector can collect signal-tagged
    * toolless assistants into a SignalCallbacksNode.
    *
-   * Phase 2 (LOBE-8999) promotes the persisted shape to a dedicated
+   * Phase 2 () promotes the persisted shape to a dedicated
    * `messages.signal` column; the event peer field name stays
    * `externalSignal` regardless.
    */
@@ -325,17 +325,4 @@ export interface AgentProcessConfig {
   cwd?: string;
   /** Environment variables */
   env?: Record<string, string>;
-}
-
-/**
- * Registry of built-in CLI flag presets per agent type.
- * The Electron controller uses this to construct the full spawn args.
- */
-export interface AgentCLIPreset {
-  /** Base CLI arguments (e.g., ['-p', '--output-format', 'stream-json', '--verbose']) */
-  baseArgs: string[];
-  /** How to pass the prompt (e.g., 'positional' = last arg, 'stdin' = pipe to stdin) */
-  promptMode: 'positional' | 'stdin';
-  /** How to resume a session (e.g., ['--resume', '{sessionId}']) */
-  resumeArgs?: (sessionId: string) => string[];
 }

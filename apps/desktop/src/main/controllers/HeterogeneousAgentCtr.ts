@@ -605,7 +605,7 @@ export default class HeterogeneousAgentCtr extends ControllerModule {
     }
   }
 
-  // ─── AskUserQuestion MCP server (LOBE-8725) ───
+  // ─── AskUserQuestion MCP server () ───
 
   /**
    * Lazy single-instance MCP server for CC's AskUserQuestion replacement.
@@ -651,7 +651,7 @@ export default class HeterogeneousAgentCtr extends ControllerModule {
 
     // `alwaysLoad: true` is the undocumented CC flag that promotes our
     // server's tool out of the deferred set so the model calls it directly
-    // (no ToolSearch hop). See LOBE-8725 spike notes — falls back to the
+    // (no ToolSearch hop). See spike notes — falls back to the
     // 2-hop ToolSearch path if a future CC drops the flag, no breakage.
     const config = {
       mcpServers: {
@@ -1250,5 +1250,70 @@ export default class HeterogeneousAgentCtr extends ControllerModule {
     };
     process.on('SIGTERM', onSignal);
     process.on('SIGINT', onSignal);
+  }
+
+  /**
+   * Spawn `lh hetero exec` for gateway-driven agent runs.
+   * The `lh` CLI handles everything downstream — no local
+   * AgentStreamPipeline or IPC broadcast needed. Mirrors
+   * `spawnHeteroSandbox()` on the server side.
+   */
+  spawnLhHeteroExec(params: {
+    agentType: string;
+    cwd?: string;
+    jwt: string;
+    operationId: string;
+    prompt: string;
+    resumeSessionId?: string;
+    serverUrl: string;
+    topicId: string;
+  }): void {
+    const { agentType, cwd, jwt, operationId, prompt, resumeSessionId, serverUrl, topicId } =
+      params;
+    const workDir = cwd ?? process.cwd();
+
+    const args = [
+      'hetero',
+      'exec',
+      '--type',
+      agentType,
+      '--operation-id',
+      operationId,
+      '--topic',
+      topicId,
+      '--render',
+      'none',
+      '--input-json',
+      '-',
+      '--cwd',
+      workDir,
+      ...(resumeSessionId ? ['--resume', resumeSessionId] : []),
+    ];
+
+    const env = {
+      ...process.env,
+      ...buildProxyEnv(this.app.storeManager.get('networkProxy')),
+      LOBEHUB_JWT: jwt,
+      LOBEHUB_SERVER: serverUrl,
+    };
+
+    logger.info('spawnLhHeteroExec: type=%s op=%s topic=%s', agentType, operationId, topicId);
+
+    const child = spawn('lh', args, {
+      cwd: workDir,
+      env,
+      stdio: ['pipe', 'inherit', 'inherit'],
+    });
+
+    child.stdin.write(JSON.stringify(prompt));
+    child.stdin.end();
+
+    child.on('error', (err) => {
+      logger.error('spawnLhHeteroExec: spawn failed — %s', err.message);
+    });
+
+    child.on('exit', (code, signal) => {
+      logger.info('spawnLhHeteroExec: exited — op=%s code=%s signal=%s', operationId, code, signal);
+    });
   }
 }

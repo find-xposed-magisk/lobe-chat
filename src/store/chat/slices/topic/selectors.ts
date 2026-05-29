@@ -168,7 +168,19 @@ const groupedTopicsForSidebar =
     return buildGroupedTopics(limitedTopics, getGroupFn(groupMode, sortBy));
   };
 
-const hasMoreTopics = (s: ChatStoreState): boolean => currentTopicData(s)?.hasMore ?? false;
+const hasMoreTopics = (s: ChatStoreState): boolean => {
+  const topicData = currentTopicData(s);
+  if (!topicData) return false;
+
+  return topicData.hasMore;
+};
+
+const hasMoreTopicsForSidebar = (s: ChatStoreState): boolean => {
+  const topicData = currentTopicData(s);
+  if (!topicData) return false;
+
+  return topicData.hasMore || topicData.total > topicData.pageSize;
+};
 
 const isLoadingMoreTopics = (s: ChatStoreState): boolean =>
   currentTopicData(s)?.isLoadingMore ?? false;
@@ -176,7 +188,26 @@ const isLoadingMoreTopics = (s: ChatStoreState): boolean =>
 const isExpandingPageSize = (s: ChatStoreState): boolean =>
   currentTopicData(s)?.isExpandingPageSize ?? false;
 
+// Selectors for the Agent Topics management page's dedicated bucket.
+// Always agent-scoped (no group), keyed by `agentId` via `topicMapKey`.
+const agentTopicsViewData = (s: ChatStoreState): TopicData | undefined => {
+  if (!s.activeAgentId) return undefined;
+  return s.agentTopicsViewMap[topicMapKey({ agentId: s.activeAgentId })];
+};
+
+const agentTopicsViewTopics = (s: ChatStoreState): ChatTopic[] =>
+  agentTopicsViewData(s)?.items ?? [];
+
+const agentTopicsViewHasMore = (s: ChatStoreState): boolean =>
+  agentTopicsViewData(s)?.hasMore ?? false;
+
+const agentTopicsViewIsLoadingMore = (s: ChatStoreState): boolean =>
+  agentTopicsViewData(s)?.isLoadingMore ?? false;
+
 export const topicSelectors = {
+  agentTopicsViewHasMore,
+  agentTopicsViewIsLoadingMore,
+  agentTopicsViewTopics,
   currentActiveTopic,
   currentActiveTopicSummary,
   currentTopicCount,
@@ -194,6 +225,7 @@ export const topicSelectors = {
   groupedTopicsForSidebar,
   groupedTopicsSelector,
   hasMoreTopics,
+  hasMoreTopicsForSidebar,
   isCreatingTopic,
   isExpandingPageSize,
   isInSearchMode,

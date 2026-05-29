@@ -1,4 +1,5 @@
 export interface SystemAgentItem {
+  contextLimit?: number;
   customPrompt?: string;
   enabled?: boolean;
   model: string;
@@ -11,6 +12,7 @@ export interface PromptRewriteSystemAgent extends Omit<SystemAgentItem, 'enabled
 
 export interface UserSystemAgentConfig {
   agentMeta: SystemAgentItem;
+  followUpAction: SystemAgentItem;
   generationTopic: SystemAgentItem;
   historyCompress: SystemAgentItem;
   inputCompletion: SystemAgentItem;
@@ -20,4 +22,15 @@ export interface UserSystemAgentConfig {
   translation: SystemAgentItem;
 }
 
+export interface UserMemoryServiceModelConfig {
+  memoryAnalysisAgentConfig: SystemAgentItem;
+  userMemoryEmbedding: SystemAgentItem;
+  userMemoryPersonaWriter: SystemAgentItem;
+}
+
+export interface UserServiceModelConfig
+  extends UserSystemAgentConfig, UserMemoryServiceModelConfig {}
+
 export type UserSystemAgentConfigKey = keyof UserSystemAgentConfig;
+export type UserMemoryServiceModelConfigKey = keyof UserMemoryServiceModelConfig;
+export type UserServiceModelConfigKey = keyof UserServiceModelConfig;

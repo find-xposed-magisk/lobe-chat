@@ -33,10 +33,17 @@ import { resolveSelectedSkillsWithContent } from '@/services/chat/mecha/skillPre
 import { resolveSelectedToolsWithContent } from '@/services/chat/mecha/toolPreload';
 import { messageService } from '@/services/message';
 import { getAgentStoreState, useAgentStore } from '@/store/agent';
-import { agentByIdSelectors, agentSelectors } from '@/store/agent/selectors';
+import {
+  agentByIdSelectors,
+  agentSelectors,
+  chatConfigByIdSelectors,
+} from '@/store/agent/selectors';
 import { agentGroupByIdSelectors, getChatGroupStoreState } from '@/store/agentGroup';
 import { selectRuntimeType } from '@/store/chat/slices/aiChat/actions/agentDispatcher';
 import { resolveHeteroResume } from '@/store/chat/slices/aiChat/actions/heteroResume';
+import { dispatchNonHeteroSubAgent } from '@/store/chat/slices/aiChat/actions/nonHeteroSubAgentDispatcher';
+import { PortalViewType } from '@/store/chat/slices/portal/initialState';
+import { chatPortalSelectors } from '@/store/chat/slices/portal/selectors';
 import { type ChatStore } from '@/store/chat/store';
 import {
   mergeAgentRuntimeInitialContexts,
@@ -220,6 +227,7 @@ export class ConversationLifecycleActionImpl {
     const agentConfig = agentSelectors.getAgentConfigById(agentId)(getAgentStoreState());
     const heterogeneousProvider = agentConfig?.agencyConfig?.heterogeneousProvider;
     const runtimeType = selectRuntimeType({
+      executionTarget: agentConfig?.agencyConfig?.executionTarget,
       heterogeneousProvider,
       isGatewayMode: this.#get().isGatewayModeEnabled(),
     });
@@ -294,11 +302,13 @@ export class ConversationLifecycleActionImpl {
     };
 
     const fileIdList = files?.map((f) => f.id);
+    const isLocalSystemEnabled =
+      chatConfigByIdSelectors.isLocalSystemEnabledById(agentId)(getAgentStoreState());
     const canMaterializeLocalFiles =
       isDesktop &&
       localFileReferences.length > 0 &&
       !metadata?.localSystemToolSnapshots?.length &&
-      (!!heterogeneousProvider || !!agentConfig?.plugins?.includes('lobe-local-system'));
+      (!!heterogeneousProvider || isLocalSystemEnabled);
     const localSystemToolSnapshots = canMaterializeLocalFiles
       ? await materializeLocalSystemToolSnapshots(localFileReferences)
       : [];
@@ -523,6 +533,7 @@ export class ConversationLifecycleActionImpl {
               operationContext.agentId,
               operationContext.groupId ?? undefined,
             ),
+            topicPageSize: systemStatusSelectors.topicPageSize(useGlobalStore.getState()),
             topicId: operationContext.topicId ?? undefined,
           },
           abortController,
@@ -712,6 +723,7 @@ export class ConversationLifecycleActionImpl {
       const toolContext = formatSelectedToolsContext(dedupedTools);
       const contextSuffix = [skillContext, toolContext].filter(Boolean).join('\n');
       const persistedContent = contextSuffix ? `${message}\n\n${contextSuffix}` : message;
+      const newTopicTitle = message.slice(0, 80) || t('defaultTitle', { ns: 'topic' });
 
       data = await aiChatService.sendMessageInServer(
         {
@@ -730,6 +742,7 @@ export class ConversationLifecycleActionImpl {
             operationContext.agentId,
             operationContext.groupId ?? undefined,
           ),
+          topicPageSize: systemStatusSelectors.topicPageSize(useGlobalStore.getState()),
           threadId: operationContext.threadId ?? undefined,
           // Support creating new thread along with message
           newThread: newThread
@@ -741,7 +754,7 @@ export class ConversationLifecycleActionImpl {
           newTopic: !topicId
             ? {
                 topicMessageIds: forceNewTopicFromExisting ? [] : messages.map((m) => m.id),
-                title: message.slice(0, 80) || t('defaultTitle', { ns: 'topic' }),
+                title: newTopicTitle,
               }
             : undefined,
           agentId: operationContext.agentId,
@@ -757,7 +770,7 @@ export class ConversationLifecycleActionImpl {
         abortController,
       );
       // Use created topicId/threadId if available, otherwise use original from context
-      let finalTopicId = operationContext.topicId;
+      let finalTopicId = data.topicId ?? operationContext.topicId;
       const finalThreadId = data.createdThreadId ?? operationContext.threadId;
 
       // refresh the total data
@@ -780,6 +793,18 @@ export class ConversationLifecycleActionImpl {
           // Record the created topicId in metadata (not context)
           this.#get().updateOperationMetadata(operationId, { createdTopicId: data.topicId });
         }
+      } else if (data.isCreateNewTopic && data.topicId && !context.isolatedTopic) {
+        this.#get().internal_dispatchTopic(
+          {
+            type: 'addTopic',
+            value: {
+              id: data.topicId,
+              title: newTopicTitle,
+            },
+          },
+          'sendMessage/createTopicPlaceholder',
+        );
+        this.#get().updateOperationMetadata(operationId, { createdTopicId: data.topicId });
       } else if (operationContext.topicId) {
         // Optimistically update topic's updatedAt so sidebar re-groups immediately
         this.#get().internal_dispatchTopic({
@@ -793,9 +818,18 @@ export class ConversationLifecycleActionImpl {
       if (data.createdThreadId) {
         this.#get().updateOperationMetadata(operationId, { createdThreadId: data.createdThreadId });
 
-        // Update portalThreadId to switch from "new thread" mode to "existing thread" mode
-        // This ensures the Portal Thread UI displays correctly with the real thread ID
-        this.#get().openThreadInPortal(data.createdThreadId, context.sourceMessageId);
+        // When the active portal view is already the Thread surface (the
+        // main-page "create subtopic" flow staged it before sending), pivot it
+        // from `isNew` → persisted thread id. Otherwise the thread was started
+        // by a panel-hosted ConversationProvider (e.g. FloatingChatPanel inside
+        // the Document portal) and we must NOT push a Thread view — doing so
+        // would cover the host view the user is still reading.
+        const currentPortalViewType = chatPortalSelectors.currentViewType(this.#get());
+        if (currentPortalViewType === PortalViewType.Thread) {
+          this.#get().openThreadInPortal(data.createdThreadId, context.sourceMessageId);
+        } else {
+          this.#get().syncThreadInPortal(data.createdThreadId, context.sourceMessageId);
+        }
 
         // Refresh threads list to update the sidebar
         this.#get().refreshThreads();
@@ -1163,34 +1197,24 @@ export class ConversationLifecycleActionImpl {
         : currentMessages;
 
       // Sub-agent dispatch inherits the parent's runtime selection — a
-      // hetero/gateway parent must keep its sub-agents on the same path so
-      // events route through the same wire. See LOBE-8519.
+      // gateway/hetero parent must keep its sub-agents on the same path.
+      // Runtime routing is fully delegated to dispatchNonHeteroSubAgent ().
       const parentAgentConfig = context.agentId
         ? agentSelectors.getAgentConfigById(context.agentId)(getAgentStoreState())
         : undefined;
-      const runtimeType = selectRuntimeType({
-        heterogeneousProvider: parentAgentConfig?.agencyConfig?.heterogeneousProvider,
-        isGatewayMode: this.#get().isGatewayModeEnabled(),
-      });
 
-      // TODO(LOBE-8519 follow-up): only client sub-agent dispatch is
-      // implemented today. Gateway / hetero direct mentions fall through to
-      // client and will need their own runner once Step 2 lands.
-      if (runtimeType !== 'client') {
-        console.warn(
-          `[directMentionRoute] runtime=${runtimeType} not yet supported for sub-agent dispatch; ` +
-            'falling through to client mode',
-        );
-      }
-
-      await this.#get().executeClientAgent({
-        context: { ...context, scope: 'sub_agent', subAgentId: targetAgentId },
-        inPortalThread,
-        messages: messagesWithInstruction,
-        parentMessageId: toolMessage.id,
-        parentMessageType: 'tool',
-        parentOperationId: operationId,
-      });
+      await dispatchNonHeteroSubAgent(
+        { kind: 'mention', targetAgentId, instruction, parentMessageId: toolMessage.id },
+        {
+          conversationContext: context,
+          heterogeneousProvider: parentAgentConfig?.agencyConfig?.heterogeneousProvider,
+          inPortalThread,
+          isGatewayMode: this.#get().isGatewayModeEnabled(),
+          messages: messagesWithInstruction,
+          parentOperationId: operationId,
+        },
+        this.#get(),
+      );
 
       this.#get().completeOperation(operationId);
     } catch (error) {
