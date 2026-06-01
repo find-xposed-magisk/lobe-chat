@@ -277,6 +277,7 @@ const PlusAction = memo(() => {
 
   const isMemoryEnabled = useMemoryEnabled(agentId);
   const [showTypoBar, setShowTypoBar] = useChatInputStore((s) => [s.showTypoBar, s.setShowTypoBar]);
+  const editor = useChatInputStore((s) => s.editor);
   const { canUploadImage, canUploadVideo } = useVisualMediaUploadAbility(model, provider);
   const enableFC = useModelSupportToolUse(model, provider);
   const handleOpenKnowledge = useCallback(() => {
@@ -415,6 +416,7 @@ const PlusAction = memo(() => {
                 return false;
               }
               setDropdownOpen(false);
+              editor?.focus();
               await upload([file]);
               return false;
             }}
@@ -566,6 +568,7 @@ const PlusAction = memo(() => {
     activeSearchOption,
     canUploadImage,
     canUploadVideo,
+    editor,
     enableFC,
     enableKnowledgeBase,
     handleOpenTools,
