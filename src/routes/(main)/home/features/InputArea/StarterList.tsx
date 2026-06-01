@@ -1,5 +1,5 @@
 import { ModelIcon } from '@lobehub/icons';
-import { Button, Center, Tag } from '@lobehub/ui';
+import { Button, Center, Skeleton, Tag } from '@lobehub/ui';
 import { App } from 'antd';
 import { createStaticStyles, cx } from 'antd-style';
 import { memo, useCallback, useState } from 'react';
@@ -37,6 +37,8 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
 }));
 
 const getStarterItemKey = (item: HomeNewModelItem) => `${item.type}:${item.model}`;
+const getStarterItemProvider = (item: HomeNewModelItem) => item.provider ?? NEW_CHAT_PROVIDER;
+const skeletonWidths = [112, 150, 126, 138];
 
 const StarterList = memo(() => {
   const { t } = useTranslation('home');
@@ -45,7 +47,7 @@ const StarterList = memo(() => {
   const { agentId: activeAgentId } = useResolvedHomeAgentId();
   const updateAgentConfigById = useAgentStore((s) => s.updateAgentConfigById);
   const [switchingKey, setSwitchingKey] = useState<string | null>(null);
-  const items = useHomeNewModels(DEFAULT_HOME_NEW_MODELS);
+  const { isLoading, items } = useHomeNewModels(DEFAULT_HOME_NEW_MODELS);
 
   const handleClick = useCallback(
     async (item: HomeNewModelItem) => {
@@ -64,6 +66,7 @@ const StarterList = memo(() => {
       if (item.type === 'chat') {
         if (!activeAgentId || switchingKey) return;
         setSwitchingKey(key);
+        const provider = getStarterItemProvider(item);
         try {
           // Hydrate the agent's config before mutating so the optimistic update
           // doesn't drop pre-existing fields the home input never loaded.
@@ -77,14 +80,14 @@ const StarterList = memo(() => {
           const currentModel = agentByIdSelectors.getAgentModelById(activeAgentId)(agentState);
           const currentProvider =
             agentByIdSelectors.getAgentModelProviderById(activeAgentId)(agentState);
-          if (currentModel === item.model && currentProvider === NEW_CHAT_PROVIDER) {
+          if (currentModel === item.model && currentProvider === provider) {
             message.info(t('starter.modelInUse', { name: item.title }));
             return;
           }
 
           await updateAgentConfigById(activeAgentId, {
             model: item.model,
-            provider: NEW_CHAT_PROVIDER,
+            provider,
           });
           message.success(t('starter.modelSwitched', { name: item.title }));
         } finally {
@@ -101,25 +104,37 @@ const StarterList = memo(() => {
       <Tag className={styles.newTag} size={'small'}>
         {t('starter.newLabel')}
       </Tag>
-      {items.map((item) => {
-        const key = getStarterItemKey(item);
-        const isLoading = switchingKey === key;
+      {isLoading
+        ? DEFAULT_HOME_NEW_MODELS.map((item, index) => (
+            <Skeleton.Button
+              active
+              key={getStarterItemKey(item)}
+              style={{
+                borderRadius: 999,
+                height: 40,
+                width: skeletonWidths[index] ?? 126,
+              }}
+            />
+          ))
+        : items.map((item) => {
+            const key = getStarterItemKey(item);
+            const isSwitching = switchingKey === key;
 
-        return (
-          <Button
-            className={cx(styles.button)}
-            disabled={!!switchingKey && !isLoading}
-            icon={<ModelIcon model={item.iconModel ?? item.model} size={18} />}
-            key={key}
-            loading={isLoading}
-            shape={'round'}
-            variant={'outlined'}
-            onClick={() => handleClick(item)}
-          >
-            {item.title}
-          </Button>
-        );
-      })}
+            return (
+              <Button
+                className={cx(styles.button)}
+                disabled={!!switchingKey && !isSwitching}
+                icon={<ModelIcon model={item.iconModel ?? item.model} size={18} />}
+                key={key}
+                loading={isSwitching}
+                shape={'round'}
+                variant={'outlined'}
+                onClick={() => handleClick(item)}
+              >
+                {item.title}
+              </Button>
+            );
+          })}
     </Center>
   );
 });
