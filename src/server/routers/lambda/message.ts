@@ -179,6 +179,10 @@ export const messageRouter = router({
     return ctx.messageModel.getHeatmaps();
   }),
 
+  getTokenHeatmaps: messageProcedure.query(async ({ ctx }) => {
+    return ctx.messageModel.getTokenHeatmaps();
+  }),
+
   getMessages: publicProcedure
     .use(serverDatabase)
     .input(
@@ -210,7 +214,8 @@ export const messageRouter = router({
         return messageModel.query(
           { ...queryParams, topicId: share.topicId },
           {
-            postProcessUrl: (path) => fileService.getFullFileUrl(path),
+            postProcessUrl: (path, file) =>
+              fileService.getFileAccessUrl({ id: file.id, url: path }),
           },
         );
       }
@@ -224,7 +229,7 @@ export const messageRouter = router({
       const fileService = new FileService(ctx.serverDB, ctx.userId);
 
       return messageModel.query(queryParams, {
-        postProcessUrl: (path) => fileService.getFullFileUrl(path),
+        postProcessUrl: (path, file) => fileService.getFileAccessUrl({ id: file.id, url: path }),
       });
     }),
 

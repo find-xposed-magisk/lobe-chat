@@ -46,6 +46,7 @@ import { AgentModel } from '@/database/models/agent';
 import { AgentOperationModel } from '@/database/models/agentOperation';
 import { AgentSkillModel } from '@/database/models/agentSkill';
 import { AiModelModel } from '@/database/models/aiModel';
+import { DeviceModel } from '@/database/models/device';
 import { FileModel } from '@/database/models/file';
 import { MessageModel } from '@/database/models/message';
 import { PluginModel } from '@/database/models/plugin';
@@ -77,11 +78,13 @@ import {
 import { shouldSuppressSignal } from '@/server/services/agentSignal/suppressSignal';
 import { DocumentService } from '@/server/services/document';
 import { FileService } from '@/server/services/file';
+import { resolveAttachmentsByFileIds } from '@/server/services/file/resolveAttachments';
 import { HeterogeneousAgentService } from '@/server/services/heterogeneousAgent';
 import type { ConversationHistoryEntry } from '@/server/services/heterogeneousAgent/cloudHeteroContext';
 import { KlavisService } from '@/server/services/klavis';
 import { MarketService } from '@/server/services/market';
 import { deviceProxy } from '@/server/services/toolExecution/deviceProxy';
+import { markdownToTxt } from '@/utils/markdownToTxt';
 
 import { resolveDeviceAccessPolicy } from './deviceAccessPolicy';
 import { buildAllowedBuiltinTools, isDeviceToolIdentifier } from './deviceToolRegistry';
@@ -383,7 +386,16 @@ export class AiAgentService {
     throwIfAborted(signal, 'Agent execution aborted before startup');
 
     // 1. Get agent configuration with default config merged (supports both id and slug)
-    const agentConfig = await this.agentService.getAgentConfig(identifier);
+    let agentConfig = await this.agentService.getAgentConfig(identifier);
+    // Builtin agents (inbox / page / task / self-iteration slugs) may be addressed
+    // purely by slug before a row exists — e.g. background self-iteration runs
+    // dispatched via execAgent({ slug }). Lazily materialize the virtual row from
+    // the builtin registry (mirrors the inbox/task `getBuiltinAgent` path) and
+    // re-resolve. No-op for ordinary agent ids (getBuiltinAgent returns null).
+    if (!agentConfig && (Object.values(BUILTIN_AGENT_SLUGS) as string[]).includes(identifier)) {
+      await this.agentModel.getBuiltinAgent(identifier);
+      agentConfig = await this.agentService.getAgentConfig(identifier);
+    }
     if (!agentConfig) {
       throw new Error(`Agent not found: ${identifier}`);
     }
@@ -628,11 +640,14 @@ export class AiAgentService {
             }
           : undefined;
 
+      const fallbackTitleSource = markdownToTxt(prompt);
       const newTopic = await this.topicModel.create({
         agentId: resolvedAgentId,
         metadata,
         title:
-          title !== undefined ? title : prompt.slice(0, 50) + (prompt.length > 50 ? '...' : ''),
+          title !== undefined
+            ? title
+            : fallbackTitleSource.slice(0, 50) + (fallbackTitleSource.length > 50 ? '...' : ''),
         trigger,
       });
       topicId = newTopic.id;
@@ -946,9 +961,39 @@ export class AiAgentService {
               userMessageId: userMsg?.id ?? parentMessageId ?? '',
             };
           }
+          // Resolve the working directory for the run: a topic-level override
+          // wins, else the device's user-configured defaultCwd. The device row
+          // lives in the DB (the gateway only knows live connections), so read
+          // it directly rather than via deviceProxy.
+          const boundDevice = await new DeviceModel(this.db, this.userId).findByDeviceId(
+            dispatchDeviceId,
+          );
+          // Prefer the topic's own pinned cwd — an existing topic carries it in
+          // `metadata.workingDirectory`, whereas `initialTopicMetadata` is only
+          // populated for a brand-new topic. Fall back to the device default.
+          const deviceCwd =
+            topic?.metadata?.workingDirectory ||
+            appContext?.initialTopicMetadata?.workingDirectory ||
+            boundDevice?.defaultCwd ||
+            undefined;
+
+          // A device is the user's own persistent machine — build a
+          // device-specific context instead of reusing the cloud-sandbox one
+          // (which describes an ephemeral /workspace + pre-cloned repos and
+          // would mislead the agent).
+          const { buildRemoteDeviceHeteroContext } =
+            await import('@/server/services/heterogeneousAgent/remoteDeviceHeteroContext');
+          const deviceSystemContext = buildRemoteDeviceHeteroContext({
+            agentSystemContext: agentConfig.agencyConfig?.heterogeneousProvider?.systemContext,
+            conversationHistory,
+            cwd: deviceCwd,
+          });
+
           const result = await deviceProxy.dispatchAgentRun({
             ...heteroParams,
+            cwd: deviceCwd,
             deviceId: dispatchDeviceId,
+            systemContext: deviceSystemContext,
           });
           if (!result.success) {
             log('execAgent: hetero device dispatch failed: %s', result.error);
@@ -1076,9 +1121,10 @@ export class AiAgentService {
     // Model metadata is needed both for tool support checks and agent-management context.
     const { loadModels } = await import('@/business/client/model-bank/loadModels');
     const builtinModels = await loadModels();
-    // Resolve S3 keys in imageList/videoList before visual tool activation checks and context build.
+    // Resolve file URLs before visual tool activation checks and context build.
     const fileService = new FileService(this.db, this.userId);
-    const postProcessUrl = (path: string | null) => fileService.getFullFileUrl(path);
+    const postProcessUrl = (path: string | null, file: { id?: string | null }) =>
+      fileService.getFileAccessUrl({ id: file.id, url: path });
     let historyMessagesCache: any[] | undefined;
     const loadHistoryMessages = async () => {
       if (historyMessagesCache) return historyMessagesCache;
@@ -1772,96 +1818,26 @@ export class AiAgentService {
     if (attachedFileIds && attachedFileIds.length > 0) {
       await throwIfExecutionAborted('file resolution');
 
-      // Dedupe while preserving caller order. messages_files has a composite PK
-      // on (file_id, message_id), so duplicate fileIds would violate the
-      // constraint on messageModel.create and abort the whole send.
-      const dedupedFileIds = Array.from(new Set(attachedFileIds));
+      const resolved = await resolveAttachmentsByFileIds({
+        db: this.db,
+        fileIds: attachedFileIds,
+        userId: this.userId,
+      });
 
-      const fileModel = new FileModel(this.db, this.userId);
-      const fileRecords = await fileModel.findByIds(dedupedFileIds);
+      warnings.push(...resolved.warnings);
 
-      if (fileRecords.length > 0) {
-        fileIds = fileIds ?? [];
-        imageList = imageList ?? [];
-        videoList = videoList ?? [];
-        fileList = fileList ?? [];
+      if (resolved.orderedFileIds.length > 0) {
+        fileIds = [...(fileIds ?? []), ...resolved.orderedFileIds];
 
-        const documentService = new DocumentService(this.db, this.userId);
-
-        // Preserve caller's ordering of fileIds so rendering matches upload order.
-        const recordById = new Map(fileRecords.map((f) => [f.id, f]));
-
-        for (const id of dedupedFileIds) {
-          const file = recordById.get(id);
-          if (!file) {
-            warnings.push(`Attachment "${id}" was not found and skipped.`);
-            continue;
-          }
-
-          fileIds.push(file.id);
-          const resolvedUrl = (await fileService.getFullFileUrl(file.url)) || file.url;
-          const fileType = file.fileType || '';
-
-          if (fileType.startsWith('image')) {
-            imageList.push({
-              alt: file.name || 'image',
-              id: file.id,
-              url: resolvedUrl,
-            });
-            continue;
-          }
-
-          if (fileType.startsWith('video')) {
-            videoList.push({
-              alt: file.name || 'video',
-              id: file.id,
-              url: resolvedUrl,
-            });
-            continue;
-          }
-
-          // Non-image / non-video: ensure the document content is parsed so
-          // MessageContentProcessor can inject it via filesPrompts(). parseFile
-          // is idempotent — returns cached content when the document already exists.
-          let content: string | undefined;
-          try {
-            const document = await documentService.parseFile(file.id);
-            content = document.content ?? undefined;
-          } catch (parseError) {
-            log(
-              'execAgent: parseFile failed for attached file %s (id=%s): %O',
-              file.name,
-              file.id,
-              parseError,
-            );
-            warnings.push(
-              `File "${file.name || 'unknown'}" was attached but its contents could not be extracted.`,
-            );
-          }
-
-          fileList.push({
-            content,
-            fileType: fileType || 'application/octet-stream',
-            id: file.id,
-            name: file.name || 'file',
-            size: file.size ?? 0,
-            url: resolvedUrl,
-          });
+        if (resolved.imageList.length > 0) {
+          imageList = [...(imageList ?? []), ...resolved.imageList];
         }
-
-        log(
-          'execAgent: resolved %d attached file(s) (%d images, %d videos, %d documents)',
-          fileRecords.length,
-          imageList.length,
-          videoList.length,
-          fileList.length,
-        );
-
-        if (imageList.length === 0) imageList = undefined;
-        if (videoList.length === 0) videoList = undefined;
-        if (fileList.length === 0) fileList = undefined;
-      } else {
-        log('execAgent: no file records found for attachedFileIds=%O', dedupedFileIds);
+        if (resolved.videoList.length > 0) {
+          videoList = [...(videoList ?? []), ...resolved.videoList];
+        }
+        if (resolved.fileList.length > 0) {
+          fileList = [...(fileList ?? []), ...resolved.fileList];
+        }
       }
     }
 
@@ -2208,7 +2184,17 @@ export class AiAgentService {
         deviceSystemInfo: Object.keys(deviceSystemInfo).length > 0 ? deviceSystemInfo : undefined,
         userTimezone,
         appContext: {
-          agentId: resolvedAgentId,
+          // Background self-iteration runs execute under a builtin slug (so they
+          // inherit the builtin agent's tools / systemRole / model), but their
+          // resource tools and receipts must attribute to the *reviewed* user
+          // agent, which rides on the marker. Prefer it so the tool-execution
+          // context (state.metadata.agentId) targets the reviewed agent; ordinary
+          // runs (no marker) fall back to the resolved executing agent.
+          agentId: appContext?.agentSignal?.agentId ?? resolvedAgentId,
+          // Run-scoped Agent Signal marker for background self-iteration / memory
+          // runs — lands in state.metadata.agentSignal so the completion path can
+          // project receipts/briefs. Undefined for ordinary chat runs.
+          ...(appContext?.agentSignal ? { agentSignal: appContext.agentSignal } : {}),
           defaultTaskAssigneeAgentId: appContext?.defaultTaskAssigneeAgentId,
           documentId: appContext?.documentId,
           groupId: appContext?.groupId,
@@ -2357,8 +2343,10 @@ export class AiAgentService {
     // - newTopic is explicitly provided, OR
     // - no topicId is provided (default behavior for group chat)
     if (newTopic || !inputTopicId) {
+      const fallbackTitleSource = markdownToTxt(message);
       const topicTitle =
-        newTopic?.title || message.slice(0, 50) + (message.length > 50 ? '...' : '');
+        newTopic?.title ||
+        fallbackTitleSource.slice(0, 50) + (fallbackTitleSource.length > 50 ? '...' : '');
       const topicItem = await this.topicModel.create({
         agentId,
         groupId,

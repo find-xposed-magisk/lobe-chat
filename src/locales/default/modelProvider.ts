@@ -282,7 +282,7 @@ export default {
   'providerModels.item.modelConfig.extendParams.options.imageResolution2.hint':
     'For Gemini 3.1 Flash Image models; controls resolution of generated images (supports 512px).',
   'providerModels.item.modelConfig.extendParams.options.opus47Effort.hint':
-    'For Claude Opus 4.7; controls effort level (low/medium/high/xhigh/max).',
+    'For Claude Opus 4.7 and later; controls effort level (low/medium/high/xhigh/max).',
   'providerModels.item.modelConfig.extendParams.options.reasoningBudgetToken.hint':
     'For Claude, Qwen3 and similar; controls token budget for reasoning.',
   'providerModels.item.modelConfig.extendParams.options.reasoningBudgetToken32k.hint':
@@ -291,6 +291,8 @@ export default {
     'For Qwen3 series; controls token budget for reasoning (max 80k).',
   'providerModels.item.modelConfig.extendParams.options.reasoningEffort.hint':
     'For OpenAI and other reasoning-capable models; controls reasoning effort.',
+  'providerModels.item.modelConfig.extendParams.options.step3_5ReasoningEffort.hint':
+    'For Step 3.5 series; controls reasoning intensity.',
   'providerModels.item.modelConfig.extendParams.options.textVerbosity.hint':
     'For GPT-5+ series; controls output verbosity.',
   'providerModels.item.modelConfig.extendParams.options.thinking.hint':

@@ -14,7 +14,6 @@ import {
 } from '@lobechat/agent-runtime';
 import { LobeActivatorIdentifier } from '@lobechat/builtin-tool-activator';
 import {
-  CredsIdentifier,
   type CredSummary,
   generateCredsList,
   generateKlavisServicesList,
@@ -97,10 +96,11 @@ import { formatErrorEventData } from './formatErrorEventData';
 import { classifyLLMError, type LLMErrorKind } from './llmErrorClassification';
 import {
   createConversationParentMissingError,
-  isParentMessageMissingError,
+  isMidOperationReferenceMissingError,
   isPersistFatal,
   markPersistFatal,
 } from './messagePersistErrors';
+import { ModelEmptyError } from './ModelEmptyError';
 import { resolveToolTimeoutMs } from './resolveToolTimeout';
 import { type IStreamEventManager } from './types';
 
@@ -117,6 +117,54 @@ const TOOL_MAX_RETRIES = 2;
 const LLM_MAX_RETRIES = 5;
 const LLM_RETRY_BASE_DELAY_MS = 1000;
 const LLM_RETRY_MAX_DELAY_MS = 30_000;
+
+/**
+ * Retry budget for empty completions, applied independently of
+ * `resolveLLMMaxRetries`. The branded provider gets 0 general retries because
+ * its own fallback chain already re-routes failed requests — but an
+ * HTTP-200-but-empty turn never triggered that chain, so it must still be
+ * re-issued. A small budget is enough: empty turns almost always self-heal on
+ * the first retry.
+ */
+const EMPTY_COMPLETION_MAX_RETRIES = 2;
+
+/**
+ * Output-token count at or below this — combined with no content, reasoning,
+ * tool calls, or images — marks a turn as an empty completion.
+ * The observed failure case reported `out=1 token`.
+ */
+const EMPTY_COMPLETION_MAX_OUTPUT_TOKENS = 1;
+
+/**
+ * Detect the "empty completion" failure mode: the model returns a
+ * turn with no text, no reasoning, no tool calls, no images, and ~0 output
+ * tokens — typically after a stalled tool loop where it effectively gives up.
+ * Callers throw `ModelEmptyError` on a hit so the LLM retry loop re-attempts
+ * instead of silently finalizing to `done` with a blank assistant message.
+ */
+const isEmptyModelCompletion = (params: {
+  content: string;
+  imageCount: number;
+  outputTokens: number | undefined;
+  reasoning: string;
+  toolCallCount: number;
+}): boolean => {
+  const { content, reasoning, toolCallCount, imageCount, outputTokens } = params;
+
+  if (content.trim().length > 0) return false;
+  if (reasoning.trim().length > 0) return false;
+  if (toolCallCount > 0) return false;
+  if (imageCount > 0) return false;
+
+  // When the provider reports output tokens, only treat as empty if it's ~0.
+  // Guards against rare cases where structured output we don't accumulate into
+  // `content`/`reasoning` here (e.g. grounding) still consumed real tokens.
+  if (typeof outputTokens === 'number' && outputTokens > EMPTY_COMPLETION_MAX_OUTPUT_TOKENS) {
+    return false;
+  }
+
+  return true;
+};
 
 const GEN_AI_FUNCTION_TOOL_TYPE: ToolType = 'function';
 
@@ -166,11 +214,11 @@ const archiveRuntimeToolResult = async (
   return archive.content === result.content ? result : { ...result, content: archive.content };
 };
 
-// Builds a postProcessUrl callback that resolves S3 keys in file-backed fields
-// (imageList, videoList, fileList) to absolute URLs. Must be passed to every
-// messageModel.query() call whose output is later fed to the LLM — otherwise
-// the provider layer receives raw keys like `files/user_xxx/icon.png` and
-// rejects them (see anthropic contextBuilder `Invalid image URL`).
+// Builds a postProcessUrl callback that resolves keys in file-backed fields
+// (imageList, videoList, fileList) to externally accessible URLs. Must be
+// passed to every messageModel.query() call whose output is later fed to the
+// LLM — otherwise the provider layer receives raw keys like
+// `files/user_xxx/icon.png` and rejects them.
 //
 // FileService is constructed lazily so environments without S3 config (unit
 // tests) don't fail at context-build time; failure returns undefined, which
@@ -183,7 +231,8 @@ const buildPostProcessUrl = (ctx: Pick<RuntimeExecutorContext, 'serverDB' | 'use
   } catch {
     return undefined;
   }
-  return (path: string | null) => fileService!.getFullFileUrl(path);
+  return (path: string | null, file: { id?: string | null }) =>
+    fileService!.getFileAccessUrl({ id: file.id, url: path });
 };
 
 const shouldRetryLLM = (kind: LLMErrorKind, attempt: number, maxRetries: number) =>
@@ -193,6 +242,24 @@ const resolveLLMMaxRetries = (provider: string) =>
   // The branded provider already routes through its own fallback chain. Retrying
   // again here multiplies the same failed routed request across every channel.
   provider === BRANDING_PROVIDER ? 0 : LLM_MAX_RETRIES;
+
+/**
+ * Retry budget for a *specific* failed attempt. This is provider policy +
+ * error-type override, so it can only be resolved once the error exists (in the
+ * catch) — unlike {@link resolveLLMMaxRetries}, which runs before the request.
+ *
+ * Empty completions bypass the per-provider policy: the branded
+ * provider's 0-retry rule exists to avoid re-routing its own already-failed
+ * requests, but an HTTP-200-but-empty turn never hit that fallback chain, so it
+ * must still be re-issued. Folding this into `resolveLLMMaxRetries` would wrongly
+ * grant the floor to *every* branded error.
+ */
+const resolveLLMRetryBudget = (provider: string, error: unknown) =>
+  error instanceof ModelEmptyError ? EMPTY_COMPLETION_MAX_RETRIES : resolveLLMMaxRetries(provider);
+
+/** Loop bound — must accommodate the largest budget any error kind can request. */
+const resolveLLMMaxAttempts = (provider: string) =>
+  Math.max(resolveLLMMaxRetries(provider), EMPTY_COMPLETION_MAX_RETRIES) + 1;
 
 const resolveRuntimeHistoryCount = (historyCount?: number) => {
   if (historyCount === undefined) return undefined;
@@ -638,18 +705,25 @@ export const createRuntimeExecutors = (
         // {{sandbox_enabled}} — mirrors client-side check for lobe-cloud-sandbox.
         const sandboxEnabled = String(resolved.enabledToolIds.includes('lobe-cloud-sandbox'));
 
+        // {{session_date}} — current date formatted for user's timezone.
+        const sessionDate = new Intl.DateTimeFormat('en-US', {
+          day: 'numeric',
+          month: 'long',
+          timeZone: ctx.userTimezone || 'UTC',
+          weekday: 'long',
+          year: 'numeric',
+        }).format(new Date());
+
         // {{memory_effort}} — read from agentConfig chatConfig; no extra query needed.
         const memoryEffort = String(
           (state.metadata?.agentConfig as any)?.chatConfig?.memory?.effort ?? '',
         );
 
         // {{CREDS_LIST}} — used by lobe-creds system role.
-        // Gate on manifestMap presence, NOT enabledToolIds: in execAgent mode lobe-creds is
-        // added to manifestMap (for activator discovery) but never into enabledToolIds, so
-        // checking enabledToolIds would always be false while the system role IS injected.
-        const isCredsEnabled = !!resolved.manifestMap[CredsIdentifier];
+        // Always fetched when userId is available so substitution works regardless of which
+        // execution path (execAgent / client-side activator) injected the system role.
         let credsListStr = '';
-        if (isCredsEnabled && ctx.userId) {
+        if (ctx.userId) {
           try {
             const { MarketService } = await import('@/server/services/market');
             const marketService = new MarketService({ userInfo: { userId: ctx.userId } });
@@ -674,7 +748,7 @@ export const createRuntimeExecutors = (
         // {{KLAVIS_SERVICES_LIST}} — used by lobe-creds system role (Klavis integrations section).
         // Mirrors client-side: klavisStoreSelectors.getServers() filtered by connection status.
         let klavisServicesListStr = '';
-        if (isCredsEnabled && ctx.serverDB && ctx.userId && !!klavisEnv.KLAVIS_API_KEY) {
+        if (ctx.serverDB && ctx.userId && !!klavisEnv.KLAVIS_API_KEY) {
           try {
             const { PluginModel } = await import('@/database/models/plugin');
             const pluginModel = new PluginModel(ctx.serverDB, ctx.userId);
@@ -717,10 +791,11 @@ export const createRuntimeExecutors = (
             // User identity variables
             username: serverUsername,
             language: serverLanguage,
+            session_date: sessionDate,
             // Creds tool variables
             sandbox_enabled: sandboxEnabled,
-            ...(isCredsEnabled && { CREDS_LIST: credsListStr }),
-            ...(isCredsEnabled && { KLAVIS_SERVICES_LIST: klavisServicesListStr }),
+            CREDS_LIST: credsListStr,
+            KLAVIS_SERVICES_LIST: klavisServicesListStr,
             // Memory tool variables
             memory_effort: memoryEffort,
           },
@@ -926,8 +1001,7 @@ export const createRuntimeExecutors = (
         }
       };
 
-      const llmMaxRetries = resolveLLMMaxRetries(provider);
-      const maxAttempts = llmMaxRetries + 1;
+      const maxAttempts = resolveLLMMaxAttempts(provider);
 
       // OTel chat span — wraps all retry attempts; TTFT recorded on the first
       // text/reasoning chunk regardless of which attempt produced it (the
@@ -957,6 +1031,7 @@ export const createRuntimeExecutors = (
             const imageList: any[] = [];
             let grounding: any = null;
             let currentStepUsage: any = undefined;
+            let currentStepSpeed: any = undefined;
             let currentStepFinishReason: string | undefined = undefined;
             let streamError: any = undefined;
             const contentParts: ContentPart[] = [];
@@ -998,6 +1073,10 @@ export const createRuntimeExecutors = (
                     // Capture usage (may or may not include cost)
                     if (data.usage) {
                       currentStepUsage = data.usage;
+                    }
+                    // Capture performance metrics (tps / ttft / duration / latency)
+                    if (data.speed) {
+                      currentStepSpeed = data.speed;
                     }
                     // Capture provider's terminal finishReason so soft interrupts
                     // (e.g. Gemini RECITATION / MAX_TOKENS with empty content)
@@ -1124,6 +1203,37 @@ export const createRuntimeExecutors = (
               await flushReasoningBuffer();
               clearAttemptBuffers();
 
+              // Empty-completion guard: if the model produced
+              // nothing actionable — no content, reasoning, tool calls, images,
+              // or output tokens — throw so the retry loop below re-attempts the
+              // turn instead of finalizing to `done` with a blank assistant
+              // message. Skipped when the user interrupted mid-stream, where an
+              // empty turn is expected and must not be retried.
+              const reportedOutputTokens =
+                currentStepUsage && typeof currentStepUsage === 'object'
+                  ? (currentStepUsage as { totalOutputTokens?: unknown }).totalOutputTokens
+                  : undefined;
+
+              if (
+                isEmptyModelCompletion({
+                  content,
+                  imageCount: imageList.length,
+                  outputTokens:
+                    typeof reportedOutputTokens === 'number' ? reportedOutputTokens : undefined,
+                  reasoning: thinkingContent,
+                  toolCallCount: toolsCalling.length + tool_calls.length,
+                }) &&
+                !(await isOperationInterrupted(ctx))
+              ) {
+                log(
+                  '[%s] Model returned an empty completion (attempt %d/%d) — throwing ModelEmptyError to retry',
+                  operationLogId,
+                  attempt,
+                  maxAttempts,
+                );
+                throw new ModelEmptyError();
+              }
+
               log(
                 `[${operationLogId}] finish model-runtime calling | content: %d chars | reasoning: %d chars | tools: %d | usage: %s`,
                 content.length,
@@ -1201,7 +1311,14 @@ export const createRuntimeExecutors = (
                 // Build metadata object
                 const metadata: Record<string, any> = {};
                 if (currentStepUsage && typeof currentStepUsage === 'object') {
+                  // Flat fields are kept for backward-compatible readers; `usage`
+                  // is the canonical nested shape new readers should consume.
                   Object.assign(metadata, currentStepUsage);
+                  metadata.usage = currentStepUsage;
+                }
+                if (currentStepSpeed && typeof currentStepSpeed === 'object') {
+                  Object.assign(metadata, currentStepSpeed);
+                  metadata.performance = currentStepSpeed;
                 }
                 if (hasContentImages) {
                   metadata.isMultimodal = true;
@@ -1328,7 +1445,9 @@ export const createRuntimeExecutors = (
               const classified = classifyLLMError(error);
               const interrupted = await isOperationInterrupted(ctx);
 
-              if (!interrupted && shouldRetryLLM(classified.kind, attempt, llmMaxRetries)) {
+              const retryBudget = resolveLLMRetryBudget(provider, error);
+
+              if (!interrupted && shouldRetryLLM(classified.kind, attempt, retryBudget)) {
                 const delayMs = getLLMRetryDelayMs(attempt);
 
                 log(
@@ -1377,6 +1496,11 @@ export const createRuntimeExecutors = (
                   const interruptedMetadata: Record<string, any> = { interruptedMidStream: true };
                   if (currentStepUsage && typeof currentStepUsage === 'object') {
                     Object.assign(interruptedMetadata, currentStepUsage);
+                    interruptedMetadata.usage = currentStepUsage;
+                  }
+                  if (currentStepSpeed && typeof currentStepSpeed === 'object') {
+                    Object.assign(interruptedMetadata, currentStepSpeed);
+                    interruptedMetadata.performance = currentStepSpeed;
                   }
                   await ctx.messageModel.update(assistantMessageItem.id, {
                     content,
@@ -2065,7 +2189,7 @@ export const createRuntimeExecutors = (
           // Normalize BEFORE publishing so clients (which treat `error` stream
           // events as terminal and surface `event.data.error` directly) see the
           // typed business error, not the raw SQL / driver text.
-          const fatal = isParentMessageMissingError(error)
+          const fatal = isMidOperationReferenceMissingError(error)
             ? createConversationParentMissingError(payload.parentMessageId, error)
             : error instanceof Error
               ? error
@@ -2572,7 +2696,7 @@ export const createRuntimeExecutors = (
               // events as terminal and surface `event.data.error` directly, so
               // a raw SQL error here would leak driver text to the user before
               // the ConversationParentMissing throw is consumed. See .
-              const fatal = isParentMessageMissingError(error)
+              const fatal = isMidOperationReferenceMissingError(error)
                 ? createConversationParentMissingError(parentMessageId, error)
                 : error instanceof Error
                   ? error
@@ -2725,7 +2849,7 @@ export const createRuntimeExecutors = (
     // Must pass agentId to ensure correct query scope, otherwise when topicId is undefined,
     // the query will use isNull(topicId) condition which won't find messages with actual topicId
     //
-    // postProcessUrl resolves S3 keys in imageList/videoList/fileList to absolute URLs;
+    // postProcessUrl resolves keys in imageList/videoList/fileList to external URLs;
     // without it the next LLM call sees raw keys and providers reject them.
     const latestMessages = await ctx.messageModel.query(
       {
@@ -3316,7 +3440,7 @@ export const createRuntimeExecutors = (
         );
         // Normalize BEFORE publishing so clients surface the typed business
         // error instead of the raw driver text (see review).
-        const fatal = isParentMessageMissingError(error)
+        const fatal = isMidOperationReferenceMissingError(error)
           ? createConversationParentMissingError(parentMessageId, error)
           : error instanceof Error
             ? error

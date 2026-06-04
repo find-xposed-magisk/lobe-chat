@@ -13,10 +13,10 @@ const lobeHubOnlineModelLocales = {
   'grok-4.20-beta-0309-reasoning.description':
     'Intelligent, blazing-fast model that reasons before responding',
   'grok-4.20-beta-0309-non-reasoning.description': 'A non-reasoning variant for simple use cases',
+  'MiniMax-M3.description':
+    'Frontier multimodal coding and agentic model with a 1M context window, native image/video understanding, and controllable thinking.',
   'MiniMax-M2.1-Lightning.description':
     'Powerful multilingual programming capabilities with faster and more efficient inference.',
-  'qwen3.7-max.description':
-    "Qwen3.7-Max is Alibaba Cloud's flagship agent-era model for complex coding, reasoning, office automation, and long-horizon autonomous workflows.",
   'seedream-5-0-260128.description':
     'ByteDance-Seedream-5.0-lite by BytePlus features web-retrieval-augmented generation for real-time information, enhanced complex prompt interpretation, and improved reference consistency for professional visual creation.',
   'fal-ai/bytedance/seedream/v4.5.description':

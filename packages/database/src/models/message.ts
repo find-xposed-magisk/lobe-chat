@@ -73,6 +73,7 @@ import type { LobeChatDatabase, Transaction } from '../type';
 import { sanitizeBm25Query } from '../utils/bm25';
 import { genEndDateWhere, genRangeWhere, genStartDateWhere, genWhere } from '../utils/genWhere';
 import { idGenerator } from '../utils/idGenerator';
+import { recomputeTopicUsage } from './topicUsage';
 
 /**
  * Options for querying messages with relations
@@ -89,7 +90,10 @@ export interface QueryMessagesOptions {
   /**
    * Post-process function for file URLs
    */
-  postProcessUrl?: (path: string | null, file: { fileType: string }) => Promise<string>;
+  postProcessUrl?: (
+    path: string | null,
+    file: { fileType: string; id?: string | null },
+  ) => Promise<string>;
   timing?: ModelTimingContext;
   /**
    * Topic ID for MessageGroup aggregation queries
@@ -226,7 +230,10 @@ export class MessageModel {
       threadId,
     }: QueryMessageParams = {},
     options: {
-      postProcessUrl?: (path: string | null, file: { fileType: string }) => Promise<string>;
+      postProcessUrl?: (
+        path: string | null,
+        file: { fileType: string; id?: string | null },
+      ) => Promise<string>;
       timing?: ModelTimingContext;
     } = {},
   ) => {
@@ -564,7 +571,10 @@ export class MessageModel {
     topicId,
   }: {
     current: number;
-    postProcessUrl?: (path: string | null, file: { fileType: string }) => Promise<string>;
+    postProcessUrl?: (
+      path: string | null,
+      file: { fileType: string; id?: string | null },
+    ) => Promise<string>;
     result: { createdAt: Date }[];
     timing?: ModelTimingContext;
     topicId?: string;
@@ -648,7 +658,10 @@ export class MessageModel {
           rawRelatedFileList.map(async (file) => ({
             ...file,
             url: postProcessUrl
-              ? await postProcessUrl(file.url, file as unknown as { fileType: string })
+              ? await postProcessUrl(
+                  file.url,
+                  file as unknown as { fileType: string; id?: string | null },
+                )
               : (file.url as string),
           })),
         ),
@@ -807,7 +820,10 @@ export class MessageModel {
   queryByIds = async (
     messageIds: string[],
     options: {
-      postProcessUrl?: (path: string | null, file: { fileType: string }) => Promise<string>;
+      postProcessUrl?: (
+        path: string | null,
+        file: { fileType: string; id?: string | null },
+      ) => Promise<string>;
     } = {},
   ): Promise<UIChatMessage[]> => {
     if (messageIds.length === 0) return [];
@@ -946,7 +962,12 @@ export class MessageModel {
     const relatedFileList = await Promise.all(
       rawRelatedFileList.map(async (file) => ({
         ...file,
-        url: postProcessUrl ? await postProcessUrl(file.url, file as any) : (file.url as string),
+        url: postProcessUrl
+          ? await postProcessUrl(
+              file.url,
+              file as unknown as { fileType: string; id?: string | null },
+            )
+          : (file.url as string),
       })),
     );
 
@@ -1066,7 +1087,10 @@ export class MessageModel {
   private queryMessageGroupNodes = async (
     topicId: string,
     timeRange?: { endTime: Date; startTime: Date },
-    postProcessUrl?: (path: string | null, file: { fileType: string }) => Promise<string>,
+    postProcessUrl?: (
+      path: string | null,
+      file: { fileType: string; id?: string | null },
+    ) => Promise<string>,
     timing?: ModelTimingContext,
   ): Promise<UIChatMessage[]> => {
     // 1. Query MessageGroups for this topic, optionally filtered by time range
@@ -1531,6 +1555,80 @@ export class MessageModel {
     return heatmapData;
   };
 
+  /**
+   * Daily token-usage heatmap for the last year.
+   *
+   * Sums `metadata.usage.totalTokens` of assistant messages bucketed by the day
+   * each message was created — so tokens land on the day they were actually
+   * consumed (a long-running topic spreads across days instead of piling onto
+   * its creation date). `metadata.usage` is the source of truth for usage, so we
+   * aggregate it directly in SQL rather than pulling rows into JS. `level` is
+   * scaled relative to the busiest day so the heatmap stays readable regardless
+   * of absolute token volume.
+   */
+  getTokenHeatmaps = async (): Promise<HeatmapsProps['data']> => {
+    const startDate = today().subtract(1, 'year').startOf('day');
+    const endDate = today().endOf('day');
+
+    const result = await this.db
+      .select({
+        date: sql`DATE(${messages.createdAt})`.as('heatmaps_date'),
+        tokens:
+          sql<number>`COALESCE(SUM((${messages.metadata}->'usage'->>'totalTokens')::numeric), 0)`.mapWith(
+            Number,
+          ),
+      })
+      .from(messages)
+      .where(
+        genWhere([
+          eq(messages.userId, this.userId),
+          eq(messages.role, 'assistant'),
+          genRangeWhere(
+            [startDate.format('YYYY-MM-DD'), endDate.add(1, 'day').format('YYYY-MM-DD')],
+            messages.createdAt,
+            (date) => date.toDate(),
+          ),
+        ]),
+      )
+      .groupBy(sql`heatmaps_date`)
+      .orderBy(desc(sql`heatmaps_date`));
+
+    const dateTokenMap = new Map<string, number>();
+    let maxTokens = 0;
+    for (const item of result) {
+      if (item?.date) {
+        const dateStr = dayjs(item.date as string).format('YYYY-MM-DD');
+        const tokens = item.tokens || 0;
+        dateTokenMap.set(dateStr, tokens);
+        if (tokens > maxTokens) maxTokens = tokens;
+      }
+    }
+
+    const heatmapData: HeatmapsProps['data'] = [];
+    let currentDate = startDate.clone();
+
+    while (currentDate.isBefore(endDate) || currentDate.isSame(endDate, 'day')) {
+      const formattedDate = currentDate.format('YYYY-MM-DD');
+      const tokens = dateTokenMap.get(formattedDate) || 0;
+
+      // Scale to 1-4 relative to the busiest day; 0 tokens stays at level 0.
+      const level =
+        tokens > 0 && maxTokens > 0
+          ? Math.min(4, Math.max(1, Math.ceil((tokens / maxTokens) * 4)))
+          : 0;
+
+      heatmapData.push({
+        count: tokens,
+        date: formattedDate,
+        level,
+      });
+
+      currentDate = currentDate.add(1, 'day');
+    }
+
+    return heatmapData;
+  };
+
   hasMoreThanN = async (n: number): Promise<boolean> => {
     const result = await this.db
       .select({ id: messages.id })
@@ -1917,6 +2015,19 @@ export class MessageModel {
                 () => this.touchTopicUpdatedAt(trx, [updated.topicId!]),
                 { topicCount: 1 },
               );
+
+              // When this write carries token usage (assistant finalize / hetero
+              // step), recompute the topic's denormalized usage rollup from its
+              // messages. Gated on the *incoming* payload so streaming
+              // content-only updates don't trigger needless recomputes.
+              if ((metadata as { usage?: unknown } | undefined)?.usage) {
+                await runTimedStage(
+                  timing,
+                  'db.message.update.topic.recomputeUsage',
+                  () => recomputeTopicUsage(trx, this.userId, updated.topicId!),
+                  { topicCount: 1 },
+                );
+              }
             }
           }),
         {
@@ -2280,6 +2391,12 @@ export class MessageModel {
       await tx
         .delete(messages)
         .where(and(eq(messages.userId, this.userId), inArray(messages.id, messageIdsToDelete)));
+
+      // 7. Keep the topic's usage rollup in sync (pure derived — a removed
+      // assistant message must drop out of the topic totals).
+      if (message[0].topicId) {
+        await recomputeTopicUsage(tx, this.userId, message[0].topicId);
+      }
     });
   };
 
@@ -2289,7 +2406,7 @@ export class MessageModel {
     return this.db.transaction(async (tx) => {
       // 1. Query all messages to be deleted with their parentId
       const toDelete = await tx
-        .select({ id: messages.id, parentId: messages.parentId })
+        .select({ id: messages.id, parentId: messages.parentId, topicId: messages.topicId })
         .from(messages)
         .where(and(eq(messages.userId, this.userId), inArray(messages.id, ids)));
 
@@ -2353,6 +2470,14 @@ export class MessageModel {
       await tx
         .delete(messages)
         .where(and(eq(messages.userId, this.userId), inArray(messages.id, ids)));
+
+      // 7. Recompute the usage rollup for every affected topic (pure derived).
+      const affectedTopicIds = [
+        ...new Set(toDelete.map((m) => m.topicId).filter(Boolean) as string[]),
+      ];
+      for (const topicId of affectedTopicIds) {
+        await recomputeTopicUsage(tx, this.userId, topicId);
+      }
     });
   };
 
