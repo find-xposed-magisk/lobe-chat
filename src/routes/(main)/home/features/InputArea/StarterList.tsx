@@ -5,6 +5,7 @@ import { createStaticStyles, cx } from 'antd-style';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useBusinessModelModeConfig } from '@/business/client/hooks/useBusinessAgentMode';
 import type { HomeNewModelItem } from '@/business/client/hooks/useHomeNewModels';
 import { useHomeNewModels } from '@/business/client/hooks/useHomeNewModels';
 import { useStableNavigate } from '@/hooks/useStableNavigate';
@@ -48,6 +49,7 @@ const StarterList = memo(() => {
   const updateAgentConfigById = useAgentStore((s) => s.updateAgentConfigById);
   const [switchingKey, setSwitchingKey] = useState<string | null>(null);
   const { isLoading, items } = useHomeNewModels(DEFAULT_HOME_NEW_MODELS);
+  const applyBusinessModelModeConfig = useBusinessModelModeConfig();
 
   const handleClick = useCallback(
     async (item: HomeNewModelItem) => {
@@ -80,15 +82,24 @@ const StarterList = memo(() => {
           const currentModel = agentByIdSelectors.getAgentModelById(activeAgentId)(agentState);
           const currentProvider =
             agentByIdSelectors.getAgentModelProviderById(activeAgentId)(agentState);
-          if (currentModel === item.model && currentProvider === provider) {
+          const nextConfig = applyBusinessModelModeConfig({
+            model: item.model,
+            provider,
+          });
+          const shouldUpdateAgentMode =
+            nextConfig.chatConfig?.enableAgentMode === false &&
+            agentByIdSelectors.getAgentEnableModeById(activeAgentId)(agentState);
+
+          if (
+            currentModel === item.model &&
+            currentProvider === provider &&
+            !shouldUpdateAgentMode
+          ) {
             message.info(t('starter.modelInUse', { name: item.title }));
             return;
           }
 
-          await updateAgentConfigById(activeAgentId, {
-            model: item.model,
-            provider,
-          });
+          await updateAgentConfigById(activeAgentId, nextConfig);
           message.success(t('starter.modelSwitched', { name: item.title }));
         } finally {
           setSwitchingKey(null);
@@ -96,7 +107,15 @@ const StarterList = memo(() => {
         return;
       }
     },
-    [navigate, activeAgentId, updateAgentConfigById, switchingKey, message, t],
+    [
+      navigate,
+      activeAgentId,
+      applyBusinessModelModeConfig,
+      updateAgentConfigById,
+      switchingKey,
+      message,
+      t,
+    ],
   );
 
   return (
