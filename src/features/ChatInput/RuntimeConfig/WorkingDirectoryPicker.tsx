@@ -28,7 +28,7 @@ import { deviceSelectors, useDeviceStore } from '@/store/device';
 import { useElectronStore } from '@/store/electron';
 
 import { openAddWorkingDirModal } from './AddWorkingDirModal';
-import { renderDirIcon } from './dirIcon';
+import DirIcon from './DirIcon';
 import { useCommitWorkingDirectory } from './useCommitWorkingDirectory';
 import { useMigrateDeviceRecents } from './useMigrateDeviceRecents';
 
@@ -37,6 +37,7 @@ const styles = createStaticStyles(({ css }) => ({
     cursor: pointer;
 
     display: flex;
+    flex: none;
     gap: 6px;
     align-items: center;
 
@@ -46,12 +47,19 @@ const styles = createStaticStyles(({ css }) => ({
 
     font-size: 12px;
     color: ${cssVar.colorTextSecondary};
+    white-space: nowrap;
 
     transition: background 0.2s;
 
     &:hover {
       background: ${cssVar.colorFillTertiary};
     }
+  `,
+  buttonLabel: css`
+    overflow: hidden;
+    max-width: 140px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   `,
   chooseFolderItem: css`
     cursor: pointer;
@@ -322,7 +330,7 @@ const WorkingDirectoryPicker = memo<WorkingDirectoryPickerProps>(({ agentId }) =
                 key={entry.path}
                 onClick={() => void pick(entry)}
               >
-                {renderDirIcon(entry.repoType)}
+                <DirIcon repoType={entry.repoType} />
                 <Flexbox flex={1} style={{ minWidth: 0 }}>
                   <div className={styles.dirName}>{getDirName(entry.path)}</div>
                   <div className={styles.dirPath}>{entry.path}</div>
@@ -366,11 +374,11 @@ const WorkingDirectoryPicker = memo<WorkingDirectoryPickerProps>(({ agentId }) =
   const trigger = (
     <div className={styles.button}>
       {selectedDir ? (
-        renderDirIcon(recents.find((r) => r.path === selectedDir)?.repoType)
+        <DirIcon repoType={recents.find((r) => r.path === selectedDir)?.repoType} />
       ) : (
         <Icon icon={FolderIcon} size={14} />
       )}
-      <span>{displayName}</span>
+      <span className={styles.buttonLabel}>{displayName}</span>
       <Icon icon={ChevronDownIcon} size={12} />
     </div>
   );
