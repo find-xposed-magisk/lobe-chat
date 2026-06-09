@@ -17,6 +17,12 @@ const mockBuiltinModels = vi.hoisted(() => [
     providerId: 'openai',
   },
   {
+    abilities: { functionCall: true, video: true, vision: true },
+    id: 'qwen3.6-plus',
+    providerId: 'qwen',
+    settings: { extendParams: ['preserveThinking'] },
+  },
+  {
     abilities: { functionCall: false, video: false, vision: false },
     id: 'no-tools-model',
     providerId: 'test-provider',
@@ -25,6 +31,7 @@ const mockBuiltinModels = vi.hoisted(() => [
     abilities: { functionCall: true, video: true, vision: true },
     id: 'gemini-3.1-flash-lite-preview',
     providerId: 'google',
+    settings: { extendParams: ['preserveThinking'] },
   },
 ]);
 
@@ -100,12 +107,21 @@ describe('RuntimeExecutors', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(initModelRuntimeFromDB).mockReset();
+    mockCreateCompressionGroup.mockReset();
+    mockFinalizeCompression.mockReset();
     mockCreateCompressionGroup.mockResolvedValue({
       messageGroupId: 'group-123',
       messagesToSummarize: [],
       success: true,
     });
     mockFinalizeCompression.mockResolvedValue({ success: true });
+    vi.mocked(initModelRuntimeFromDB).mockResolvedValue({
+      chat: vi.fn().mockImplementation(async (_payload: any, options: any) => {
+        await options?.callback?.onText?.('done');
+        return new Response('done');
+      }),
+    } as any);
 
     mockMessageModel = {
       create: vi.fn().mockResolvedValue({ id: 'msg-123' }),
@@ -392,52 +408,233 @@ describe('RuntimeExecutors', () => {
       );
     });
 
-    it('should preserve reasoning in newState when assistant returns tool calls', async () => {
-      const toolCallPayload = [
-        {
-          function: { arguments: '{}', name: 'search' },
-          id: 'call_1',
-          type: 'function',
-        },
-      ];
+    describe('reasoning persistence gate', () => {
+      it('should persist assistant reasoning with tool calls when preserveThinking is enabled on a supported model', async () => {
+        const toolCallPayload = [
+          {
+            function: { arguments: '{}', name: 'search' },
+            id: 'call_1',
+            type: 'function',
+          },
+        ];
 
-      const mockChat = vi.fn().mockImplementation(async (_payload, options) => {
-        await options?.callback?.onThinking?.('Need to inspect the search results first.');
-        await options?.callback?.onToolsCalling?.({ toolsCalling: toolCallPayload });
-        await options?.callback?.onCompletion?.({
-          usage: {
-            totalInputTokens: 1,
-            totalOutputTokens: 2,
-            totalTokens: 3,
+        const mockChat = vi.fn().mockImplementation(async (_payload, options) => {
+          await options?.callback?.onThinking?.('Need to inspect the search results first.');
+          await options?.callback?.onToolsCalling?.({ toolsCalling: toolCallPayload });
+          await options?.callback?.onCompletion?.({
+            usage: {
+              totalInputTokens: 1,
+              totalOutputTokens: 2,
+              totalTokens: 3,
+            },
+          });
+          return new Response('done');
+        });
+        vi.mocked(initModelRuntimeFromDB).mockResolvedValueOnce({ chat: mockChat } as any);
+
+        const ctxWithConfig: RuntimeExecutorContext = {
+          ...ctx,
+          agentConfig: {
+            chatConfig: { preserveThinking: true },
+            plugins: [],
+            systemRole: 'test',
+          },
+        };
+
+        const executors = createRuntimeExecutors(ctxWithConfig);
+        const state = createMockState({
+          modelRuntimeConfig: {
+            model: 'qwen3.6-plus',
+            provider: 'qwen',
           },
         });
-        return new Response('done');
+
+        const instruction = {
+          payload: {
+            messages: [{ content: 'Hello', role: 'user' }],
+            model: 'qwen3.6-plus',
+            provider: 'qwen',
+            tools: [],
+          },
+          type: 'call_llm' as const,
+        };
+
+        const result = await executors.call_llm!(instruction, state);
+
+        expect(result.newState.messages.at(-1)).toEqual(
+          expect.objectContaining({
+            reasoning: { content: 'Need to inspect the search results first.' },
+            role: 'assistant',
+            tool_calls: [expect.objectContaining({ id: 'call_1' })],
+          }),
+        );
+        expect(mockChat).toHaveBeenCalledWith(
+          expect.objectContaining({ preserveThinking: true }),
+          expect.anything(),
+        );
       });
-      vi.mocked(initModelRuntimeFromDB).mockResolvedValueOnce({ chat: mockChat } as any);
 
-      const executors = createRuntimeExecutors(ctx);
-      const state = createMockState();
+      it('should not persist assistant reasoning when preserveThinking is not enabled', async () => {
+        const mockChat = vi.fn().mockImplementation(async (_payload, options) => {
+          await options?.callback?.onThinking?.('hidden reasoning');
+          await options?.callback?.onText?.('answer');
+          return new Response('done');
+        });
+        vi.mocked(initModelRuntimeFromDB).mockResolvedValueOnce({ chat: mockChat } as any);
 
-      const instruction = {
-        payload: {
-          messages: [{ content: 'Hello', role: 'user' }],
-          model: 'gpt-4',
-          provider: 'openai',
-          tools: [],
-        },
-        type: 'call_llm' as const,
-      };
+        const executors = createRuntimeExecutors(ctx);
+        const state = createMockState();
 
-      const result = await executors.call_llm!(instruction, state);
+        const instruction = {
+          payload: {
+            messages: [{ content: 'Hello', role: 'user' }],
+            model: 'gpt-4',
+            provider: 'openai',
+          },
+          type: 'call_llm' as const,
+        };
 
-      expect(result.newState.messages.at(-1)).toEqual(
-        expect.objectContaining({
-          id: 'msg-123',
-          reasoning: { content: 'Need to inspect the search results first.' },
-          role: 'assistant',
-          tool_calls: [expect.objectContaining({ id: 'call_1' })],
-        }),
-      );
+        const result = await executors.call_llm!(instruction, state);
+        const assistant = result.newState.messages.at(-1) as any;
+
+        expect(assistant.reasoning).toBeUndefined();
+      });
+
+      it('should persist assistant reasoning when preserveThinking is enabled on a supported model', async () => {
+        const mockChat = vi.fn().mockImplementation(async (_payload, options) => {
+          await options?.callback?.onThinking?.('preserved reasoning');
+          await options?.callback?.onText?.('answer');
+          return new Response('done');
+        });
+        vi.mocked(initModelRuntimeFromDB).mockResolvedValueOnce({ chat: mockChat } as any);
+
+        const ctxWithConfig: RuntimeExecutorContext = {
+          ...ctx,
+          agentConfig: {
+            chatConfig: { preserveThinking: true },
+            plugins: [],
+            systemRole: 'test',
+          },
+        };
+
+        const executors = createRuntimeExecutors(ctxWithConfig);
+        const state = createMockState({
+          modelRuntimeConfig: {
+            model: 'qwen3.6-plus',
+            provider: 'qwen',
+          },
+        });
+
+        const instruction = {
+          payload: {
+            messages: [{ content: 'Hello', role: 'user' }],
+            model: 'qwen3.6-plus',
+            provider: 'qwen',
+          },
+          type: 'call_llm' as const,
+        };
+
+        const result = await executors.call_llm!(instruction, state);
+        const assistant = result.newState.messages.at(-1) as any;
+
+        expect(assistant.reasoning).toEqual({
+          content: 'preserved reasoning',
+        });
+        expect(mockChat).toHaveBeenCalledWith(
+          expect.objectContaining({ preserveThinking: true }),
+          expect.anything(),
+        );
+      });
+
+      it('should persist reasoning for unknown custom deployments on supported providers', async () => {
+        const mockChat = vi.fn().mockImplementation(async (_payload, options) => {
+          await options?.callback?.onThinking?.('custom deployment reasoning');
+          await options?.callback?.onText?.('answer');
+          return new Response('done');
+        });
+        vi.mocked(initModelRuntimeFromDB).mockResolvedValueOnce({ chat: mockChat } as any);
+
+        const ctxWithConfig: RuntimeExecutorContext = {
+          ...ctx,
+          agentConfig: {
+            chatConfig: { preserveThinking: true },
+            plugins: [],
+            systemRole: 'test',
+          },
+        };
+
+        const executors = createRuntimeExecutors(ctxWithConfig);
+        const state = createMockState({
+          modelRuntimeConfig: {
+            model: 'my-qwen-custom-deployment',
+            provider: 'qwen',
+          },
+        });
+
+        const instruction = {
+          payload: {
+            messages: [{ content: 'Hello', role: 'user' }],
+            model: 'my-qwen-custom-deployment',
+            provider: 'qwen',
+          },
+          type: 'call_llm' as const,
+        };
+
+        const result = await executors.call_llm!(instruction, state);
+        const assistant = result.newState.messages.at(-1) as any;
+
+        expect(assistant.reasoning).toEqual({
+          content: 'custom deployment reasoning',
+        });
+        expect(mockChat).toHaveBeenCalledWith(
+          expect.objectContaining({ preserveThinking: true }),
+          expect.anything(),
+        );
+      });
+
+      it('should not persist reasoning when model does not declare preserveThinking capability', async () => {
+        const mockChat = vi.fn().mockImplementation(async (_payload, options) => {
+          await options?.callback?.onThinking?.('reasoning that should not be saved');
+          await options?.callback?.onText?.('answer');
+          return new Response('done');
+        });
+        vi.mocked(initModelRuntimeFromDB).mockResolvedValueOnce({ chat: mockChat } as any);
+
+        const ctxWithConfig: RuntimeExecutorContext = {
+          ...ctx,
+          agentConfig: {
+            chatConfig: { preserveThinking: true },
+            plugins: [],
+            systemRole: 'test',
+          },
+        };
+
+        const executors = createRuntimeExecutors(ctxWithConfig);
+        const state = createMockState({
+          modelRuntimeConfig: {
+            model: 'gpt-4',
+            provider: 'openai',
+          },
+        });
+
+        const instruction = {
+          payload: {
+            messages: [{ content: 'Hello', role: 'user' }],
+            model: 'gpt-4',
+            provider: 'openai',
+          },
+          type: 'call_llm' as const,
+        };
+
+        const result = await executors.call_llm!(instruction, state);
+        const assistant = result.newState.messages.at(-1) as any;
+
+        expect(assistant.reasoning).toBeUndefined();
+        expect(mockChat).toHaveBeenCalledWith(
+          expect.not.objectContaining({ preserveThinking: expect.any(Boolean) }),
+          expect.anything(),
+        );
+      });
     });
 
     it('retries empty completions on the branded provider then throws ModelEmptyError', async () => {
@@ -574,7 +771,14 @@ describe('RuntimeExecutors', () => {
         });
         vi.mocked(initModelRuntimeFromDB).mockResolvedValueOnce({ chat: mockChat } as any);
 
-        const executors = createRuntimeExecutors(ctx);
+        // Reasoning only lands in the finalized message when preserveThinking is
+        // enabled on a supported model; otherwise it is intentionally dropped.
+        // Enable it here so this still guards reasoning_part capture (not drop).
+        const ctxWithThinking: RuntimeExecutorContext = {
+          ...ctx,
+          agentConfig: { chatConfig: { preserveThinking: true }, plugins: [], systemRole: 'test' },
+        };
+        const executors = createRuntimeExecutors(ctxWithThinking);
         const result = await executors.call_llm!(geminiInstruction(), createMockState());
 
         expect(result.newState.messages.at(-1)).toEqual(
@@ -4032,7 +4236,7 @@ describe('RuntimeExecutors', () => {
 
         await vi.runOnlyPendingTimersAsync();
 
-        const result = await resultPromise;
+        await resultPromise;
 
         expect(mockChat).toHaveBeenCalledTimes(2);
         expect(mockMessageModel.create).toHaveBeenCalledTimes(1);
