@@ -1,6 +1,7 @@
 import type { AgentRuntimeContext, AgentState } from '@lobechat/agent-runtime';
 import { BUILTIN_AGENT_SLUGS, getAgentRuntimeConfig } from '@lobechat/builtin-agents';
 import { builtinSkills } from '@lobechat/builtin-skills';
+import { CloudSandboxManifest } from '@lobechat/builtin-tool-cloud-sandbox';
 import { LobeAgentManifest } from '@lobechat/builtin-tool-lobe-agent';
 import { LocalSystemManifest } from '@lobechat/builtin-tool-local-system';
 import { MessageToolIdentifier } from '@lobechat/builtin-tool-message';
@@ -60,6 +61,7 @@ import { TopicModel } from '@/database/models/topic';
 import { UserModel } from '@/database/models/user';
 import { UserPersonaModel } from '@/database/models/userMemory/persona';
 import { toolsEnv } from '@/envs/tools';
+import { resolveRuntimeMode } from '@/helpers/executionTarget';
 import { shouldEnableBuiltinSkill } from '@/helpers/skillFilters';
 import { buildConnectorManifests } from '@/libs/mcp/buildConnectorManifests';
 import { signOperationJwt, signUserJWT } from '@/libs/trpc/utils/internalJwt';
@@ -1621,10 +1623,46 @@ export class AiAgentService {
         canUseDevice,
         disableLocalSystem,
       });
+      // Resolve effective runtimeMode once, mirroring AgentToolsEngine's derivation:
+      // executionTarget wins; falls back to per-platform chatConfig.runtimeEnv.runtimeMode
+      // for legacy agents that predate the unified executionTarget field.
+      const agentRuntimeMode = resolveRuntimeMode(
+        agentConfig.agencyConfig,
+        agentConfig.chatConfig?.runtimeEnv?.runtimeMode?.[gatewayConfigured ? 'desktop' : 'web'],
+        gatewayConfigured,
+      );
+      // When sandbox is not the active runtime, remove lobe-cloud-sandbox from the
+      // manifest map. The initial seed via getEnabledPluginManifests (which includes
+      // defaultToolIds) may have already placed it there, and the allowedBuiltinTools
+      // loop below only guards the discoverable-builtin append path. Deleting here
+      // covers both sources in a single point.
+      if (agentRuntimeMode !== 'cloud') {
+        delete toolManifestMap[CloudSandboxManifest.identifier];
+      }
       for (const tool of allowedBuiltinTools) {
+        // lobe-cloud-sandbox is only activator-discoverable when runtimeMode resolves
+        // to 'cloud'. Handles both executionTarget='sandbox' (new) and the legacy
+        // chatConfig.runtimeEnv.runtimeMode='cloud' path via resolveRuntimeMode.
+        if (tool.identifier === CloudSandboxManifest.identifier && agentRuntimeMode !== 'cloud')
+          continue;
         if (tool.discoverable !== false && !toolManifestMap[tool.identifier]) {
           toolManifestMap[tool.identifier] = tool.manifest as LobeToolManifest;
         }
+      }
+
+      // lobe-local-system has `discoverable: isDesktop` in builtinTools, which
+      // evaluates to false on the Node.js server side, so it never enters the
+      // loop above. Explicitly inject it only when the device gateway is
+      // configured AND the runtime mode is 'local' — skip for sandbox/none
+      // targets to avoid leaking local-system into non-local sessions.
+      if (
+        canUseDevice &&
+        !disableLocalSystem &&
+        gatewayConfigured &&
+        agentRuntimeMode === 'local' &&
+        !toolManifestMap[LocalSystemManifest.identifier]
+      ) {
+        toolManifestMap[LocalSystemManifest.identifier] = LocalSystemManifest as LobeToolManifest;
       }
 
       // Include lobehub skill and klavis manifests for activator discovery
