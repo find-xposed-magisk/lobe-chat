@@ -12,7 +12,15 @@ import {
 } from '@lobehub/ui';
 import { confirmModal, Select } from '@lobehub/ui/base-ui';
 import { App, Divider } from 'antd';
-import { ExternalLinkIcon, LinkIcon, LockIcon } from 'lucide-react';
+import {
+  FileOutputIcon,
+  ImageIcon,
+  KeyRoundIcon,
+  LinkIcon,
+  LockIcon,
+  PaperclipIcon,
+  WrenchIcon,
+} from 'lucide-react';
 import { type ReactNode } from 'react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +37,13 @@ import { systemStatusSelectors } from '@/store/global/selectors';
 import { styles } from './style';
 
 type Visibility = 'private' | 'link';
+
+const PRIVACY_WARNING_ITEMS = [
+  { icon: WrenchIcon, labelKey: 'shareModal.popover.privacyWarning.items.toolCalls' },
+  { icon: KeyRoundIcon, labelKey: 'shareModal.popover.privacyWarning.items.credentials' },
+  { icon: ImageIcon, labelKey: 'shareModal.popover.privacyWarning.items.images' },
+  { icon: PaperclipIcon, labelKey: 'shareModal.popover.privacyWarning.items.files' },
+] as const;
 
 interface SharePopoverContentProps {
   onOpenModal?: () => void;
@@ -79,14 +94,20 @@ const SharePopoverContent = memo<SharePopoverContentProps>(({ onOpenModal, topic
       try {
         await topicService.updateShareVisibility(activeTopicId, visibility);
         await mutate();
-        message.success(t('shareModal.link.visibilityUpdated'));
+        // Auto-copy the share link the moment link sharing is enabled
+        if (visibility === 'link' && shareUrl) {
+          await copyToClipboard(shareUrl);
+          message.success(t('shareModal.copyLinkSuccess'));
+        } else {
+          message.success(t('shareModal.link.visibilityUpdated'));
+        }
       } catch {
         message.error(t('shareModal.link.updateError'));
       } finally {
         setUpdating(false);
       }
     },
-    [activeTopicId, mutate, message, t],
+    [activeTopicId, mutate, message, t, shareUrl],
   );
 
   const handleVisibilityChange = useCallback(
@@ -102,18 +123,25 @@ const SharePopoverContent = memo<SharePopoverContentProps>(({ onOpenModal, topic
         confirmModal({
           cancelText: t('cancel', { ns: 'common' }),
           content: (
-            <div>
-              <p>{t('shareModal.popover.privacyWarning.content')}</p>
-              <div style={{ marginTop: 16 }}>
-                <Checkbox
-                  onChange={(v) => {
-                    doNotShowAgain = v;
-                  }}
-                >
-                  {t('shareModal.popover.privacyWarning.doNotShowAgain')}
-                </Checkbox>
-              </div>
-            </div>
+            <Flexbox gap={16}>
+              <Text>{t('shareModal.popover.privacyWarning.content')}</Text>
+              <Flexbox gap={12} paddingBlock={8}>
+                {PRIVACY_WARNING_ITEMS.map(({ icon: ItemIcon, labelKey }) => (
+                  <Flexbox horizontal align="center" gap={8} key={labelKey}>
+                    <ItemIcon size={16} />
+                    <Text>{t(labelKey)}</Text>
+                  </Flexbox>
+                ))}
+              </Flexbox>
+              <Text>{t('shareModal.popover.privacyWarning.note')}</Text>
+              <Checkbox
+                onChange={(v) => {
+                  doNotShowAgain = v;
+                }}
+              >
+                {t('shareModal.popover.privacyWarning.doNotShowAgain')}
+              </Checkbox>
+            </Flexbox>
           ),
           okText: t('shareModal.popover.privacyWarning.confirm'),
           onOk: () => {
@@ -223,13 +251,13 @@ const SharePopoverContent = memo<SharePopoverContentProps>(({ onOpenModal, topic
 
       <Flexbox horizontal align="center" justify="space-between">
         <Button
-          icon={ExternalLinkIcon}
+          icon={FileOutputIcon}
           size="small"
           type="text"
           variant="text"
           onClick={handleOpenModal}
         >
-          {t('shareModal.popover.moreOptions')}
+          {t('shareModal.popover.export')}
         </Button>
         {currentVisibility !== 'private' && (
           <Button icon={LinkIcon} size="small" type="primary" onClick={handleCopyLink}>

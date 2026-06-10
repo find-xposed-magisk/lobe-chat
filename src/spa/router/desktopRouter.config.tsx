@@ -20,6 +20,7 @@ import { pageRouteMeta } from '@/features/Pages/routeMeta';
 import { agentRouteMeta } from '@/routes/(main)/agent/features/routeMeta';
 import { groupRouteMeta } from '@/routes/(main)/group/features/routeMeta';
 import { settingsRouteMeta } from '@/routes/(main)/settings/features/routeMeta';
+import { shareTopicRouteMeta } from '@/routes/share/t/[id]/routeMeta';
 import { routeMeta } from '@/spa/router/routeMeta';
 import { SettingsTabs } from '@/store/global/initialState';
 import { dynamicElement, dynamicLayout, ErrorBoundary, redirectElement } from '@/utils/router';
@@ -890,6 +891,7 @@ export const desktopRoutes: RouteObject[] = [
     children: [
       {
         element: dynamicElement(() => import('@/routes/share/t/[id]'), 'Desktop > Share > Topic'),
+        handle: { meta: shareTopicRouteMeta },
         path: ':id',
       },
     ],
