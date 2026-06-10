@@ -12,6 +12,7 @@ import { messageMapKey } from '@/store/chat/utils/messageMapKey';
 import { topicMapKey } from '@/store/chat/utils/topicMapKey';
 import { getSessionStoreState } from '@/store/session';
 import * as toolStoreModule from '@/store/tool';
+import { pageAgentRuntime } from '@/store/tool/slices/builtin/executors/lobe-page-agent';
 
 import { useChatStore } from '../../../../store';
 import { createMockAgentConfig, createMockMessage, TEST_CONTENT, TEST_IDS } from './fixtures';
@@ -524,6 +525,63 @@ describe('ConversationLifecycle actions', () => {
         expect(result.current.executeClientAgent).toHaveBeenCalled();
       });
 
+      it('should merge partial persisted messages into existing topic history', async () => {
+        const { result } = renderHook(() => useChatStore());
+        const agentId = TEST_IDS.SESSION_ID;
+        const topicId = TEST_IDS.TOPIC_ID;
+        const context = { agentId, threadId: null, topicId };
+        const key = messageMapKey(context);
+        const existingMessages = [
+          createMockMessage({ id: 'existing-user', role: 'user', topicId }),
+          createMockMessage({ id: 'existing-assistant', role: 'assistant', topicId }),
+        ];
+        const persistedUserMessage = createMockMessage({
+          id: TEST_IDS.USER_MESSAGE_ID,
+          role: 'user',
+          topicId,
+        });
+        const persistedAssistantMessage = createMockMessage({
+          id: TEST_IDS.ASSISTANT_MESSAGE_ID,
+          parentId: TEST_IDS.USER_MESSAGE_ID,
+          role: 'assistant',
+          topicId,
+        });
+
+        act(() => {
+          useChatStore.setState({
+            dbMessagesMap: { [key]: existingMessages },
+            messagesMap: { [key]: existingMessages },
+          });
+        });
+
+        vi.spyOn(aiChatService, 'sendMessageInServer').mockResolvedValue({
+          __isPartialMessages: true,
+          assistantMessageId: TEST_IDS.ASSISTANT_MESSAGE_ID,
+          isCreateNewTopic: false,
+          messages: [persistedUserMessage, persistedAssistantMessage],
+          topicId,
+          topics: undefined,
+          userMessageId: TEST_IDS.USER_MESSAGE_ID,
+        } as any);
+
+        await act(async () => {
+          await result.current.sendMessage({
+            context,
+            message: TEST_CONTENT.USER_MESSAGE,
+          });
+        });
+
+        expect(result.current.messagesMap[key].map((message) => message.id)).toEqual([
+          'existing-user',
+          'existing-assistant',
+          TEST_IDS.USER_MESSAGE_ID,
+          TEST_IDS.ASSISTANT_MESSAGE_ID,
+        ]);
+        expect(
+          result.current.messagesMap[key].some((message) => message.id.startsWith('tmp_')),
+        ).toBe(false);
+      });
+
       it('should preserve editorData when enqueueing a queued message', async () => {
         const { result } = renderHook(() => useChatStore());
         const context = createTestContext();
@@ -628,6 +686,80 @@ describe('ConversationLifecycle actions', () => {
             interruptMode: 'soft',
           }),
           'op-cc-running',
+        );
+      });
+    });
+
+    describe('page scope documentId injection', () => {
+      it('injects the active page documentId into the gateway context when scope is page', async () => {
+        const { result } = renderHook(() => useChatStore());
+
+        const getCurrentDocIdSpy = vi
+          .spyOn(pageAgentRuntime, 'getCurrentDocId')
+          .mockReturnValue('doc-page-1');
+
+        const executeGatewayAgentSpy = vi.fn().mockResolvedValue({
+          assistantMessageId: TEST_IDS.ASSISTANT_MESSAGE_ID,
+          operationId: 'op-1',
+          userMessageId: TEST_IDS.USER_MESSAGE_ID,
+        });
+
+        act(() => {
+          useChatStore.setState({
+            executeGatewayAgent: executeGatewayAgentSpy,
+            isGatewayModeEnabled: () => true,
+          });
+        });
+
+        await act(async () => {
+          await result.current.sendMessage({
+            message: TEST_CONTENT.USER_MESSAGE,
+            context: {
+              agentId: TEST_IDS.SESSION_ID,
+              scope: 'page',
+              threadId: null,
+              topicId: null,
+            },
+          });
+        });
+
+        expect(getCurrentDocIdSpy).toHaveBeenCalled();
+        expect(executeGatewayAgentSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            context: expect.objectContaining({ documentId: 'doc-page-1', scope: 'page' }),
+          }),
+        );
+      });
+
+      it('does not inject documentId for non-page scope conversations', async () => {
+        const { result } = renderHook(() => useChatStore());
+
+        vi.spyOn(pageAgentRuntime, 'getCurrentDocId').mockReturnValue('doc-page-1');
+
+        const executeGatewayAgentSpy = vi.fn().mockResolvedValue({
+          assistantMessageId: TEST_IDS.ASSISTANT_MESSAGE_ID,
+          operationId: 'op-1',
+          userMessageId: TEST_IDS.USER_MESSAGE_ID,
+        });
+
+        act(() => {
+          useChatStore.setState({
+            executeGatewayAgent: executeGatewayAgentSpy,
+            isGatewayModeEnabled: () => true,
+          });
+        });
+
+        await act(async () => {
+          await result.current.sendMessage({
+            message: TEST_CONTENT.USER_MESSAGE,
+            context: createTestContext(),
+          });
+        });
+
+        expect(executeGatewayAgentSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            context: expect.not.objectContaining({ documentId: expect.anything() }),
+          }),
         );
       });
     });

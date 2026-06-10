@@ -17,6 +17,7 @@ import {
   sessions,
   topics,
   users,
+  workspaces,
 } from '../../schemas';
 import type { LobeChatDatabase } from '../../type';
 import { AgentModel } from '../agent';
@@ -1309,6 +1310,52 @@ describe('AgentModel', () => {
         expect(result?.virtual).toBe(true);
       });
     });
+
+    describe('workspace mode', () => {
+      it('should create workspace-scoped inbox agent', async () => {
+        const [workspace] = await serverDB
+          .insert(workspaces)
+          .values({ name: 'ws', primaryOwnerId: userId, slug: 'ws-slug' })
+          .returning();
+
+        const wsAgentModel = new AgentModel(serverDB, userId, workspace.id);
+        const result = await wsAgentModel.getBuiltinAgent(INBOX_SESSION_ID);
+
+        expect(result).toBeDefined();
+        expect(result?.slug).toBe(INBOX_SESSION_ID);
+        expect(result?.workspaceId).toBe(workspace.id);
+        expect(result?.userId).toBe(userId);
+      });
+
+      it('should allow workspace inbox to coexist with personal inbox for the same user', async () => {
+        const personal = await agentModel.getBuiltinAgent(INBOX_SESSION_ID);
+        expect(personal?.workspaceId).toBeNull();
+
+        const [workspace] = await serverDB
+          .insert(workspaces)
+          .values({ name: 'ws2', primaryOwnerId: userId, slug: 'ws2-slug' })
+          .returning();
+
+        const wsAgentModel = new AgentModel(serverDB, userId, workspace.id);
+        const ws = await wsAgentModel.getBuiltinAgent(INBOX_SESSION_ID);
+
+        expect(ws?.id).not.toBe(personal?.id);
+        expect(ws?.workspaceId).toBe(workspace.id);
+      });
+
+      it('should be idempotent in workspace mode', async () => {
+        const [workspace] = await serverDB
+          .insert(workspaces)
+          .values({ name: 'ws3', primaryOwnerId: userId, slug: 'ws3-slug' })
+          .returning();
+
+        const wsAgentModel = new AgentModel(serverDB, userId, workspace.id);
+        const first = await wsAgentModel.getBuiltinAgent(INBOX_SESSION_ID);
+        const second = await wsAgentModel.getBuiltinAgent(INBOX_SESSION_ID);
+
+        expect(first?.id).toBe(second?.id);
+      });
+    });
   });
 
   describe('batchDelete', () => {
@@ -1746,6 +1793,70 @@ describe('AgentModel', () => {
 
       const offsetResults = await agentModel.queryAgents({ limit: 2, offset: 2 });
       expect(offsetResults.length).toBe(2);
+    });
+  });
+
+  describe('countAgents', () => {
+    it('should count all non-virtual agents regardless of pagination', async () => {
+      for (let i = 1; i <= 5; i++) {
+        await agentModel.create({
+          title: `Agent ${i}`,
+          virtual: false,
+        });
+      }
+      await agentModel.create({
+        title: 'Virtual Agent',
+        virtual: true,
+      });
+
+      const total = await agentModel.countAgents();
+
+      expect(total).toBe(5);
+      // count stays the full total even when queryAgents is limited
+      const limitedResults = await agentModel.queryAgents({ limit: 2 });
+      expect(limitedResults.length).toBe(2);
+    });
+
+    it('should apply the same keyword filter as queryAgents', async () => {
+      await agentModel.create({
+        title: 'Code Assistant',
+        description: 'Helps with coding',
+        virtual: false,
+      });
+      await agentModel.create({
+        title: 'Writer',
+        description: 'Helps with writing tasks',
+        virtual: false,
+      });
+      await agentModel.create({
+        title: 'Designer',
+        description: 'Helps with design code review',
+        virtual: false,
+      });
+
+      // matches 'Code Assistant' (title) and 'Designer' (description)
+      expect(await agentModel.countAgents({ keyword: 'code' })).toBe(2);
+      expect(await agentModel.countAgents({ keyword: 'writing' })).toBe(1);
+      expect(await agentModel.countAgents({ keyword: 'nonexistent' })).toBe(0);
+    });
+
+    it('should only count agents for the current user', async () => {
+      await agentModel.create({ title: 'User1 Agent', virtual: false });
+      await agentModel2.create({ title: 'User2 Agent', virtual: false });
+
+      expect(await agentModel.countAgents()).toBe(1);
+      expect(await agentModel2.countAgents()).toBe(1);
+    });
+
+    it('should count agents with null virtual field (treat as non-virtual)', async () => {
+      await serverDB.insert(agents).values({
+        id: 'null-virtual-agent-count',
+        title: 'Null Virtual Agent',
+        userId,
+        virtual: null as unknown as boolean,
+      });
+
+      expect(await agentModel.countAgents()).toBe(1);
     });
   });
 

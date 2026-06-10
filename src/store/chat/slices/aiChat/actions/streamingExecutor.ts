@@ -42,6 +42,7 @@ import {
   notifyDesktopHumanApprovalRequired,
   resolveNotificationNavigatePath,
 } from '@/store/chat/utils/desktopNotification';
+import { getElectronStoreState } from '@/store/electron';
 import { getServerConfigStoreState, serverConfigSelectors } from '@/store/serverConfig';
 import { getTaskStoreState } from '@/store/task';
 import { pageAgentRuntime } from '@/store/tool/slices/builtin/executors/lobe-page-agent';
@@ -152,12 +153,10 @@ export const streamingExecutor = (set: Setter, get: () => ChatStore, _api?: unkn
 
 export class StreamingExecutorActionImpl {
   readonly #get: () => ChatStore;
-  // eslint-disable-next-line no-unused-private-class-members
-  readonly #set: Setter;
 
   constructor(set: Setter, get: () => ChatStore, _api?: unknown) {
+    void set;
     void _api;
-    this.#set = set;
     this.#get = get;
   }
 
@@ -333,7 +332,9 @@ export class StreamingExecutorActionImpl {
     };
 
     const topicWorkingDirectory = topicSelectors.currentTopicWorkingDirectory(this.#get());
-    const agentWorkingDirectory = agentSelectors.currentAgentWorkingDirectory(getAgentStoreState());
+    const currentDeviceId = getElectronStoreState().gatewayDeviceInfo?.deviceId;
+    const agentWorkingDirectory =
+      agentSelectors.currentAgentWorkingDirectory(currentDeviceId)(getAgentStoreState());
     const workingDirectory = topicWorkingDirectory ?? agentWorkingDirectory;
 
     // Create initial state or use provided state
@@ -496,7 +497,6 @@ export class StreamingExecutorActionImpl {
 
     // Extract values from context
     const { agentId, topicId, threadId, subAgentId, groupId, scope } = context;
-
     // Determine effectiveAgentId for agent config retrieval:
     // - subAgentId is used when present (behavior depends on scope)
     // - agentId: Default
@@ -510,7 +510,11 @@ export class StreamingExecutorActionImpl {
     if (!operationId) {
       const { operationId: newOperationId } = this.#get().startOperation({
         type: 'execAgentRuntime',
-        context: { ...context, messageId: parentMessageId },
+        context: {
+          ...context,
+          ...(isSubAgent ? { isSubAgent: true } : {}),
+          messageId: parentMessageId,
+        },
         parentOperationId: params.parentOperationId, // Pass parent operation ID
         label: 'AI Generation',
         metadata: {
@@ -897,6 +901,7 @@ export class StreamingExecutorActionImpl {
               context: execContext,
               editorData: merged.editorData,
               files: mergedFiles,
+              ...(merged.forceRuntime ? { forceRuntime: merged.forceRuntime } : {}),
               message: mergedContent,
               metadata: merged.metadata,
             })
@@ -1040,7 +1045,13 @@ export class StreamingExecutorActionImpl {
       void this.#get().refreshThreads();
 
       // 2. Build the sub-agent ConversationContext (threadId provides isolation)
-      const subContext: ConversationContext = { agentId, scope: 'thread', threadId, topicId };
+      const subContext: ConversationContext = {
+        agentId,
+        isSubAgent: true,
+        scope: 'thread',
+        threadId,
+        topicId,
+      };
 
       // 3. Create a child operation chained to the parent runtime operation
       const { operationId: taskOperationId } = this.#get().startOperation({
