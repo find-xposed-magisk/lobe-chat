@@ -16,6 +16,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-pro',
+    knowledgeCutoff: '2025-01',
     pricing: {
       units: [
         { name: 'textInput', rate: 2.5, strategy: 'fixed', unit: 'millionTokens' },
@@ -34,7 +35,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     description:
       'Claude Opus 4.1 is a drop-in replacement for Opus 4, delivering excellent performance and precision for real-world coding and agent tasks. It reaches 74.5% on SWE-bench Verified and handles complex multi-step problems with greater rigor and attention to detail.',
     displayName: 'Claude Opus 4.1',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4.1',
     id: 'anthropic/claude-opus-4.1',
     knowledgeCutoff: '2025-01',
@@ -58,7 +59,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     description:
       'Claude Opus 4 is Anthropic’s most powerful model and a top coding model, leading on SWE-bench (72.5%) and Terminal-bench (43.2%). It sustains performance on long tasks with thousands of steps and can work for hours, significantly extending agent capabilities.',
     displayName: 'Claude Opus 4',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4',
     id: 'anthropic/claude-opus-4',
     knowledgeCutoff: '2025-01',
@@ -81,7 +82,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     description:
       'Claude Sonnet 4 significantly improves on Sonnet 3.7, excelling at coding with a 72.7% SWE-bench score. It balances performance and efficiency for internal and external use cases, with enhanced controllability.',
     displayName: 'Claude Sonnet 4',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-4',
     id: 'anthropic/claude-sonnet-4',
     knowledgeCutoff: '2025-01',
@@ -108,6 +109,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'openai/gpt-5',
+    knowledgeCutoff: '2024-09',
     pricing: {
       units: [
         { name: 'textInput', rate: 1.25, strategy: 'fixed', unit: 'millionTokens' },
@@ -182,7 +184,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     description:
       'Claude 3.7 Sonnet is the first hybrid reasoning model and Anthropic’s most intelligent to date, delivering SOTA performance in coding, content creation, data analysis, and planning on top of Claude 3.5 Sonnet.',
     displayName: 'Claude 3.7 Sonnet',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-3.7',
     id: 'anthropic/claude-3.7-sonnet',
     knowledgeCutoff: '2024-10',
@@ -206,7 +208,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     description:
       'Claude 3.5 Sonnet strikes an ideal balance between intelligence and speed, especially for enterprise workloads, offering strong performance at lower cost and durability for large-scale AI deployments.',
     displayName: 'Claude 3.5 Sonnet',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-3.5',
     id: 'anthropic/claude-3.5-sonnet',
     knowledgeCutoff: '2024-04',
@@ -230,7 +232,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     description:
       'Claude 3 Opus is Anthropic’s most intelligent model with market-leading performance on highly complex tasks, handling open-ended prompts and novel scenarios with exceptional fluency and human-like understanding.',
     displayName: 'Claude 3 Opus',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-3',
     id: 'anthropic/claude-3-opus',
     knowledgeCutoff: '2023-08',
@@ -257,6 +259,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4o',
     id: 'openai/gpt-4o',
+    knowledgeCutoff: '2023-10',
     pricing: {
       units: [
         { name: 'textInput', rate: 2.5, strategy: 'fixed', unit: 'millionTokens' },
@@ -278,6 +281,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'openai/gpt-5-mini',
+    knowledgeCutoff: '2024-05',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.25, strategy: 'fixed', unit: 'millionTokens' },
@@ -302,6 +306,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'openai/gpt-5-nano',
+    knowledgeCutoff: '2024-05',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.05, strategy: 'fixed', unit: 'millionTokens' },
@@ -423,6 +428,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'openai/gpt-4.1',
+    knowledgeCutoff: '2024-06',
     pricing: {
       units: [
         { name: 'textInput', rate: 2, strategy: 'fixed', unit: 'millionTokens' },
@@ -682,6 +688,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.0',
     id: 'google/gemini-2.0-flash',
+    knowledgeCutoff: '2024-08',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.1, strategy: 'fixed', unit: 'millionTokens' },
@@ -702,6 +709,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.0',
     id: 'google/gemini-2.0-flash-lite',
+    knowledgeCutoff: '2024-08',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.075, strategy: 'fixed', unit: 'millionTokens' },
@@ -723,6 +731,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-flash',
+    knowledgeCutoff: '2025-01',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.3, strategy: 'fixed', unit: 'millionTokens' },
@@ -744,6 +753,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-flash-lite',
+    knowledgeCutoff: '2025-01',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.1, strategy: 'fixed', unit: 'millionTokens' },
@@ -764,6 +774,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'grok',
     generation: 'grok-4',
     id: 'xai/grok-4',
+    knowledgeCutoff: '2024-11',
     pricing: {
       units: [
         { name: 'textInput', rate: 3, strategy: 'fixed', unit: 'millionTokens' },
@@ -784,6 +795,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'grok',
     generation: 'grok-3',
     id: 'xai/grok-3-mini-fast',
+    knowledgeCutoff: '2024-11',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.6, strategy: 'fixed', unit: 'millionTokens' },
@@ -804,6 +816,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'grok',
     generation: 'grok-3',
     id: 'xai/grok-3-mini',
+    knowledgeCutoff: '2024-11',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.3, strategy: 'fixed', unit: 'millionTokens' },
@@ -824,6 +837,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'grok',
     generation: 'grok-3',
     id: 'xai/grok-3-fast',
+    knowledgeCutoff: '2024-11',
     pricing: {
       units: [
         { name: 'textInput', rate: 5, strategy: 'fixed', unit: 'millionTokens' },
@@ -844,6 +858,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'grok',
     generation: 'grok-3',
     id: 'xai/grok-3',
+    knowledgeCutoff: '2024-11',
     pricing: {
       units: [
         { name: 'textInput', rate: 3, strategy: 'fixed', unit: 'millionTokens' },
@@ -1194,6 +1209,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     displayName: 'Mistral Large',
     family: 'mistral',
     id: 'mistral/mistral-large',
+    knowledgeCutoff: '2023-10',
     pricing: {
       units: [
         { name: 'textInput', rate: 2, strategy: 'fixed', unit: 'millionTokens' },
@@ -1338,6 +1354,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-3.5',
     id: 'openai/gpt-3.5-turbo',
+    knowledgeCutoff: '2021-09',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.5, strategy: 'fixed', unit: 'millionTokens' },
@@ -1357,6 +1374,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-3.5',
     id: 'openai/gpt-3.5-turbo-instruct',
+    knowledgeCutoff: '2021-09',
     pricing: {
       units: [
         { name: 'textInput', rate: 1.5, strategy: 'fixed', unit: 'millionTokens' },
@@ -1376,6 +1394,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4',
     id: 'openai/gpt-4-turbo',
+    knowledgeCutoff: '2023-12',
     pricing: {
       units: [
         { name: 'textInput', rate: 10, strategy: 'fixed', unit: 'millionTokens' },
@@ -1396,6 +1415,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'openai/gpt-4.1-mini',
+    knowledgeCutoff: '2024-06',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.4, strategy: 'fixed', unit: 'millionTokens' },
@@ -1416,6 +1436,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'openai/gpt-4.1-nano',
+    knowledgeCutoff: '2024-06',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.1, strategy: 'fixed', unit: 'millionTokens' },
@@ -1437,6 +1458,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4o',
     id: 'openai/gpt-4o-mini',
+    knowledgeCutoff: '2023-10',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.15, strategy: 'fixed', unit: 'millionTokens' },
@@ -1598,7 +1620,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     description:
       'Claude 3.5 Haiku is the next generation of our fastest model. It matches Claude 3 Haiku’s speed while improving across skills and surpassing the previous flagship Claude 3 Opus on many benchmarks.',
     displayName: 'Claude 3.5 Haiku',
-    family: 'claude',
+    family: 'claude-haiku',
     generation: 'claude-3.5',
     id: 'anthropic/claude-3.5-haiku',
     knowledgeCutoff: '2024-07',
@@ -1621,7 +1643,7 @@ const vercelAIGatewayChatModels: AIChatModelCard[] = [
     description:
       'Claude 3 Haiku is Anthropic’s fastest model, designed for enterprise workloads with longer prompts. It can quickly analyze large documents like quarterly reports, contracts, or legal cases at half the cost of peers.',
     displayName: 'Claude 3 Haiku',
-    family: 'claude',
+    family: 'claude-haiku',
     generation: 'claude-3',
     id: 'anthropic/claude-3-haiku',
     knowledgeCutoff: '2023-08',

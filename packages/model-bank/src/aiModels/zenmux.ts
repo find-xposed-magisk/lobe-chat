@@ -24,6 +24,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.2',
     id: 'openai/gpt-5.2',
+    knowledgeCutoff: '2025-08',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -53,6 +54,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.2',
     id: 'openai/gpt-5.2-pro',
+    knowledgeCutoff: '2025-08',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -79,6 +81,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.2',
     id: 'openai/gpt-5.2-chat',
+    knowledgeCutoff: '2025-08',
     maxOutput: 16_384,
     pricing: {
       units: [
@@ -104,6 +107,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-3',
     id: 'google/gemini-3-pro-image-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 32_768,
     pricing: {
       units: [
@@ -128,6 +132,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-3',
     id: 'google/gemini-3-pro-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_530,
     pricing: {
       units: [
@@ -156,6 +161,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.1',
     id: 'openai/gpt-5.1',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -181,6 +187,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.1',
     id: 'openai/gpt-5.1-chat',
+    knowledgeCutoff: '2024-09',
     maxOutput: 16_380,
     pricing: {
       units: [
@@ -203,6 +210,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.1',
     id: 'openai/gpt-5.1-codex',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -228,6 +236,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.1',
     id: 'openai/gpt-5.1-codex-mini',
+    knowledgeCutoff: '2024-09',
     maxOutput: 100_000,
     pricing: {
       units: [
@@ -551,7 +560,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     description:
       'Claude Haiku 4.5 is Anthropic’s high-performance fast model, delivering very low latency while maintaining high accuracy.',
     displayName: 'Claude Haiku 4.5',
-    family: 'claude',
+    family: 'claude-haiku',
     generation: 'claude-4.5',
     id: 'anthropic/claude-haiku-4.5',
     knowledgeCutoff: '2025-02',
@@ -641,6 +650,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-pro',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_530,
     pricing: {
       units: [
@@ -669,6 +679,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-flash',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_530,
     pricing: {
       units: [
@@ -696,6 +707,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'openai/gpt-5-pro',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -721,6 +733,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'openai/gpt-5',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -745,6 +758,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'openai/gpt-5-chat',
+    knowledgeCutoff: '2024-09',
     maxOutput: 16_380,
     pricing: {
       units: [
@@ -766,6 +780,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'openai/gpt-5-mini',
+    knowledgeCutoff: '2024-05',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -790,6 +805,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'openai/gpt-5-nano',
+    knowledgeCutoff: '2024-05',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -814,6 +830,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'openai/gpt-5-codex',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -838,6 +855,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'openai/gpt-4.1',
+    knowledgeCutoff: '2024-06',
     maxOutput: 32_770,
     pricing: {
       units: [
@@ -857,6 +875,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'openai/gpt-4.1-mini',
+    knowledgeCutoff: '2024-06',
     maxOutput: 32_770,
     pricing: {
       units: [
@@ -877,6 +896,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'openai/gpt-4.1-nano',
+    knowledgeCutoff: '2024-06',
     maxOutput: 32_770,
     pricing: {
       units: [
@@ -1039,7 +1059,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     description:
       'Claude Opus 4.5 is Anthropic’s flagship model, combining outstanding intelligence with scalable performance, ideal for complex tasks requiring the highest-quality responses and reasoning.',
     displayName: 'Claude Opus 4.5',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4.5',
     id: 'claude-opus-4-5-20251101',
     knowledgeCutoff: '2025-05',
@@ -1069,7 +1089,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     description:
       'Opus 4.1 is Anthropic’s high-end model optimized for programming, complex reasoning, and long-running tasks.',
     displayName: 'Claude Opus 4.1',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4.1',
     id: 'anthropic/claude-opus-4.1',
     knowledgeCutoff: '2025-01',
@@ -1097,7 +1117,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     description:
       'Opus 4 is Anthropic’s flagship model designed for complex tasks and enterprise applications.',
     displayName: 'Claude Opus 4',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4',
     id: 'anthropic/claude-opus-4',
     knowledgeCutoff: '2025-01',
@@ -1128,6 +1148,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-flash-image',
+    knowledgeCutoff: '2025-06',
     maxOutput: 8192,
     pricing: {
       approximatePricePerImage: 0.039,
@@ -1150,7 +1171,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     description:
       'Claude Sonnet 4.5 is Anthropic’s latest hybrid reasoning model optimized for complex reasoning and coding.',
     displayName: 'Claude Sonnet 4.5',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-4.5',
     id: 'anthropic/claude-sonnet-4.5',
     knowledgeCutoff: '2025-01',
@@ -1176,7 +1197,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     description:
       'Claude Sonnet 4 is Anthropic’s hybrid reasoning model with mixed thinking and non-thinking capability.',
     displayName: 'Claude Sonnet 4',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-4',
     id: 'anthropic/claude-sonnet-4',
     knowledgeCutoff: '2025-01',
@@ -1225,6 +1246,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4o',
     id: 'openai/gpt-4o',
+    knowledgeCutoff: '2023-10',
     maxOutput: 16_380,
     pricing: {
       units: [
@@ -1245,6 +1267,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4o',
     id: 'openai/gpt-4o-mini',
+    knowledgeCutoff: '2023-10',
     maxOutput: 16_380,
     pricing: {
       units: [
@@ -1303,7 +1326,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     description:
       'Claude 3.5 Haiku features enhanced speed, coding accuracy, and tool use, suitable for scenarios with demanding requirements for speed and tool interaction.',
     displayName: 'Claude 3.5 Haiku',
-    family: 'claude',
+    family: 'claude-haiku',
     generation: 'claude-3.5',
     id: 'anthropic/claude-3.5-haiku',
     knowledgeCutoff: '2024-07',
@@ -1325,7 +1348,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     description:
       'Claude 3.5 Sonnet is the fast, efficient model in the Sonnet family, offering better coding and reasoning performance, with some versions gradually replaced by Sonnet 3.7 and later.',
     displayName: 'Claude 3.5 Sonnet',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-3.5',
     id: 'anthropic/claude-3.5-sonnet',
     knowledgeCutoff: '2024-04',
@@ -1347,7 +1370,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     description:
       'Claude 3.7 Sonnet is an upgraded Sonnet model with stronger reasoning and coding, suitable for enterprise-grade complex tasks.',
     displayName: 'Claude 3.7 Sonnet',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-3.7',
     id: 'anthropic/claude-3.7-sonnet',
     knowledgeCutoff: '2024-10',
@@ -1395,6 +1418,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.0',
     id: 'google/gemini-2.0-flash',
+    knowledgeCutoff: '2024-08',
     maxOutput: 8192,
     pricing: {
       units: [
@@ -1417,6 +1441,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.0',
     id: 'google/gemini-2.0-flash-lite-001',
+    knowledgeCutoff: '2024-08',
     maxOutput: 8192,
     pricing: {
       units: [
@@ -1439,6 +1464,7 @@ const zenmuxChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-flash-lite',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_530,
     pricing: {
       units: [

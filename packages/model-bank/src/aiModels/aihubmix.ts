@@ -81,6 +81,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.4',
     id: 'gpt-5.4',
+    knowledgeCutoff: '2025-08',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -256,6 +257,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.3',
     id: 'gpt-5.3-chat-latest',
+    knowledgeCutoff: '2025-08',
     maxOutput: 16_384,
     pricing: {
       units: [
@@ -282,6 +284,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.2',
     id: 'gpt-5.2',
+    knowledgeCutoff: '2025-08',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -311,6 +314,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.2',
     id: 'gpt-5.2-pro',
+    knowledgeCutoff: '2025-08',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -337,6 +341,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.2',
     id: 'gpt-5.2-chat-latest',
+    knowledgeCutoff: '2025-08',
     maxOutput: 16_384,
     pricing: {
       units: [
@@ -363,6 +368,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.1',
     id: 'gpt-5.1',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -389,6 +395,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.1',
     id: 'gpt-5.1-chat-latest',
+    knowledgeCutoff: '2024-09',
     maxOutput: 16_384,
     pricing: {
       units: [
@@ -415,6 +422,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.1',
     id: 'gpt-5.1-codex',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -445,6 +453,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5.1',
     id: 'gpt-5.1-codex-mini',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -474,6 +483,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'gpt-5-pro',
+    knowledgeCutoff: '2024-09',
     maxOutput: 272_000,
     pricing: {
       units: [
@@ -502,6 +512,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'gpt-5-codex',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -532,6 +543,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'gpt-5',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -562,6 +574,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'gpt-5-mini',
+    knowledgeCutoff: '2024-05',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -590,6 +603,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'gpt-5-nano',
+    knowledgeCutoff: '2024-05',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -617,6 +631,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-5',
     id: 'gpt-5-chat-latest',
+    knowledgeCutoff: '2024-09',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -790,6 +805,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'gpt-4.1',
+    knowledgeCutoff: '2024-06',
     maxOutput: 32_768,
     pricing: {
       units: [
@@ -816,6 +832,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'gpt-4.1-mini',
+    knowledgeCutoff: '2024-06',
     maxOutput: 32_768,
     pricing: {
       units: [
@@ -841,6 +858,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'gpt-4.1-nano',
+    knowledgeCutoff: '2024-06',
     maxOutput: 32_768,
     pricing: {
       units: [
@@ -863,6 +881,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4o',
     id: 'chatgpt-4o-latest',
+    knowledgeCutoff: '2023-10',
     pricing: {
       units: [
         { name: 'textInput', rate: 5, strategy: 'fixed', unit: 'millionTokens' },
@@ -969,6 +988,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'grok',
     generation: 'grok-3',
     id: 'grok-3',
+    knowledgeCutoff: '2024-11',
     pricing: {
       units: [
         { name: 'textInput', rate: 3, strategy: 'fixed', unit: 'millionTokens' },
@@ -991,6 +1011,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'grok',
     generation: 'grok-3',
     id: 'grok-3-mini',
+    knowledgeCutoff: '2024-11',
     pricing: {
       units: [
         { name: 'textInput', rate: 0.3, strategy: 'fixed', unit: 'millionTokens' },
@@ -1016,7 +1037,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
       "Claude Opus 4.7 is Anthropic's most capable generally available model for complex reasoning and agentic coding.",
     displayName: 'Claude Opus 4.7',
     enabled: true,
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4.7',
     id: 'claude-opus-4-7',
     knowledgeCutoff: '2026-01',
@@ -1048,7 +1069,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     description:
       'Claude Opus 4.6 is Anthropic’s most intelligent model for building agents and coding.',
     displayName: 'Claude Opus 4.6',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4.6',
     id: 'claude-opus-4-6',
     knowledgeCutoff: '2025-05',
@@ -1085,7 +1106,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     description:
       'Claude Opus 4.5 is Anthropic’s flagship model, combining top-tier intelligence with scalable performance for complex, high-quality reasoning tasks.',
     displayName: 'Claude Opus 4.5',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4.5',
     id: 'claude-opus-4-5-20251101',
     knowledgeCutoff: '2025-05',
@@ -1122,7 +1143,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     description:
       'Claude Opus 4.1 is Anthropic’s newest and most powerful model for highly complex tasks, excelling in performance, intelligence, fluency, and comprehension.',
     displayName: 'Claude Opus 4.1',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4.1',
     id: 'claude-opus-4-1-20250805',
     knowledgeCutoff: '2025-01',
@@ -1159,7 +1180,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     description:
       'Claude Opus 4 is Anthropic’s most powerful model for highly complex tasks, excelling in performance, intelligence, fluency, and comprehension.',
     displayName: 'Claude Opus 4',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4',
     id: 'claude-opus-4-20250514',
     knowledgeCutoff: '2025-01',
@@ -1196,7 +1217,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     description: 'Claude Sonnet 4.6 is Anthropic’s best combination of speed and intelligence.',
     displayName: 'Claude Sonnet 4.6',
     enabled: true,
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-4.6',
     id: 'claude-sonnet-4-6',
     knowledgeCutoff: '2025-05',
@@ -1239,7 +1260,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     description:
       'Sonnet 4.5 is the world’s best model for agents, coding, and computer use. It is also our most accurate and detailed model on long-running tasks, with enhanced knowledge in coding, finance, and cybersecurity.',
     displayName: 'Claude Sonnet 4.5',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-4.5',
     id: 'claude-sonnet-4-5-20250929',
     knowledgeCutoff: '2025-01',
@@ -1275,7 +1296,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     description:
       'Claude Sonnet 4 can produce near-instant responses or extended step-by-step reasoning that users can see. API users can finely control how long the model thinks.',
     displayName: 'Claude Sonnet 4',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-4',
     id: 'claude-sonnet-4-20250514',
     knowledgeCutoff: '2025-01',
@@ -1311,7 +1332,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     description:
       'Claude 3.7 Sonnet is Anthropic’s most intelligent model and the first hybrid reasoning model on the market. It can produce near-instant responses or extended step-by-step reasoning that users can see. Sonnet is especially strong at coding, data science, vision, and agent tasks.',
     displayName: 'Claude 3.7 Sonnet',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-3.7',
     id: 'claude-3-7-sonnet-20250219',
     knowledgeCutoff: '2024-10',
@@ -1349,7 +1370,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
       'Claude Haiku 4.5 is Anthropic’s fastest and smartest Haiku model, with lightning speed and extended reasoning.',
     displayName: 'Claude Haiku 4.5',
     enabled: true,
-    family: 'claude',
+    family: 'claude-haiku',
     generation: 'claude-4.5',
     id: 'claude-haiku-4-5-20251001',
     knowledgeCutoff: '2025-02',
@@ -1383,7 +1404,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     description:
       'Claude 3.5 Haiku is Anthropic’s fastest next-gen model. Compared to Claude 3 Haiku, it improves across skills and surpasses the previous largest model Claude 3 Opus on many intelligence benchmarks.',
     displayName: 'Claude 3.5 Haiku',
-    family: 'claude',
+    family: 'claude-haiku',
     generation: 'claude-3.5',
     id: 'claude-3-5-haiku-20241022',
     knowledgeCutoff: '2024-07',
@@ -1521,6 +1542,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-3.1',
     id: 'gemini-3.1-flash-image-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 32_768,
     pricing: {
       approximatePricePerImage: 0.067,
@@ -1555,6 +1577,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-3.1',
     id: 'gemini-3.1-pro-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -1617,6 +1640,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-3.1',
     id: 'gemini-3.1-flash-lite-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -1648,6 +1672,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-3',
     id: 'gemini-3-pro-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -1710,6 +1735,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-3',
     id: 'gemini-3-flash-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -1746,6 +1772,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-3',
     id: 'gemini-3-pro-image-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 32_768,
     pricing: {
       approximatePricePerImage: 0.134,
@@ -1777,6 +1804,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'gemini-2.5-pro',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -1806,6 +1834,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'gemini-2.5-flash',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -1834,6 +1863,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'gemini-2.5-flash-image',
+    knowledgeCutoff: '2025-06',
     maxOutput: 8192,
     pricing: {
       approximatePricePerImage: 0.039,
@@ -1861,6 +1891,7 @@ const aihubmixChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'gemini-2.5-flash-lite',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [

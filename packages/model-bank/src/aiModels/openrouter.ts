@@ -45,6 +45,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-3.1',
     id: 'google/gemini-3.1-flash-image-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       approximatePricePerImage: 0.067,
@@ -73,6 +74,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-3',
     id: 'google/gemini-3-pro-image-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 32_768,
     pricing: {
       approximatePricePerImage: 0.134,
@@ -100,6 +102,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-flash-image',
+    knowledgeCutoff: '2025-06',
     maxOutput: 8192,
     pricing: {
       approximatePricePerImage: 0.039,
@@ -226,6 +229,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-pro',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -248,6 +252,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-pro-preview',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_536,
     pricing: {
       units: [
@@ -270,6 +275,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.5',
     id: 'google/gemini-2.5-flash',
+    knowledgeCutoff: '2025-01',
     maxOutput: 65_535,
     pricing: {
       units: [
@@ -366,6 +372,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'openai/gpt-4.1',
+    knowledgeCutoff: '2024-06',
     maxOutput: 32_768,
     pricing: {
       units: [
@@ -388,6 +395,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'openai/gpt-4.1-mini',
+    knowledgeCutoff: '2024-06',
     maxOutput: 32_768,
     pricing: {
       units: [
@@ -410,6 +418,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4.1',
     id: 'openai/gpt-4.1-nano',
+    knowledgeCutoff: '2024-06',
     maxOutput: 32_768,
     pricing: {
       units: [
@@ -481,6 +490,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4o',
     id: 'openai/gpt-4o-mini',
+    knowledgeCutoff: '2023-10',
     maxOutput: 16_385,
     pricing: {
       units: [
@@ -502,6 +512,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gpt',
     generation: 'gpt-4o',
     id: 'openai/gpt-4o',
+    knowledgeCutoff: '2023-10',
     pricing: {
       units: [
         { name: 'textInput', rate: 2.5, strategy: 'fixed', unit: 'millionTokens' },
@@ -579,7 +590,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     description:
       'Claude Opus 4.5 is Anthropic’s flagship model, combining top-tier intelligence with scalable performance for complex, high-quality reasoning tasks.',
     displayName: 'Claude Opus 4.5',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4.5',
     id: 'anthropic/claude-opus-4.5',
     knowledgeCutoff: '2025-05',
@@ -609,7 +620,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     contextWindowTokens: 200_000,
     description: 'Claude Sonnet 4.5 is Anthropic’s most intelligent model to date.',
     displayName: 'Claude Sonnet 4.5',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-4.5',
     id: 'anthropic/claude-sonnet-4.5',
     knowledgeCutoff: '2025-01',
@@ -638,7 +649,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     description:
       'Claude 3 Haiku is Anthropic’s fastest and most compact model, designed for near-instant responses with fast, accurate performance.',
     displayName: 'Claude 3 Haiku',
-    family: 'claude',
+    family: 'claude-haiku',
     generation: 'claude-3',
     id: 'anthropic/claude-3-haiku',
     knowledgeCutoff: '2023-08',
@@ -667,7 +678,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     description:
       'Claude 3.5 Haiku is Anthropic’s fastest next-gen model. Compared to Claude 3 Haiku, it improves across skills and surpasses the previous largest model Claude 3 Opus on many intelligence benchmarks.',
     displayName: 'Claude 3.5 Haiku',
-    family: 'claude',
+    family: 'claude-haiku',
     generation: 'claude-3.5',
     id: 'anthropic/claude-3.5-haiku',
     knowledgeCutoff: '2024-07',
@@ -698,7 +709,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     description:
       'Claude 3.7 Sonnet is Anthropic’s most intelligent model and the first hybrid reasoning model on the market. It can produce near-instant responses or extended step-by-step reasoning that users can see. Sonnet is especially strong at coding, data science, vision, and agent tasks.',
     displayName: 'Claude 3.7 Sonnet',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-3.7',
     id: 'anthropic/claude-3.7-sonnet',
     knowledgeCutoff: '2024-10',
@@ -732,7 +743,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     description:
       'Claude Sonnet 4 can produce near-instant responses or extended step-by-step reasoning that users can see. API users can finely control how long the model thinks.',
     displayName: 'Claude Sonnet 4',
-    family: 'claude',
+    family: 'claude-sonnet',
     generation: 'claude-4',
     id: 'anthropic/claude-sonnet-4',
     knowledgeCutoff: '2025-01',
@@ -759,7 +770,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     description:
       'Claude Opus 4 is Anthropic’s most powerful model for highly complex tasks, excelling in performance, intelligence, fluency, and comprehension.',
     displayName: 'Claude Opus 4',
-    family: 'claude',
+    family: 'claude-opus',
     generation: 'claude-4',
     id: 'anthropic/claude-opus-4',
     knowledgeCutoff: '2025-01',
@@ -788,6 +799,7 @@ const openrouterChatModels: AIChatModelCard[] = [
     family: 'gemini',
     generation: 'gemini-2.0',
     id: 'google/gemini-2.0-flash-001',
+    knowledgeCutoff: '2024-08',
     maxOutput: 8192,
     pricing: {
       units: [
