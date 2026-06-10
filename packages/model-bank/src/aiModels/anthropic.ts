@@ -46,6 +46,7 @@ const anthropicChatModels: AIChatModelCard[] = [
     displayName: 'Claude Opus 4.8',
     enabled: true,
     id: 'claude-opus-4-8',
+    knowledgeCutoff: '2026-01',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -77,6 +78,7 @@ const anthropicChatModels: AIChatModelCard[] = [
     displayName: 'Claude Opus 4.7',
     enabled: true,
     id: 'claude-opus-4-7',
+    knowledgeCutoff: '2026-01',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -107,6 +109,7 @@ const anthropicChatModels: AIChatModelCard[] = [
       'Claude Opus 4.6 is Anthropic’s most intelligent model for building agents and coding.',
     displayName: 'Claude Opus 4.6',
     id: 'claude-opus-4-6',
+    knowledgeCutoff: '2025-05',
     maxOutput: 128_000,
     pricing: {
       units: [
@@ -141,6 +144,7 @@ const anthropicChatModels: AIChatModelCard[] = [
     displayName: 'Claude Sonnet 4.6',
     enabled: true,
     id: 'claude-sonnet-4-6',
+    knowledgeCutoff: '2025-08',
     maxOutput: 64_000,
     pricing: {
       units: [
@@ -181,6 +185,7 @@ const anthropicChatModels: AIChatModelCard[] = [
       'Claude Opus 4.5 is Anthropic’s flagship model, combining top-tier intelligence with scalable performance for complex, high-quality reasoning tasks.',
     displayName: 'Claude Opus 4.5',
     id: 'claude-opus-4-5-20251101',
+    knowledgeCutoff: '2025-05',
     maxOutput: 64_000,
     pricing: {
       units: [
@@ -214,6 +219,7 @@ const anthropicChatModels: AIChatModelCard[] = [
     description: 'Claude Sonnet 4.5 is Anthropic’s most intelligent model to date.',
     displayName: 'Claude Sonnet 4.5',
     id: 'claude-sonnet-4-5-20250929',
+    knowledgeCutoff: '2025-01',
     maxOutput: 64_000,
     pricing: {
       units: [
@@ -244,6 +250,7 @@ const anthropicChatModels: AIChatModelCard[] = [
     displayName: 'Claude Haiku 4.5',
     enabled: true,
     id: 'claude-haiku-4-5-20251001',
+    knowledgeCutoff: '2025-02',
     maxOutput: 64_000,
     pricing: {
       units: [
@@ -277,6 +284,7 @@ const anthropicChatModels: AIChatModelCard[] = [
       'Claude Opus 4.1 is Anthropic’s newest and most powerful model for highly complex tasks, excelling in performance, intelligence, fluency, and comprehension.',
     displayName: 'Claude Opus 4.1',
     id: 'claude-opus-4-1-20250805',
+    knowledgeCutoff: '2025-01',
     maxOutput: 32_000,
     pricing: {
       units: [
@@ -310,6 +318,7 @@ const anthropicChatModels: AIChatModelCard[] = [
       'Claude Opus 4 is Anthropic’s most powerful model for highly complex tasks, excelling in performance, intelligence, fluency, and comprehension.',
     displayName: 'Claude Opus 4',
     id: 'claude-opus-4-20250514',
+    knowledgeCutoff: '2025-01',
     maxOutput: 32_000,
     pricing: {
       units: [
@@ -343,6 +352,7 @@ const anthropicChatModels: AIChatModelCard[] = [
       'Claude Sonnet 4 can produce near-instant responses or extended step-by-step reasoning that users can see. API users can finely control how long the model thinks.',
     displayName: 'Claude Sonnet 4',
     id: 'claude-sonnet-4-20250514',
+    knowledgeCutoff: '2025-01',
     maxOutput: 64_000,
     pricing: {
       units: [
