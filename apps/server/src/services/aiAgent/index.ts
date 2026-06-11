@@ -97,7 +97,10 @@ import { shouldSuppressSignal } from '@/server/services/agentSignal/suppressSign
 import { deviceGateway } from '@/server/services/deviceGateway';
 import { DocumentService } from '@/server/services/document';
 import { FileService } from '@/server/services/file';
-import { resolveAttachmentsByFileIds } from '@/server/services/file/resolveAttachments';
+import {
+  resolveAttachmentMetadata,
+  resolveAttachmentsByFileIds,
+} from '@/server/services/file/resolveAttachments';
 import { HeterogeneousAgentService } from '@/server/services/heterogeneousAgent';
 import type { ConversationHistoryEntry } from '@/server/services/heterogeneousAgent/cloudHeteroContext';
 import { KlavisService } from '@/server/services/klavis';
@@ -878,11 +881,19 @@ export class AiAgentService {
       const operationId = nanoid();
 
       // Create user message so the conversation is visible in the UI immediately.
+      // Attach already-uploaded files (`fileIds` from the SPA gateway path) the
+      // same way `sendMessageInServer` does on the local-mode path — without
+      // the messagesFiles relation the attachment disappears as soon as the
+      // optimistic client message is replaced by the server snapshot.
       const userMsg = runFromHistory
         ? undefined
         : await this.messageModel.create({
             agentId: resolvedAgentId,
             content: prompt,
+            files:
+              attachedFileIds && attachedFileIds.length > 0
+                ? Array.from(new Set(attachedFileIds))
+                : undefined,
             role: 'user',
             threadId: appContext?.threadId ?? undefined,
             topicId,
@@ -986,10 +997,34 @@ export class AiAgentService {
         repos: topicRepos,
       });
 
+      // Resolve image attachments into signed URLs for the dispatched CLI —
+      // mirrors the local-mode path, where the client feeds the persisted
+      // message's imageList into `sendPrompt` for vision. Metadata-only
+      // (no document parsing) and non-fatal: a resolution failure must not
+      // block the run, the text prompt still works without the images.
+      let heteroImageList: Array<{ id: string; url: string }> | undefined;
+      if (attachedFileIds && attachedFileIds.length > 0) {
+        try {
+          const attachmentMeta = await resolveAttachmentMetadata({
+            db: this.db,
+            fileIds: attachedFileIds,
+            userId: this.userId,
+            workspaceId: this.workspaceId,
+          });
+          const images = attachmentMeta
+            .filter((file) => (file.fileType || '').startsWith('image'))
+            .map((file) => ({ id: file.id, url: file.url }));
+          if (images.length > 0) heteroImageList = images;
+        } catch (err) {
+          log('execAgent: failed to resolve hetero image attachments: %O', err);
+        }
+      }
+
       const heteroParams = {
         agentType: heteroType,
         assistantMessageId: assistantMsg.id,
         githubToken,
+        imageList: heteroImageList,
         jwt: operationJwt,
         operationId,
         prompt,
