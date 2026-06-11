@@ -61,7 +61,12 @@ import { TopicModel } from '@/database/models/topic';
 import { UserModel } from '@/database/models/user';
 import { UserPersonaModel } from '@/database/models/userMemory/persona';
 import { toolsEnv } from '@/envs/tools';
-import { resolveExecutionPlan, resolveRuntimeMode } from '@/helpers/executionTarget';
+import {
+  type ExecutionPlan,
+  executionTargetToRuntimeMode,
+  isDeviceCapablePlan,
+  resolveExecutionPlan,
+} from '@/helpers/executionTarget';
 import { shouldEnableBuiltinSkill } from '@/helpers/skillFilters';
 import { buildConnectorManifests } from '@/libs/mcp/buildConnectorManifests';
 import { signOperationJwt, signUserJWT } from '@/libs/trpc/utils/internalJwt';
@@ -594,6 +599,13 @@ export class AiAgentService {
           agentConfig.plugins = runtimeConfig.plugins;
           log('execAgent: merged builtin agent runtime plugins for slug=%s', agentSlug);
         }
+        if (runtimeConfig.agencyConfig) {
+          agentConfig.agencyConfig = {
+            ...agentConfig.agencyConfig,
+            ...runtimeConfig.agencyConfig,
+          };
+          log('execAgent: merged builtin agent runtime agencyConfig for slug=%s', agentSlug);
+        }
       }
     }
 
@@ -828,6 +840,23 @@ export class AiAgentService {
     const model = agentConfig.model!;
     const provider = agentConfig.provider!;
 
+    // Resolve device-tool access ONCE per turn, BEFORE the hetero early exit —
+    // hetero dispatch routes the whole run to a user machine, so it must honour
+    // the same policy as native device tools. Discord-only flows (no
+    // botContext) keep the legacy first-party allow path; an external bot
+    // sender returns canUseDevice=false and reason='bot-external-sender',
+    // which degrades device-capable targets (hetero → sandbox, native → plain
+    // chat) and stops the device list from leaking into the LLM context.
+    const { canUseDevice, reason: deviceAccessReason } = resolveDeviceAccessPolicy({
+      botContext,
+    });
+    log(
+      'execAgent: device access policy → canUseDevice=%s, reason=%s, hasBotContext=%s',
+      canUseDevice,
+      deviceAccessReason,
+      !!botContext,
+    );
+
     // 3.5. Hetero-agent early exit — Claude Code / Codex / OpenClaw / Hermes agents bypass the
     // server-side LLM pipeline.  After topic + message creation we hand off to
     // the device gateway (desktop) or cloud sandbox, which will push events
@@ -997,6 +1026,37 @@ export class AiAgentService {
       // frontend can subscribe before the first lh notify arrives.
 
       if (isRemoteHetero) {
+        // Remote hetero agents are device-only — there is no sandbox to
+        // degrade to, so a denied sender (external bot user) is refused
+        // outright instead of reaching the owner's machine.
+        if (!canUseDevice) {
+          log(
+            'execAgent: device access denied for remote hetero dispatch (reason=%s)',
+            deviceAccessReason,
+          );
+          await this.messageModel.update(assistantMsg.id, {
+            content: '',
+            error: {
+              body: { detail: 'This sender is not allowed to run agents on a bound device.' },
+              message: 'Device access denied',
+              type: 'ServerAgentRuntimeError',
+            },
+          });
+          return {
+            agentId: resolvedAgentId,
+            assistantMessageId: assistantMsg.id,
+            autoStarted: false,
+            createdAt: new Date().toISOString(),
+            error: 'Device access denied',
+            message: 'Remote hetero agent requires device access',
+            operationId,
+            status: 'error',
+            success: false,
+            timestamp: new Date().toISOString(),
+            topicId,
+            userMessageId: userMsg?.id ?? parentMessageId ?? '',
+          };
+        }
         if (!remoteDeviceId) {
           log('execAgent: openclaw/hermes requires a bound device (boundDeviceId not set)');
           await this.messageModel.update(assistantMsg.id, {
@@ -1095,13 +1155,19 @@ export class AiAgentService {
         // and cloud sandbox via the shared execution plan:
         //   - requestedDeviceId (topic-level override) always wins
         //   - executionTarget 'device' → dispatch to boundDeviceId (errors if unset)
-        //   - everything else ('sandbox' / 'local' / 'none' / unset) → cloud
+        //   - executionTarget 'local' + boundDeviceId (desktop sync opened on web)
+        //     → dispatch to that device
+        //   - everything else ('sandbox' / unbound 'local' / 'none' / unset) → cloud
         //     sandbox (the server can't spawn locally, and a hetero agent must
         //     execute somewhere)
         // `onlineDeviceIds` is intentionally omitted: hetero dispatch trusts
         // the binding and fails loudly at the gateway if the device is offline.
+        // `canUseDevice` degrades device-capable targets to the sandbox for
+        // denied senders (e.g. external bot users) — without it a synced
+        // local/device binding would let them run on the owner's machine.
         const heteroPlan = resolveExecutionPlan({
           agencyConfig: agentConfig.agencyConfig,
+          canUseDevice,
           isDesktop: false,
           isHetero: true,
           requestedDeviceId,
@@ -1277,26 +1343,15 @@ export class AiAgentService {
     const toolExecutorMap: Record<string, ToolExecutor> = {};
     let onlineDevices: DeviceAttachment[] = [];
     let activeDeviceId: string | undefined;
+    let executionPlan: ExecutionPlan | undefined;
     let hasAgentDocuments = false;
     let hasEnabledKnowledgeBases = false;
     const isBotConversation = !!(botContext || discordContext);
 
-    // Resolve device-tool access ONCE per turn. The decision flows into both
-    // the engine's enable gates (LocalSystem / RemoteDevice) and the
-    // RemoteDevice systemRole injection below. Discord-only flows (no
-    // botContext) keep the legacy first-party allow path; an external bot
-    // sender returns canUseDevice=false and reason='bot-external-sender',
-    // which both denies the tools and stops the device list from leaking
-    // into the LLM context.
-    const { canUseDevice, reason: deviceAccessReason } = resolveDeviceAccessPolicy({
-      botContext,
-    });
-    log(
-      'execAgent: device access policy → canUseDevice=%s, reason=%s, hasBotContext=%s',
-      canUseDevice,
-      deviceAccessReason,
-      !!botContext,
-    );
+    // Device-tool access (`canUseDevice` / `deviceAccessReason`) was resolved
+    // once before the hetero early exit above; the decision flows into the
+    // engine's enable gates (LocalSystem / RemoteDevice) and the RemoteDevice
+    // systemRole injection below.
 
     // These are needed outside the tools block (for agent management context, skill engine, etc.)
     let lobehubSkillManifests: LobeToolManifest[] = [];
@@ -1575,7 +1630,7 @@ export class AiAgentService {
       // `isDesktop` uses `gatewayConfigured` as a proxy: a device-gateway
       // deployment serves desktop-class users, so the unset-target default
       // resolves to `local` there and `none` otherwise.
-      const executionPlan = resolveExecutionPlan({
+      executionPlan = resolveExecutionPlan({
         agencyConfig: agentConfig.agencyConfig,
         canUseDevice,
         isDesktop: gatewayConfigured,
@@ -1585,8 +1640,7 @@ export class AiAgentService {
       // Device tools (local-system / remote-device proxy) only exist in a
       // device-capable session — `none` and `sandbox` sessions must never see
       // them, not even the proxy that could activate a device mid-run.
-      const deviceCapable =
-        executionPlan.kind === 'device' || executionPlan.kind === 'device-unrouted';
+      const deviceCapable = isDeviceCapablePlan(executionPlan);
       activeDeviceId = executionPlan.kind === 'device' ? executionPlan.deviceId : undefined;
       log(
         'execAgent: execution plan → kind=%s deviceId=%s',
@@ -1610,6 +1664,7 @@ export class AiAgentService {
             }
           : undefined,
         disableLocalSystem,
+        executionPlan,
         globalMemoryEnabled,
         hasAgentDocuments,
         hasEnabledKnowledgeBases,
@@ -1670,9 +1725,9 @@ export class AiAgentService {
         canUseDevice,
         disableLocalSystem,
       });
-      // Resolve effective runtimeMode once, mirroring AgentToolsEngine's derivation
-      // from the unified executionTarget field.
-      const agentRuntimeMode = resolveRuntimeMode(agentConfig.agencyConfig, gatewayConfigured);
+      // Effective runtimeMode from the plan's resolved target — same value the
+      // engine derives, single derivation point.
+      const agentRuntimeMode = executionTargetToRuntimeMode(executionPlan.target);
       // When sandbox is not the active runtime, remove lobe-cloud-sandbox from the
       // manifest map. The initial seed via getEnabledPluginManifests (which includes
       // defaultToolIds) may have already placed it there, and the allowedBuiltinTools
@@ -1708,10 +1763,11 @@ export class AiAgentService {
       // lobe-local-system has `discoverable: isDesktop` in builtinTools, which
       // evaluates to false on the Node.js server side, so it never enters the
       // loop above. Explicitly inject it only when the device gateway is
-      // configured AND the runtime mode is 'local' — skip for sandbox/none
-      // targets to avoid leaking local-system into non-local sessions.
+      // configured AND the plan's target is 'local' — skip for sandbox/none
+      // targets to avoid leaking local-system into non-local sessions. (The
+      // plan already degrades to `none` when device access is denied, so no
+      // separate `canUseDevice` check is needed here.)
       if (
-        canUseDevice &&
         !disableLocalSystem &&
         gatewayConfigured &&
         agentRuntimeMode === 'local' &&
@@ -2558,6 +2614,7 @@ export class AiAgentService {
         activeDeviceId,
         agentConfig,
         deviceSystemInfo: Object.keys(deviceSystemInfo).length > 0 ? deviceSystemInfo : undefined,
+        executionPlan,
         userTimezone,
         appContext: {
           // Background self-iteration runs execute under a builtin slug (so they
