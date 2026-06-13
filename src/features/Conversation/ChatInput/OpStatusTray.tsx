@@ -10,10 +10,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useChatStore } from '@/store/chat';
 import { operationSelectors } from '@/store/chat/selectors';
-import {
-  AI_RUNTIME_OPERATION_TYPES,
-  type OperationType,
-} from '@/store/chat/slices/operation/types';
+import { AI_RUNTIME_OPERATION_TYPES } from '@/store/chat/slices/operation/types';
 import { shinyTextStyles } from '@/styles';
 import {
   calculateOperationUsageMetrics,
@@ -23,6 +20,7 @@ import {
 } from '@/utils/operationUsageMetrics';
 
 import { contextSelectors, dataSelectors, useConversationStore } from '../store';
+import { type ActivityKey, resolveOperationActivity } from '../utils/operationActivity';
 import { parseStatusPhrases, pickStableStatusPhrase } from './OpStatusTray/logic';
 
 const styles = createStaticStyles(({ css, cssVar }) => ({
@@ -193,34 +191,6 @@ const normalizeStepCount = (stepCount: unknown) => {
   return Math.max(0, Math.floor(stepCount));
 };
 
-type ActivityKey = 'compressing' | 'generating' | 'reasoning' | 'searching' | 'toolCalling';
-
-/**
- * Map a running sub-operation type to the streaming phase shown on the left.
- * Container ops (AI_RUNTIME) and bookkeeping ops return undefined.
- */
-const resolveActivity = (type: OperationType): ActivityKey | undefined => {
-  if (type === 'reasoning') return 'reasoning';
-  if (
-    type === 'toolCalling' ||
-    type === 'executeToolCall' ||
-    type === 'createToolMessage' ||
-    type === 'pluginApi' ||
-    type.startsWith('builtinTool')
-  )
-    return 'toolCalling';
-  if (type === 'rag' || type === 'searchWorkflow') return 'searching';
-  if (type === 'contextCompression' || type === 'generateSummary') return 'compressing';
-  if (
-    type === 'callLLM' ||
-    type === 'groupAgentStream' ||
-    type === 'createAssistantMessage' ||
-    type === 'supervisorDecision'
-  )
-    return 'generating';
-  return undefined;
-};
-
 interface OpStatusTrayProps {
   /**
    * Square the top corners when another panel sits flush above this one.
@@ -254,7 +224,7 @@ const OpStatusTray = memo<OpStatusTrayProps>(({ topAttached }) => {
     for (const op of ops) {
       if (op.status !== 'running' || op.metadata.isAborting) continue;
 
-      const mapped = resolveActivity(op.type);
+      const mapped = resolveOperationActivity(op.type);
       if (mapped && op.metadata.startTime > latestActivityStart) {
         latestActivityStart = op.metadata.startTime;
         activity = mapped;
