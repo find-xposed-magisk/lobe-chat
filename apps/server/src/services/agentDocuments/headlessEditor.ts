@@ -5,8 +5,6 @@ import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 import { EMPTY_EDITOR_STATE } from '@/libs/editor/constants';
 import { isValidEditorData } from '@/libs/editor/isValidEditorData';
 
-import { createAgentDocumentHeadlessEditor } from './createHeadlessEditor';
-
 export type AgentDocumentEditorData = Record<string, any>;
 
 export type AgentDocumentLiteXMLOperation =
@@ -143,7 +141,8 @@ const loadEditorState = (
 export const createMarkdownEditorSnapshot = async (
   content: string,
 ): Promise<AgentDocumentEditorSnapshot> => {
-  const editor = createAgentDocumentHeadlessEditor();
+  const { createHeadlessEditor } = await import('@lobehub/editor/headless');
+  const editor = createHeadlessEditor();
 
   try {
     hydrateMarkdownOrEmptyState(editor, content);
@@ -156,7 +155,8 @@ export const createMarkdownEditorSnapshot = async (
 export const exportEditorDataSnapshot = async (
   params: LoadEditorStateParams & { litexml?: boolean },
 ): Promise<AgentDocumentEditorSnapshot> => {
-  const editor = createAgentDocumentHeadlessEditor();
+  const { createHeadlessEditor } = await import('@lobehub/editor/headless');
+  const editor = createHeadlessEditor();
 
   try {
     loadEditorState(editor, params);
@@ -173,7 +173,8 @@ export const applyLiteXMLOperations = async ({
 }: LoadEditorStateParams & {
   operations: AgentDocumentLiteXMLOperation[];
 }): Promise<AgentDocumentEditorSnapshot> => {
-  const editor = createAgentDocumentHeadlessEditor();
+  const { createHeadlessEditor } = await import('@lobehub/editor/headless');
+  const editor = createHeadlessEditor();
 
   try {
     loadEditorState(editor, { editorData, fallbackContent });

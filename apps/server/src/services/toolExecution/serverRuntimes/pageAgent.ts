@@ -5,13 +5,12 @@ import {
   type PageAgentRuntimeService,
 } from '@lobechat/builtin-tool-page-agent/executionRuntime';
 import { EditorRuntime } from '@lobechat/editor-runtime';
-import type { HeadlessEditor } from '@lobehub/editor/headless';
+import { createHeadlessEditor, type HeadlessEditor } from '@lobehub/editor/headless';
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
 import { DocumentModel } from '@/database/models/document';
 import { type LobeChatDatabase } from '@/database/type';
 import { isValidEditorData } from '@/libs/editor/isValidEditorData';
-import { createAgentDocumentHeadlessEditor } from '@/server/services/agentDocuments/createHeadlessEditor';
 import { DocumentService } from '@/server/services/document';
 
 import type { ServerRuntimeRegistration } from './types';
@@ -128,7 +127,7 @@ const loadSnapshot = async (
 };
 
 const buildEnv = (snapshot: DocumentSnapshot, documentId: string): InvocationEnv => {
-  const headless = createAgentDocumentHeadlessEditor();
+  const headless = createHeadlessEditor();
   let title = snapshot.title;
 
   if (isValidEditorData(snapshot.editorData)) {
