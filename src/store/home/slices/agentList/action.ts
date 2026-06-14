@@ -3,7 +3,7 @@ import { type SWRResponse } from 'swr';
 
 import { type SidebarAgentItem, type SidebarAgentListResponse } from '@/database/repositories/home';
 import { mutate, useClientDataSWR, useClientDataSWRWithSync } from '@/libs/swr';
-import { agentKeys } from '@/libs/swr/keys';
+import { agentConfigKeys, agentKeys } from '@/libs/swr/keys';
 import { homeService } from '@/services/home';
 import { getAgentStoreState } from '@/store/agent';
 import { type HomeStore } from '@/store/home/store';
@@ -13,8 +13,6 @@ import { setNamespace } from '@/utils/storeDebug';
 import { mapResponseToState } from './initialState';
 
 const n = setNamespace('agentList');
-
-const SEARCH_AGENTS_KEY = 'searchAgents';
 
 type Setter = StoreSetter<HomeStore>;
 export const createAgentListSlice = (set: Setter, get: () => HomeStore, _api?: unknown) =>
@@ -76,7 +74,7 @@ export class AgentListActionImpl {
   };
 
   useSearchAgents = (keyword?: string): SWRResponse<SidebarAgentItem[]> => {
-    return useClientDataSWR<SidebarAgentItem[]>([SEARCH_AGENTS_KEY, keyword], async () => {
+    return useClientDataSWR<SidebarAgentItem[]>(agentConfigKeys.search(keyword), async () => {
       if (!keyword) return [];
 
       return homeService.searchAgents(keyword);
