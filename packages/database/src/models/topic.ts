@@ -30,7 +30,7 @@ import {
 } from 'drizzle-orm';
 
 import type { TopicItem } from '../schemas';
-import { agents, messagePlugins, messages, topics } from '../schemas';
+import { agents, messagePlugins, messages, threads, topics } from '../schemas';
 import type { LobeChatDatabase } from '../type';
 import { sanitizeBm25Query } from '../utils/bm25';
 import { genEndDateWhere, genRangeWhere, genStartDateWhere, genWhere } from '../utils/genWhere';
@@ -134,10 +134,10 @@ const STATUS_SORT_RANK = sql`CASE ${topics.status}
 
 // Favorites always float to the top; the rest are ordered by the requested
 // strategy. `status` adds the priority bucket before the recency tiebreaker.
-const buildTopicOrderBy = (sortBy?: TopicQuerySortBy): SQL[] =>
+const buildTopicOrderBy = (topicActivityAt: SQL, sortBy?: TopicQuerySortBy): SQL[] =>
   sortBy === 'status'
-    ? [desc(topics.favorite), asc(STATUS_SORT_RANK), desc(topics.updatedAt)]
-    : [desc(topics.favorite), desc(topics.updatedAt)];
+    ? [desc(topics.favorite), asc(STATUS_SORT_RANK), desc(topicActivityAt)]
+    : [desc(topics.favorite), desc(topicActivityAt)];
 
 export class TopicModel {
   private userId: string;
@@ -171,7 +171,6 @@ export class TopicModel {
     triggers,
     withDetails = false,
   }: QueryTopicParams = {}) => {
-    const orderBy = buildTopicOrderBy(sortBy);
     const queryStartedAt = Date.now();
     logTiming(timing, 'db.topic.query:start', {
       current,
@@ -208,6 +207,17 @@ export class TopicModel {
       .select({ value: sql<number>`count(*)::int` })
       .from(messages)
       .where(eq(messages.topicId, topics.id));
+    const latestMessageAtSubquery = this.db
+      .select({ value: messages.updatedAt })
+      .from(messages)
+      .where(and(eq(messages.topicId, topics.id), this.messageOwnership()))
+      .orderBy(desc(messages.updatedAt))
+      .limit(1);
+    const topicActivityAt =
+      sql<Date>`COALESCE((${latestMessageAtSubquery}), ${topics.updatedAt})`.mapWith(
+        topics.updatedAt,
+      );
+    const orderBy = buildTopicOrderBy(topicActivityAt, sortBy);
 
     const detailColumns = withDetails
       ? {
@@ -556,6 +566,17 @@ export class TopicModel {
    * - For inbox: includes topics with slug='inbox'
    */
   queryRecent = async (limit: number = 12) => {
+    const latestMessageAtSubquery = this.db
+      .select({ value: messages.updatedAt })
+      .from(messages)
+      .where(and(eq(messages.topicId, topics.id), this.messageOwnership()))
+      .orderBy(desc(messages.updatedAt))
+      .limit(1);
+    const topicActivityAt =
+      sql<Date>`COALESCE((${latestMessageAtSubquery}), ${topics.updatedAt})`.mapWith(
+        topics.updatedAt,
+      );
+
     const result = await this.db
       .select({
         agentId: topics.agentId,
@@ -563,7 +584,7 @@ export class TopicModel {
         id: topics.id,
         sessionId: topics.sessionId,
         title: topics.title,
-        updatedAt: topics.updatedAt,
+        updatedAt: topicActivityAt,
       })
       .from(topics)
       .leftJoin(agents, eq(topics.agentId, agents.id))
@@ -580,12 +601,13 @@ export class TopicModel {
           ),
         ),
       )
-      .orderBy(desc(topics.updatedAt))
+      .orderBy(desc(topicActivityAt))
       .limit(limit);
 
     return result.map((item) => ({
       ...item,
       type: item.groupId ? ('group' as const) : ('agent' as const),
+      updatedAt: item.updatedAt instanceof Date ? item.updatedAt : new Date(item.updatedAt),
     }));
   };
 
@@ -858,6 +880,70 @@ export class TopicModel {
       .set({ ...data, updatedAt: new Date() })
       .where(and(eq(topics.id, id), this.ownership()))
       .returning();
+  };
+
+  /**
+   * Move multiple topics (and all their messages) to another agent.
+   *
+   * Reassigns ownership purely through the `agentId` foreign key (the new data
+   * model). Every child entity of the topic that carries its own `agentId` FK
+   * MUST be updated together — `topics`, `messages`, and `threads`. Topic lists
+   * query by `topics.agentId` and message queries filter by `messages.agentId`,
+   * so updating only the topic would leave the moved conversation showing up
+   * empty under the target agent; and `threads.agentId` is itself a
+   * cascade-on-delete FK, so a thread left pointing at the source agent would
+   * be destroyed if that agent is later deleted.
+   *
+   * `sessionId` is cleared on `topics` and `messages` so the rows fully detach
+   * from the source agent's legacy session and can't leak back through the
+   * sessionId-based legacy query fallback (`threads` has no `sessionId`).
+   *
+   * Topics can only be moved to an agent owned by the same user/workspace. The
+   * target agent is verified with the same ownership predicate before applying
+   * the move — `topics.agentId` / `messages.agentId` are plain FKs to
+   * `agents.id` with cascade-on-delete, so attaching rows to a foreign agent
+   * would both leak them across tenants and risk losing them if that agent is
+   * later deleted.
+   */
+  batchMoveToAgent = async (topicIds: string[], targetAgentId: string) => {
+    if (topicIds.length === 0) return;
+
+    return this.db.transaction(async (tx) => {
+      const [targetAgent] = await tx
+        .select({ id: agents.id })
+        .from(agents)
+        .where(
+          and(
+            eq(agents.id, targetAgentId),
+            buildWorkspaceWhere({ userId: this.userId, workspaceId: this.workspaceId }, agents),
+          ),
+        )
+        .limit(1);
+
+      if (!targetAgent) {
+        throw new Error(`Target agent ${targetAgentId} not found or not accessible`);
+      }
+
+      await tx
+        .update(topics)
+        .set({ agentId: targetAgentId, sessionId: null, updatedAt: new Date() })
+        .where(and(inArray(topics.id, topicIds), this.ownership()));
+
+      await tx
+        .update(messages)
+        .set({ agentId: targetAgentId, sessionId: null })
+        .where(and(inArray(messages.topicId, topicIds), this.messageOwnership()));
+
+      await tx
+        .update(threads)
+        .set({ agentId: targetAgentId })
+        .where(
+          and(
+            inArray(threads.topicId, topicIds),
+            buildWorkspaceWhere({ userId: this.userId, workspaceId: this.workspaceId }, threads),
+          ),
+        );
+    });
   };
 
   /**

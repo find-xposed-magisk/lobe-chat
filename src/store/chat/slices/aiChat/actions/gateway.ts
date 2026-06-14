@@ -29,13 +29,10 @@ import { createGatewayEventHandler } from './gatewayEventHandler';
  * is otherwise forced to make whenever more than one device is online (with a
  * single device the server's heuristic already covered it).
  *
- * Gated on the effective runtime mode (`isLocalSystemEnabledById`), NOT on
- * `agencyConfig.executionTarget`: the latter is only written by the newer
- * HeteroDeviceSwitcher, whereas the legacy ModeSelector writes just
- * `runtimeMode`. Resolving a device whenever the target is unset would override
- * an explicit `cloud` / `none` choice and wrongly route a cloud run to the
- * local machine. `runtimeMode` is the single source of truth both selectors
- * agree on (and what the server gates CloudSandbox on).
+ * Gated on the effective runtime mode (`isLocalSystemEnabledById`), which
+ * derives from `agencyConfig.executionTarget` — only a `local` target presets
+ * the device. Resolving a device for `sandbox` / `none` / `device` targets
+ * would wrongly route the run to this machine.
  *
  * Desktop-only and best-effort: any failure falls back to the server-side
  * device-resolution heuristics. We don't pre-check online status here — an
@@ -600,11 +597,21 @@ export class GatewayActionImpl {
       topicId,
     };
 
+    // Anchor the operation to the run's real start: the assistant message was
+    // created when the run began. Defaulting to Date.now() here would reset
+    // elapsed-time displays (OpStatusTray) to zero on every page refresh.
+    const assistantMessage = Object.values(this.#get().messagesMap)
+      .flat()
+      .find((m) => m.id === assistantMessageId);
+
     // Create a local operation for UI loading state, stashing the server op id
     // so intervention flows can find it after reconnect as well.
     const { operationId: gatewayOpId } = this.#get().startOperation({
       context,
-      metadata: { serverOperationId: operationId },
+      metadata: {
+        serverOperationId: operationId,
+        ...(assistantMessage?.createdAt ? { startTime: assistantMessage.createdAt } : {}),
+      },
       type: 'execServerAgentRuntime',
     });
 

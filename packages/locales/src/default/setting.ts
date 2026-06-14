@@ -353,8 +353,50 @@ export default {
   'devices.edit.friendlyNamePlaceholder': 'A name to recognize this device',
   'devices.edit.save': 'Save',
   'devices.edit.title': 'Edit device',
-  'devices.empty':
-    'No devices yet. Connect one with `lh connect` or by signing in to the desktop app.',
+  'devices.capabilities.commands.desc': 'Safely execute terminal commands in your environment.',
+  'devices.capabilities.commands.title': 'Run commands',
+  'devices.capabilities.files.desc':
+    'Let agents directly access and organize the files on your computer.',
+  'devices.capabilities.files.title': 'Read & write local files',
+  'devices.capabilities.title': 'What you can do once connected',
+  'devices.capabilities.tools.desc': 'Connect local tools to extend what agents can do.',
+  'devices.capabilities.tools.title': 'Call system tools',
+  'devices.connectWizard.button': 'Connect Device',
+  'devices.connectWizard.cli.connectDesc':
+    'Start the background daemon to keep the device online and listening for remote operations.',
+  'devices.connectWizard.cli.connectTitle': 'Start the daemon',
+  'devices.connectWizard.cli.installDesc':
+    'Install the LobeHub CLI globally with your preferred package manager to enable device connectivity and management.',
+  'devices.connectWizard.cli.installTitle': 'Install the CLI',
+  'devices.connectWizard.cli.loginDesc':
+    'Complete OAuth authorization in your browser to link the CLI with your account.',
+  'devices.connectWizard.cli.loginTitle': 'Sign in',
+  'devices.connectWizard.desktop.downloadLink': 'Download LobeHub Desktop',
+  'devices.connectWizard.desktop.step1': 'Download the desktop app',
+  'devices.connectWizard.desktop.step1Desc':
+    'Visit the LobeHub downloads page and get the app for your operating system.',
+  'devices.connectWizard.desktop.step2': 'Sign in and open the device gateway',
+  'devices.connectWizard.desktop.step2Desc':
+    "After signing in, click the device gateway icon in the top-right corner and confirm it's turned on.",
+  'devices.connectWizard.desktop.step3': 'Your device appears automatically',
+  'devices.connectWizard.desktop.step3Desc':
+    "The desktop app registers itself as a device on launch — you'll see it in the list once connected.",
+  'devices.connectWizard.footer':
+    'Only device metadata is registered — your data is never accessed.',
+  'devices.connectWizard.method.cli': 'Via CLI',
+  'devices.connectWizard.method.desktop': 'Via Desktop',
+  'devices.connectWizard.subtitle': 'Choose how to connect your computer to LobeHub.',
+  'devices.connectWizard.title': 'Connect Device',
+  'devices.empty.desc':
+    'Once connected, LobeHub agents can read/write files, run commands, and call system tools directly on your computer.',
+  'devices.empty.methodCli.desc':
+    'Install the CLI in your terminal — great for servers or headless machines.',
+  'devices.empty.methodCli.title': 'Connect via CLI',
+  'devices.empty.methodDesktop.badge': 'Recommended',
+  'devices.empty.methodDesktop.desc':
+    'Download the desktop app, sign in, and your device connects automatically.',
+  'devices.empty.methodDesktop.title': 'Connect via Desktop',
+  'devices.empty.title': 'Connect your first device',
   'devices.fallbackBadge': 'Unstable identity',
   'devices.fallbackTooltip':
     "This device couldn't be identified by its machine ID, so reinstalling the app may create a duplicate entry.",
@@ -566,6 +608,7 @@ export default {
   'notification.item.image_generation_completed': 'Image generation completed',
   'notification.item.storage_overage_cap_reached': 'Storage pay-as-you-go cap reached',
   'notification.item.video_generation_completed': 'Video generation completed',
+  'notification.item.workspace_member_invited': 'Workspace invitation',
   'notification.item.workspace_member_joined': 'New member joined',
   'notification.item.workspace_member_removed': 'Removed from workspace',
   'notification.item.workspace_payment_failed': 'Renewal payment failed',
@@ -1477,7 +1520,7 @@ When I am ___, I need ___
   'workspace.billingPage.plans.modelsHint': 'Estimated messages from the shared pool',
   'workspace.billingPage.plans.modelsTitle': 'Featured models',
   'workspace.billingPage.plans.perMonth': '/ month',
-  'workspace.billingPage.plans.popularTag': 'Popular',
+  'workspace.billingPage.plans.popularTag': 'Recommended',
   'workspace.billingPage.plans.priceProCaption': 'Platform fee · billed monthly',
   'workspace.billingPage.plans.priceProHeadline': '${{fee}} / mo',
   'workspace.billingPage.plans.proCapacity': 'Up to {{max}} seats · ${{seatFee}}/seat / month',
@@ -1856,6 +1899,7 @@ When I am ___, I need ___
     'Add new members by entering their email address and assigning a role',
   'workspace.members.invite.addAnother': 'Add another',
   'workspace.members.invite.button': 'Invite',
+  'workspace.members.invite.modal.billIncrease': ' Your bill will increase by ${{amount}}/mo.',
   'workspace.members.invite.modal.cancel': 'Cancel',
   'workspace.members.invite.modal.confirm': 'Confirm',
   'workspace.members.invite.modal.description_one':
@@ -1892,7 +1936,7 @@ When I am ___, I need ___
   'workspace.upgradeModal.alreadyUpgraded': 'Already upgraded',
   'workspace.upgradeModal.changeWorkspace': 'Back',
   'workspace.upgradeModal.chargeDisclosure':
-    'Upon clicking Upgrade, you will be charged ${{fee}}, plus any applicable taxes and fees, immediately and then every month, until you cancel. Seat fees and on-demand usage are settled at month-end; if your usage exceeds a billing threshold during a cycle, your payment method on file may be charged before the cycle ends.',
+    'Clicking Upgrade charges ${{fee}} now, plus any applicable taxes. The subscription renews monthly until you cancel. Seats and on-demand usage are billed at month-end.',
   'workspace.upgradeModal.inviteLaterHint':
     'You can invite more members to your team in the next step.',
   'workspace.upgradeModal.memberCount_one': '{{count}} member',
@@ -1905,6 +1949,7 @@ When I am ___, I need ___
   'workspace.upgradeModal.createTeam': 'Create workspace',
   'workspace.upgradeModal.formSubtitle':
     'Only the platform fee is charged today — seat fees are settled at month-end.',
+  'workspace.upgradeModal.formDescription': 'Review the details below and confirm your upgrade.',
   'workspace.upgradeModal.formTitle': 'Upgrade {{name}} to Pro',
   'workspace.upgradeModal.heading': 'Upgrade a workspace to Pro',
   'workspace.upgradeModal.hobbyTag': 'Hobby',
@@ -2004,11 +2049,13 @@ When I am ___, I need ___
     "You've reached the maximum of {{limit}} workspaces. Leave one before creating another.",
   'workspace.wizard.step2.features.hobby.share': 'Single-owner workspace',
   'workspace.wizard.step2.features.hobby.solo': 'Solo workspace, no member seats',
-  'workspace.wizard.step2.features.hobby.onDemand': 'On-demand usage · AutoTopUp (${{price}}/M)',
+  'workspace.wizard.step2.features.hobby.onDemand':
+    'On-demand usage · Auto top-up (${{price}} / 1M credits)',
   'workspace.wizard.step2.features.hobby.upgradable': 'Upgrade anytime to invite members',
   'workspace.wizard.step2.features.pro.adminControls': 'Centralized billing, roles, and audit logs',
   'workspace.wizard.step2.features.pro.collaboration': 'Invite members · share agents and files',
-  'workspace.wizard.step2.features.pro.onDemand': 'On-demand usage · AutoTopUp (${{price}}/M)',
+  'workspace.wizard.step2.features.pro.onDemand':
+    'On-demand usage · Auto top-up (${{price}} / 1M credits)',
   'workspace.wizard.step2.features.pro.priorityModels': 'Priority premium models',
   'workspace.wizard.step2.features.pro.support': 'Priority email support',
   'workspace.wizard.step2.left.creditsHobbyHint': 'No monthly credits · pay as you go',
@@ -2280,6 +2327,10 @@ When I am ___, I need ___
   'tools.klavis.disconnect': 'Disconnect',
   'tools.klavis.disconnected': 'Disconnected',
   'tools.klavis.error': 'Error',
+  'tools.klavis.remove': 'Remove',
+  'tools.klavis.removeConfirm.desc':
+    '{{name}} will be permanently removed from your connected services. This action cannot be undone.',
+  'tools.klavis.removeConfirm.title': 'Remove {{name}}?',
   'tools.klavis.groupName': 'Klavis Tools',
   'tools.klavis.manage': 'Manage Klavis',
   'tools.klavis.manageTitle': 'Manage Klavis Integration',

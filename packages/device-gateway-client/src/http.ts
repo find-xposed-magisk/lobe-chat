@@ -66,7 +66,7 @@ export class GatewayHttpClient {
   }
 
   async executeToolCall(
-    params: { deviceId?: string; timeout?: number; userId: string },
+    params: { deviceId?: string; operationId?: string; timeout?: number; userId: string },
     toolCall: { apiName: string; arguments: string; identifier: string },
   ): Promise<DeviceToolCallResult> {
     return this.postToolCall(params, { ...toolCall, type: 'tool' });
@@ -95,7 +95,7 @@ export class GatewayHttpClient {
   }
 
   private async postToolCall(
-    params: { deviceId?: string; timeout?: number; userId: string },
+    params: { deviceId?: string; operationId?: string; timeout?: number; userId: string },
     toolCall: {
       apiName: string;
       arguments: string;
@@ -112,6 +112,7 @@ export class GatewayHttpClient {
       '/api/device/tool-call',
       {
         deviceId: params.deviceId,
+        operationId: params.operationId,
         timeout: params.timeout,
         toolCall,
         userId: params.userId,
@@ -183,6 +184,8 @@ export class GatewayHttpClient {
     agentType: string;
     cwd?: string;
     deviceId?: string;
+    /** Image attachments forwarded into the `agent_run_request` message. */
+    imageList?: Array<{ id?: string; url: string }>;
     jwt: string;
     operationId: string;
     prompt: string;

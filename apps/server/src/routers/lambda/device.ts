@@ -164,6 +164,50 @@ export const deviceRouter = router({
     ),
 
   /**
+   * Rename a branch in a directory on a remote device, via the device's
+   * `renameGitBranch` RPC.
+   */
+  renameGitBranch: deviceProcedure
+    .input(
+      z.object({
+        deviceId: z.string(),
+        from: z.string(),
+        path: z.string(),
+        to: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) =>
+      deviceGateway.renameGitBranch({
+        deviceId: input.deviceId,
+        from: input.from,
+        path: input.path,
+        to: input.to,
+        userId: ctx.userId,
+      }),
+    ),
+
+  /**
+   * Delete a branch in a directory on a remote device, via the device's
+   * `deleteGitBranch` RPC.
+   */
+  deleteGitBranch: deviceProcedure
+    .input(
+      z.object({
+        branch: z.string(),
+        deviceId: z.string(),
+        path: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) =>
+      deviceGateway.deleteGitBranch({
+        branch: input.branch,
+        deviceId: input.deviceId,
+        path: input.path,
+        userId: ctx.userId,
+      }),
+    ),
+
+  /**
    * Pull (`--ff-only`) the current branch of a directory on a remote device, via
    * the device's `pullGitBranch` RPC.
    */
@@ -269,6 +313,29 @@ export const deviceRouter = router({
       });
       return result ?? null;
     }),
+
+  /**
+   * Read-only local file preview for a file on a remote device. The web client
+   * receives render data, not a `localfile://` URL; saving remains unsupported.
+   */
+  getLocalFilePreview: deviceProcedure
+    .input(
+      z.object({
+        accept: z.enum(['image']).optional(),
+        deviceId: z.string(),
+        path: z.string(),
+        workingDirectory: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) =>
+      deviceGateway.getLocalFilePreview({
+        accept: input.accept,
+        deviceId: input.deviceId,
+        path: input.path,
+        userId: ctx.userId,
+        workingDirectory: input.workingDirectory,
+      }),
+    ),
 
   /**
    * Project skills (`.agents/skills` / `.claude/skills`) for a directory on a

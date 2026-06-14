@@ -56,6 +56,7 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@lobechat/chat-adapter-imessage": "workspace:*",
     "@lobechat/desktop-bridge": "workspace:*",
+    "@lobechat/device-control": "workspace:*",
     "@lobechat/device-gateway-client": "workspace:*",
     "@lobechat/device-identity": "workspace:*",
     "@lobechat/electron-client-ipc": "workspace:*",
@@ -111,7 +112,7 @@
     "undici": "^7.16.0",
     "uuid": "^14.0.0",
     "vite": "8.0.14",
-    "vitest": "3.2.4",
+    "vitest": "3.2.6",
     "zod": "^3.25.76"
   },
   "optionalDependencies": {
@@ -128,7 +129,7 @@
       "node-gyp": "^12.4.0",
       "react": "19.2.4",
       "react-dom": "19.2.4",
-      "vitest": "3.2.4"
+      "vitest": "3.2.6"
     }
   }
 }

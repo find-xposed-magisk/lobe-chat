@@ -25,7 +25,12 @@ import {
   invokeAgentSpanName,
   tracer as agentRuntimeTracer,
 } from '@lobechat/observability-otel/modules/agent-runtime';
-import { type ChatToolPayload, type ExecSubAgentParams, type UIChatMessage } from '@lobechat/types';
+import {
+  type ChatToolPayload,
+  type ExecSubAgentParams,
+  type ExecVirtualSubAgentParams,
+  type UIChatMessage,
+} from '@lobechat/types';
 import debug from 'debug';
 import urlJoin from 'url-join';
 
@@ -126,13 +131,17 @@ const toAgentSignalSnapshotEvents = (
  */
 export interface AgentRuntimeDelegate {
   /**
-   * Fork a sub-agent through the full high-level pipeline
+   * Run a legacy agent invocation through the full high-level pipeline
    * (AiAgentService.execSubAgent → execAgent: agent-config resolution, tool
-   * engine, context engineering, createOperation). Returns a deferred result;
-   * the parent op parks (`waiting_for_async_tool`) until the completion bridge
-   * backfills the placeholder and resumes it.
+   * engine, context engineering, createOperation).
    */
   execSubAgent?: (params: ExecSubAgentParams) => Promise<unknown>;
+  /**
+   * Fork a `lobe-agent.callSubAgent` virtual child run. The child is marked as a
+   * sub-agent and owns the completion bridge that backfills the parent tool
+   * placeholder before resuming the parked parent operation.
+   */
+  execVirtualSubAgent?: (params: ExecVirtualSubAgentParams) => Promise<unknown>;
 }
 
 export interface AgentRuntimeServiceOptions {
@@ -345,6 +354,7 @@ export class AgentRuntimeService {
       deviceAccessPolicy,
       discordContext,
       evalContext,
+      executionPlan,
       maxSteps,
       userMemory,
       deviceSystemInfo,
@@ -425,6 +435,7 @@ export class AgentRuntimeService {
           deviceSystemInfo,
           discordContext,
           evalContext,
+          executionPlan,
           // need be removed
           modelRuntimeConfig,
           queueRetries,
@@ -813,6 +824,11 @@ export class AgentRuntimeService {
         // results written out-of-band), and re-enter the LLM with them.
         if (resumeAsyncTool && currentState.status === 'waiting_for_async_tool') {
           const refreshed = await this.refreshMessagesFromDB(currentState);
+          const pendingTools = (currentState.pendingToolsCalling ?? []) as ChatToolPayload[];
+          const resumeParentMessageId = this.resolveAsyncToolResumeParentMessageId(
+            refreshed,
+            pendingTools,
+          );
           currentState = structuredClone(currentState);
           currentState.messages = refreshed;
           currentState.pendingToolsCalling = [];
@@ -820,14 +836,15 @@ export class AgentRuntimeService {
           currentState.interruption = undefined;
           currentState.lastModified = new Date().toISOString();
           currentContext = {
-            payload: { parentMessageId: refreshed.at(-1)?.id },
+            payload: { parentMessageId: resumeParentMessageId },
             phase: 'user_input',
           } as AgentRuntimeContext;
           log(
-            '[%s][%d] Resuming from async tool with %d messages',
+            '[%s][%d] Resuming from async tool with %d messages (parent=%s)',
             operationId,
             stepIndex,
             refreshed.length,
+            resumeParentMessageId,
           );
         }
 
@@ -1828,6 +1845,62 @@ export class AgentRuntimeService {
     return flatList as AgentState['messages'];
   }
 
+  private resolveAsyncToolResumeParentMessageId(
+    messages: AgentState['messages'],
+    pendingTools: ChatToolPayload[],
+  ): string | undefined {
+    const fallbackParentMessageId = messages.at(-1)?.id;
+    if (pendingTools.length === 0) return fallbackParentMessageId;
+
+    const toolResultMessageIds = new Map<string, string>();
+
+    const collectToolResultIds = (message: unknown) => {
+      if (!message || typeof message !== 'object') return;
+
+      const candidate = message as {
+        children?: unknown;
+        id?: unknown;
+        tool_call_id?: unknown;
+        tools?: unknown;
+      };
+
+      if (typeof candidate.tool_call_id === 'string' && typeof candidate.id === 'string') {
+        toolResultMessageIds.set(candidate.tool_call_id, candidate.id);
+      }
+
+      if (Array.isArray(candidate.tools)) {
+        for (const tool of candidate.tools) {
+          if (!tool || typeof tool !== 'object') continue;
+
+          const toolPayload = tool as { id?: unknown; result_msg_id?: unknown };
+          if (typeof toolPayload.id === 'string' && typeof toolPayload.result_msg_id === 'string') {
+            toolResultMessageIds.set(toolPayload.id, toolPayload.result_msg_id);
+          }
+        }
+      }
+
+      if (Array.isArray(candidate.children)) {
+        for (const child of candidate.children) {
+          collectToolResultIds(child);
+        }
+      }
+    };
+
+    for (const message of messages) {
+      collectToolResultIds(message);
+    }
+
+    for (let index = pendingTools.length - 1; index >= 0; index -= 1) {
+      const pendingTool = pendingTools[index];
+      if (pendingTool.result_msg_id) return pendingTool.result_msg_id;
+
+      const resultMessageId = toolResultMessageIds.get(pendingTool.id);
+      if (resultMessageId) return resultMessageId;
+    }
+
+    return fallbackParentMessageId;
+  }
+
   /**
    * Create Agent Runtime instance
    */
@@ -1877,6 +1950,7 @@ export class AgentRuntimeService {
       userTimezone: metadata?.userTimezone,
       evalContext: metadata?.evalContext,
       execSubAgent: this.delegate.execSubAgent,
+      execVirtualSubAgent: this.delegate.execVirtualSubAgent,
       hookDispatcher,
       loadAgentState: this.coordinator.loadAgentState.bind(this.coordinator),
       messageModel: this.messageModel,

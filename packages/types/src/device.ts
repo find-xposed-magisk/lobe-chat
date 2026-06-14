@@ -270,6 +270,18 @@ export interface DeviceGitFileRevertResult {
   success: boolean;
 }
 
+/** Result of the `renameGitBranch` device RPC. Mirrors the desktop `GitRenameBranchResult`. */
+export interface DeviceGitRenameBranchResult {
+  error?: string;
+  success: boolean;
+}
+
+/** Result of the `deleteGitBranch` device RPC. Mirrors the desktop `GitDeleteBranchResult`. */
+export interface DeviceGitDeleteBranchResult {
+  error?: string;
+  success: boolean;
+}
+
 /**
  * Repo-relative paths of dirty working-tree files for a directory on a remote
  * device, returned by the `getGitWorkingTreeFiles` device RPC. Powers the Files
@@ -302,6 +314,39 @@ export interface DeviceProjectFileIndexResult {
   root: string;
   source: 'git' | 'glob';
   totalCount: number;
+}
+
+export interface DeviceLocalFilePreviewText {
+  content: string;
+  contentType: string;
+  type: 'text';
+}
+
+export interface DeviceLocalFilePreviewImage {
+  base64: string;
+  contentType: string;
+  type: 'image';
+}
+
+export interface DeviceLocalFilePreviewUnsupported {
+  contentType: string;
+  type: 'binary' | 'pdf' | 'video';
+}
+
+export type DeviceLocalFilePreview =
+  | DeviceLocalFilePreviewImage
+  | DeviceLocalFilePreviewText
+  | DeviceLocalFilePreviewUnsupported;
+
+/**
+ * File preview payload for a file on a remote device. Mirrors the desktop local
+ * file preview result but carries binary image content as base64 so it can cross
+ * the Gateway/RPC boundary.
+ */
+export interface DeviceLocalFilePreviewResult {
+  error?: string;
+  preview?: DeviceLocalFilePreview;
+  success: boolean;
 }
 
 /**

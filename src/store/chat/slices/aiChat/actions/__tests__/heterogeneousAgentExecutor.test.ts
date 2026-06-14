@@ -159,14 +159,19 @@ function createMockStore(overrides: Record<string, any> = {}) {
   // for each subagent run, mirroring `startOperation`'s contract just
   // enough that the executor can build dispatchers + completion calls.
   let subOpCounter = 0;
-  return {
+  const store = {
     associateMessageWithOperation: vi.fn(),
     completeOperation: vi.fn(),
     drainQueuedMessages: vi.fn(() => []),
     internal_dispatchMessage: vi.fn(),
     internal_toggleToolCallingStreaming: vi.fn(),
     markUnreadCompleted: vi.fn(),
-    operations: {} as Record<string, any>,
+    operations: {
+      'op-1': {
+        context: { agentId: 'agent-1', scope: 'main', topicId: 'topic-1' },
+        metadata: { startTime: 0 },
+      },
+    } as Record<string, any>,
     refreshMessages: vi.fn(async () => {}),
     refreshThreads: vi.fn(async () => {}),
     replaceMessages: vi.fn(),
@@ -181,6 +186,19 @@ function createMockStore(overrides: Record<string, any> = {}) {
     updateTopicMetadata: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as any;
+
+  if (!store.updateOperationMetadata) {
+    store.updateOperationMetadata = vi.fn((operationId: string, metadata: Record<string, any>) => {
+      const operation = store.operations[operationId];
+      if (!operation) return;
+      operation.metadata = {
+        ...operation.metadata,
+        ...metadata,
+      };
+    });
+  }
+
+  return store;
 }
 
 const defaultContext = {
@@ -338,6 +356,11 @@ const codexThreadStarted = (threadId = 'codex-thread-1') => ({
   type: 'thread.started',
 });
 
+const codexSessionConfigured = (model = 'gpt-5.5') => ({
+  model,
+  type: 'session_configured',
+});
+
 const codexTurnStarted = () => ({
   type: 'turn.started',
 });
@@ -412,8 +435,14 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       agentSessionId: ipc.getAdapterSessionId(sessionId),
     }));
     mockGetMessages.mockResolvedValue([]);
+    // Honor a caller-provided `id` like the real messageService does — the
+    // main + subagent coordinators PRE-ALLOCATE message ids so their intents can
+    // carry concrete parentId chains. A mock that minted its own id would break
+    // the chain (the assistant's parentId would never match the tool row's id).
     mockCreateMessage.mockImplementation(async (params: any) => ({
-      id: `created-${params.role}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id:
+        params.id ??
+        `created-${params.role}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     }));
     mockUpdateMessage.mockResolvedValue(undefined);
     mockUpdateMessageError.mockResolvedValue({ success: false });
@@ -475,16 +504,6 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
 
   describe('tool 3-phase persistence', () => {
     it('should pre-register tools, create tool messages, then backfill result_msg_id', async () => {
-      // Track createMessage call order and IDs
-      let toolMsgCounter = 0;
-      mockCreateMessage.mockImplementation(async (params: any) => {
-        if (params.role === 'tool') {
-          toolMsgCounter++;
-          return { id: `tool-msg-${toolMsgCounter}` };
-        }
-        return { id: `msg-${params.role}-${Date.now()}` };
-      });
-
       await runWithEvents([
         ccInit(),
         ccToolUse('msg_01', 'toolu_1', 'Read', { file_path: '/a.ts' }),
@@ -513,9 +532,11 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         plugin: expect.objectContaining({ apiName: 'Read' }),
       });
 
-      // Phase 3: the last tools[] write should have result_msg_id backfilled
+      // Phase 3: the last tools[] write should backfill result_msg_id with the
+      // tool message's (pre-allocated) id.
+      const createdToolId = toolCreateCalls[0][0].id;
       const lastToolUpdate = toolUpdateCalls.at(-1)!;
-      expect(lastToolUpdate[1].tools[0].result_msg_id).toBe('tool-msg-1');
+      expect(lastToolUpdate[1].tools[0].result_msg_id).toBe(createdToolId);
     });
 
     it('should deduplicate tool calls (idempotent)', async () => {
@@ -542,11 +563,6 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
 
   describe('tool result persistence', () => {
     it('should update tool message content on tool_result', async () => {
-      mockCreateMessage.mockImplementation(async (params: any) => {
-        if (params.role === 'tool') return { id: 'tool-msg-read' };
-        return { id: `msg-${Date.now()}` };
-      });
-
       await runWithEvents([
         ccInit(),
         ccToolUse('msg_01', 'toolu_read', 'Read', { file_path: '/x.ts' }),
@@ -554,19 +570,17 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         ccResult(),
       ]);
 
+      const toolId = mockCreateMessage.mock.calls.find(
+        ([p]: any) => p.role === 'tool' && p.tool_call_id === 'toolu_read',
+      )![0].id;
       expect(mockUpdateToolMessage).toHaveBeenCalledWith(
-        'tool-msg-read',
+        toolId,
         { content: 'the file content here', pluginError: undefined },
         { agentId: 'agent-1', topicId: 'topic-1' },
       );
     });
 
     it('should mark error tool results with pluginError', async () => {
-      mockCreateMessage.mockImplementation(async (params: any) => {
-        if (params.role === 'tool') return { id: 'tool-msg-err' };
-        return { id: `msg-${Date.now()}` };
-      });
-
       await runWithEvents([
         ccInit(),
         ccToolUse('msg_01', 'toolu_fail', 'Read', { file_path: '/nope' }),
@@ -574,8 +588,11 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         ccResult(),
       ]);
 
+      const toolId = mockCreateMessage.mock.calls.find(
+        ([p]: any) => p.role === 'tool' && p.tool_call_id === 'toolu_fail',
+      )![0].id;
       expect(mockUpdateToolMessage).toHaveBeenCalledWith(
-        'tool-msg-err',
+        toolId,
         { content: 'ENOENT: no such file', pluginError: { message: 'ENOENT: no such file' } },
         { agentId: 'agent-1', topicId: 'topic-1' },
       );
@@ -588,14 +605,6 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
 
   describe('multi-step parentId chain', () => {
     it('should create assistant messages chained: assistant → tool → assistant', async () => {
-      const createdIds: string[] = [];
-      mockCreateMessage.mockImplementation(async (params: any) => {
-        const id =
-          params.role === 'tool' ? `tool-${createdIds.length}` : `ast-step-${createdIds.length}`;
-        createdIds.push(id);
-        return { id };
-      });
-
       await runWithEvents([
         ccInit(),
         // Step 1: tool_use Read (message_start primes turn + model/provider
@@ -628,8 +637,8 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         ([p]: any) => p.role === 'assistant' && p.parentId !== undefined,
       );
       expect(step2Assistant).toBeDefined();
-      // The parentId should be the tool message ID from step 1
-      const tool1Id = createdIds.find((id) => id.startsWith('tool-'));
+      // The parentId should be the (pre-allocated) tool message ID from step 1
+      const tool1Id = tool1Create![0].id;
       expect(step2Assistant![0].parentId).toBe(tool1Id);
       // createMessage should carry the adapter provider so step 2's assistant
       // lands in DB with provider set from the start (no later backfill needed).
@@ -709,19 +718,9 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
     });
 
     it('should persist per-step usage to each step assistant message, not accumulated', async () => {
-      // Deterministic ids for new-step assistant messages so we can assert per-message usage.
-      let astStepCounter = 0;
-      mockCreateMessage.mockImplementation(async (params: any) => {
-        if (params.role === 'assistant') {
-          astStepCounter++;
-          return { id: `ast-step-${astStepCounter}` };
-        }
-        return { id: `tool-${Date.now()}` };
-      });
-
       // Realistic CC partial-messages flow: message_start primes the turn,
       // assistant events echo a stale usage, message_delta carries the final.
-      await runWithEvents([
+      const { store } = await runWithEvents([
         ccInit(),
         ccMessageStart('msg_01'),
         ccAssistant('msg_01', [{ text: 'a', type: 'text' }]),
@@ -742,8 +741,11 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       const usageWrites = mockUpdateMessage.mock.calls.filter(
         ([, val]: any) => val.metadata?.usage?.totalTokens,
       );
-      // One usage write per step (msg_01 → ast-initial, msg_02 → ast-step-1)
+      // One usage write per step (msg_01 → ast-initial, msg_02 → new step assistant)
       expect(usageWrites.length).toBe(2);
+      // The step-2 assistant is the only newly-created assistant (pre-allocated id).
+      const step2Id = mockCreateMessage.mock.calls.find(([p]: any) => p.role === 'assistant')![0]
+        .id;
 
       const step1 = usageWrites.find(([id]: any) => id === 'ast-initial');
       expect(step1).toBeDefined();
@@ -756,7 +758,7 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       expect(u1.inputCachedTokens).toBe(200);
       expect(u1.inputWriteCacheTokens).toBe(50);
 
-      const step2 = usageWrites.find(([id]: any) => id === 'ast-step-1');
+      const step2 = usageWrites.find(([id]: any) => id === step2Id);
       expect(step2).toBeDefined();
       const u2 = step2![1].metadata.usage;
       // msg_02: 300 input (miss, no cache); 80 output
@@ -767,6 +769,13 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       // No cache tokens for this turn — these fields should be absent
       expect(u2.inputCachedTokens).toBeUndefined();
       expect(u2.inputWriteCacheTokens).toBeUndefined();
+
+      expect(store.operations['op-1'].metadata.usageMetrics).toEqual({
+        totalCost: 0,
+        totalInputTokens: 650,
+        totalOutputTokens: 130,
+        totalTokens: 780,
+      });
     });
 
     it('should ignore stale usage on assistant events (from message_start echo)', async () => {
@@ -810,13 +819,6 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       // [stream_end, stream_start(newStep), stream_chunk(text)] from a single raw line,
       // the stream_chunk should go to the NEW step, not the old one.
 
-      const createdIds: string[] = [];
-      mockCreateMessage.mockImplementation(async (params: any) => {
-        const id = `${params.role}-${createdIds.length}`;
-        createdIds.push(id);
-        return { id };
-      });
-
       await runWithEvents([
         ccInit(),
         // Step 1: text
@@ -834,13 +836,13 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       expect(oldStepWrite).toBeDefined();
 
       // The new step's final write should have "Step 2 content"
-      const newStepId = createdIds.find((id) => id.startsWith('assistant-'));
-      if (newStepId) {
-        const newStepWrite = mockUpdateMessage.mock.calls.find(
-          ([id, val]: any) => id === newStepId && val.content === 'Step 2 content',
-        );
-        expect(newStepWrite).toBeDefined();
-      }
+      const newStepId = mockCreateMessage.mock.calls.find(([p]: any) => p.role === 'assistant')?.[0]
+        .id;
+      expect(newStepId).toBeDefined();
+      const newStepWrite = mockUpdateMessage.mock.calls.find(
+        ([id, val]: any) => id === newStepId && val.content === 'Step 2 content',
+      );
+      expect(newStepWrite).toBeDefined();
     });
   });
 
@@ -1276,20 +1278,144 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         workingDirectory: '/Users/me/repo',
       });
     });
+
+    it('does NOT retry resume once partial output streamed, even before the persist queue drains', async () => {
+      // Regression: content/tool/subagent state now lives in `mainState` and is
+      // only updated inside the QUEUED reduceAndApplyMain. retryWithoutResume's
+      // guard runs synchronously in onError BEFORE the queue drains, so it must
+      // rely on a synchronous "saw streamed event" flag — not on mainState —
+      // or it would start a second run and duplicate the partial output.
+      const store = createMockStore();
+      const get = vi.fn(() => store);
+      let startCount = 0;
+      mockStartSession.mockImplementation(async (params: any) => {
+        startCount += 1;
+        const sid = startCount === 1 ? 'ipc-sess-1' : 'ipc-sess-2';
+        ipc.setAgentType(sid, params.agentType ?? 'claude-code');
+        return { sessionId: sid };
+      });
+      // sendPrompt hangs so the run stays in-flight; onError drives the decision.
+      mockSendPrompt.mockImplementation(() => new Promise<void>(() => {}));
+      // Block the persist queue: updateMessage never resolves, so the queued
+      // reduce can't commit into mainState — the exact window the old guard missed.
+      let releaseUpdate: () => void = () => {};
+      mockUpdateMessage.mockImplementation(
+        () => new Promise<void>((resolve) => (releaseUpdate = resolve)),
+      );
+
+      void executeHeterogeneousAgent(get, {
+        ...defaultParams,
+        resumeSessionId: 'sess_stale',
+        workingDirectory: '/repo',
+      });
+      await flush();
+
+      // init → stream_start(model) → reduce blocks on the hung updateMessage.
+      ipc.emitRawLine('ipc-sess-1', ccInit());
+      // a text chunk = partial output: sets the sync flag, but its reduce sits
+      // behind the blocked init reduce and never commits accContent.
+      ipc.emitRawLine('ipc-sess-1', ccText('msg_01', 'partial answer so far'));
+      await flush();
+
+      // Recoverable resume error arrives while the queue is still blocked.
+      ipc.emitError('ipc-sess-1', {
+        agentType: 'claude-code',
+        code: HeterogeneousAgentSessionErrorCode.ResumeThreadNotFound,
+        message: 'resume gone',
+      });
+      await flush();
+
+      // Output already streamed → no second run, no resume-metadata clear.
+      expect(startCount).toBe(1);
+      expect(store.updateTopicMetadata).not.toHaveBeenCalled();
+
+      releaseUpdate();
+    });
+
+    it('does NOT advance currentAssistantId when a step-boundary assistant create fails', async () => {
+      // Regression: a transient createMessage failure on the new-step assistant
+      // must skip the reducer commit (like the subagent createMessage path),
+      // NOT advance currentAssistantId to a row that was never created — else
+      // every later content/tool write targets a missing assistant and is lost.
+      mockCreateMessage.mockImplementation(async (p: any) => {
+        if (p.role === 'assistant') throw new Error('transient create failure');
+        return { id: p.id ?? `tool-${Date.now()}` };
+      });
+
+      await runWithEvents([
+        ccInit(),
+        // Turn 1 on the seed assistant (ast-initial): text + tool + result.
+        ccText('msg_01', 'turn one'),
+        ccToolUse('msg_01', 't1', 'Bash', { command: 'ls' }),
+        ccToolResult('t1', 'ok'),
+        // Turn 2 (new message.id → step boundary): the new-assistant create FAILS,
+        // then a tool_use arrives for this turn.
+        ccToolUse('msg_02', 't2', 'Read', { file_path: '/a' }),
+        ccToolResult('t2', 'data'),
+        ccResult(),
+      ]);
+
+      // Commit was skipped on the failed create → currentAssistantId stayed at
+      // the seed, so turn-2's tool parents off ast-initial, never off the
+      // assistant row that was never created.
+      const t2Create = mockCreateMessage.mock.calls.find(
+        ([p]: any) => p.role === 'tool' && p.tool_call_id === 't2',
+      );
+      expect(t2Create).toBeDefined();
+      expect(t2Create![0].parentId).toBe('ast-initial');
+    });
   });
 
   describe('Codex multi-turn persistence', () => {
+    it('should persist Codex host model metadata onto the current assistant message', async () => {
+      await runWithEvents(
+        [
+          codexSessionConfigured('gpt-5.5'),
+          codexThreadStarted(),
+          codexTurnStarted(),
+          codexAgentMessage('item_0', 'Done.'),
+          codexTurnCompleted({ cached_input_tokens: 4, input_tokens: 6, output_tokens: 3 }),
+        ],
+        {
+          params: {
+            heterogeneousProvider: { command: 'codex', type: 'codex' as const },
+          },
+        },
+      );
+
+      const modelWrites = mockUpdateMessage.mock.calls.filter(
+        ([id, value]: any) =>
+          id === 'ast-initial' && value.model === 'gpt-5.5' && value.provider === 'codex',
+      );
+      expect(modelWrites.length).toBeGreaterThan(0);
+
+      const usageWrite = modelWrites.find(([, value]: any) => value.metadata?.usage);
+      expect(usageWrite?.[1]).toMatchObject({
+        metadata: {
+          usage: {
+            inputCachedTokens: 4,
+            inputCacheMissTokens: 6,
+            totalInputTokens: 10,
+            totalOutputTokens: 3,
+            totalTokens: 13,
+          },
+        },
+        model: 'gpt-5.5',
+        provider: 'codex',
+      });
+    });
+
     it('should switch to a new assistant before persisting the next turn tool', async () => {
       const idCounter = { assistant: 0, tool: 0 };
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool += 1;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
 
         if (params.role === 'assistant') {
           idCounter.assistant += 1;
-          return { id: `ast-new-${idCounter.assistant}` };
+          return { id: params.id ?? `ast-new-${idCounter.assistant}` };
         }
 
         return { id: `created-${params.role}-${idCounter.assistant + idCounter.tool}` };
@@ -1326,11 +1452,19 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         },
       );
 
+      // The second turn opens exactly one new assistant (pre-allocated id).
+      const newAstId = mockCreateMessage.mock.calls.find(
+        ([params]: any) => params.role === 'assistant',
+      )![0].id;
+      const item1ToolId = mockCreateMessage.mock.calls.find(
+        ([params]: any) => params.role === 'tool' && params.tool_call_id === 'item_1',
+      )![0].id;
+
       const secondTurnAssistantCreate = mockCreateMessage.mock.calls.find(
         ([params]: any) => params.role === 'assistant',
       );
       expect(secondTurnAssistantCreate?.[0]).toMatchObject({
-        parentId: 'tool-1',
+        parentId: item1ToolId,
         role: 'assistant',
       });
 
@@ -1347,7 +1481,7 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         ([params]: any) => params.role === 'tool' && params.tool_call_id === 'item_3',
       );
       expect(secondToolCreate?.[0]).toMatchObject({
-        parentId: 'ast-new-1',
+        parentId: newAstId,
         role: 'tool',
         tool_call_id: 'item_3',
       });
@@ -1358,7 +1492,7 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       expect(firstTurnToolWrites.length).toBeGreaterThanOrEqual(1);
 
       const secondTurnToolWrites = toolsUpdates.filter(
-        (update) => update.assistantId === 'ast-new-1' && update.toolIds.includes('item_3'),
+        (update) => update.assistantId === newAstId && update.toolIds.includes('item_3'),
       );
       expect(secondTurnToolWrites.length).toBeGreaterThanOrEqual(1);
     });
@@ -1419,12 +1553,12 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool += 1;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
 
         if (params.role === 'assistant') {
           idCounter.assistant += 1;
-          return { id: `ast-new-${idCounter.assistant}` };
+          return { id: params.id ?? `ast-new-${idCounter.assistant}` };
         }
 
         return { id: `created-${params.role}-${idCounter.assistant + idCounter.tool}` };
@@ -1505,12 +1639,18 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         ([params]: any) => params.role === 'assistant',
       );
       expect(assistantCreates).toHaveLength(2);
+      const toolIdOf = (callId: string) =>
+        mockCreateMessage.mock.calls.find(
+          ([p]: any) => p.role === 'tool' && p.tool_call_id === callId,
+        )![0].id;
+      const newAst1 = assistantCreates[0]![0].id;
+      const newAst2 = assistantCreates[1]![0].id;
       expect(assistantCreates[0]?.[0]).toMatchObject({
-        parentId: 'tool-3',
+        parentId: toolIdOf('item_3'),
         role: 'assistant',
       });
       expect(assistantCreates[1]?.[0]).toMatchObject({
-        parentId: 'tool-5',
+        parentId: toolIdOf('item_6'),
         role: 'assistant',
       });
 
@@ -1525,14 +1665,14 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
 
       const secondStepToolWrites = toolsUpdates.filter(
         (update) =>
-          update.assistantId === 'ast-new-1' &&
+          update.assistantId === newAst1 &&
           update.toolIds.includes('item_5') &&
           update.toolIds.includes('item_6'),
       );
       expect(secondStepToolWrites.length).toBeGreaterThanOrEqual(1);
 
       const thirdStepToolWrites = toolsUpdates.filter(
-        (update) => update.assistantId === 'ast-new-2' && update.toolIds.length > 0,
+        (update) => update.assistantId === newAst2 && update.toolIds.length > 0,
       );
       expect(thirdStepToolWrites).toHaveLength(0);
 
@@ -1540,10 +1680,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         contentUpdates.findLast((update) => update.assistantId === 'ast-initial')?.content,
       ).toContain('Running the five read-only checks');
       expect(
-        contentUpdates.findLast((update) => update.assistantId === 'ast-new-1')?.content,
+        contentUpdates.findLast((update) => update.assistantId === newAst1)?.content,
       ).toContain('The workspace is dirty in a few files');
       expect(
-        contentUpdates.findLast((update) => update.assistantId === 'ast-new-2')?.content,
+        contentUpdates.findLast((update) => update.assistantId === newAst2)?.content,
       ).toContain('Confirmed the repo root');
     });
   });
@@ -1574,10 +1714,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       // Track ALL updateMessage calls to inspect tools[] writes
@@ -1610,10 +1750,14 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       );
       expect(gitlogToolUpdates.length).toBeGreaterThanOrEqual(1);
 
-      // ── Verify: Turn 2 tool registered on ast-new-1 (step 2 assistant) ──
+      // Turn 2's assistant is the first newly-created assistant (pre-allocated id).
+      const step2AstId = mockCreateMessage.mock.calls.find(([p]: any) => p.role === 'assistant')![0]
+        .id;
+
+      // ── Verify: Turn 2 tool registered on the step-2 assistant ──
       // This is the critical assertion — if this fails, the tool becomes orphaned
       const gitdiffToolUpdates = toolsUpdates.filter(
-        (u) => u.assistantId === 'ast-new-1' && u.tools.some((t: any) => t.id === 'toolu_gitdiff'),
+        (u) => u.assistantId === step2AstId && u.tools.some((t: any) => t.id === 'toolu_gitdiff'),
       );
       expect(gitdiffToolUpdates.length).toBeGreaterThanOrEqual(1);
 
@@ -1626,7 +1770,7 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       const gitdiffToolCreate = mockCreateMessage.mock.calls.find(
         ([p]: any) => p.role === 'tool' && p.tool_call_id === 'toolu_gitdiff',
       );
-      expect(gitdiffToolCreate![0].parentId).toBe('ast-new-1');
+      expect(gitdiffToolCreate![0].parentId).toBe(step2AstId);
     });
 
     it('should register tools on correct assistant when turn has ONLY tool_use (no text)', async () => {
@@ -1636,10 +1780,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       const toolsUpdates: Array<{ assistantId: string; toolIds: string[] }> = [];
@@ -1664,12 +1808,14 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         ccResult(),
       ]);
 
-      // The tool should be registered on ast-new-1 (step 2 assistant), not ast-initial
+      // The tool should be registered on the step-2 assistant, not ast-initial.
+      const step2AstId = mockCreateMessage.mock.calls.find(([p]: any) => p.role === 'assistant')![0]
+        .id;
       const bashToolUpdates = toolsUpdates.filter((u) => u.toolIds.includes('toolu_bash'));
       expect(bashToolUpdates.length).toBeGreaterThanOrEqual(1);
-      // All of them should be on ast-new-1
+      // All of them should be on the step-2 assistant
       for (const u of bashToolUpdates) {
-        expect(u.assistantId).toBe('ast-new-1');
+        expect(u.assistantId).toBe(step2AstId);
       }
     });
   });
@@ -1690,10 +1836,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       const toolsUpdates: Array<{ assistantId: string; toolIds: string[] }> = [];
@@ -1871,10 +2017,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-${idCounter.assistant}` };
       });
 
       // Collect tools[] writes per assistant
@@ -1948,10 +2094,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       const schemaPayload =
@@ -1977,10 +2123,24 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         ccResult(),
       ]);
 
+      const toolIdOf = (callId: string) =>
+        mockCreateMessage.mock.calls.find(
+          ([p]: any) => p.role === 'tool' && p.tool_call_id === callId,
+        )![0].id;
+      const astCreates = mockCreateMessage.mock.calls.filter(([p]: any) => p.role === 'assistant');
+      const step2AstId = astCreates[0]![0].id;
+      const step3AstId = astCreates[1]![0].id;
+
       // All three tool messages should have their content persisted.
-      const skillResult = mockUpdateToolMessage.mock.calls.find(([id]: any) => id === 'tool-1');
-      const searchResult = mockUpdateToolMessage.mock.calls.find(([id]: any) => id === 'tool-2');
-      const getIssueResult = mockUpdateToolMessage.mock.calls.find(([id]: any) => id === 'tool-3');
+      const skillResult = mockUpdateToolMessage.mock.calls.find(
+        ([id]: any) => id === toolIdOf('toolu_skill'),
+      );
+      const searchResult = mockUpdateToolMessage.mock.calls.find(
+        ([id]: any) => id === toolIdOf('toolu_search'),
+      );
+      const getIssueResult = mockUpdateToolMessage.mock.calls.find(
+        ([id]: any) => id === toolIdOf('toolu_get_issue'),
+      );
 
       expect(skillResult).toBeDefined();
       expect(skillResult![1]).toMatchObject({ content: 'Launching skill: linear' });
@@ -2004,13 +2164,13 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
 
       const searchRegister = mockUpdateMessage.mock.calls.find(
         ([id, val]: any) =>
-          id === 'ast-new-1' && val.tools?.some((t: any) => t.id === 'toolu_search'),
+          id === step2AstId && val.tools?.some((t: any) => t.id === 'toolu_search'),
       );
       expect(searchRegister).toBeDefined();
 
       const getIssueRegister = mockUpdateMessage.mock.calls.find(
         ([id, val]: any) =>
-          id === 'ast-new-2' && val.tools?.some((t: any) => t.id === 'toolu_get_issue'),
+          id === step3AstId && val.tools?.some((t: any) => t.id === 'toolu_get_issue'),
       );
       expect(getIssueRegister).toBeDefined();
     });
@@ -2026,10 +2186,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       await runWithEvents([
@@ -2054,17 +2214,18 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       );
       expect(readToolCreate![0].parentId).toBe('ast-initial');
       expect(readToolCreate![0].plugin.apiName).toBe('Read');
+      const readToolId = readToolCreate![0].id;
 
-      // 2. Read tool result written
+      // 2. Read tool result written (to the pre-allocated Read tool message id)
       expect(mockUpdateToolMessage).toHaveBeenCalledWith(
-        'tool-1',
+        readToolId,
         expect.objectContaining({ content: 'export default function App() {}' }),
         expect.any(Object),
       );
 
-      // 3. Step 2 assistant created with parentId = tool-1 (Read tool message)
+      // 3. Step 2 assistant created chained off the Read tool message
       const step2Create = mockCreateMessage.mock.calls.find(
-        ([p]: any) => p.role === 'assistant' && p.parentId === 'tool-1',
+        ([p]: any) => p.role === 'assistant' && p.parentId === readToolId,
       );
       expect(step2Create).toBeDefined();
 
@@ -2073,18 +2234,19 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         ([p]: any) => p.role === 'tool' && p.tool_call_id === 'toolu_write',
       );
       expect(writeToolCreate).toBeDefined();
-      expect(writeToolCreate![0].parentId).toBe('ast-new-1');
+      expect(writeToolCreate![0].parentId).toBe(step2Create![0].id);
+      const writeToolId = writeToolCreate![0].id;
 
       // 5. Write tool result written
       expect(mockUpdateToolMessage).toHaveBeenCalledWith(
-        'tool-2',
+        writeToolId,
         expect.objectContaining({ content: 'File written' }),
         expect.any(Object),
       );
 
-      // 6. Step 3 assistant created with parentId = tool-2 (Write tool message)
+      // 6. Step 3 assistant created chained off the Write tool message
       const step3Create = mockCreateMessage.mock.calls.find(
-        ([p]: any) => p.role === 'assistant' && p.parentId === 'tool-2',
+        ([p]: any) => p.role === 'assistant' && p.parentId === writeToolId,
       );
       expect(step3Create).toBeDefined();
 
@@ -2509,7 +2671,7 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         if (params.role === 'user') {
           idCounter.user++;
@@ -3046,10 +3208,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       await runWithEvents([
@@ -3082,10 +3244,14 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       // Two new assistants (step 1 + step 2); step 0 uses ast-initial
       expect(assistantCreates.length).toBe(2);
 
-      // Step 1 parent = Monitor tool from step 0 (tool-1)
-      expect(assistantCreates[0][0].parentId).toBe('tool-1');
-      // Step 2 parent = LAST tool from step 1 = Monitor_1 (tool-3)
-      expect(assistantCreates[1][0].parentId).toBe('tool-3');
+      const toolId = (callId: string) =>
+        mockCreateMessage.mock.calls.find(
+          ([p]: any) => p.role === 'tool' && p.tool_call_id === callId,
+        )![0].id;
+      // Step 1 parent = Monitor tool from step 0
+      expect(assistantCreates[0][0].parentId).toBe(toolId('toolu_mon_0'));
+      // Step 2 parent = LAST tool from step 1 = Monitor_1
+      expect(assistantCreates[1][0].parentId).toBe(toolId('toolu_mon_1'));
     });
 
     /**
@@ -3098,10 +3264,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       await runWithEvents([
@@ -3122,13 +3288,16 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       );
       expect(assistantCreates.length).toBe(2);
 
-      // Step 1 parent = Monitor tool from step 0 (tool-1)
-      expect(assistantCreates[0][0].parentId).toBe('tool-1');
+      const monitorToolId = mockCreateMessage.mock.calls.find(
+        ([p]: any) => p.role === 'tool' && p.tool_call_id === 'toolu_mon_0',
+      )![0].id;
+      // Step 1 parent = Monitor tool from step 0
+      expect(assistantCreates[0][0].parentId).toBe(monitorToolId);
 
       // Step 2 parent: step 1 was toolless, but the chain must skip back to
-      // step 0's Monitor (tool-1) so MessageCollector's assistant → tool →
-      // assistant walk keeps every assistant in the same group.
-      expect(assistantCreates[1][0].parentId).toBe('tool-1');
+      // step 0's Monitor so MessageCollector's assistant → tool → assistant
+      // walk keeps every assistant in the same group.
+      expect(assistantCreates[1][0].parentId).toBe(monitorToolId);
     });
 
     /**
@@ -3143,10 +3312,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       await runWithEvents([
@@ -3170,13 +3339,16 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       // 4 new assistants (steps 1–4); step 0 reuses ast-initial
       expect(assistantCreates.length).toBe(4);
 
+      const monitorToolId = mockCreateMessage.mock.calls.find(
+        ([p]: any) => p.role === 'tool' && p.tool_call_id === 'toolu_mon_0',
+      )![0].id;
       // All toolless steps chain back to the Monitor tool from step 0
-      expect(assistantCreates[0][0].parentId).toBe('tool-1');
-      expect(assistantCreates[1][0].parentId).toBe('tool-1');
-      expect(assistantCreates[2][0].parentId).toBe('tool-1');
-      // Step 4 also chains to tool-1 — its own step had no tools yet at
-      // step_start, the Bash tool only persists after stream_start fires.
-      expect(assistantCreates[3][0].parentId).toBe('tool-1');
+      expect(assistantCreates[0][0].parentId).toBe(monitorToolId);
+      expect(assistantCreates[1][0].parentId).toBe(monitorToolId);
+      expect(assistantCreates[2][0].parentId).toBe(monitorToolId);
+      // Step 4 also chains to the Monitor tool — its own step had no tools yet
+      // at step_start, the Bash tool only persists after stream_start fires.
+      expect(assistantCreates[3][0].parentId).toBe(monitorToolId);
     });
 
     /**
@@ -3193,10 +3365,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       await runWithEvents([
@@ -3217,10 +3389,13 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
         ([p]: any) => p.role === 'assistant',
       );
       expect(assistantCreates.length).toBe(1);
-      // Step 1 parent should be the Monitor tool from step 0
-      // result_msg_id is set by persistToolBatch Phase 2 (queued on persistQueue
-      // BEFORE the step_boundary persistQueue.then), so this should work.
-      expect(assistantCreates[0][0].parentId).toBe('tool-1');
+      // Step 1 parent should be the Monitor tool from step 0. The tool message
+      // id is pre-allocated by the reducer (carried in the persistToolBatch
+      // intent), so the chain resolves even though the tool_result interleaves.
+      const monitorToolId = mockCreateMessage.mock.calls.find(
+        ([p]: any) => p.role === 'tool' && p.tool_call_id === 'toolu_mon_0',
+      )![0].id;
+      expect(assistantCreates[0][0].parentId).toBe(monitorToolId);
     });
   });
 
@@ -3248,10 +3423,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       await runWithEvents([
@@ -3319,10 +3494,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       mockCreateMessage.mockImplementation(async (params: any) => {
         if (params.role === 'tool') {
           idCounter.tool++;
-          return { id: `tool-${idCounter.tool}` };
+          return { id: params.id ?? `tool-${idCounter.tool}` };
         }
         idCounter.assistant++;
-        return { id: `ast-new-${idCounter.assistant}` };
+        return { id: params.id ?? `ast-new-${idCounter.assistant}` };
       });
 
       await runWithEvents([

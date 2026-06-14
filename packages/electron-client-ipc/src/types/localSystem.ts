@@ -111,7 +111,10 @@ export interface AuditSafePathsResult {
   allSafe: boolean;
 }
 
+export type LocalFilePreviewAccept = 'image';
+
 export interface LocalFilePreviewUrlParams {
+  accept?: LocalFilePreviewAccept;
   path: string;
   workingDirectory: string;
 }
@@ -120,6 +123,34 @@ export interface LocalFilePreviewUrlResult {
   error?: string;
   success: boolean;
   url?: string;
+}
+
+export interface LocalFilePreviewText {
+  content: string;
+  contentType: string;
+  type: 'text';
+}
+
+export interface LocalFilePreviewImage {
+  base64: string;
+  contentType: string;
+  type: 'image';
+}
+
+export interface LocalFilePreviewUnsupported {
+  contentType: string;
+  type: 'binary' | 'pdf' | 'video';
+}
+
+export type LocalFilePreview =
+  | LocalFilePreviewImage
+  | LocalFilePreviewText
+  | LocalFilePreviewUnsupported;
+
+export interface LocalFilePreviewResult {
+  error?: string;
+  preview?: LocalFilePreview;
+  success: boolean;
 }
 
 export interface LocalReadFileResult {

@@ -48,6 +48,27 @@ interface PreviewTokenRecord {
   realPath: string;
 }
 
+export interface PreviewFileReadResult {
+  buffer: Buffer;
+  contentType: string;
+  realPath: string;
+}
+
+type PreviewFileAccept = 'image';
+
+const normalizeContentType = (contentType: string): string =>
+  contentType.split(';')[0].trim().toLowerCase();
+
+const isAcceptedPreviewContentType = (
+  contentType: string,
+  accept?: PreviewFileAccept,
+): boolean => {
+  if (!accept) return true;
+
+  const normalizedContentType = normalizeContentType(contentType);
+  return accept === 'image' && normalizedContentType.startsWith('image/');
+};
+
 /**
  * Custom `localfile://` protocol for project file previews.
  *
@@ -207,41 +228,63 @@ export class LocalFileProtocolManager {
   }
 
   async createPreviewUrl({
+    accept,
     filePath,
     workspaceRoot,
   }: {
+    accept?: PreviewFileAccept;
     filePath: string;
     workspaceRoot: string;
   }): Promise<string | null> {
     const normalizedFilePath = normalizeAbsolutePath(filePath);
-    const normalizedWorkspaceRoot = normalizeAbsolutePath(workspaceRoot);
-    if (!normalizedFilePath || !normalizedWorkspaceRoot) return null;
+    if (!normalizedFilePath) return null;
 
-    const [realFilePath, realWorkspaceRoot] = await Promise.all([
-      realpath(normalizedFilePath),
-      realpath(normalizedWorkspaceRoot),
-    ]);
-    const normalizedRealFilePath = normalizeAbsolutePath(realFilePath);
-    const normalizedRealWorkspaceRoot = normalizeAbsolutePath(realWorkspaceRoot);
-
-    if (!normalizedRealFilePath || !normalizedRealWorkspaceRoot) return null;
-    if (
-      !this.approvedWorkspaceRoots.has(normalizedRealWorkspaceRoot) &&
-      !this.indexedProjectRoots.has(normalizedRealWorkspaceRoot)
-    ) {
-      return null;
-    }
-    if (!isPathWithinRoot(normalizedRealFilePath, normalizedRealWorkspaceRoot)) return null;
+    const realFilePath = accept
+      ? (
+          await this.readPreviewFile({
+            accept,
+            filePath,
+            workspaceRoot,
+          })
+        )?.realPath
+      : await this.resolveApprovedPreviewPath({ filePath, workspaceRoot });
+    if (!realFilePath) return null;
 
     this.cleanupExpiredTokens();
 
     const token = randomUUID();
     this.previewTokens.set(token, {
       expiresAt: Date.now() + PREVIEW_TOKEN_TTL_MS,
-      realPath: normalizedRealFilePath,
+      realPath: realFilePath,
     });
 
     return buildLocalFileUrl(normalizedFilePath, token);
+  }
+
+  async readPreviewFile({
+    accept,
+    filePath,
+    workspaceRoot,
+  }: {
+    accept?: PreviewFileAccept;
+    filePath: string;
+    workspaceRoot: string;
+  }): Promise<PreviewFileReadResult | null> {
+    const realFilePath = await this.resolveApprovedPreviewPath({ filePath, workspaceRoot });
+    if (!realFilePath) return null;
+
+    const fileStat = await stat(realFilePath);
+    if (!fileStat.isFile()) return null;
+
+    const buffer = await readFile(realFilePath);
+    const contentType = resolveLocalFileMimeType(realFilePath, buffer);
+    if (!isAcceptedPreviewContentType(contentType, accept)) return null;
+
+    return {
+      buffer,
+      contentType,
+      realPath: realFilePath,
+    };
   }
 
   /**
@@ -281,6 +324,36 @@ export class LocalFileProtocolManager {
     if (!path.isAbsolute(normalized)) return null;
 
     return normalized;
+  }
+
+  private async resolveApprovedPreviewPath({
+    filePath,
+    workspaceRoot,
+  }: {
+    filePath: string;
+    workspaceRoot: string;
+  }): Promise<string | null> {
+    const normalizedFilePath = normalizeAbsolutePath(filePath);
+    const normalizedWorkspaceRoot = normalizeAbsolutePath(workspaceRoot);
+    if (!normalizedFilePath || !normalizedWorkspaceRoot) return null;
+
+    const [realFilePath, realWorkspaceRoot] = await Promise.all([
+      realpath(normalizedFilePath),
+      realpath(normalizedWorkspaceRoot),
+    ]);
+    const normalizedRealFilePath = normalizeAbsolutePath(realFilePath);
+    const normalizedRealWorkspaceRoot = normalizeAbsolutePath(realWorkspaceRoot);
+
+    if (!normalizedRealFilePath || !normalizedRealWorkspaceRoot) return null;
+    if (
+      !this.approvedWorkspaceRoots.has(normalizedRealWorkspaceRoot) &&
+      !this.indexedProjectRoots.has(normalizedRealWorkspaceRoot)
+    ) {
+      return null;
+    }
+    if (!isPathWithinRoot(normalizedRealFilePath, normalizedRealWorkspaceRoot)) return null;
+
+    return normalizedRealFilePath;
   }
 
   private cleanupExpiredTokens() {

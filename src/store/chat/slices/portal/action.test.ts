@@ -3,7 +3,18 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { useChatStore } from '@/store/chat';
 
+import { createLocalFileScopeKey, createLocalFileTabId } from './helpers';
 import { PortalViewType } from './initialState';
+
+const localFileTabId = ({
+  deviceId,
+  filePath,
+  workingDirectory,
+}: {
+  deviceId?: string;
+  filePath: string;
+  workingDirectory: string;
+}) => createLocalFileTabId({ deviceId, filePath, workingDirectory });
 
 vi.mock('zustand/traditional');
 
@@ -335,8 +346,21 @@ describe('chatDockSlice', () => {
       });
 
       expect(result.current.openLocalFiles).toEqual([
-        { filePath: '/path/to/file.ts', workingDirectory: '/path/to' },
+        {
+          filePath: '/path/to/file.ts',
+          id: localFileTabId({ filePath: '/path/to/file.ts', workingDirectory: '/path/to' }),
+          workingDirectory: '/path/to',
+        },
       ]);
+      expect(result.current.activeLocalFileId).toBe(
+        localFileTabId({ filePath: '/path/to/file.ts', workingDirectory: '/path/to' }),
+      );
+      expect(result.current.activeLocalFileIdsByScope).toEqual({
+        [createLocalFileScopeKey('/path/to')]: localFileTabId({
+          filePath: '/path/to/file.ts',
+          workingDirectory: '/path/to',
+        }),
+      });
       expect(result.current.activeLocalFilePath).toBe('/path/to/file.ts');
       expect(result.current.portalStack).toHaveLength(1);
       expect(result.current.portalStack[0]).toEqual({ type: PortalViewType.LocalFile });
@@ -356,6 +380,73 @@ describe('chatDockSlice', () => {
 
       expect(result.current.openLocalFiles).toHaveLength(1);
       expect(result.current.activeLocalFilePath).toBe('/path/a.ts');
+    });
+
+    it('should keep device context when opening a remote file', () => {
+      const { result } = renderHook(() => useChatStore());
+
+      act(() => {
+        result.current.openLocalFile({
+          deviceId: 'device-1',
+          filePath: '/path/a.ts',
+          workingDirectory: '/path',
+        });
+      });
+
+      expect(result.current.openLocalFiles).toEqual([
+        {
+          deviceId: 'device-1',
+          filePath: '/path/a.ts',
+          id: localFileTabId({
+            deviceId: 'device-1',
+            filePath: '/path/a.ts',
+            workingDirectory: '/path',
+          }),
+          workingDirectory: '/path',
+        },
+      ]);
+      expect(result.current.activeLocalFilePath).toBe('/path/a.ts');
+    });
+
+    it('should keep same file path from different device context as separate tabs', () => {
+      const { result } = renderHook(() => useChatStore());
+
+      act(() => {
+        result.current.openLocalFile({ filePath: '/path/a.ts', workingDirectory: '/path' });
+      });
+
+      act(() => {
+        result.current.openLocalFile({
+          deviceId: 'device-1',
+          filePath: '/path/a.ts',
+          workingDirectory: '/remote/path',
+        });
+      });
+
+      expect(result.current.openLocalFiles).toEqual([
+        {
+          filePath: '/path/a.ts',
+          id: localFileTabId({ filePath: '/path/a.ts', workingDirectory: '/path' }),
+          workingDirectory: '/path',
+        },
+        {
+          deviceId: 'device-1',
+          filePath: '/path/a.ts',
+          id: localFileTabId({
+            deviceId: 'device-1',
+            filePath: '/path/a.ts',
+            workingDirectory: '/remote/path',
+          }),
+          workingDirectory: '/remote/path',
+        },
+      ]);
+      expect(result.current.activeLocalFileId).toBe(
+        localFileTabId({
+          deviceId: 'device-1',
+          filePath: '/path/a.ts',
+          workingDirectory: '/remote/path',
+        }),
+      );
     });
 
     it('should add multiple files as separate tabs and keep portal as single entry', () => {
@@ -506,6 +597,32 @@ describe('chatDockSlice', () => {
 
       expect(result.current.openLocalFiles).toHaveLength(1);
     });
+
+    it('should not clear local dirty buffer when closing a remote tab with the same file path', () => {
+      const { result } = renderHook(() => useChatStore());
+      const remoteId = localFileTabId({
+        deviceId: 'device-1',
+        filePath: '/path/a.ts',
+        workingDirectory: '/remote/path',
+      });
+
+      act(() => {
+        result.current.openLocalFile({ filePath: '/path/a.ts', workingDirectory: '/path' });
+        result.current.setLocalFileBuffer('/path/a.ts', 'dirty content');
+        result.current.openLocalFile({
+          deviceId: 'device-1',
+          filePath: '/path/a.ts',
+          workingDirectory: '/remote/path',
+        });
+      });
+
+      act(() => {
+        result.current.closeLocalFileTab(remoteId);
+      });
+
+      expect(result.current.openLocalFiles).toHaveLength(1);
+      expect(result.current.dirtyLocalFileContents['/path/a.ts']).toBe('dirty content');
+    });
   });
 
   describe('closeLeftLocalFileTabs', () => {
@@ -545,6 +662,36 @@ describe('chatDockSlice', () => {
 
       expect(result.current.openLocalFiles.map((f) => f.filePath)).toEqual(['/path/c.ts']);
       expect(result.current.activeLocalFilePath).toBe('/path/c.ts');
+    });
+
+    it('should only close tabs to the left within the target working directory', () => {
+      const { result } = renderHook(() => useChatStore());
+
+      act(() => {
+        result.current.openLocalFile({
+          filePath: '/project-a/a.ts',
+          workingDirectory: '/project-a',
+        });
+        result.current.openLocalFile({
+          filePath: '/project-b/a.ts',
+          workingDirectory: '/project-b',
+        });
+        result.current.openLocalFile({
+          filePath: '/project-a/b.ts',
+          workingDirectory: '/project-a',
+        });
+      });
+
+      act(() => {
+        result.current.closeLeftLocalFileTabs(
+          localFileTabId({ filePath: '/project-a/b.ts', workingDirectory: '/project-a' }),
+        );
+      });
+
+      expect(result.current.openLocalFiles.map((f) => f.filePath)).toEqual([
+        '/project-b/a.ts',
+        '/project-a/b.ts',
+      ]);
     });
   });
 
@@ -586,6 +733,36 @@ describe('chatDockSlice', () => {
       expect(result.current.openLocalFiles.map((f) => f.filePath)).toEqual(['/path/a.ts']);
       expect(result.current.activeLocalFilePath).toBe('/path/a.ts');
     });
+
+    it('should only close tabs to the right within the target working directory', () => {
+      const { result } = renderHook(() => useChatStore());
+
+      act(() => {
+        result.current.openLocalFile({
+          filePath: '/project-a/a.ts',
+          workingDirectory: '/project-a',
+        });
+        result.current.openLocalFile({
+          filePath: '/project-b/a.ts',
+          workingDirectory: '/project-b',
+        });
+        result.current.openLocalFile({
+          filePath: '/project-a/b.ts',
+          workingDirectory: '/project-a',
+        });
+      });
+
+      act(() => {
+        result.current.closeRightLocalFileTabs(
+          localFileTabId({ filePath: '/project-a/a.ts', workingDirectory: '/project-a' }),
+        );
+      });
+
+      expect(result.current.openLocalFiles.map((f) => f.filePath)).toEqual([
+        '/project-a/a.ts',
+        '/project-b/a.ts',
+      ]);
+    });
   });
 
   describe('closeOtherLocalFileTabs', () => {
@@ -603,10 +780,44 @@ describe('chatDockSlice', () => {
       });
 
       expect(result.current.openLocalFiles).toEqual([
-        { filePath: '/path/b.ts', workingDirectory: '/path' },
+        {
+          filePath: '/path/b.ts',
+          id: localFileTabId({ filePath: '/path/b.ts', workingDirectory: '/path' }),
+          workingDirectory: '/path',
+        },
       ]);
       expect(result.current.activeLocalFilePath).toBe('/path/b.ts');
       expect(result.current.portalStack[0]).toEqual({ type: PortalViewType.LocalFile });
+    });
+
+    it('should keep tabs from other working directories when closing others', () => {
+      const { result } = renderHook(() => useChatStore());
+
+      act(() => {
+        result.current.openLocalFile({
+          filePath: '/project-a/a.ts',
+          workingDirectory: '/project-a',
+        });
+        result.current.openLocalFile({
+          filePath: '/project-b/a.ts',
+          workingDirectory: '/project-b',
+        });
+        result.current.openLocalFile({
+          filePath: '/project-a/b.ts',
+          workingDirectory: '/project-a',
+        });
+      });
+
+      act(() => {
+        result.current.closeOtherLocalFileTabs(
+          localFileTabId({ filePath: '/project-a/b.ts', workingDirectory: '/project-a' }),
+        );
+      });
+
+      expect(result.current.openLocalFiles.map((f) => f.filePath)).toEqual([
+        '/project-b/a.ts',
+        '/project-a/b.ts',
+      ]);
     });
   });
 
@@ -624,6 +835,9 @@ describe('chatDockSlice', () => {
       });
 
       expect(result.current.activeLocalFilePath).toBe('/path/a.ts');
+      expect(result.current.activeLocalFileIdsByScope[createLocalFileScopeKey('/path')]).toBe(
+        localFileTabId({ filePath: '/path/a.ts', workingDirectory: '/path' }),
+      );
     });
   });
 

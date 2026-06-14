@@ -3,7 +3,9 @@ import { type ChatStoreState } from '@/store/chat';
 import { type PortalArtifact } from '@/types/artifact';
 
 import { dbMessageSelectors } from '../message/selectors';
-import { type PortalFile, type PortalViewData } from './initialState';
+import { topicSelectors } from '../topic/selectors';
+import { createLocalFileScopeKey, getLocalFileTabId } from './helpers';
+import { type OpenLocalFileEntry, type PortalFile, type PortalViewData } from './initialState';
 import { PortalViewType } from './initialState';
 
 // ============== Core Stack Selectors ==============
@@ -132,17 +134,51 @@ const previewFileId = (s: ChatStoreState) => currentFile(s)?.fileId;
 const chunkText = (s: ChatStoreState) => currentFile(s)?.chunkText;
 
 // Local File selectors
-const activeLocalFilePath = (s: ChatStoreState): string | undefined => s.activeLocalFilePath;
+const currentLocalFileScopeWorkingDirectory = (s: ChatStoreState): string | undefined =>
+  s.topicDataMap ? topicSelectors.currentTopicWorkingDirectory(s) : undefined;
 
-const openLocalFiles = (s: ChatStoreState): Array<{ filePath: string; workingDirectory: string }> =>
-  s.openLocalFiles;
+const currentLocalFileScopeKey = (s: ChatStoreState): string | undefined => {
+  const workingDirectory = currentLocalFileScopeWorkingDirectory(s);
+  return workingDirectory ? createLocalFileScopeKey(workingDirectory) : undefined;
+};
 
-const currentLocalFile = (
-  s: ChatStoreState,
-): { filePath: string; workingDirectory: string } | undefined => {
+const isLocalFileInCurrentScope = (s: ChatStoreState, file: OpenLocalFileEntry): boolean => {
+  const workingDirectory = currentLocalFileScopeWorkingDirectory(s);
+  return workingDirectory ? file.workingDirectory === workingDirectory : true;
+};
+
+const openLocalFiles = (s: ChatStoreState): OpenLocalFileEntry[] =>
+  (s.openLocalFiles ?? []).filter((file) => isLocalFileInCurrentScope(s, file));
+
+const activeLocalFileId = (s: ChatStoreState): string | undefined => {
+  const files = openLocalFiles(s);
+  const scopeKey = currentLocalFileScopeKey(s);
+  const scopedActiveId = scopeKey ? s.activeLocalFileIdsByScope?.[scopeKey] : s.activeLocalFileId;
+
+  if (scopedActiveId && files.some((file) => getLocalFileTabId(file) === scopedActiveId)) {
+    return scopedActiveId;
+  }
+
   const active = s.activeLocalFilePath;
   if (!active) return undefined;
-  return s.openLocalFiles.find((f) => f.filePath === active);
+
+  const file = files.find((item) => item.filePath === active);
+  if (file) return getLocalFileTabId(file);
+
+  return scopeKey && files[0] ? getLocalFileTabId(files[0]) : undefined;
+};
+
+const activeLocalFilePath = (s: ChatStoreState): string | undefined =>
+  currentLocalFile(s)?.filePath ??
+  (currentLocalFileScopeWorkingDirectory(s) ? undefined : s.activeLocalFilePath);
+
+const currentLocalFile = (s: ChatStoreState): OpenLocalFileEntry | undefined => {
+  const active = activeLocalFileId(s);
+  if (!active) return undefined;
+  const files = openLocalFiles(s);
+  return (
+    files.find((f) => getLocalFileTabId(f) === active) ?? files.find((f) => f.filePath === active)
+  );
 };
 
 const localFilePath = (s: ChatStoreState) => currentLocalFile(s)?.filePath;
@@ -226,6 +262,7 @@ export const chatPortalSelectors = {
   chunkText,
 
   // Local file data
+  activeLocalFileId,
   activeLocalFilePath,
   currentLocalFile,
   dirtyLocalFileContents,

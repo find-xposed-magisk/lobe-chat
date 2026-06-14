@@ -271,6 +271,8 @@ export default {
     'For Grok 4.3 series; controls reasoning intensity.',
   'providerModels.item.modelConfig.extendParams.options.hy3ReasoningEffort.hint':
     'For Hy3 models; controls reasoning intensity. no_think (ultra-fast response), low (quick reasoning), and high (deep reasoning)—to accommodate varying latency and depth requirements, from high-frequency interactions to complex engineering tasks.',
+  'providerModels.item.modelConfig.extendParams.options.ring2_6ReasoningEffort.hint':
+    'For Ring 2.6 series; controls reasoning intensity.',
   'providerModels.item.modelConfig.extendParams.options.deepseekV4ReasoningEffort.hint':
     'For DeepSeek V4 thinking mode; controls reasoning intensity. `high` is the default, `max` unlocks the deepest reasoning used by complex agent workflows.',
   'providerModels.item.modelConfig.extendParams.options.imageAspectRatio.hint':
@@ -382,6 +384,8 @@ export default {
   'providerModels.list.enabledEmpty':
     'No enabled models available. Please enable your preferred models from the list below~',
   'providerModels.list.fetcher.clear': 'Clear fetched models',
+  'providerModels.list.fetcher.error': 'Failed to fetch models: {{message}}',
+  'providerModels.list.fetcher.errorFallback': 'Unknown error',
   'providerModels.list.fetcher.fetch': 'Fetch models',
   'providerModels.list.fetcher.fetching': 'Fetching model list...',
   'providerModels.list.fetcher.latestTime': 'Last updated: {{time}}',

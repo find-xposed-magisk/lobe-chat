@@ -14,14 +14,17 @@ import type {
   DeviceGitBranchInfo,
   DeviceGitBranchListItem,
   DeviceGitCheckoutResult,
+  DeviceGitDeleteBranchResult,
   DeviceGitFileRevertResult,
   DeviceGitLinkedPullRequestResult,
   DeviceGitRemoteBranchListItem,
+  DeviceGitRenameBranchResult,
   DeviceGitSyncResult,
   DeviceGitWorkingTreeFiles,
   DeviceGitWorkingTreePatches,
   DeviceGitWorkingTreeStatus,
   DeviceListProjectSkillsResult,
+  DeviceLocalFilePreviewResult,
   DeviceProjectFileIndexResult,
   ProjectSkillMeta,
   WorkspaceInitResult,
@@ -272,6 +275,73 @@ export class DeviceGateway {
   }
 
   /**
+   * Rename a branch in a directory on a remote device via the `renameGitBranch`
+   * device RPC.
+   */
+  async renameGitBranch(params: {
+    deviceId: string;
+    from: string;
+    path: string;
+    timeout?: number;
+    to: string;
+    userId: string;
+  }): Promise<DeviceGitRenameBranchResult> {
+    const { userId, deviceId, from, to, path, timeout = 30_000 } = params;
+    const client = this.getClient();
+    if (!client) return { error: 'Device gateway not configured', success: false };
+
+    try {
+      const result = await client.invokeRpc<DeviceGitRenameBranchResult>(
+        { deviceId, timeout, userId },
+        { method: 'renameGitBranch', params: { from, path, to } },
+      );
+
+      if (!result.success || !result.data) {
+        log('renameGitBranch: failed for deviceId=%s — %s', deviceId, result.error);
+        return { error: result.error || 'Rename failed', success: false };
+      }
+
+      return result.data;
+    } catch (error) {
+      log('renameGitBranch: error for deviceId=%s — %O', deviceId, error);
+      return { error: (error as Error)?.message || 'Rename failed', success: false };
+    }
+  }
+
+  /**
+   * Delete a branch in a directory on a remote device via the `deleteGitBranch`
+   * device RPC.
+   */
+  async deleteGitBranch(params: {
+    branch: string;
+    deviceId: string;
+    path: string;
+    timeout?: number;
+    userId: string;
+  }): Promise<DeviceGitDeleteBranchResult> {
+    const { userId, deviceId, branch, path, timeout = 30_000 } = params;
+    const client = this.getClient();
+    if (!client) return { error: 'Device gateway not configured', success: false };
+
+    try {
+      const result = await client.invokeRpc<DeviceGitDeleteBranchResult>(
+        { deviceId, timeout, userId },
+        { method: 'deleteGitBranch', params: { branch, path } },
+      );
+
+      if (!result.success || !result.data) {
+        log('deleteGitBranch: failed for deviceId=%s — %s', deviceId, result.error);
+        return { error: result.error || 'Delete failed', success: false };
+      }
+
+      return result.data;
+    } catch (error) {
+      log('deleteGitBranch: error for deviceId=%s — %O', deviceId, error);
+      return { error: (error as Error)?.message || 'Delete failed', success: false };
+    }
+  }
+
+  /**
    * Pull (`--ff-only`) the current branch of a directory on a remote device via
    * the `pullGitBranch` device RPC.
    */
@@ -467,6 +537,44 @@ export class DeviceGateway {
   }
 
   /**
+   * Read a preview payload for a file on a remote device. This is read-only and
+   * deliberately mirrors the desktop local-file preview contract without
+   * exposing a `localfile://` URL to web callers.
+   */
+  async getLocalFilePreview(params: {
+    accept?: 'image';
+    deviceId: string;
+    path: string;
+    timeout?: number;
+    userId: string;
+    workingDirectory: string;
+  }): Promise<DeviceLocalFilePreviewResult> {
+    const { accept, userId, deviceId, path, workingDirectory, timeout = 30_000 } = params;
+    const client = this.getClient();
+    if (!client) return { error: 'Device gateway not configured', success: false };
+
+    try {
+      const result = await client.invokeRpc<DeviceLocalFilePreviewResult>(
+        { deviceId, timeout, userId },
+        {
+          method: 'getLocalFilePreview',
+          params: { accept, path, workingDirectory },
+        },
+      );
+
+      if (!result.success || !result.data) {
+        log('getLocalFilePreview: failed for deviceId=%s — %s', deviceId, result.error);
+        return { error: result.error || 'Failed to load local file preview', success: false };
+      }
+
+      return result.data;
+    } catch (error) {
+      log('getLocalFilePreview: error for deviceId=%s — %O', deviceId, error);
+      return { error: (error as Error).message, success: false };
+    }
+  }
+
+  /**
    * Project skills (`.agents/skills` / `.claude/skills`) for a directory on a
    * remote device via the `listProjectSkills` device RPC — the Resources tab's
    * skills group in device mode. Mirrors `getProjectFileIndex`; returns
@@ -607,6 +715,8 @@ export class DeviceGateway {
     agentType: HeterogeneousAgentType;
     cwd?: string;
     deviceId?: string;
+    /** Image attachments forwarded to the device as fetchable (signed) URLs. */
+    imageList?: Array<{ id?: string; url: string }>;
     jwt: string;
     operationId: string;
     prompt: string;
@@ -628,7 +738,7 @@ export class DeviceGateway {
   }
 
   async executeToolCall(
-    params: { deviceId: string; userId: string },
+    params: { deviceId: string; operationId?: string; userId: string },
     toolCall: { apiName: string; arguments: string; identifier: string },
     timeout = 30_000,
   ): Promise<DeviceToolCallResult> {
@@ -642,7 +752,8 @@ export class DeviceGateway {
     }
 
     log(
-      'executeToolCall: userId=%s, deviceId=%s, tool=%s/%s',
+      'executeToolCall: operationId=%s, userId=%s, deviceId=%s, tool=%s/%s',
+      params.operationId ?? 'N/A',
       params.userId,
       params.deviceId,
       toolCall.identifier,
@@ -651,7 +762,12 @@ export class DeviceGateway {
 
     try {
       return await client.executeToolCall(
-        { deviceId: params.deviceId, timeout, userId: params.userId },
+        {
+          deviceId: params.deviceId,
+          operationId: params.operationId,
+          timeout,
+          userId: params.userId,
+        },
         toolCall,
       );
     } catch (error) {

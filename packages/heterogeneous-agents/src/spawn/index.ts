@@ -12,9 +12,20 @@
  * `@lobechat/agent-gateway-client` (which is a browser-side WebSocket client
  * that producers have no business pulling in).
  */
+export type { UsageData } from '../types';
 export { AgentStreamPipeline, type AgentStreamPipelineOptions } from './agentStreamPipeline';
 export { type CliSpawnPlan, resolveCliSpawnPlan } from './cliSpawn';
 export { CodexFileChangeTracker } from './codexFileChangeTracker';
+export {
+  type CodexInitialModelResolution,
+  type CodexInitialModelSource,
+  type CodexSessionModelInfo,
+  getCodexHome,
+  parseCodexModelFromArgs,
+  parseCodexProfileFromArgs,
+  readCodexSessionModel,
+  resolveCodexInitialModel,
+} from './codexModel';
 export {
   type AgentContentBlock,
   type AgentImageBlock,
@@ -24,6 +35,8 @@ export {
   type AgentTextBlock,
   buildAgentInput,
   type BuildAgentInputOptions,
+  buildHeteroExecStdinPayload,
+  type HeteroExecImageRef,
   materializeImageToPath,
   type NormalizedImage,
   normalizeImage,
