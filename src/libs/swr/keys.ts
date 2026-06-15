@@ -415,16 +415,16 @@ export const userMemoryKeys = {
   ]),
 };
 
-// ---- tool (skills / plugins / builtin / mcp / klavis stores) -------------
+// ---- tool (skills / plugins / builtin / mcp / composio stores) -------------
 export const toolKeys = {
   agentSkillDetail: def('tool:agentSkillDetail', (id: string) => ['tool:agentSkillDetail', id]),
   agentSkills: def('tool:agentSkills', () => ['tool:agentSkills']),
-  installedPlugins: def('tool:installedPlugins', () => ['tool:installedPlugins']),
-  klavisServerTools: def('tool:klavisServerTools', (serverName: string) => [
-    'tool:klavisServerTools',
-    serverName,
+  composioAppTools: def('tool:composioAppTools', (appSlug: string) => [
+    'tool:composioAppTools',
+    appSlug,
   ]),
-  klavisServers: def('tool:klavisServers', () => ['tool:klavisServers']),
+  composioConnections: def('tool:composioConnections', () => ['tool:composioConnections']),
+  installedPlugins: def('tool:installedPlugins', () => ['tool:installedPlugins']),
   lobehubSkillConnections: def('tool:lobehubSkillConnections', () => [
     'tool:lobehubSkillConnections',
   ]),
