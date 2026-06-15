@@ -268,9 +268,14 @@ export const connectorRouter = router({
       await ctx.connectorModel.update(input.id, {
         ...patch,
         // undefined → leave untouched; null → clear; object → encrypt the JSON string.
+        // When credentials are cleared, also drop the cached expiry timestamp so
+        // token-refresh logic doesn't act on a stale value for the new server.
         ...(credentials === undefined
           ? {}
-          : { credentials: credentials ? JSON.stringify(credentials) : null }),
+          : {
+              credentials: credentials ? JSON.stringify(credentials) : null,
+              ...(credentials === null ? { tokenExpiresAt: null } : {}),
+            }),
       } as any);
     }),
 
@@ -358,7 +363,7 @@ export const connectorRouter = router({
     }),
 
   /**
-   * Sync tools from a client-provided list (for Lobehub OAuth skills, Klavis, etc.
+   * Sync tools from a client-provided list (for Lobehub OAuth skills, Composio, etc.
    * that already have their tool list available on the client side).
    * Idempotent — safe to call whenever the detail panel opens.
    */
