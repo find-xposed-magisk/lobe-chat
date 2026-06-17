@@ -15,7 +15,9 @@ import {
   BusinessDesktopRoutesWithMainLayout,
   BusinessDesktopRoutesWithoutMainLayout,
 } from '@/business/client/BusinessDesktopRoutes';
+import { agentDocumentRouteMeta } from '@/features/AgentDocumentPage/routeMeta';
 import { taskRouteMeta, tasksRouteMeta } from '@/features/AgentTasks/routeMeta';
+import { fleetRouteMeta } from '@/features/Fleet/routeMeta';
 import { pageRouteMeta } from '@/features/Pages/routeMeta';
 import DesktopOnboarding from '@/routes/(desktop)/desktop-onboarding';
 // Layouts — sync import (Electron local, no network overhead)
@@ -47,6 +49,8 @@ import AgentPage from '@/routes/(main)/agent';
 import DesktopChatLayout from '@/routes/(main)/agent/_layout';
 import DesktopAgentChatLayout from '@/routes/(main)/agent/(chat)/_layout';
 import AgentChannelPage from '@/routes/(main)/agent/channel';
+import AgentDocumentLayout from '@/routes/(main)/agent/docs/_layout';
+import AgentDocumentRoute from '@/routes/(main)/agent/docs/[docId]';
 import { agentRouteMeta } from '@/routes/(main)/agent/features/routeMeta';
 import AgentProfilePage from '@/routes/(main)/agent/profile';
 import AgentTaskDetailRoute from '@/routes/(main)/agent/task/[taskId]';
@@ -85,6 +89,7 @@ import EvalBenchLayout from '@/routes/(main)/eval/bench/[benchmarkId]/_layout';
 import EvalDatasetDetailPage from '@/routes/(main)/eval/bench/[benchmarkId]/datasets/[datasetId]';
 import EvalRunDetailPage from '@/routes/(main)/eval/bench/[benchmarkId]/runs/[runId]';
 import EvalCaseDetailPage from '@/routes/(main)/eval/bench/[benchmarkId]/runs/[runId]/cases/[caseId]';
+import FleetPage from '@/routes/(main)/fleet';
 import GroupPage from '@/routes/(main)/group';
 import DesktopGroupLayout from '@/routes/(main)/group/_layout';
 import { groupRouteMeta } from '@/routes/(main)/group/features/routeMeta';
@@ -151,6 +156,17 @@ export const sharedMainAreaChildren: RouteObject[] = [
             element: <DesktopAgentChatLayout />,
           },
           {
+            children: [
+              {
+                element: <AgentDocumentRoute />,
+                handle: { meta: agentDocumentRouteMeta },
+                path: ':docId',
+              },
+            ],
+            element: <AgentDocumentLayout />,
+            path: 'docs',
+          },
+          {
             element: <AgentProfilePage />,
             path: 'profile',
           },
@@ -174,6 +190,14 @@ export const sharedMainAreaChildren: RouteObject[] = [
       },
     ],
     path: 'agent',
+  },
+
+  // Fleet view (side-by-side agent dashboard)
+  {
+    element: <FleetPage />,
+    errorElement: <ErrorBoundary />,
+    handle: { meta: fleetRouteMeta },
+    path: 'fleet',
   },
 
   // Group chat routes
@@ -737,28 +761,11 @@ export const desktopRoutes: RouteObject[] = [
     : []),
 ];
 
-// Desktop onboarding route (Electron only in .desktop.tsx)
+// Desktop owns its onboarding flow. Web-only onboarding routes are intentionally
+// absent from Electron so personal onboarding redirects fail visibly instead of
+// looping back into desktop login.
 desktopRoutes.push({
   element: <DesktopOnboarding />,
   errorElement: <ErrorBoundary />,
   path: '/desktop-onboarding',
-});
-
-// Web onboarding aliases redirect to the desktop-specific onboarding flow.
-desktopRoutes.push({
-  element: redirectElement('/desktop-onboarding'),
-  errorElement: <ErrorBoundary />,
-  path: '/onboarding',
-});
-
-desktopRoutes.push({
-  element: redirectElement('/desktop-onboarding'),
-  errorElement: <ErrorBoundary />,
-  path: '/onboarding/agent',
-});
-
-desktopRoutes.push({
-  element: redirectElement('/desktop-onboarding'),
-  errorElement: <ErrorBoundary />,
-  path: '/onboarding/classic',
 });

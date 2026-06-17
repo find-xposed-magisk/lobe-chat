@@ -120,6 +120,22 @@ export const deviceRouter = router({
     }),
 
   /**
+   * List the git worktrees attached to the same repository as a directory on a
+   * remote device, via the device's `listGitWorktrees` RPC. Lets the web/remote
+   * worktree picker mirror the local desktop's, populated over IPC.
+   */
+  listGitWorktrees: deviceProcedure
+    .input(z.object({ deviceId: z.string(), path: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const result = await deviceGateway.listGitWorktrees({
+        deviceId: input.deviceId,
+        path: input.path,
+        userId: ctx.userId,
+      });
+      return result ?? [];
+    }),
+
+  /**
    * List the local branches of a directory on a remote device, via the device's
    * `listGitBranches` RPC. Lets the web/remote branch switcher populate the same
    * dropdown the local desktop renders over IPC.
@@ -365,6 +381,73 @@ export const deviceRouter = router({
         filePath: input.filePath,
         path: input.path,
         userId: ctx.userId,
+      }),
+    ),
+
+  /**
+   * Move files/folders within a directory on a remote device, via the device's
+   * `moveLocalFiles` RPC. Powers the Files tree's drag-to-move in device mode.
+   */
+  moveProjectFiles: deviceProcedure
+    .input(
+      z.object({
+        deviceId: z.string(),
+        items: z.array(z.object({ newPath: z.string(), oldPath: z.string() })),
+        workingDirectory: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) =>
+      deviceGateway.moveProjectFiles({
+        deviceId: input.deviceId,
+        items: input.items,
+        userId: ctx.userId,
+        workingDirectory: input.workingDirectory,
+      }),
+    ),
+
+  /**
+   * Rename a single file/folder in a directory on a remote device, via the
+   * device's `renameLocalFile` RPC.
+   */
+  renameProjectFile: deviceProcedure
+    .input(
+      z.object({
+        deviceId: z.string(),
+        newName: z.string(),
+        path: z.string(),
+        workingDirectory: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) =>
+      deviceGateway.renameProjectFile({
+        deviceId: input.deviceId,
+        newName: input.newName,
+        path: input.path,
+        userId: ctx.userId,
+        workingDirectory: input.workingDirectory,
+      }),
+    ),
+
+  /**
+   * Save edited content back to a file on a remote device, via the device's
+   * `writeLocalFile` RPC. Powers remote save in the LocalFile editor.
+   */
+  writeProjectFile: deviceProcedure
+    .input(
+      z.object({
+        content: z.string(),
+        deviceId: z.string(),
+        path: z.string(),
+        workingDirectory: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) =>
+      deviceGateway.writeProjectFile({
+        content: input.content,
+        deviceId: input.deviceId,
+        path: input.path,
+        userId: ctx.userId,
+        workingDirectory: input.workingDirectory,
       }),
     ),
 

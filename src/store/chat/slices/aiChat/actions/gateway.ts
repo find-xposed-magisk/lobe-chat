@@ -23,7 +23,7 @@ import { settingsSelectors } from '@/store/user/selectors';
 import { createGatewayEventHandler } from './gatewayEventHandler';
 
 /**
- * When the agent runs against the local machine ("本机"), resolve this desktop's
+ * When the agent runs against the local machine, resolve this desktop's
  * own gateway deviceId so it can be passed as the run's `deviceId`. The server
  * then presets `activeDeviceId` and injects `lobe-local-system` into the very
  * first LLM payload — skipping the extra `activateDevice` round-trip the model
@@ -381,6 +381,13 @@ export class GatewayActionImpl {
           agentDocumentId: context.agentDocumentId,
           defaultTaskAssigneeAgentId: context.defaultTaskAssigneeAgentId,
           documentId: context.documentId,
+          // When AgentBuilder runs, context.agentId is the builtin builder agent.
+          // The actual editing target is chatStore.activeAgentId (kept in sync by
+          // AgentBuilderProvider). Pass it so the server can route tool calls to
+          // the correct agent rather than the builder itself.
+          ...(context.scope === 'agent_builder' && {
+            editingAgentId: this.#get().activeAgentId ?? undefined,
+          }),
           groupId: context.groupId,
           ...(initialTopicMetadata && { initialTopicMetadata }),
           scope: context.scope,

@@ -147,6 +147,24 @@ export interface DeviceGitWorkingTreeStatus {
 }
 
 /**
+ * One git worktree attached to a repository, returned by the `listGitWorktrees`
+ * device RPC. Mirrors the desktop `GitWorktreeListItem`.
+ */
+export interface DeviceGitWorktreeListItem {
+  bare?: boolean;
+  branch?: string;
+  current: boolean;
+  detached?: boolean;
+  head?: string;
+  locked?: boolean;
+  lockReason?: string;
+  path: string;
+  prunable?: boolean;
+  pruneReason?: string;
+  status?: DeviceGitWorkingTreeStatus;
+}
+
+/**
  * Commit divergence vs the upstream tracking ref, returned by the
  * `getGitAheadBehind` device RPC. Mirrors the desktop shape.
  */
@@ -346,6 +364,40 @@ export type DeviceLocalFilePreview =
 export interface DeviceLocalFilePreviewResult {
   error?: string;
   preview?: DeviceLocalFilePreview;
+  success: boolean;
+}
+
+/** One file/folder to move within a directory on a remote device. Mirrors `MoveLocalFileParams`. */
+export interface DeviceMoveProjectFileItem {
+  newPath: string;
+  oldPath: string;
+}
+
+/**
+ * Per-item result of the `moveLocalFiles` device RPC. The move is batched and
+ * each item succeeds or fails independently. Mirrors the desktop
+ * `LocalMoveFilesResultItem`.
+ */
+export interface DeviceMoveProjectFileResultItem {
+  error?: string;
+  newPath?: string;
+  sourcePath: string;
+  success: boolean;
+}
+
+/** Result of the `renameLocalFile` device RPC. Mirrors the desktop `RenameLocalFileResult`. */
+export interface DeviceRenameProjectFileResult {
+  error?: string;
+  newPath: string;
+  success: boolean;
+}
+
+/**
+ * Result of the `writeLocalFile` device RPC — saving edited content back to a
+ * file on a remote device. Mirrors the desktop `WriteFileResult`.
+ */
+export interface DeviceWriteProjectFileResult {
+  error?: string;
   success: boolean;
 }
 
