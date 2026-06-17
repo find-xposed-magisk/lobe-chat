@@ -3,7 +3,7 @@ import { TASK_TEMPLATE_RECOMMEND_COUNT } from '@lobechat/const';
 import { createNanoId } from '@lobechat/utils';
 import { useSessionStorageState } from 'ahooks';
 import { App } from 'antd';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 
@@ -35,6 +35,65 @@ interface UseDailyBriefRecommendationsUIOptions {
   count?: number;
 }
 
+interface ResolveDailyBriefRecommendationRequestParams {
+  interestKeys: string[] | null;
+  isLogin: boolean | undefined;
+  locale: string;
+  recommendationCount: number;
+  refreshSeed?: string;
+}
+
+export const resolveDailyBriefRecommendationRequest = ({
+  interestKeys,
+  isLogin,
+  locale,
+  recommendationCount,
+  refreshSeed,
+}: ResolveDailyBriefRecommendationRequestParams) => {
+  const enabled = isLogin === true;
+
+  return {
+    key: enabled
+      ? taskTemplateKeys.listDailyRecommend(refreshSeed ?? '', recommendationCount, locale)
+      : null,
+    shouldFetch: enabled && interestKeys !== null,
+  };
+};
+
+interface ResolveDailyBriefRecommendationDisplayModeParams {
+  canFetchRecommendations: boolean;
+  hasRecommendationKey: boolean;
+  hasTemplates: boolean;
+  isInit: boolean;
+  isLoading: boolean;
+  isValidating: boolean;
+  isWaitingForInterestsFetch: boolean;
+}
+
+export const resolveDailyBriefRecommendationDisplayMode = ({
+  canFetchRecommendations,
+  hasRecommendationKey,
+  hasTemplates,
+  isInit,
+  isLoading,
+  isValidating,
+  isWaitingForInterestsFetch,
+}: ResolveDailyBriefRecommendationDisplayModeParams): DailyBriefRecommendationsUIState['mode'] => {
+  if (!hasRecommendationKey) return 'hidden';
+  if (hasTemplates) return 'cards';
+  if (
+    !isInit ||
+    isLoading ||
+    isValidating ||
+    !canFetchRecommendations ||
+    isWaitingForInterestsFetch
+  ) {
+    return 'skeleton';
+  }
+
+  return 'hidden';
+};
+
 export function useDailyBriefRecommendationsUI(
   options: UseDailyBriefRecommendationsUIOptions = {},
 ): DailyBriefRecommendationsUIState {
@@ -50,24 +109,58 @@ export function useDailyBriefRecommendationsUI(
   const isInit = useBriefStore(briefListSelectors.isBriefsInit);
 
   const interestKeys = useResolvedInterestKeys();
-  const swrKey = interestKeys ? [...interestKeys].sort().join(',') : '';
-  const swrEnabled = isLogin && interestKeys !== null;
   const [refreshSeed, setRefreshSeed] = useSessionStorageState<string>(REFRESH_SEED_STORAGE_KEY, {
     defaultValue: '',
   });
-
-  const { data, isLoading, mutate } = useSWR(
-    swrEnabled
-      ? taskTemplateKeys.listDailyRecommend(swrKey, refreshSeed, recommendationCount, locale)
-      : null,
-    async () =>
-      taskTemplateService.listDailyRecommend(interestKeys ?? [], {
-        count: recommendationCount,
+  const recommendationRequest = useMemo(
+    () =>
+      resolveDailyBriefRecommendationRequest({
+        interestKeys,
+        isLogin,
         locale,
-        refreshSeed: refreshSeed || undefined,
+        recommendationCount,
+        refreshSeed,
       }),
-    { revalidateOnFocus: false, revalidateOnReconnect: false },
+    [interestKeys, isLogin, locale, recommendationCount, refreshSeed],
   );
+  const canFetchRecommendations = recommendationRequest.shouldFetch && interestKeys !== null;
+  const recommendationFetcher = canFetchRecommendations
+    ? async () =>
+        taskTemplateService.listDailyRecommend(interestKeys, {
+          count: recommendationCount,
+          locale,
+          refreshSeed: refreshSeed || undefined,
+        })
+    : null;
+
+  const { data, isLoading, isValidating, mutate } = useSWR(
+    recommendationRequest.key,
+    recommendationFetcher,
+    {
+      keepPreviousData: true,
+      revalidateIfStale: canFetchRecommendations,
+      revalidateOnFocus: false,
+      revalidateOnMount: canFetchRecommendations,
+      revalidateOnReconnect: false,
+    },
+  );
+  const waitedForInterestsRef = useRef(false);
+
+  useEffect(() => {
+    if (!recommendationRequest.key) {
+      waitedForInterestsRef.current = false;
+      return;
+    }
+
+    if (interestKeys === null) {
+      waitedForInterestsRef.current = true;
+      return;
+    }
+
+    if (!waitedForInterestsRef.current) return;
+    waitedForInterestsRef.current = false;
+    void mutate();
+  }, [interestKeys, mutate, recommendationRequest.key]);
 
   const handleRefresh = useCallback(() => {
     setRefreshSeed(nextRefreshSeed());
@@ -120,9 +213,17 @@ export function useDailyBriefRecommendationsUI(
   useFetchUserComposioConnections(requiredSources.has('composio'));
   useFetchLobehubSkillConnections(requiredSources.has('lobehub'));
 
-  if (!swrEnabled) return { mode: 'hidden' };
-  if (!isInit || isLoading) return { mode: 'skeleton', skeletonCount: recommendationCount };
-  if (templates.length === 0) return { mode: 'hidden' };
+  const displayMode = resolveDailyBriefRecommendationDisplayMode({
+    canFetchRecommendations,
+    hasRecommendationKey: Boolean(recommendationRequest.key),
+    hasTemplates: templates.length > 0,
+    isInit,
+    isLoading,
+    isValidating,
+    isWaitingForInterestsFetch: interestKeys !== null && waitedForInterestsRef.current,
+  });
+  if (displayMode === 'hidden') return { mode: 'hidden' };
+  if (displayMode === 'skeleton') return { mode: 'skeleton', skeletonCount: recommendationCount };
 
   return {
     mode: 'cards',
