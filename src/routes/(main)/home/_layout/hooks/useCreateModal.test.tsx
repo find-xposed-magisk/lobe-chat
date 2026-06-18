@@ -6,6 +6,15 @@ import { CreateAgentModal } from './useCreateModal';
 
 const analyticsTrack = vi.hoisted(() => vi.fn());
 const telemetryState = vi.hoisted(() => ({ enabled: true }));
+const marketApiMocks = vi.hoisted(() => ({
+  searchSkill: vi.fn(),
+}));
+const skillServiceMocks = vi.hoisted(() => ({
+  importFromMarket: vi.fn(),
+}));
+const toolStoreMocks = vi.hoisted(() => ({
+  refreshAgentSkills: vi.fn(),
+}));
 const chatInputState = vi.hoisted(() => {
   interface Editor {
     focus: () => void;
@@ -50,13 +59,35 @@ vi.mock('@lobehub/ui', () => ({
       {children}
     </button>
   ),
-  Button: ({ children, onClick }: { children?: ReactNode; onClick?: () => void }) => (
-    <button type="button" onClick={onClick}>
+  Button: ({
+    children,
+    disabled,
+    onClick,
+    type,
+  }: {
+    children?: ReactNode;
+    disabled?: boolean;
+    onClick?: () => void;
+    type?: string;
+  }) => (
+    <button data-button-type={type} disabled={disabled} type="button" onClick={onClick}>
       {children}
     </button>
   ),
   Flexbox: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   Text: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
+}));
+
+vi.mock('@/services/marketApi', () => ({
+  marketApiService: {
+    searchSkill: marketApiMocks.searchSkill,
+  },
+}));
+
+vi.mock('@/services/skill', () => ({
+  agentSkillService: {
+    importFromMarket: skillServiceMocks.importFromMarket,
+  },
 }));
 
 vi.mock('@lobehub/ui/base-ui', () => ({
@@ -67,6 +98,8 @@ vi.mock('@lobehub/ui/base-ui', () => ({
 vi.mock('antd-style', () => ({
   cssVar: {
     borderRadiusLG: 8,
+    colorError: '#f00',
+    colorSuccess: '#0a0',
     colorTextDescription: '#666',
     colorTextSecondary: '#666',
     colorTextTertiary: '#999',
@@ -82,6 +115,19 @@ vi.mock('react-i18next', () => ({
           'chat:createModal.groupPlaceholder': 'Describe what this group should do...',
           'chat:createModal.groupTitle': 'What should your group do?',
           'chat:createModal.placeholder': 'Describe what your agent should do...',
+          'chat:createModal.skillSuggestion.actions.createAnyway': 'Create Agent Anyway',
+          'chat:createModal.skillSuggestion.actions.createAnywayHint': 'Skill not a fit?',
+          'chat:createModal.skillSuggestion.actions.install': 'Add Skill',
+          'chat:createModal.skillSuggestion.actions.openSkills': 'Open Skills',
+          'chat:createModal.skillSuggestion.actions.tryInLobeAI': 'Try in LobeAI',
+          'chat:createModal.skillSuggestion.description':
+            'Even though this is phrased as a role, the reusable part is the workflow. Install it once, then use it across Agents.',
+          'chat:createModal.skillSuggestion.installed.description':
+            'You can now use this Skill in LobeAI or add it to any Agent.',
+          'chat:createModal.skillSuggestion.installed.title': 'Skill added',
+          'chat:createModal.skillSuggestion.installError':
+            "Skill wasn't added. Retry, or create an Agent anyway.",
+          'chat:createModal.skillSuggestion.title': 'This can use a Skill',
           'chat:createModal.title': 'What should your agent do?',
           'common:home.suggestQuestions': 'Try these examples',
           'common:switch': 'Switch',
@@ -154,9 +200,19 @@ vi.mock('@/store/user/selectors', () => ({
   },
 }));
 
+vi.mock('@/store/tool', () => ({
+  useToolStore: (
+    selector: (state: { refreshAgentSkills: typeof toolStoreMocks.refreshAgentSkills }) => unknown,
+  ) =>
+    selector({
+      refreshAgentSkills: toolStoreMocks.refreshAgentSkills,
+    }),
+}));
+
 const renderModal = (type: 'agent' | 'group' = 'agent') => {
   const onClose = vi.fn();
   const onCreateBlank = vi.fn().mockResolvedValue(undefined);
+  const onOpenSkills = vi.fn();
   const onSubmit = vi.fn().mockResolvedValue(undefined);
 
   render(
@@ -166,19 +222,51 @@ const renderModal = (type: 'agent' | 'group' = 'agent') => {
       type={type}
       onClose={onClose}
       onCreateBlank={onCreateBlank}
+      onOpenSkills={onOpenSkills}
       onSubmit={onSubmit}
     />,
   );
 
-  return { onClose, onCreateBlank, onSubmit };
+  return { onClose, onCreateBlank, onOpenSkills, onSubmit };
+};
+
+const expectTrackedSkillSuggestionAction = async (
+  action: string,
+  properties: Record<string, unknown> = {},
+) => {
+  await waitFor(() => {
+    expect(analyticsTrack).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'create_agent_modal_skill_suggestion_action',
+        properties: expect.objectContaining({
+          action,
+          ...properties,
+        }),
+      }),
+    );
+  });
 };
 
 describe('CreateAgentModal analytics', () => {
   beforeEach(() => {
     analyticsTrack.mockReset();
+    marketApiMocks.searchSkill.mockReset();
+    marketApiMocks.searchSkill.mockResolvedValue({
+      currentPage: 1,
+      items: [],
+      pageSize: 3,
+      totalCount: 0,
+      totalPages: 0,
+    });
+    skillServiceMocks.importFromMarket.mockReset();
+    skillServiceMocks.importFromMarket.mockResolvedValue({
+      skill: { id: 'skill-1', name: 'Resume Reviewer' },
+      status: 'created',
+    });
     telemetryState.enabled = true;
     chatInputState.onMarkdownContentChange = undefined;
     chatInputState.onSend = undefined;
+    toolStoreMocks.refreshAgentSkills.mockReset();
     vi.mocked(chatInputState.editor.focus).mockClear();
     vi.mocked(chatInputState.editor.instance.setDocument).mockClear();
   });
@@ -293,5 +381,220 @@ describe('CreateAgentModal analytics', () => {
       expect(onSubmit).toHaveBeenCalled();
     });
     expect(analyticsTrack).not.toHaveBeenCalled();
+  });
+
+  it('interrupts high-confidence skill prompts with a stronger skill recommendation', async () => {
+    marketApiMocks.searchSkill.mockResolvedValueOnce({
+      currentPage: 1,
+      items: [
+        {
+          createdAt: '2026-01-01',
+          description: 'Review and improve resumes with a reusable checklist.',
+          identifier: 'resume-reviewer',
+          installCount: 12,
+          name: 'Resume Reviewer',
+          updatedAt: '2026-01-01',
+        },
+      ],
+      pageSize: 3,
+      totalCount: 1,
+      totalPages: 1,
+    });
+    const { onSubmit } = renderModal();
+
+    fireEvent.change(screen.getByLabelText('chat input'), {
+      target: { value: '帮我做一个简历优化检查清单' },
+    });
+    fireEvent.click(screen.getByText('Send'));
+
+    await waitFor(() => {
+      expect(marketApiMocks.searchSkill).toHaveBeenCalledWith(
+        expect.objectContaining({ pageSize: 3, q: 'resume review', sort: 'relevance' }),
+      );
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(await screen.findByText('This can use a Skill')).toBeInTheDocument();
+    expect(screen.getByText('Resume Reviewer')).toBeInTheDocument();
+    expect(screen.queryByText('Example title')).not.toBeInTheDocument();
+    expect(screen.getByText('Skill not a fit?')).toBeInTheDocument();
+    await expectTrackedSkillSuggestionAction('shown', {
+      skill_count: 1,
+      source: 'manual',
+      top_skill_identifier: 'resume-reviewer',
+    });
+
+    expect(screen.getByText('Add Skill')).toHaveAttribute('data-button-type', 'primary');
+
+    const createAnywayButton = screen.getByText('Create Agent Anyway');
+    expect(createAnywayButton).not.toHaveAttribute('data-button-type', 'primary');
+    fireEvent.click(createAnywayButton);
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith('帮我做一个简历优化检查清单');
+    });
+    await expectTrackedSkillSuggestionAction('create_agent_anyway_clicked', {
+      skill_count: 1,
+      source: 'manual',
+      top_skill_identifier: 'resume-reviewer',
+    });
+    await waitFor(() => {
+      expect(analyticsTrack).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'create_agent_modal_creation_succeeded',
+          properties: expect.objectContaining({ source: 'manual' }),
+        }),
+      );
+    });
+  });
+
+  it('does not interrupt ambiguous long-term agent prompts', async () => {
+    const { onSubmit } = renderModal();
+
+    fireEvent.change(screen.getByLabelText('chat input'), {
+      target: { value: '创建一个代码学习导师，长期跟进我的学习计划' },
+    });
+    fireEvent.click(screen.getByText('Send'));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith('创建一个代码学习导师，长期跟进我的学习计划');
+    });
+    expect(marketApiMocks.searchSkill).not.toHaveBeenCalled();
+    expect(screen.queryByText('This can use a Skill')).not.toBeInTheDocument();
+  });
+
+  it('interrupts role-framed reusable prompts when the role maps to a skill workflow', async () => {
+    marketApiMocks.searchSkill.mockResolvedValueOnce({
+      currentPage: 1,
+      items: [
+        {
+          createdAt: '2026-01-01',
+          description: 'Review and improve resumes with a reusable checklist.',
+          identifier: 'resume-reviewer',
+          installCount: 12,
+          name: 'Resume Reviewer',
+          updatedAt: '2026-01-01',
+        },
+      ],
+      pageSize: 3,
+      totalCount: 1,
+      totalPages: 1,
+    });
+    const { onSubmit } = renderModal();
+
+    fireEvent.change(screen.getByLabelText('chat input'), {
+      target: { value: '帮我创建一个简历优化助手' },
+    });
+    fireEvent.click(screen.getByText('Send'));
+
+    await waitFor(() => {
+      expect(marketApiMocks.searchSkill).toHaveBeenCalledWith(
+        expect.objectContaining({ pageSize: 3, q: 'resume review', sort: 'relevance' }),
+      );
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(await screen.findByText('This can use a Skill')).toBeInTheDocument();
+  });
+
+  it('shows a completed skill state after installing the recommended skill', async () => {
+    marketApiMocks.searchSkill.mockResolvedValueOnce({
+      currentPage: 1,
+      items: [
+        {
+          createdAt: '2026-01-01',
+          description: 'Review and improve resumes with a reusable checklist.',
+          identifier: 'resume-reviewer',
+          installCount: 12,
+          name: 'Resume Reviewer',
+          updatedAt: '2026-01-01',
+        },
+      ],
+      pageSize: 3,
+      totalCount: 1,
+      totalPages: 1,
+    });
+    const { onClose, onOpenSkills, onSubmit } = renderModal();
+
+    fireEvent.change(screen.getByLabelText('chat input'), {
+      target: { value: '帮我做一个简历优化检查清单' },
+    });
+    fireEvent.click(screen.getByText('Send'));
+
+    expect(await screen.findByText('This can use a Skill')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Add Skill'));
+
+    await waitFor(() => {
+      expect(skillServiceMocks.importFromMarket).toHaveBeenCalledWith('resume-reviewer');
+    });
+    await expectTrackedSkillSuggestionAction('install_clicked', {
+      selected_skill_identifier: 'resume-reviewer',
+    });
+    await expectTrackedSkillSuggestionAction('install_succeeded', {
+      selected_skill_identifier: 'resume-reviewer',
+    });
+    expect(toolStoreMocks.refreshAgentSkills).toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(await screen.findByText('Skill added')).toBeInTheDocument();
+    expect(screen.getByText('Resume Reviewer')).toBeInTheDocument();
+    expect(screen.queryByText('Skill not a fit?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Create Agent Anyway')).not.toBeInTheDocument();
+
+    const tryInLobeAIButton = screen.getByText('Try in LobeAI');
+    expect(tryInLobeAIButton).toHaveAttribute('data-button-type', 'primary');
+    const openSkillsButton = screen.getByText('Open Skills');
+    expect(openSkillsButton).not.toHaveAttribute('data-button-type', 'primary');
+    fireEvent.click(openSkillsButton);
+
+    expect(onOpenSkills).toHaveBeenCalledWith('resume-reviewer');
+    await expectTrackedSkillSuggestionAction('open_skills_clicked', {
+      selected_skill_identifier: 'resume-reviewer',
+    });
+
+    fireEvent.click(tryInLobeAIButton);
+    expect(onClose).toHaveBeenCalled();
+    await expectTrackedSkillSuggestionAction('try_in_lobeai_clicked', {
+      selected_skill_identifier: 'resume-reviewer',
+    });
+  });
+
+  it('keeps the suggestion visible when installing the recommended skill fails', async () => {
+    marketApiMocks.searchSkill.mockResolvedValueOnce({
+      currentPage: 1,
+      items: [
+        {
+          createdAt: '2026-01-01',
+          description: 'Review and improve resumes with a reusable checklist.',
+          identifier: 'resume-reviewer',
+          installCount: 12,
+          name: 'Resume Reviewer',
+          updatedAt: '2026-01-01',
+        },
+      ],
+      pageSize: 3,
+      totalCount: 1,
+      totalPages: 1,
+    });
+    skillServiceMocks.importFromMarket.mockRejectedValueOnce(new Error('Import failed'));
+    const { onClose } = renderModal();
+
+    fireEvent.change(screen.getByLabelText('chat input'), {
+      target: { value: '帮我做一个简历优化检查清单' },
+    });
+    fireEvent.click(screen.getByText('Send'));
+
+    expect(await screen.findByText('This can use a Skill')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Add Skill'));
+
+    await waitFor(() => {
+      expect(skillServiceMocks.importFromMarket).toHaveBeenCalledWith('resume-reviewer');
+    });
+    expect(toolStoreMocks.refreshAgentSkills).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    await expectTrackedSkillSuggestionAction('install_failed', {
+      selected_skill_identifier: 'resume-reviewer',
+    });
+    expect(
+      await screen.findByText("Skill wasn't added. Retry, or create an Agent anyway."),
+    ).toBeInTheDocument();
   });
 });
