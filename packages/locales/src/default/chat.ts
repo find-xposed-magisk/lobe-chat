@@ -554,6 +554,8 @@ export default {
   'searchAgentPlaceholder': 'Search agents...',
   'searchAgents': 'Search agents...',
   'selectedAgents': 'Selected agents',
+  'floatingChatPanel.collapse': 'Collapse chat',
+  'floatingChatPanel.expand': 'Expand chat',
   'followUpPlaceholder': 'Follow up.',
   'followUpPlaceholderHeterogeneous': 'Follow up.',
   'sendPlaceholder': 'Ask, create, or start a task, <hotkey><hotkey/>',

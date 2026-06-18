@@ -176,6 +176,8 @@
   "extendParams.title": "Model Extension Features",
   "extendParams.urlContext.desc": "When enabled, web links will be automatically parsed to retrieve the actual webpage context content",
   "extendParams.urlContext.title": "Extract Webpage Link Content",
+  "floatingChatPanel.collapse": "Collapse chat",
+  "floatingChatPanel.expand": "Expand chat",
   "followUpPlaceholder": "Follow up.",
   "followUpPlaceholderHeterogeneous": "Follow up.",
   "gatewayMode.beta": "Beta",
