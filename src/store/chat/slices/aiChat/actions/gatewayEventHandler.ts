@@ -21,6 +21,20 @@ import { emitClientAgentSignalSourceEvent } from '@/store/chat/slices/aiChat/act
 import type { ChatStore } from '@/store/chat/store';
 import { notifyDesktopHumanApprovalRequired } from '@/store/chat/utils/desktopNotification';
 
+// `agent_runtime_end` reasons that are NOT a clean completion: a mid-stream
+// cancel and a deferred-tool park. These must NOT mark the topic unread, and
+// must take the non-success branch in `onSessionComplete` so the run clears
+// back to 'active' rather than persisting as an unread completion.
+const NON_COMPLETION_RUNTIME_END_REASONS = new Set(['interrupted', 'waiting_for_async_tool']);
+
+/**
+ * Whether an `agent_runtime_end` event represents a clean completion (vs. a
+ * cancel / park). A clean completion is the only ending that should surface an
+ * unread badge.
+ */
+export const isCompletedRuntimeEnd = (reason?: string | null): boolean =>
+  !NON_COMPLETION_RUNTIME_END_REASONS.has(reason ?? '');
+
 // Lazy-loaded to break the import cycle:
 //   gateway.ts → gatewayEventHandler.ts → executors/index.ts (which pulls in
 //   tool client barrels that import `@/store/chat/store`) → chat store
@@ -634,9 +648,16 @@ export const createGatewayEventHandler = (
           endReasoningIfNeeded();
           get().completeOperation(operationId);
 
+          // Only a clean completion surfaces an unread badge — a mid-stream
+          // cancel ('interrupted') or deferred-tool park ('waiting_for_async_tool')
+          // must not. Those endings clear back to 'active' in onSessionComplete.
           const completedOp = get().operations[operationId];
-          if (completedOp?.context.agentId) {
-            get().markUnreadCompleted(completedOp.context.agentId, completedOp.context.topicId);
+          if (completedOp?.context.agentId && isCompletedRuntimeEnd(data?.reason)) {
+            get().markTopicUnread({
+              agentId: completedOp.context.agentId,
+              groupId: completedOp.context.groupId,
+              topicId: completedOp.context.topicId,
+            });
           }
 
           // Terminal step has no later step_start to carry SoT — server

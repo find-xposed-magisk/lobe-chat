@@ -35,7 +35,7 @@ function createMockStore() {
     internal_dispatchMessage: vi.fn(),
     internal_executeClientTool: vi.fn().mockResolvedValue(undefined),
     internal_toggleToolCallingStreaming: vi.fn(),
-    markUnreadCompleted: vi.fn(),
+    markTopicUnread: vi.fn(),
     operations: {
       'op-1': {
         context: { agentId: 'agent-1', scope: 'session', topicId: 'topic-1' },
@@ -1078,13 +1078,13 @@ describe('createGatewayEventHandler', () => {
   describe('gateway terminal characterization (lifecycle refactor regression net)', () => {
     // CURRENT BEHAVIOR (gatewayEventHandler.ts ~622-624): the `error` event
     // handler completes the operation but, UNLIKE `agent_runtime_end`
-    // (~552-557 which calls markUnreadCompleted when the operation has a
-    // context.agentId), the error path NEVER calls markUnreadCompleted.
+    // (~552-557 which calls markTopicUnread when the operation has a
+    // context.agentId), the error path NEVER calls markTopicUnread.
     // This is an intentional asymmetry to lock: an errored run does not get
     // marked as an unread "completed" agent run. If a future refactor unifies
     // the terminal paths, revisit whether errors SHOULD mark unread —
     // changing this assertion is the signal that the contract moved.
-    it('error event completes the operation but does NOT call markUnreadCompleted (asymmetry vs agent_runtime_end)', async () => {
+    it('error event completes the operation but does NOT call markTopicUnread (asymmetry vs agent_runtime_end)', async () => {
       const store = createMockStore();
       const handler = createHandler(store);
 
@@ -1093,9 +1093,9 @@ describe('createGatewayEventHandler', () => {
 
       // completeOperation IS called on error.
       expect(store.completeOperation).toHaveBeenCalledWith('op-1');
-      // markUnreadCompleted is NOT — even though operations['op-1'] has a
+      // markTopicUnread is NOT — even though operations['op-1'] has a
       // context.agentId (which WOULD trigger it on agent_runtime_end).
-      expect(store.markUnreadCompleted).not.toHaveBeenCalled();
+      expect(store.markTopicUnread).not.toHaveBeenCalled();
     });
 
     it('error event preserves runtime payload errorType and budget context', async () => {
@@ -1162,7 +1162,7 @@ describe('createGatewayEventHandler', () => {
     // Contrast probe: agent_runtime_end on the SAME operation (which has a
     // context.agentId) DOES mark unread completed — proving the negative
     // assertion above is the error path's own behavior, not a missing agentId.
-    it('agent_runtime_end (same op, has context.agentId) DOES call markUnreadCompleted', async () => {
+    it('agent_runtime_end (same op, has context.agentId) DOES call markTopicUnread', async () => {
       const store = createMockStore();
       const handler = createHandler(store);
 
@@ -1170,8 +1170,24 @@ describe('createGatewayEventHandler', () => {
       await flush();
 
       expect(store.completeOperation).toHaveBeenCalledWith('op-1');
-      expect(store.markUnreadCompleted).toHaveBeenCalledWith('agent-1', 'topic-1');
+      expect(store.markTopicUnread).toHaveBeenCalledWith(
+        expect.objectContaining({ agentId: 'agent-1', topicId: 'topic-1' }),
+      );
     });
+
+    it.each(['interrupted', 'waiting_for_async_tool'])(
+      'agent_runtime_end with reason "%s" completes the op but does NOT mark unread (cancel/park)',
+      async (reason) => {
+        const store = createMockStore();
+        const handler = createHandler(store);
+
+        handler(makeEvent('agent_runtime_end', { reason }));
+        await flush();
+
+        expect(store.completeOperation).toHaveBeenCalledWith('op-1');
+        expect(store.markTopicUnread).not.toHaveBeenCalled();
+      },
+    );
 
     // CURRENT BEHAVIOR: completeOperation runs once in the agent_runtime_end
     // handler (gatewayEventHandler.ts:552) and again in gateway.ts
@@ -1391,18 +1407,12 @@ describe('createGatewayEventHandler', () => {
       expect(messageService.getMessages).not.toHaveBeenCalled();
     });
 
-    // (4) Operation lifecycle on the parked terminal. CURRENT BEHAVIOR
-    // (gatewayEventHandler.ts:550-557): `agent_runtime_end` ALWAYS runs the
-    // same terminal sequence regardless of `reason` — it does NOT short-circuit
-    // for `waiting_for_async_tool`. So a parked run still:
-    //   - completes the operation (completeOperation), AND
-    //   - marks the agent's unread state completed (markUnreadCompleted),
-    // because operations['op-1'].context.agentId is present. This is arguably
-    // surprising for a PAUSE (the run isn't truly finished — it's parked
-    // waiting for an async tool), but it is the behavior as written. Locking it
-    // here so the lifecycle refactor surfaces any change to whether a parked
-    // run is treated as a completed/unread run.
-    it('completes the operation AND marks unread completed on a waiting_for_async_tool park (does NOT short-circuit for the pause)', async () => {
+    // (4) Operation lifecycle on the parked terminal. A `waiting_for_async_tool`
+    // park still completes the operation and tears down tool-calling streaming,
+    // but it must NOT mark the topic unread — a park is not a finished
+    // generation, and persisting it as `unread` would leave a stale badge on a
+    // run that's only paused waiting for an async tool. (See `isCompletedRuntimeEnd`.)
+    it('completes the operation but does NOT mark unread on a waiting_for_async_tool park', async () => {
       const store = createMockStore();
       const handler = createHandler(store);
 
@@ -1413,23 +1423,20 @@ describe('createGatewayEventHandler', () => {
       handler(makeEvent('agent_runtime_end', { reason: 'waiting_for_async_tool' }));
       await flush();
 
-      // The parked terminal runs the full agent_runtime_end sequence:
+      // The parked terminal still completes the op + tears down tool streaming,
       expect(store.completeOperation).toHaveBeenCalledWith('op-1');
-      expect(store.markUnreadCompleted).toHaveBeenCalledWith('agent-1', 'topic-1');
-      // It also tears down tool-calling streaming for the current assistant.
       expect(store.internal_toggleToolCallingStreaming).toHaveBeenCalledWith(
         'msg-server',
         undefined,
       );
+      // …but does NOT surface an unread badge for the pause.
+      expect(store.markTopicUnread).not.toHaveBeenCalled();
     });
 
-    // (5) Contrast probe (mirrors the interrupted symmetry): a parked terminal
-    // with NO streamed content still marks unread completed — the
-    // markUnreadCompleted call is unconditional on `reason`/`hasStreamedContent`,
-    // it depends ONLY on the completed op having a context.agentId. This proves
-    // assertion (4) is the reason-agnostic terminal contract, not a side effect
-    // of the streamed-content path.
-    it('marks unread completed on a waiting_for_async_tool park even with NO streamed content', async () => {
+    // (5) Contrast probe: the no-mark behavior is driven by the park `reason`,
+    // not by whether content streamed — a parked terminal with NO streamed
+    // content also skips the unread mark.
+    it('does NOT mark unread on a waiting_for_async_tool park even with NO streamed content', async () => {
       const store = createMockStore();
       const handler = createHandler(store);
 
@@ -1437,7 +1444,7 @@ describe('createGatewayEventHandler', () => {
       await flush();
 
       expect(store.completeOperation).toHaveBeenCalledWith('op-1');
-      expect(store.markUnreadCompleted).toHaveBeenCalledWith('agent-1', 'topic-1');
+      expect(store.markTopicUnread).not.toHaveBeenCalled();
     });
   });
 });
