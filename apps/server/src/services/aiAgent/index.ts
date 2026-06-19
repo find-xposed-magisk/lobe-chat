@@ -1470,9 +1470,10 @@ export class AiAgentService {
         const heteroPlan = resolveExecutionPlan({
           agencyConfig: agentConfig.agencyConfig,
           canUseDevice,
-          isDesktop: false,
           isHetero: true,
+          clientExecutionAvailable: false,
           requestedDeviceId,
+          trigger: requestTriggerMetadata?.trigger,
         });
 
         if (heteroPlan.kind !== 'sandbox') {
@@ -1933,9 +1934,9 @@ export class AiAgentService {
       // engine's enabledToolIds exclusion — resolving the plan here closes
       // that bypass at the source.
       //
-      // `isDesktop` uses `gatewayConfigured` as a proxy: a device-gateway
-      // deployment serves desktop-class users, so the unset-target default
-      // resolves to `local` there and `none` otherwise.
+      // `clientExecutionAvailable` is `gatewayConfigured` here: a server with a
+      // device gateway can tunnel a `local` target to the user's device, so the
+      // unset-target default resolves to `local` there and `none` otherwise.
       //
       // Chat mode is orthogonal to `executionTarget` (the UI toggle only writes
       // `enableAgentMode`), so a default/stored `local` target would otherwise
@@ -1947,9 +1948,10 @@ export class AiAgentService {
         agencyConfig: agentConfig.agencyConfig,
         canUseDevice,
         chatConfig: agentConfig.chatConfig ?? undefined,
-        isDesktop: gatewayConfigured,
+        clientExecutionAvailable: gatewayConfigured,
         onlineDeviceIds: onlineDevices.map((device) => device.deviceId),
         requestedDeviceId,
+        trigger: requestTriggerMetadata?.trigger,
       });
       // Device tools (local-system / remote-device proxy) only exist in a
       // device-capable session — `none` and `sandbox` sessions must never see
