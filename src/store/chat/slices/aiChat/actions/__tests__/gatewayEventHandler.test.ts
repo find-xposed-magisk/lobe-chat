@@ -1098,6 +1098,67 @@ describe('createGatewayEventHandler', () => {
       expect(store.markUnreadCompleted).not.toHaveBeenCalled();
     });
 
+    it('error event preserves runtime payload errorType and budget context', async () => {
+      const store = createMockStore();
+      const handler = createHandler(store);
+      const budget = { required: 12 };
+
+      handler(
+        makeEvent('error', {
+          budget,
+          error: { message: 'Budget exceeded' },
+          errorType: 'FreePlanLimit',
+          provider: 'lobehub',
+        }),
+      );
+      await flush();
+
+      expect(messageService.updateMessageError).toHaveBeenCalledWith(
+        'msg-initial',
+        expect.objectContaining({
+          body: expect.objectContaining({
+            budget,
+            message: 'Budget exceeded',
+            provider: 'lobehub',
+          }),
+          message: 'Budget exceeded',
+          type: 'FreePlanLimit',
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('error event preserves _responseBody while merging payload error metadata', async () => {
+      const store = createMockStore();
+      const handler = createHandler(store);
+
+      handler(
+        makeEvent('error', {
+          _responseBody: {
+            error: { message: 'Payment required' },
+            provider: 'lobehub',
+          },
+          error: { status: 402 },
+          errorType: 'ProviderBizError',
+        }),
+      );
+      await flush();
+
+      expect(messageService.updateMessageError).toHaveBeenCalledWith(
+        'msg-initial',
+        expect.objectContaining({
+          body: expect.objectContaining({
+            error: { message: 'Payment required', status: 402 },
+            message: 'Payment required',
+            provider: 'lobehub',
+          }),
+          message: 'Payment required',
+          type: 'ProviderBizError',
+        }),
+        expect.anything(),
+      );
+    });
+
     // Contrast probe: agent_runtime_end on the SAME operation (which has a
     // context.agentId) DOES mark unread completed — proving the negative
     // assertion above is the error path's own behavior, not a missing agentId.

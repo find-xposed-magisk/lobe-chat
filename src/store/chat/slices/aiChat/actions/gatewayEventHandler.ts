@@ -14,6 +14,7 @@ import type {
   UIChatMessage,
 } from '@lobechat/types';
 import { AgentRuntimeErrorType } from '@lobechat/types';
+import { isRecord } from '@lobechat/utils';
 
 import { messageService } from '@/services/message';
 import { emitClientAgentSignalSourceEvent } from '@/store/chat/slices/aiChat/actions/agentSignalBridge';
@@ -155,21 +156,103 @@ const findNextAssistantMessageId = (
   }
 };
 
+const isErrorType = (value: unknown): value is ChatMessageError['type'] =>
+  typeof value === 'string' || typeof value === 'number';
+
+const getMessageFromErrorData = (data: unknown): string | undefined => {
+  if (!isRecord(data)) return undefined;
+
+  const message = data.message;
+  if (typeof message === 'string' && message) return message;
+
+  const error = data.error;
+  if (typeof error === 'string' && error) return error;
+  if (isRecord(error)) {
+    const errorMessage = error.message;
+    if (typeof errorMessage === 'string' && errorMessage) return errorMessage;
+
+    const nestedError = error.error;
+    if (isRecord(nestedError)) {
+      const nestedMessage = nestedError.message;
+      if (typeof nestedMessage === 'string' && nestedMessage) return nestedMessage;
+    }
+  }
+
+  const responseBody = data._responseBody;
+  const responseBodyMessage = getMessageFromErrorData(responseBody);
+  if (responseBodyMessage) return responseBodyMessage;
+
+  const body = data.body;
+  if (isRecord(body)) {
+    const bodyMessage = body.message;
+    if (typeof bodyMessage === 'string' && bodyMessage) return bodyMessage;
+  }
+};
+
+const mergeGatewayPayloadError = (
+  sourceBody: Record<string, unknown>,
+  payloadError: unknown,
+): Record<string, unknown> => {
+  if (payloadError === undefined) return sourceBody;
+  if (!('error' in sourceBody)) return { ...sourceBody, error: payloadError };
+  if (isRecord(sourceBody.error) && isRecord(payloadError)) {
+    return { ...sourceBody, error: { ...payloadError, ...sourceBody.error } };
+  }
+  return sourceBody;
+};
+
+const buildGatewayRuntimeErrorBody = (
+  data: Record<string, unknown>,
+  message: string,
+): Record<string, unknown> => {
+  const sourceBody = isRecord(data._responseBody)
+    ? data._responseBody
+    : isRecord(data.error)
+      ? data.error
+      : {};
+  const mergedBody =
+    data._responseBody === undefined
+      ? sourceBody
+      : mergeGatewayPayloadError(sourceBody, data.error);
+
+  return {
+    ...mergedBody,
+    ...(data.budget === undefined || 'budget' in mergedBody ? {} : { budget: data.budget }),
+    ...(typeof data.provider === 'string' && !('provider' in mergedBody)
+      ? { provider: data.provider }
+      : {}),
+    ...('message' in mergedBody ? {} : { message }),
+  };
+};
+
 const toChatMessageError = (data: unknown): ChatMessageError => {
-  if (typeof data === 'object' && data && 'type' in data && typeof data.type === 'string') {
-    const error = data as ChatMessageError;
+  if (isRecord(data) && isErrorType(data.type)) {
+    const message =
+      typeof data.message === 'string' && data.message
+        ? data.message
+        : getMessageFromErrorData({ body: data.body });
+
     return {
-      ...error,
-      message: error.message || error.body?.message,
+      ...data,
+      ...(message ? { message } : {}),
+      type: data.type,
     };
   }
 
-  const message =
-    typeof data === 'object' && data && 'message' in data && typeof data.message === 'string'
-      ? data.message
-      : typeof data === 'object' && data && 'error' in data && typeof data.error === 'string'
-        ? data.error
-        : 'Unknown error';
+  // Gateway realtime error events can carry the model-runtime payload shape
+  // (`errorType` + `error`) before the terminal DB message is refreshed. Treat
+  // it as the same semantic error instead of falling back to AgentRuntimeError.
+  if (isRecord(data) && isErrorType(data.errorType)) {
+    const message = getMessageFromErrorData(data) || String(data.errorType);
+
+    return {
+      body: buildGatewayRuntimeErrorBody(data, message),
+      message,
+      type: data.errorType,
+    };
+  }
+
+  const message = getMessageFromErrorData(data) || 'Unknown error';
 
   return {
     body: { message },
