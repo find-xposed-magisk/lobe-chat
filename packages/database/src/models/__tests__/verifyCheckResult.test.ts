@@ -145,6 +145,77 @@ describe('VerifyCheckResultModel', () => {
     expect(reloaded?.verifierTracingId).toBe(tracing.id);
   });
 
+  it('upsertByCheckItem inserts then overwrites in place on the (run, item) key', async () => {
+    const model = new VerifyCheckResultModel(serverDB, userId);
+
+    const first = await model.upsertByCheckItem({
+      checkItemId: 'c1',
+      checkItemTitle: 'first',
+      status: 'failed',
+      verdict: 'failed',
+      verifierType: 'agent',
+      verifyRunId,
+    });
+    expect(first.verdict).toBe('failed');
+
+    const second = await model.upsertByCheckItem({
+      checkItemId: 'c1',
+      checkItemTitle: 'second',
+      status: 'passed',
+      verdict: 'passed',
+      verifierType: 'agent',
+      verifyRunId,
+    });
+
+    // same row, overwritten — the unique (verify_run_id, check_item_id) guard held
+    expect(second.id).toBe(first.id);
+    expect(second.verdict).toBe('passed');
+    expect(await model.listByRun(verifyRunId)).toHaveLength(1);
+  });
+
+  it('rejects upserting a colliding check item into another user run', async () => {
+    const otherUserId = 'verify-result-other-user';
+    const otherOperationId = 'verify-result-other-op';
+    await serverDB.insert(users).values([{ id: otherUserId }]);
+    await new AgentOperationModel(serverDB, otherUserId).recordStart({
+      operationId: otherOperationId,
+    });
+    const otherRun = await new VerifyRunModel(serverDB, otherUserId).ensureForOperation(
+      otherOperationId,
+    );
+    const otherModel = new VerifyCheckResultModel(serverDB, otherUserId);
+    const original = await otherModel.upsertByCheckItem({
+      checkItemId: 'shared-check',
+      checkItemTitle: 'other owner result',
+      status: 'failed',
+      verdict: 'failed',
+      verifierType: 'agent',
+      verifyRunId: otherRun.id,
+    });
+
+    await expect(
+      new VerifyCheckResultModel(serverDB, userId).upsertByCheckItem({
+        checkItemId: 'shared-check',
+        checkItemTitle: 'attacker update',
+        status: 'passed',
+        verdict: 'passed',
+        verifierType: 'agent',
+        verifyRunId: otherRun.id,
+      }),
+    ).rejects.toThrow('not found in the current workspace');
+
+    const [reloaded] = await otherModel.listByRun(otherRun.id);
+    expect(reloaded).toMatchObject({
+      checkItemTitle: 'other owner result',
+      id: original.id,
+      userId: otherUserId,
+      verdict: 'failed',
+    });
+    expect(await new VerifyCheckResultModel(serverDB, userId).listByRun(otherRun.id)).toHaveLength(
+      0,
+    );
+  });
+
   it('updates a result by its stable (verifyRunId, checkItemId) key', async () => {
     const model = new VerifyCheckResultModel(serverDB, userId);
     await model.create({ checkItemId: 'a', checkItemIndex: 0, verifierType: 'llm', verifyRunId });
@@ -197,5 +268,20 @@ describe('VerifyRunModel plan', () => {
     const again = await model.ensureForOperation(operationId);
     expect(again.id).toBe(verifyRunId);
     expect((await model.findByOperation(operationId))?.id).toBe(verifyRunId);
+  });
+
+  it('refuses to reserve a run for an operation owned by another user', async () => {
+    const otherUserId = 'verify-run-other-user';
+    await serverDB.insert(users).values([{ id: otherUserId }]);
+    // `operationId` belongs to `userId`; the attacker must not reserve its
+    // globally-unique operation_id under their own ownership.
+    const attacker = new VerifyRunModel(serverDB, otherUserId);
+    await expect(attacker.ensureForOperation(operationId)).rejects.toThrow();
+    await expect(attacker.create({ operationId, source: 'agent-testing' })).rejects.toThrow();
+
+    // The real owner is still able to reserve / find their run.
+    expect((await new VerifyRunModel(serverDB, userId).findByOperation(operationId))?.id).toBe(
+      verifyRunId,
+    );
   });
 });
