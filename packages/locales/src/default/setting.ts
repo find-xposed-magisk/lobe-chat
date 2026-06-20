@@ -413,8 +413,8 @@ export default {
   'danger.clear.confirm': "Clear all chat data? This can't be undone.",
   'danger.clear.desc':
     'Delete all data, including agents, files, messages, and skills. Your account will NOT be deleted.',
-  'danger.clear.success': 'All session messages have been cleared',
-  'danger.clear.title': 'Wipe Data',
+  'danger.clear.success': 'All conversation messages have been cleared',
+  'danger.clear.title': 'Clear Data',
   'danger.reset.action': 'Reset Now',
   'danger.reset.confirm': 'Reset all settings?',
   'danger.reset.currentVersion': 'Current Version',
@@ -436,9 +436,9 @@ export default {
   'header.global': 'Global Settings',
   'header.group': 'Group Settings',
   'header.groupDesc': 'Manage group and chat preferences',
-  'header.session': 'Session Settings',
-  'header.sessionDesc': 'Agent Profile and session preferences',
-  'header.sessionWithName': 'Session Settings · {{name}}',
+  'header.session': 'Agent Settings',
+  'header.sessionDesc': 'Agent Profile and chat preferences',
+  'header.sessionWithName': 'Agent Settings · {{name}}',
   'header.title': 'Settings',
   'hotkey.clearBinding': 'Clear binding',
   'hotkey.conflicts': 'Conflicts with existing hotkeys',
@@ -504,7 +504,7 @@ export default {
   'llm.fetcher.noLatestTime': 'No list available yet',
   'llm.helpDoc': 'Configuration Guide',
   'llm.modelList.desc':
-    'Select the models to display in the session. The selected models will be displayed in the model list.',
+    'Select the models to display in conversations. The selected models will be displayed in the model list.',
   'llm.modelList.placeholder': 'Please select a model from the list',
   'llm.modelList.title': 'Model List',
   'llm.modelList.total': '{{count}} models available in total',
@@ -512,73 +512,7 @@ export default {
   'llm.proxyUrl.title': 'API proxy URL',
   'llm.waitingForMore': 'More models are <1>planned to be added</1>, stay tuned',
   'llm.waitingForMoreLinkAriaLabel': 'Open the Provider request form',
-  'marketPublish.forkConfirm.by': 'by {{author}}',
-  'marketPublish.forkConfirm.confirm': 'Confirm Publish',
-  'marketPublish.forkConfirm.confirmGroup': 'Confirm Publish',
-  'marketPublish.forkConfirm.description':
-    'You are about to publish a derivative version based on an existing agent from the community. Your new agent will be created as a separate entry in the marketplace.',
-  'marketPublish.forkConfirm.descriptionGroup':
-    'You are about to publish a derivative version based on an existing group from the community. Your new group will be created as a separate entry in the marketplace.',
-  'marketPublish.forkConfirm.title': 'Publish Derivative Agent',
-  'marketPublish.forkConfirm.titleGroup': 'Publish Derivative Group',
-  'marketPublish.modal.changelog.extra':
-    'Describe the key changes and improvements in this version',
-  'marketPublish.modal.changelog.label': 'Changelog',
-  'marketPublish.modal.changelog.maxLengthError': 'Changelog must not exceed 500 characters',
-  'marketPublish.modal.changelog.placeholder': 'Enter the changelog',
-  'marketPublish.modal.changelog.required': 'Please enter the changelog',
-  'marketPublish.modal.comparison.local': 'Current Local Version',
-  'marketPublish.modal.comparison.remote': 'Currently Published Version',
-  'marketPublish.modal.identifier.extra':
-    'This is the Agent’s unique identifier. Use lowercase letters, numbers, and hyphens.',
-  'marketPublish.modal.identifier.label': 'Agent Identifier',
-  'marketPublish.modal.identifier.lengthError': 'Identifier must be between 3 and 50 characters',
-  'marketPublish.modal.identifier.patternError':
-    'Identifier can only contain lowercase letters, numbers, and hyphens',
-  'marketPublish.modal.identifier.placeholder':
-    'Enter a unique identifier for the agent, e.g., web-development',
-  'marketPublish.modal.identifier.required': 'Please enter the agent identifier',
-  'marketPublish.modal.loading.fetchingRemote': 'Loading remote data...',
-  'marketPublish.modal.loading.submit': 'Submitting Agent...',
-  'marketPublish.modal.loading.submitGroup': 'Submitting Group...',
-  'marketPublish.modal.loading.upload': 'Publishing new version...',
-  'marketPublish.modal.loading.uploadGroup': 'Publishing new group version...',
-  'marketPublish.modal.messages.createVersionFailed': 'Failed to create version: {{message}}',
-  'marketPublish.modal.messages.fetchRemoteFailed': 'Failed to fetch remote agent data',
-  'marketPublish.modal.messages.missingIdentifier':
-    'This Agent doesn’t have a Community identifier yet.',
-  'marketPublish.modal.messages.noGroup': 'No group selected',
-  'marketPublish.modal.messages.notAuthenticated': 'Sign in to your Community account first.',
-  'marketPublish.modal.messages.publishFailed': 'Publish failed: {{message}}',
-  'marketPublish.modal.submitButton': 'Publish',
-  'marketPublish.modal.title.submit': 'Share to Agent Community',
-  'marketPublish.modal.title.upload': 'Publish New Version',
-  'marketPublish.resultModal.message':
-    'Your Agent has been submitted for review. Once approved, it will go live automatically.',
-  'marketPublish.resultModal.messageGroup':
-    'Your Group has been submitted for review. Once approved, it will go live automatically.',
-  'marketPublish.resultModal.title': 'Submission Successful',
-  'marketPublish.resultModal.view': 'View in Community',
   'marketPublish.status.underReview': 'Under Review',
-  'marketPublish.submit.button': 'Share to Community',
-  'marketPublish.submit.tooltip': 'Share this Agent to the Community',
-  'marketPublish.submitGroup.tooltip': 'Share this Group to the Community',
-  'marketPublish.upload.button': 'Publish New Version',
-  'marketPublish.upload.tooltip': 'Publish a new version to Agent Community',
-  'marketPublish.uploadGroup.tooltip': 'Publish a new version to Group Community',
-  'marketPublish.validation.communitySetupRequired.action': 'Set Up Now',
-  'marketPublish.validation.communitySetupRequired.desc':
-    "This workspace hasn't set up its Community profile yet. Set it up before publishing to the Community.",
-  'marketPublish.validation.communitySetupRequired.memberHint':
-    "This workspace hasn't set up its Community profile yet. Ask a workspace owner to set it up before publishing to the Community.",
-  'marketPublish.validation.communitySetupRequired.title': 'Set Up Community Profile First',
-  'marketPublish.validation.confirmPublish': 'Publish to the Market?',
-  'marketPublish.validation.confirmPublishDesc':
-    'Once published, this content will be publicly visible in the market and available for anyone to discover and use.',
-  'marketPublish.validation.emptyName': 'Cannot publish: Name is required',
-  'marketPublish.validation.emptySystemRole': 'Cannot publish: System Role is required',
-  'marketPublish.validation.underReview':
-    'Your new version is currently under review. Please wait for approval before publishing a new version.',
   'memory.effort.desc': 'Control how aggressively the AI retrieves and updates memory.',
   'memory.effort.high': 'High — Proactive retrieval and updates',
   'memory.effort.level.high': 'High',
@@ -626,14 +560,6 @@ export default {
   'myAgents.actions.deprecateLoading': 'Deprecating agent...',
   'myAgents.actions.deprecateSuccess': 'Agent deprecated',
   'myAgents.actions.edit': 'Edit Agent',
-  'myAgents.actions.publish': 'Publish Agent',
-  'myAgents.actions.publishError': 'Failed to publish agent',
-  'myAgents.actions.publishLoading': 'Publishing agent...',
-  'myAgents.actions.publishSuccess': 'Agent published',
-  'myAgents.actions.unpublish': 'Unpublish Agent',
-  'myAgents.actions.unpublishError': 'Failed to unpublish agent',
-  'myAgents.actions.unpublishLoading': 'Unpublishing agent...',
-  'myAgents.actions.unpublishSuccess': 'Agent unpublished',
   'myAgents.actions.viewDetail': 'View Details',
   'myAgents.detail.category': 'Category',
   'myAgents.detail.description': 'Description',
@@ -662,7 +588,6 @@ export default {
   'plugin.settings.title': '{{id}} Skill Configuration',
   'plugin.settings.tooltip': 'Skill Configuration',
   'plugin.store': 'Skill Store',
-  'publishToCommunity': 'Publish to Community',
   'settingAgent.avatar.sizeExceeded': 'Image size exceeds 1MB limit, please choose a smaller image',
   'settingAgent.avatar.title': 'Avatar',
   'settingAgent.backgroundColor.title': 'Background Color',
@@ -794,14 +719,14 @@ export default {
   'settingGroup.scene.options.productive': 'Productive',
   'settingGroup.scene.title': 'Group scenario',
   'settingGroup.submit': 'Update Group',
-  'settingGroup.systemPrompt.placeholder': 'Please enter the host system prompt',
-  'settingGroup.systemPrompt.title': 'Host System Prompt',
+  'settingGroup.systemPrompt.placeholder': 'Please enter the Orchestrator system prompt',
+  'settingGroup.systemPrompt.title': 'Orchestrator System Prompt',
   'settingGroup.title': 'Group Information',
   'settingGroupChat.allowDM.desc':
     'When turned off, you can still send direct messages to the agent',
   'settingGroupChat.allowDM.title': 'Allow Direct Messages from Agent',
   'settingGroupChat.enableSupervisor.desc':
-    'Enable the moderator feature to manage Group conversations',
+    'Enable the Orchestrator feature to manage Group conversations',
   'settingGroupChat.enableSupervisor.title': 'Enable Orchestrator',
   'settingGroupChat.maxResponseInRow.desc':
     'Select how many consecutive messages a member can reply with. Set to 0 to disable this limit.',
@@ -825,9 +750,10 @@ export default {
   'settingGroupChat.revealDM.title': 'Show Private Messages',
   'settingGroupChat.submit': 'Update Settings',
   'settingGroupChat.systemPrompt.desc':
-    'Custom system prompt for the group chat host. This may affect the default host behavior.',
-  'settingGroupChat.systemPrompt.placeholder': 'Please enter a custom host system prompt...',
-  'settingGroupChat.systemPrompt.title': 'Host System Prompt',
+    'Custom system prompt for the group chat Orchestrator. This may affect the default Orchestrator behavior.',
+  'settingGroupChat.systemPrompt.placeholder':
+    'Please enter a custom Orchestrator system prompt...',
+  'settingGroupChat.systemPrompt.title': 'Orchestrator System Prompt',
   'settingGroupChat.title': 'Chat Settings',
   'settingGroupMembers.addToGroup': 'Add to Group',
   'settingGroupMembers.availableAgents': 'Available Agents',
@@ -1113,14 +1039,6 @@ When I am ___, I need ___
   'storageOverage.usage.estimatedCharge': 'Est. Cycle Charge',
   'storageOverage.usage.incurredCharge': 'Incurred This Cycle',
   'storageOverage.usage.overage': 'Overage',
-  'submitAgentModal.button': 'Submit Agent',
-  'submitAgentModal.identifier': 'Agent Identifier',
-  'submitAgentModal.metaMiss':
-    'Please complete the agent information before submitting. It should include name, description, and tags',
-  'submitAgentModal.placeholder': 'Enter a unique identifier for the agent, e.g. web-development',
-  'submitAgentModal.success': 'Agent submitted successfully',
-  'submitAgentModal.tooltips': 'Share to Agent Community',
-  'submitGroupModal.tooltips': 'Share to Group Community',
   'sync.device.deviceName.hint': 'Add a name for easy identification',
   'sync.device.deviceName.placeholder': 'Enter device name',
   'sync.device.deviceName.title': 'Device Name',
@@ -1610,8 +1528,7 @@ When I am ___, I need ___
     'All agents, skills, and their configurations',
   'workspace.general.delete.confirm.warning.items.billing':
     'Subscription, budget settings, and auto top-up',
-  'workspace.general.delete.confirm.warning.items.conversations':
-    'All sessions, messages, topics, and tasks',
+  'workspace.general.delete.confirm.warning.items.conversations': 'All messages, topics, and tasks',
   'workspace.general.delete.confirm.warning.items.files':
     'Uploaded files, generations, and knowledge base data',
   'workspace.general.delete.confirm.warning.items.members':
@@ -1622,7 +1539,7 @@ When I am ___, I need ___
     'This cannot be undone. Spend and top-up history will be retained for audit only.',
   'workspace.general.delete.cta': 'Delete Workspace',
   'workspace.general.delete.description':
-    'Permanently delete this workspace and everything inside it — agents, sessions, messages, files, members, and invitations. This action cannot be reversed.',
+    'Permanently delete this workspace and everything inside it — agents, messages, files, members, and invitations. This action cannot be reversed.',
   'workspace.general.delete.failed': 'Failed to delete workspace',
   'workspace.general.delete.hint':
     'Cancel any active subscription before deletion. Billing history is kept for audit.',
@@ -2190,7 +2107,7 @@ When I am ___, I need ___
   'workspaceSetting.storage.comingSoon': 'Workspace-scoped data import & export is coming soon.',
   'workspaceSetting.storage.danger.clear.desc':
     'Delete all data in this workspace, including agents, files, messages, and skills. The workspace itself will NOT be deleted.',
-  'workspaceSetting.storage.danger.clear.title': 'Wipe Workspace Data',
+  'workspaceSetting.storage.danger.clear.title': 'Clear Workspace Data',
   'workspaceSetting.storage.danger.reset.desc':
     'Restore all workspace settings to defaults. Workspace data will not be deleted.',
   'workspaceSetting.storage.danger.reset.title': 'Reset Workspace Settings',
@@ -2541,6 +2458,7 @@ When I am ___, I need ___
   'tools.activation.auto': 'Auto',
   'tools.activation.auto.desc': 'Smart',
   'tools.activation.fixed.hint': 'Always on — managed by the app and can’t be turned off',
+  'tools.activation.pin': 'Pin',
   'tools.activation.pinned': 'Pinned',
   'tools.activation.pinned.desc': 'Always On',
   'tools.skillActivateMode.auto.desc':

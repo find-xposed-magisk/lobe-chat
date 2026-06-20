@@ -1,4 +1,4 @@
-import { type NavigateFunction } from 'react-router-dom';
+import { type NavigateFunction } from 'react-router';
 
 import { type MigrationSQL, type MigrationTableItem } from '@/types/clientDB';
 import { DatabaseLoadingState } from '@/types/clientDB';
@@ -286,7 +286,6 @@ export interface SystemStatus {
    * can switch the panel to "review" when revealing the right panel.
    */
   workingSidebarTab?: WorkingSidebarTab;
-  zenMode?: boolean;
 }
 
 export interface GlobalNavigationRef {
@@ -395,7 +394,6 @@ export const INITIAL_STATUS = {
   videoPanelWidth: 320,
   videoTopicViewMode: 'grid' as const,
   videoTopicPanelWidth: 80,
-  zenMode: false,
 } satisfies SystemStatus;
 
 export const initialState: GlobalState = {

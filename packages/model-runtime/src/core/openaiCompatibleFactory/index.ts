@@ -8,9 +8,16 @@ import type { ClientOptions } from 'openai';
 import OpenAI from 'openai';
 import type { Stream } from 'openai/streaming';
 
-import { isGPT5ProResponsesModel, responsesAPIModels } from '../../const/models';
 import { ErrorClassifier } from '../../errors';
+import {
+  isGPT5ProResponsesModel,
+  isResponsesAPIModel,
+  supportsGPT5ResponsesReasoningEffortNone,
+} from '../../providers/openai/openaiModelId';
 import type {
+  ASROptions,
+  ASRPayload,
+  ASRResponse,
   ChatCompletionErrorPayload,
   ChatCompletionTool,
   ChatMethodOptions,
@@ -121,9 +128,6 @@ const getGenerateObjectReasoningParams = ({
   ...(reasoning_effort && thinking?.type !== 'disabled' ? { reasoning_effort } : {}),
 });
 
-const supportsResponsesReasoningEffortNone = (model: string): boolean =>
-  /(?:^|\/)gpt-5\.[1-9]\d*(?:-(?!pro(?:-|$))|$)/.test(model);
-
 const getGenerateObjectResponsesReasoningParams = ({
   model,
   reasoning_effort,
@@ -134,7 +138,7 @@ const getGenerateObjectResponsesReasoningParams = ({
   }
 
   if (thinking?.type === 'disabled') {
-    return supportsResponsesReasoningEffortNone(model) ? { reasoning: { effort: 'none' } } : {};
+    return supportsGPT5ResponsesReasoningEffortNone(model) ? { reasoning: { effort: 'none' } } : {};
   }
 
   return reasoning_effort && reasoning_effort !== 'max'
@@ -368,10 +372,10 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
 
       const log = debug(`${this.logPrefix}:shouldUseResponsesAPI`);
 
-      // Priority 0: Check built-in responsesAPIModels FIRST (highest priority)
-      // These models MUST use Responses API regardless of user settings
-      if (model && responsesAPIModels.has(model)) {
-        log('using Responses API: model %s in built-in responsesAPIModels (forced)', model);
+      // Priority 0: Check built-in Responses API model rules FIRST (highest priority)
+      // These models MUST use Responses API regardless of user settings.
+      if (model && isResponsesAPIModel(model)) {
+        log('using Responses API: model %s matches built-in Responses API model rules', model);
         return true;
       }
 
@@ -574,6 +578,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
           forceVideoBase64: chatCompletion?.forceVideoBase64,
           model: postPayload.model,
         });
+        const includeUsageRequested = Boolean(postPayload.stream && !chatCompletion?.excludeUsage);
 
         let response: Stream<OpenAI.Chat.Completions.ChatCompletionChunk>;
 
@@ -581,6 +586,8 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
           bizErrorTypeTransformer: chatCompletion?.handleStreamBizErrorType,
           callbacks: options?.callback,
           payload: {
+            apiMode: 'chat_completions',
+            includeUsageRequested,
             model: payload.model,
             pricing: await getModelPricing(payload.model, this.id),
             provider: this.id,
@@ -627,10 +634,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
               options?.user,
               cleanedPayload.prompt_cache_key,
             ),
-            stream_options:
-              postPayload.stream && !chatCompletion?.excludeUsage
-                ? { include_usage: true }
-                : undefined,
+            stream_options: includeUsageRequested ? { include_usage: true } : undefined,
           };
 
           log('sending chat completion request with %d messages', messages.length);
@@ -853,7 +857,6 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
       options: GenerateObjectOptions | undefined,
       usagePayload: Parameters<typeof convertOpenAIUsage>[1],
     ) {
-      const log = debug(`${this.logPrefix}:generateObject`);
       const { messages, schema, model } = payload;
 
       // Apply schema transformation if configured
@@ -1112,6 +1115,39 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
       }
     }
 
+    async transcribe(payload: ASRPayload, options?: ASROptions): Promise<ASRResponse> {
+      const log = debug(`${this.logPrefix}:transcribe`);
+      const { file, fileName, model, language, prompt, responseFormat, temperature } = payload;
+      log('transcribe called with model: %s, audio size: %d bytes', model, file?.size || 0);
+
+      try {
+        // The OpenAI SDK only accepts `File` uploads; wrap bare blobs so the
+        // provider can infer the audio format from the file extension.
+        const uploadFile =
+          file instanceof File ? file : new File([file], fileName || 'audio', { type: file.type });
+
+        const transcription = await this.client.audio.transcriptions.create(
+          {
+            file: uploadFile,
+            language,
+            model,
+            prompt,
+            response_format: responseFormat,
+            temperature,
+          },
+          { headers: options?.headers, signal: options?.signal },
+        );
+
+        const text =
+          typeof transcription === 'string' ? transcription : ((transcription as any).text ?? '');
+        log('transcription completed, text length: %d', text.length);
+
+        return { text };
+      } catch (error) {
+        throw this.handleError(error);
+      }
+    }
+
     protected handleError(error: any): ChatCompletionErrorPayload {
       const log = debug(`${this.logPrefix}:error`);
       log('handling error: %O', error);
@@ -1250,7 +1286,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
         return AgentRuntimeError.chat({
           endpoint: desensitizedEndpoint,
           error: errorResult,
-          errorType: AgentRuntimeErrorType.QuotaLimitReached,
+          errorType: AgentRuntimeErrorType.RateLimitExceeded,
           message,
           provider: this.id,
         });
@@ -1347,6 +1383,7 @@ export const createOpenAICompatibleRuntime = <T extends Record<string, any> = an
         bizErrorTypeTransformer: chatCompletion?.handleStreamBizErrorType,
         callbacks: options?.callback,
         payload: {
+          apiMode: 'responses',
           model: payload.model,
           pricing: await getModelPricing(payload.model, this.id),
           provider: this.id,

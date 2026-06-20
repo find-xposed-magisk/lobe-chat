@@ -176,6 +176,38 @@ describe('ClaudeCodeAdapter', () => {
       });
     });
 
+    it('does not treat an allowed rate_limit_event window as a quota limit on a later network error', () => {
+      const adapter = new ClaudeCodeAdapter();
+      // CC stamps a rate_limit_info onto an *allowed* request — it carries the
+      // rolling-window metadata (resetsAt / rateLimitType) even though nothing
+      // was rejected. A later ECONNRESET must surface as a generic error, NOT
+      // inherit this window and render a bogus "usage limit reached" guide.
+      const rawError = 'API Error: Unable to connect to API (ECONNRESET)';
+
+      adapter.adapt({ subtype: 'init', type: 'system' });
+      adapter.adapt({
+        rate_limit_info: {
+          isUsingOverage: false,
+          rateLimitType: 'five_hour',
+          resetsAt: 1_781_853_000,
+          status: 'allowed',
+        },
+        type: 'rate_limit_event',
+      });
+
+      const events = adapter.adapt({
+        api_error_status: null,
+        is_error: true,
+        result: rawError,
+        type: 'result',
+      });
+
+      expect(events.map((e) => e.type)).toEqual(['stream_end', 'error']);
+      expect(events[1].data).toMatchObject({ error: rawError, message: rawError });
+      expect(events[1].data).not.toHaveProperty('code', 'rate_limit');
+      expect(events[1].data).not.toHaveProperty('rateLimitInfo');
+    });
+
     it('classifies rate-limit failures from paired rate_limit_event + result events', () => {
       const adapter = new ClaudeCodeAdapter();
       const rawError = "You've hit your limit · resets 9am (Asia/Shanghai)";
@@ -2558,6 +2590,51 @@ describe('ClaudeCodeAdapter', () => {
       ).toBeUndefined();
     });
 
+    /**
+     * Real-world regression (recorded on tpc_joZS2mksoY5L): a slow `git commit`
+     * (running a lint-staged hook) makes CC track the Bash call as a task and
+     * emit `task_started` + `task_notification` back-to-back, with NO out-of-band
+     * callback turn in between, immediately followed by the tool_result. That is
+     * an inline synchronous tool, not a Monitor-style long-running task — the next
+     * turn is the normal main-chain continuation and must NOT be tagged
+     * `task-completion` (doing so mis-anchors it and drops it from the rendered
+     * chain).
+     */
+    it('does NOT tag the next turn when a task started and ended with no callbacks (inline tool)', () => {
+      const adapter = new ClaudeCodeAdapter();
+      init(adapter);
+
+      // A Bash `git commit` tool_use.
+      adapter.adapt({
+        message: {
+          content: [
+            {
+              id: 'toolu_commit',
+              input: { command: 'git commit' },
+              name: 'Bash',
+              type: 'tool_use',
+            },
+          ],
+          id: 'msg_01',
+        },
+        type: 'assistant',
+      });
+
+      // CC tracks the slow commit as a task, then notifies completion
+      // back-to-back — NO callback turn opened while it was alive.
+      adapter.adapt(ccTaskStarted('task_1', 'toolu_commit'));
+      adapter.adapt(ccTaskNotification('task_1'));
+
+      // The commit's tool_result is consumed inline by the next turn.
+      adapter.adapt(ccUser('toolu_commit', 'committed'));
+
+      // Next turn is plain continuation — must carry NO externalSignal.
+      const next = adapter.adapt(ccMessageStart('msg_02'));
+      expect(
+        next.find((e) => e.type === 'stream_start' && e.data?.newStep)!.data.externalSignal,
+      ).toBeUndefined();
+    });
+
     it('clears unconsumed task-completion lineage on `result`', () => {
       const adapter = new ClaudeCodeAdapter();
       init(adapter);
@@ -2572,13 +2649,18 @@ describe('ClaudeCodeAdapter', () => {
       adapter.adapt(ccTaskStarted('task_1', 'toolu_mon'));
       adapter.adapt(ccUser('toolu_mon', 'Monitor started'));
       adapter.adapt(ccMessageStart('msg_02'));
+      // A signal callback fires while the task is alive (callbackCount > 0), so
+      // `task_notification` genuinely arms pendingTaskCompletion — otherwise (an
+      // inline tool with no callbacks) nothing is armed and this test would pass
+      // vacuously, no longer guarding the `result` clear path.
+      adapter.adapt(ccMessageStart('msg_03'));
       adapter.adapt(ccTaskNotification('task_1'));
       // Run ends before the summary turn fires (unusual but possible).
       adapter.adapt({ result: 'ok', type: 'result', usage: undefined });
 
       // A later turn (e.g. follow-up user message) must NOT inherit
-      // the unconsumed task-completion lineage.
-      const next = adapter.adapt(ccMessageStart('msg_03'));
+      // the unconsumed task-completion lineage — `result` dropped it.
+      const next = adapter.adapt(ccMessageStart('msg_04'));
       expect(
         next.find((e) => e.type === 'stream_start' && e.data?.newStep)!.data.externalSignal,
       ).toBeUndefined();

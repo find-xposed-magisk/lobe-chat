@@ -323,7 +323,11 @@ const PlusAction = memo(() => {
   const isMemoryEnabled = useMemoryEnabled(agentId);
   const [showTypoBar, setShowTypoBar] = useChatInputStore((s) => [s.showTypoBar, s.setShowTypoBar]);
   const editor = useChatInputStore((s) => s.editor);
-  const { canUploadImage, canUploadVideo } = useVisualMediaUploadAbility(model, provider);
+  const { canUploadImage, canUploadVideo, canUploadAudio } = useVisualMediaUploadAbility(
+    model,
+    provider,
+    agentId,
+  );
   const enableFC = useModelSupportToolUse(model, provider);
   const handleOpenKnowledge = useCallback(() => {
     setDropdownOpen(false);
@@ -436,7 +440,8 @@ const PlusAction = memo(() => {
 
     const renderGatewayModeLabel = () => (
       <span className={cx(gatewayModeLabel)}>
-        <span className="title">{t('gatewayMode.title')}</span>
+        {/* Brand name — same in every language, so no i18n. */}
+        <span className="title">Agent Gateway</span>
         <Tag color={'info'} size={'small'} variant={'filled'}>
           {t('gatewayMode.beta')}
         </Tag>
@@ -451,7 +456,7 @@ const PlusAction = memo(() => {
           src={isDark ? '/images/agent_gateway_dark.webp' : '/images/agent_gateway_light.webp'}
         />
         <div className="body">
-          <div className="title">{t('gatewayMode.title')}</div>
+          <div className="title">{t('gatewayMode.cardTitle')}</div>
           <div className="desc">{t('gatewayMode.desc')}</div>
         </div>
       </div>
@@ -472,6 +477,7 @@ const PlusAction = memo(() => {
             beforeUpload={async (file) => {
               if (file.type.startsWith('image') && !canUploadImage) return false;
               if (file.type.startsWith('video') && !canUploadVideo) return false;
+              if (file.type.startsWith('audio') && !canUploadAudio) return false;
               const validation = validateVideoFileSize(file);
               if (!validation.isValid) {
                 message.error(
@@ -665,6 +671,7 @@ const PlusAction = memo(() => {
     activeSearchOption,
     canUploadImage,
     canUploadVideo,
+    canUploadAudio,
     editor,
     enableFC,
     enableGatewayMode,
