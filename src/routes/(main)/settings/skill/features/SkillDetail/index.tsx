@@ -17,6 +17,8 @@ import { useToolStore } from '@/store/tool';
 import { builtinToolSelectors, lobehubSkillStoreSelectors } from '@/store/tool/selectors';
 import { connectorSelectors } from '@/store/tool/slices/connector';
 
+import { getLocalizedBuiltinSkillDetail, getNoPermissionsTitle } from './localization';
+
 const AgentSkillDetail = lazy(() => import('@/features/AgentSkillDetail'));
 
 export type ToolDetailType =
@@ -150,6 +152,7 @@ LobehubConnectorAction.displayName = 'LobehubConnectorAction';
  */
 const SkillDetail = memo<SkillDetailProps>(({ identifier, type, onDelete }) => {
   const { t } = useTranslation('plugin');
+  const { t: ts } = useTranslation('setting');
   const [syncing, setSyncing] = useState(false);
   const [noManifest, setNoManifest] = useState(false);
 
@@ -186,6 +189,10 @@ const SkillDetail = memo<SkillDetailProps>(({ identifier, type, onDelete }) => {
     type === 'plugin' ||
     type === 'mcp-connector' ||
     type === 'lobehub-connector';
+
+  const { title: builtinSkillTitle, description: builtinSkillDescription } =
+    getLocalizedBuiltinSkillDetail(builtinSkill, identifier, ts);
+  const noPermissionsTitle = getNoPermissionsTitle(identifier, type, ts);
 
   const renderLobehubConnectorAction = (onDisconnected?: () => void) => {
     if (type !== 'lobehub-connector') return undefined;
@@ -318,9 +325,9 @@ const SkillDetail = memo<SkillDetailProps>(({ identifier, type, onDelete }) => {
           <div style={{ alignItems: 'flex-start', display: 'flex', gap: 12 }}>
             {builtinSkill?.avatar && <Avatar avatar={builtinSkill.avatar} size={40} />}
             <div>
-              <div className={styles.name}>{builtinSkill?.name || identifier}</div>
-              {builtinSkill?.description && (
-                <div className={styles.description}>{builtinSkill.description}</div>
+              <div className={styles.name}>{builtinSkillTitle}</div>
+              {builtinSkillDescription && (
+                <div className={styles.description}>{builtinSkillDescription}</div>
               )}
             </div>
           </div>
@@ -363,10 +370,12 @@ const SkillDetail = memo<SkillDetailProps>(({ identifier, type, onDelete }) => {
     return (
       <div className={styles.noPermissions}>
         <div className={styles.noPermissionsHeader}>
-          <div className={styles.noPermissionsTitle}>{lobehubLabel}</div>
+          <div className={styles.noPermissionsTitle}>
+            {type === 'lobehub-connector' ? lobehubLabel : noPermissionsTitle}
+          </div>
           {renderLobehubConnectorAction()}
         </div>
-        This skill does not expose configurable tool permissions.
+        {ts('tools.noConfigurablePermissions')}
       </div>
     );
   }

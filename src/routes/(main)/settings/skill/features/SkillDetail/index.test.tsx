@@ -124,6 +124,8 @@ vi.mock('react-i18next', () => ({
         'tools.lobehubSkill.disconnect': 'Disconnect',
         'tools.lobehubSkill.disconnectConfirm.desc': `Disconnect ${(options as { name?: string })?.name}?`,
         'tools.lobehubSkill.disconnectConfirm.title': `Disconnect ${(options as { name?: string })?.name}`,
+        'tools.noConfigurablePermissions':
+          'This skill does not expose configurable tool permissions.',
       };
 
       if (translations[key]) return translations[key];

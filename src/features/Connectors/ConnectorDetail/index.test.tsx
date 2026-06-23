@@ -41,8 +41,14 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (_key: string, fallback?: string) => fallback ?? _key,
+    t: (_key: string, options?: { defaultValue?: string } | string) =>
+      typeof options === 'object' ? (options.defaultValue ?? _key) : (options ?? _key),
   }),
+}));
+
+vi.mock('@lobechat/const', () => ({
+  getComposioAppByIdentifier: () => undefined,
+  getLobehubSkillProviderById: () => undefined,
 }));
 
 vi.mock('antd', () => ({
