@@ -18,7 +18,11 @@ import { useAgentGroupStore } from '@/store/agentGroup';
 import { agentGroupSelectors } from '@/store/agentGroup/selectors';
 import { useGlobalStore } from '@/store/global';
 import { useUserStore } from '@/store/user';
-import { userGeneralSettingsSelectors, userProfileSelectors } from '@/store/user/selectors';
+import {
+  labPreferSelectors,
+  userGeneralSettingsSelectors,
+  userProfileSelectors,
+} from '@/store/user/selectors';
 
 import { ReactionDisplay } from '../../components/Reaction';
 import { useAgentMeta } from '../../hooks';
@@ -60,7 +64,7 @@ interface GroupMessageProps {
 }
 
 const GroupMessage = memo<GroupMessageProps>(
-  ({ defaultWorkflowExpandLevel, id, index, disableEditing, footerRender }) => {
+  ({ defaultWorkflowExpandLevel, id, index, disableEditing, footerRender, isLatestItem }) => {
     // Get message and actionsConfig from ConversationStore
     const item = useConversationStore(dataSelectors.getDisplayMessageById(id), isEqual)!;
 
@@ -121,6 +125,7 @@ const GroupMessage = memo<GroupMessageProps>(
     const interrupted = groupInterrupted || blockInterrupted;
 
     const isDevMode = useUserStore((s) => userGeneralSettingsSelectors.config(s).isDevMode);
+    const enableProcessFold = useUserStore(labPreferSelectors.enableFoldFinishedTurn);
     const addReaction = useConversationStore((s) => s.addReaction);
     const removeReaction = useConversationStore((s) => s.removeReaction);
     const userId = useUserStore(userProfileSelectors.userId)!;
@@ -225,7 +230,9 @@ const GroupMessage = memo<GroupMessageProps>(
               contentId={contentId}
               defaultWorkflowExpandLevel={defaultWorkflowExpandLevel}
               disableEditing={disableEditing}
+              enableProcessFold={enableProcessFold}
               id={id}
+              isLatestItem={isLatestItem}
               messageIndex={index}
             />
           )}
