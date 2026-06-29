@@ -1,10 +1,10 @@
 import { isDesktop } from '@lobechat/const';
 import { ActionIcon, DropdownMenu, Flexbox, Icon } from '@lobehub/ui';
-import { confirmModal } from '@lobehub/ui/base-ui';
+import { confirmModal, type ModalInstance } from '@lobehub/ui/base-ui';
 import isEqual from 'fast-deep-equal';
 import type { TFunction } from 'i18next';
 import { BotMessageSquareIcon, Download, MoreHorizontal, Settings2Icon, Trash } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useAgentTransferMenuItem } from '@/business/client/hooks/useAgentTransferMenuItem';
@@ -22,6 +22,7 @@ import { systemStatusSelectors } from '@/store/global/selectors';
 import { useHomeStore } from '@/store/home';
 import { sanitizeFileName } from '@/utils/sanitizeFileName';
 
+import { openAgentSettingsModal } from '../AgentSettings';
 import { selectors as profileSelectors, useProfileStore } from '../store';
 import AgentForkTag from './AgentForkTag';
 import AgentStatusTag from './AgentStatusTag';
@@ -114,7 +115,9 @@ const Header = memo(() => {
 
   const handleExportMarkdown = useCallback(async () => {
     try {
-      const editorMarkdown = editor?.getDocument('markdown') as string | null | undefined;
+      const editorMarkdown = isHeterogeneous
+        ? undefined
+        : (editor?.getDocument('markdown') as string | null | undefined);
       const profileMarkdown = buildAgentProfileMarkdown({
         description: meta?.description,
         model: config.model,
@@ -155,10 +158,19 @@ const Header = memo(() => {
       console.error('Failed to export agent profile markdown:', error);
       message.error(t('settingAgent.export.error', { ns: 'setting' }));
     }
-  }, [config.model, config.plugins, config.provider, editor, meta, systemRole, t]);
+  }, [config.model, config.plugins, config.provider, editor, isHeterogeneous, meta, systemRole, t]);
 
   const importMenuItem = useBusinessAgentImportMenuItem(activeAgentId ?? undefined);
-  const transferMenuItems = useAgentTransferMenuItem(activeAgentId ?? undefined);
+  const transferMenuItems = useAgentTransferMenuItem(activeAgentId ?? undefined, meta);
+
+  const settingsModalRef = useRef<ModalInstance | null>(null);
+  useEffect(
+    () => () => {
+      settingsModalRef.current?.close();
+      settingsModalRef.current = null;
+    },
+    [],
+  );
 
   const menuItems = useMemo(() => {
     const businessTransferMenuItems = transferMenuItems ?? [];
@@ -168,7 +180,10 @@ const Header = memo(() => {
         icon: <Icon icon={Settings2Icon} />,
         key: 'advanced-settings',
         label: t('advancedSettings', { ns: 'setting' }),
-        onClick: () => useAgentStore.setState({ showAgentSetting: true }),
+        onClick: () => {
+          settingsModalRef.current?.close();
+          settingsModalRef.current = openAgentSettingsModal();
+        },
       },
       { type: 'divider' as const },
       {

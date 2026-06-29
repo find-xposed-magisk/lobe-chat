@@ -6,13 +6,14 @@ import {
   type RecordOperationStartParams,
 } from '@/database/models/agentOperation';
 import { MessageModel } from '@/database/models/message';
+import { VerifyRunModel } from '@/database/models/verifyRun';
 import { type LobeChatDatabase } from '@/database/type';
 import { formatErrorForState } from '@/server/modules/AgentRuntime/formatErrorForState';
 import { buildFinalSnapshotKey } from '@/server/modules/AgentTracing';
 import { emitAgentSignalSourceEvent } from '@/server/services/agentSignal';
 import { toAgentSignalTraceEvents } from '@/server/services/agentSignal/observability/traceEvents';
 import { extractSelfIterationCompletionPayload } from '@/server/services/agentSignal/services/selfIteration/completion';
-import { runVerifyOnCompletion } from '@/server/services/verify';
+import { instantiateVerifyPlanOnStart, runVerifyOnCompletion } from '@/server/services/verify';
 
 import { hookDispatcher } from './hooks';
 
@@ -46,6 +47,13 @@ export class CompletionLifecycle {
   private readonly messageModel: MessageModel;
   private readonly agentOperationModel: AgentOperationModel;
   private readonly workspaceId?: string;
+  /**
+   * In-flight verify-plan instantiations started in {@link recordStart}, keyed by
+   * operationId. `dispatchHooks` awaits the matching one before running the
+   * completion gate so a very short / no-op task run can't race past its own plan
+   * (instantiation is fire-and-forget at start and may not have settled yet).
+   */
+  private readonly verifyPlanInstantiations = new Map<string, Promise<void>>();
 
   constructor(
     private readonly serverDB: LobeChatDatabase,
@@ -67,6 +75,25 @@ export class CompletionLifecycle {
       await this.agentOperationModel.recordStart(params);
     } catch (error) {
       log('[%s] Failed to record operation start (non-fatal): %O', params.operationId, error);
+    }
+
+    // Auto-instantiate the task's verify plan at run start so the completion gate
+    // fires. Only for a top-level task operation — repair / verifier sub-agents
+    // (which carry a parentOperationId) get their plan from the repair path, not
+    // here. Fire-and-forget; never blocks startup. We keep the promise (instead of
+    // void-ing it) so `dispatchHooks` can await it before the completion gate runs
+    // — a fast run can otherwise complete first and the gate would no-op on a plan
+    // that lands moments later. (instantiateVerifyPlanOnStart never rejects.)
+    if (params.taskId && !params.parentOperationId) {
+      this.verifyPlanInstantiations.set(
+        params.operationId,
+        instantiateVerifyPlanOnStart(
+          this.serverDB,
+          this.userId,
+          { operationId: params.operationId, taskId: params.taskId },
+          this.workspaceId,
+        ),
+      );
     }
   }
 
@@ -135,7 +162,16 @@ export class CompletionLifecycle {
         error: state?.error ?? null,
         interruption: state?.interruption ?? null,
         llmCalls: state?.usage?.llm?.apiCalls ?? null,
+        // Backfill the executed model/provider when the terminal state carries
+        // them. The in-process runtime sets neither on `state` (the op already
+        // holds them from recordStart) so these stay undefined and recordCompletion
+        // skips them — a no-op. A heterogeneous run, which only learns its real
+        // model from the CLI stream, feeds them in via the synthetic state built in
+        // heteroFinish; the verify gate keys off op.model/provider, so dropping this
+        // backfill would leave op.model null and silently skip verify.
+        model: state?.model,
         processingTimeMs,
+        provider: state?.provider,
         status,
         stepCount: state?.stepCount ?? null,
         toolCalls: state?.usage?.tools?.totalCalls ?? null,
@@ -189,14 +225,16 @@ export class CompletionLifecycle {
    */
   async emitSignalEvents(operationId: string, state: any, reason: string): Promise<SignalEvent[]> {
     try {
-      const { metadata } = this.buildLifecycleEvent(operationId, state, reason);
+      const { assistantMessageId, metadata } = this.buildLifecycleEvent(operationId, state, reason);
       const selfIteration =
         reason === 'error' ? undefined : extractSelfIterationCompletionPayload(state);
       if (reason !== 'error') {
         log(
-          '[completion-lifecycle] emit agent.execution.completed op=%s userId=%s selfIteration=%s',
+          '[completion-lifecycle] emit agent.execution.completed op=%s userId=%s assistant=%s metaAssistant=%s selfIteration=%s',
           operationId,
           metadata?.userId || this.userId,
+          assistantMessageId ?? 'undefined',
+          metadata?.assistantMessageId ?? 'undefined',
           selfIteration
             ? `kind=${selfIteration.marker?.kind} mutations=${selfIteration.mutations?.length}`
             : 'ABSENT',
@@ -230,7 +268,20 @@ export class CompletionLifecycle {
               {
                 payload: {
                   agentId: metadata?.agentId,
+                  // Anchor the deferred skill synthesis to the completed assistant
+                  // turn (LOBE-10802): the completion-stage skill handler walks
+                  // this id back to the user message to read the parked candidate
+                  // and seeds the skill under the assistant group. Resolved from
+                  // the final assistant message row when operation metadata omits
+                  // it (the server execAgent path).
+                  anchorMessageId: assistantMessageId,
+                  assistantMessageId,
                   operationId,
+                  // Carry the completion reason so completion-stage consumers can
+                  // tell a finished turn from a non-terminal pause
+                  // (waiting_for_async_tool / waiting_for_human), which reuse this
+                  // same source.
+                  reason,
                   // Self-iteration runs carry their finalState tool outcomes here
                   // (the one point finalState is in hand) so the completion policy
                   // can project receipts. Undefined for every other agent.
@@ -278,17 +329,17 @@ export class CompletionLifecycle {
     userId: string,
   ): Promise<void> {
     try {
-      const operationModel = new AgentOperationModel(this.serverDB, userId);
-      const state = await operationModel.getVerifyState(operationId);
-      if (!state?.verifyPlan?.length) return;
+      const run = await new VerifyRunModel(this.serverDB, userId).findByOperation(operationId);
+      if (!run?.plan?.length) return;
 
-      const op = await operationModel.findById(operationId);
+      const op = await new AgentOperationModel(this.serverDB, userId).findById(operationId);
       if (!op?.topicId) return;
 
       const messageModel = new MessageModel(this.serverDB, userId);
       await messageModel.create({
         agentId: op.agentId ?? undefined,
         content: '',
+        groupId: op.chatGroupId ?? undefined,
         metadata: { verifyOperationId: operationId },
         parentId: assistantMessageId,
         role: 'verify',
@@ -330,6 +381,12 @@ export class CompletionLifecycle {
       // plan against the deliverable. Fire-and-forget and self-guarded — a run
       // without an opted-in plan is a no-op, and failures never affect the run.
       if (reason === 'done') {
+        // The task's verify plan is instantiated fire-and-forget at run start; a
+        // fast or no-op run can reach completion before it settles. Await the
+        // in-flight instantiation (if any) so the gate sees the confirmed plan
+        // instead of racing past it and leaving a planned run with no results/card.
+        await this.verifyPlanInstantiations.get(operationId);
+
         const messages: any[] = Array.isArray(state?.messages) ? state.messages : [];
         const firstUserMessage = messages.find((m) => m?.role === 'user');
         const goal = firstUserMessage
@@ -392,7 +449,13 @@ export class CompletionLifecycle {
     } finally {
       // Keep hooks registered across an async-tool park so the eventual resume
       // (same operationId) can still fire onComplete/onError.
-      if (!isAsyncToolPark) hookDispatcher.unregister(operationId);
+      if (!isAsyncToolPark) {
+        hookDispatcher.unregister(operationId);
+        // The instantiation has settled (awaited above) or this op never opted in
+        // — drop the entry so the map doesn't grow across the service's lifetime.
+        // Kept across an async-tool park: the op resumes under the same id.
+        this.verifyPlanInstantiations.delete(operationId);
+      }
     }
   }
 
@@ -411,10 +474,18 @@ export class CompletionLifecycle {
     const lastAssistantMessage = messages
       .slice()
       .reverse()
-      .find((m: { content?: unknown; role: string }) => m.role === 'assistant');
+      .find((m: { content?: unknown; id?: string; role: string }) => m.role === 'assistant');
     const lastAssistantContent = lastAssistantMessage
       ? extractTextFromMessageContent(lastAssistantMessage.content)
       : undefined;
+
+    // Operation-level metadata only carries `assistantMessageId` on the client
+    // runtime path; a server `execAgent` turn leaves it unset (`{}` in DB). Fall
+    // back to the persisted id on the final assistant message row in state so the
+    // completion event can anchor deferred skill synthesis to this turn
+    // (LOBE-10802). A metadata value, when present, still wins.
+    const assistantMessageId =
+      metadata?.assistantMessageId ?? (lastAssistantMessage as { id?: string } | undefined)?.id;
 
     const attachments = extractOutboundAttachments(messages);
 
@@ -422,14 +493,25 @@ export class CompletionLifecycle {
       ? Date.now() - new Date(state.createdAt).getTime()
       : undefined;
 
+    // On the error path, normalize the runtime error once so the lifecycle
+    // event carries the stable taxonomy fields (errorType + attribution). Bot
+    // reply renderers switch on these to surface a perceivable cause (network /
+    // quota / provider outage …) instead of an opaque Operation ID. Mirrors the
+    // same normalization dispatchHooks runs before writing the error onto the
+    // assistant message row.
+    const formattedError = state?.error ? formatErrorForState(state.error) : undefined;
+
     return {
+      assistantMessageId,
       event: {
         agentId: metadata?.agentId || '',
         attachments: attachments.length > 0 ? attachments : undefined,
         cost: state?.cost?.total,
         duration,
+        errorAttribution: formattedError?.attribution,
         errorDetail: state?.error,
         errorMessage: this.extractErrorMessage(state?.error) || String(state?.error || ''),
+        errorType: formattedError?.type === undefined ? undefined : String(formattedError.type),
         finalState: state,
         lastAssistantContent,
         llmCalls: state?.usage?.llm?.apiCalls,

@@ -2,8 +2,13 @@
 import { ChatErrorType } from '@lobechat/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import * as agentSignalService from '@/server/services/agentSignal';
+import * as verifyServices from '@/server/services/verify';
+
 import { CompletionLifecycle } from '../CompletionLifecycle';
 import { hookDispatcher } from '../hooks';
+
+const flushMicrotasks = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const buildLifecycle = () => new CompletionLifecycle({} as any, 'user-1');
 
@@ -196,6 +201,74 @@ describe('CompletionLifecycle.buildLifecycleEvent', () => {
     expect(event.attachments).toBeUndefined();
     expect(event.agentId).toBe('a');
   });
+
+  it('populates errorType + attribution from the normalized error on the error path', () => {
+    // Regression: the event previously carried only errorDetail/errorMessage, so
+    // bot reply renderers never saw the stable code/attribution and always fell
+    // back to the opaque Operation ID. buildLifecycleEvent must normalize the
+    // runtime error via formatErrorForState and surface these taxonomy fields.
+    const state = {
+      error: { error: { message: 'fetch failed' }, errorType: 'ProviderNetworkError' },
+      metadata: { agentId: 'agent-1', userId: 'user-1' },
+    };
+
+    const { event } = callBuild(state, 'error');
+
+    expect(event.errorType).toBe('ProviderNetworkError');
+    expect(event.errorAttribution).toBe('system');
+    expect(event.errorMessage).toBe('fetch failed');
+  });
+
+  it('leaves errorType + attribution undefined when there is no error', () => {
+    const { event } = callBuild({ messages: [], metadata: {} }, 'done');
+
+    expect(event.errorType).toBeUndefined();
+    expect(event.errorAttribution).toBeUndefined();
+  });
+
+  it('resolves assistantMessageId from the final assistant message row when metadata omits it', () => {
+    // Regression (LOBE-10802): a server execAgent turn carries operation-level
+    // metadata ({} in DB) with no assistantMessageId, so the completion event
+    // previously shipped assistantMessageId=undefined and the deferred
+    // skill-synthesis handler no-oped. The id must fall back to the persisted
+    // id on the final assistant message row in state.
+    const state = {
+      messages: [
+        { content: 'user prompt', id: 'msg-user', role: 'user' },
+        { content: 'tool result', id: 'msg-tool', role: 'tool' },
+        { content: 'final answer', id: 'msg-assistant', role: 'assistant' },
+        { content: 'trailing tool result', id: 'msg-tool-2', role: 'tool' },
+      ],
+      metadata: { agentId: 'agent-1', userId: 'user-1' },
+    };
+
+    const { assistantMessageId } = callBuild(state, 'done');
+
+    expect(assistantMessageId).toBe('msg-assistant');
+  });
+
+  it('prefers metadata.assistantMessageId over the state row (client runtime path)', () => {
+    // The client runtime path supplies assistantMessageId on operation metadata;
+    // it must win over the state-row fallback so the anchor stays the id the
+    // client already persisted the parked candidate against.
+    const state = {
+      messages: [{ content: 'final answer', id: 'msg-from-state', role: 'assistant' }],
+      metadata: { agentId: 'agent-1', assistantMessageId: 'msg-from-metadata' },
+    };
+
+    const { assistantMessageId } = callBuild(state, 'done');
+
+    expect(assistantMessageId).toBe('msg-from-metadata');
+  });
+
+  it('leaves assistantMessageId undefined when neither metadata nor a state row carries it', () => {
+    const { assistantMessageId } = callBuild(
+      { messages: [{ content: 'just a user prompt', role: 'user' }], metadata: {} },
+      'done',
+    );
+
+    expect(assistantMessageId).toBeUndefined();
+  });
 });
 
 describe('CompletionLifecycle.dispatchHooks — error persistence', () => {
@@ -242,6 +315,64 @@ describe('CompletionLifecycle.dispatchHooks — error persistence', () => {
   });
 });
 
+describe('CompletionLifecycle.dispatchHooks — verify plan race', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('awaits the start-time verify-plan instantiation before running the completion gate', async () => {
+    const lifecycle = buildLifecycle();
+    vi.spyOn(lifecycle as any, 'persistCompletion').mockResolvedValue(undefined);
+    vi.spyOn(lifecycle as any, 'createVerifyMessage').mockResolvedValue(undefined);
+    vi.spyOn(hookDispatcher, 'dispatch').mockResolvedValue(undefined as any);
+    vi.spyOn(hookDispatcher, 'unregister').mockImplementation(() => {});
+
+    // Control exactly when the fire-and-forget instantiation settles.
+    let settle: () => void = () => {};
+    const instantiation = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
+    const instantiateSpy = vi
+      .spyOn(verifyServices, 'instantiateVerifyPlanOnStart')
+      .mockReturnValue(instantiation);
+    const runVerifySpy = vi
+      .spyOn(verifyServices, 'runVerifyOnCompletion')
+      .mockResolvedValue(undefined);
+
+    // A top-level task op registers the (still-pending) instantiation at start.
+    await lifecycle.recordStart({ operationId: 'op-1', taskId: 'task-1' } as any);
+    expect(instantiateSpy).toHaveBeenCalledTimes(1);
+
+    // Completion fires while the plan instantiation is still in flight.
+    const doneState = { metadata: { agentId: 'a', _hooks: [] }, status: 'done' };
+    const dispatch = lifecycle.dispatchHooks('op-1', doneState, 'done');
+
+    // The gate must stay blocked on the pending instantiation, not race past it.
+    await flushMicrotasks();
+    expect(runVerifySpy).not.toHaveBeenCalled();
+
+    // Once the plan lands, the gate proceeds against the now-confirmed plan.
+    settle();
+    await dispatch;
+    expect(runVerifySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not register an instantiation for a repair / verifier sub-op (parentOperationId set)', async () => {
+    const lifecycle = buildLifecycle();
+    const instantiateSpy = vi
+      .spyOn(verifyServices, 'instantiateVerifyPlanOnStart')
+      .mockResolvedValue(undefined);
+
+    await lifecycle.recordStart({
+      operationId: 'op-2',
+      parentOperationId: 'op-1',
+      taskId: 'task-1',
+    } as any);
+
+    expect(instantiateSpy).not.toHaveBeenCalled();
+  });
+});
+
 describe('CompletionLifecycle.dispatchHooks — async-tool park', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -276,5 +407,41 @@ describe('CompletionLifecycle.dispatchHooks — async-tool park', () => {
 
     expect(dispatchSpy).toHaveBeenCalledWith('op-1', 'onComplete', expect.anything(), []);
     expect(unregisterSpy).toHaveBeenCalledWith('op-1');
+  });
+});
+
+describe('CompletionLifecycle.emitSignalEvents — assistant anchor', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('ships the resolved assistantMessageId on the completed payload for a server turn', async () => {
+    // Regression (LOBE-10802): on a server execAgent turn the operation metadata
+    // has no assistantMessageId, so the agent.execution.completed event used to
+    // carry assistantMessageId=undefined and the deferred skill-synthesis handler
+    // no-oped. The payload must now anchor to the final assistant message row.
+    const emitSpy = vi
+      .spyOn(agentSignalService, 'emitAgentSignalSourceEvent')
+      .mockResolvedValue(undefined as any);
+
+    const lifecycle = buildLifecycle();
+    const state = {
+      messages: [
+        { content: 'user prompt', id: 'msg-user', role: 'user' },
+        { content: 'final answer', id: 'msg-assistant', role: 'assistant' },
+      ],
+      metadata: { agentId: 'agent-1', topicId: 'tpc-1', userId: 'user-1' },
+      stepCount: 2,
+    };
+
+    await lifecycle.emitSignalEvents('op-1', state, 'done');
+
+    expect(emitSpy).toHaveBeenCalledTimes(1);
+    const [emission] = emitSpy.mock.calls[0];
+    expect(emission.sourceType).toBe('agent.execution.completed');
+    expect(emission.payload).toMatchObject({
+      anchorMessageId: 'msg-assistant',
+      assistantMessageId: 'msg-assistant',
+    });
   });
 });

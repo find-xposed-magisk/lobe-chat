@@ -1,11 +1,20 @@
 import { REMOTE_HETEROGENEOUS_AGENT_CONFIGS } from '@lobechat/heterogeneous-agents';
-import type { DeviceChannel, DeviceListItem, WorkingDirEntry } from '@lobechat/types';
+import type { DeviceChannel, DeviceListItem, DeviceScope, WorkingDirEntry } from '@lobechat/types';
+import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import {
+  requireWorkspaceRole,
+  type WorkspaceRole,
+  wsCompatProcedure,
+  wsProcedure,
+} from '@/business/server/trpc-middlewares/workspaceAuth';
 import { DeviceModel } from '@/database/models/device';
-import { authedProcedure, router } from '@/libs/trpc/lambda';
+import { UserModel } from '@/database/models/user';
+import { router } from '@/libs/trpc/lambda';
 import { serverDatabase } from '@/libs/trpc/lambda/middleware';
-import { deviceGateway } from '@/server/services/deviceGateway';
+import { signWorkspaceDeviceToken } from '@/libs/trpc/utils/internalJwt';
+import { type DeviceAttachment, deviceGateway } from '@/server/services/deviceGateway';
 
 import { preserveWorkspaceCache } from './deviceWorkingDirs';
 import { assertWorkspaceRootApproved } from './deviceWorkspaceGuard';
@@ -22,11 +31,43 @@ const remotePlatformEnum = z.enum(
 const CAPABILITY_TIMEOUT_MS = 5_000;
 const PROFILE_TIMEOUT_MS = 5_000;
 
-const deviceProcedure = authedProcedure.use(serverDatabase).use(async (opts) => {
+/**
+ * A workspace device's user-editable fields (rename, working dirs, remove) may
+ * be modified by:
+ *   1. any workspace owner — managing shared infra is an owner privilege, OR
+ *   2. the workspace member who originally enrolled the device (`devices.userId`
+ *      stores the first enroller for workspace rows, never overwritten on
+ *      re-enroll — see `DeviceModel.registerWorkspaceDevice`).
+ *
+ * Members can therefore self-serve their own machines without touching anyone
+ * else's enrollment, while shared cleanup remains an owner action.
+ */
+const canEditWorkspaceDevice = (
+  role: WorkspaceRole | undefined,
+  actorUserId: string,
+  enrollerUserId: string,
+): boolean => role === 'owner' || enrollerUserId === actorUserId;
+
+/**
+ * Workspace-write gate: membership + at least `member` role (excludes viewer).
+ * Enrolling a device mutates the shared workspace device pool, so read-only
+ * viewers must not pass — `wsProcedure` alone only checks membership.
+ */
+const wsWritableProcedure = wsProcedure.use(requireWorkspaceRole('member'));
+
+// Workspace-aware (compat): with an `X-Workspace-Id` header the device list also
+// surfaces the workspace's shared devices; without it, the personal path is
+// unchanged (`ctx.workspaceId === undefined`).
+const deviceProcedure = wsCompatProcedure.use(serverDatabase).use(async (opts) => {
   const { ctx } = opts;
+  const wsId = ctx.workspaceId ?? undefined;
 
   return opts.next({
-    ctx: { deviceModel: new DeviceModel(ctx.serverDB, ctx.userId), userId: ctx.userId },
+    ctx: {
+      deviceModel: new DeviceModel(ctx.serverDB, ctx.userId, wsId),
+      userId: ctx.userId,
+      workspaceId: wsId,
+    },
   });
 });
 
@@ -62,7 +103,7 @@ export const deviceRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const result = await deviceGateway.executeToolCall(
-        { deviceId: input.deviceId, userId: ctx.userId },
+        { deviceId: input.deviceId, userId: ctx.userId, workspaceId: ctx.workspaceId },
         {
           apiName: 'checkPlatformCapability',
           arguments: JSON.stringify({ platform: input.platform }),
@@ -99,6 +140,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? null;
     }),
@@ -111,6 +153,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? null;
     }),
@@ -122,6 +165,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? null;
     }),
@@ -133,6 +177,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? null;
     }),
@@ -149,6 +194,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? [];
     }),
@@ -170,6 +216,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? [];
     }),
@@ -194,6 +241,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       }),
     ),
 
@@ -217,6 +265,7 @@ export const deviceRouter = router({
         path: input.path,
         to: input.to,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       }),
     ),
 
@@ -238,6 +287,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       }),
     ),
 
@@ -252,6 +302,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       }),
     ),
 
@@ -266,6 +317,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       }),
     ),
 
@@ -281,6 +333,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? null;
     }),
@@ -297,6 +350,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? null;
     }),
@@ -312,6 +366,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? [];
     }),
@@ -328,6 +383,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? null;
     }),
@@ -344,6 +400,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         scope: input.scope,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? null;
     }),
@@ -365,6 +422,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
         workingDirectory: input.workingDirectory,
       });
     }),
@@ -381,6 +439,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         scope: input.scope,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? null;
     }),
@@ -397,6 +456,7 @@ export const deviceRouter = router({
         filePath: input.filePath,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       }),
     ),
 
@@ -415,6 +475,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         items: input.items,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
         workingDirectory: input.workingDirectory,
       });
     }),
@@ -436,6 +497,7 @@ export const deviceRouter = router({
         newName: input.newName,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
         workingDirectory: input.workingDirectory,
       });
     }),
@@ -457,6 +519,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
         workingDirectory: input.workingDirectory,
       });
     }),
@@ -474,6 +537,7 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
       });
       return result ?? null;
     }),
@@ -492,7 +556,7 @@ export const deviceRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const result = await deviceGateway.executeToolCall(
-        { deviceId: input.deviceId, userId: ctx.userId },
+        { deviceId: input.deviceId, userId: ctx.userId, workspaceId: ctx.workspaceId },
         {
           apiName: 'getAgentProfile',
           arguments: JSON.stringify({ platform: input.platform }),
@@ -517,7 +581,7 @@ export const deviceRouter = router({
   getDeviceSystemInfo: deviceProcedure
     .input(z.object({ deviceId: z.string() }))
     .query(async ({ ctx, input }) => {
-      return deviceGateway.queryDeviceSystemInfo(ctx.userId, input.deviceId);
+      return deviceGateway.queryDeviceSystemInfo(ctx.userId, input.deviceId, ctx.workspaceId);
     }),
 
   /**
@@ -533,75 +597,236 @@ export const deviceRouter = router({
    * a currently-reachable device during rollout.
    */
   listDevices: deviceProcedure.query(async ({ ctx }): Promise<DeviceListItem[]> => {
-    const [registered, onlineList] = await Promise.all([
-      ctx.deviceModel.query(),
+    const wsId = ctx.workspaceId;
+
+    // Personal devices resolve under the user principal; workspace devices under
+    // the `workspace:<id>` principal (a separate gateway pool). Fetch both.
+    const [personalRows, workspaceRows, personalOnline, workspaceOnline] = await Promise.all([
+      ctx.deviceModel.queryPersonal(),
+      wsId ? ctx.deviceModel.queryWorkspaceDevices() : Promise.resolve([]),
       deviceGateway.queryDeviceList(ctx.userId),
+      wsId ? deviceGateway.queryDeviceList(ctx.userId, wsId) : Promise.resolve([]),
     ]);
 
+    // Resolve display info for every enroller in a single roundtrip, so each
+    // row can ship a self-contained `enroller` for the picker / settings UI.
+    // Personal rows always belong to the caller, but the same lookup keeps the
+    // shape uniform across scopes.
+    const enrollerIds = [...new Set([...personalRows, ...workspaceRows].map((d) => d.userId))];
+    const enrollerRows = enrollerIds.length
+      ? await UserModel.findByIds(ctx.serverDB, enrollerIds)
+      : [];
+    const enrollerById = new Map(
+      enrollerRows.map((u) => [
+        u.id,
+        {
+          avatar: u.avatar ?? null,
+          fullName: u.fullName ?? null,
+          userId: u.id,
+          username: u.username ?? null,
+        },
+      ]),
+    );
+
     // The gateway already groups by device, exposing live sessions as nested
-    // `channels`. Flatten them into the UI-facing channel shape; fall back to a
-    // single synthetic channel for a legacy gateway that omits the field.
-    const channelsByDevice = new Map<string, DeviceChannel[]>();
-    for (const conn of onlineList) {
-      const channels: DeviceChannel[] =
-        conn.channels && conn.channels.length > 0
-          ? conn.channels.map((c) => ({
-              channel: c.channel ?? null,
-              connectedAt: c.connectedAt,
+    // `channels`. Flatten one connection into the UI-facing channel shape; fall
+    // back to a single synthetic channel for a legacy gateway that omits the field.
+    const toChannels = (conn: DeviceAttachment): DeviceChannel[] =>
+      conn.channels && conn.channels.length > 0
+        ? conn.channels.map((c) => ({
+            channel: c.channel ?? null,
+            connectedAt: c.connectedAt,
+            hostname: conn.hostname ?? null,
+            platform: conn.platform ?? null,
+          }))
+        : [
+            {
+              channel: null,
+              connectedAt: conn.lastSeen,
               hostname: conn.hostname ?? null,
               platform: conn.platform ?? null,
-            }))
-          : [
-              {
-                channel: null,
-                connectedAt: conn.lastSeen,
-                hostname: conn.hostname ?? null,
-                platform: conn.platform ?? null,
-              },
-            ];
-      channelsByDevice.set(conn.deviceId, channels);
-    }
+            },
+          ];
 
-    const seen = new Set<string>();
+    // Merge a DB-registered set with its live gateway pool into the UI shape.
+    // `scope` tags the group; deviceIds never collide across pools (a personal id
+    // is derived from userId, a workspace id from workspaceId).
+    const buildItems = (
+      rows: Awaited<ReturnType<typeof ctx.deviceModel.queryPersonal>>,
+      onlineList: DeviceAttachment[],
+      scope: DeviceScope,
+    ): DeviceListItem[] => {
+      const channelsByDevice = new Map<string, DeviceChannel[]>();
+      for (const conn of onlineList) channelsByDevice.set(conn.deviceId, toChannels(conn));
 
-    const fromDb = registered.map((d) => {
-      seen.add(d.deviceId);
-      const channels = channelsByDevice.get(d.deviceId) ?? [];
-      const live = channels[0];
-      return {
-        channels,
-        defaultCwd: d.defaultCwd,
-        deviceId: d.deviceId,
-        friendlyName: d.friendlyName,
-        hostname: d.hostname ?? live?.hostname ?? null,
-        identitySource: d.identitySource,
-        lastSeen: d.lastSeenAt.toISOString(),
-        online: channels.length > 0,
-        platform: d.platform ?? live?.platform ?? null,
-        registered: true,
-        workingDirs: d.workingDirs ?? [],
-      };
-    });
+      const seen = new Set<string>();
+      const fromDb = rows.map((d): DeviceListItem => {
+        seen.add(d.deviceId);
+        const channels = channelsByDevice.get(d.deviceId) ?? [];
+        const live = channels[0];
+        return {
+          channels,
+          defaultCwd: d.defaultCwd,
+          deviceId: d.deviceId,
+          // For personal rows this is always the caller; for workspace rows it
+          // is the first enroller, surfaced so the UI can gate writes to "self
+          // or workspace owner" and render the enroller's avatar without a
+          // separate fetch. Falls back to a userId-only stub if the user row
+          // was deleted (cascade nullifies devices.userId? no — FK is set, so
+          // a stub keeps the gate fail-closed).
+          enroller: enrollerById.get(d.userId) ?? {
+            avatar: null,
+            fullName: null,
+            userId: d.userId,
+            username: null,
+          },
+          friendlyName: d.friendlyName,
+          hostname: d.hostname ?? live?.hostname ?? null,
+          identitySource: d.identitySource,
+          lastSeen: d.lastSeenAt.toISOString(),
+          online: channels.length > 0,
+          platform: d.platform ?? live?.platform ?? null,
+          registered: true,
+          scope,
+          workingDirs: d.workingDirs ?? [],
+        };
+      });
 
-    // Online but not yet persisted — transient until the client auto-registers.
-    const ghosts = [...channelsByDevice.entries()]
-      .filter(([deviceId]) => !seen.has(deviceId))
-      .map(([deviceId, channels]) => ({
-        channels,
-        defaultCwd: null,
-        deviceId,
-        friendlyName: null,
-        hostname: channels[0]?.hostname ?? null,
-        identitySource: null,
-        lastSeen: channels[0]?.connectedAt ?? new Date().toISOString(),
-        online: true,
-        platform: channels[0]?.platform ?? null,
-        registered: false,
-        workingDirs: [] as WorkingDirEntry[],
-      }));
+      // Online but not yet persisted — transient until the client auto-registers.
+      const ghosts = [...channelsByDevice.entries()]
+        .filter(([deviceId]) => !seen.has(deviceId))
+        .map(
+          ([deviceId, channels]): DeviceListItem => ({
+            channels,
+            defaultCwd: null,
+            deviceId,
+            // No row yet → no enroller; UI gates treat this as not-editable.
+            enroller: null,
+            friendlyName: null,
+            hostname: channels[0]?.hostname ?? null,
+            identitySource: null,
+            lastSeen: channels[0]?.connectedAt ?? new Date().toISOString(),
+            online: true,
+            platform: channels[0]?.platform ?? null,
+            registered: false,
+            scope,
+            workingDirs: [] as WorkingDirEntry[],
+          }),
+        );
 
-    return [...fromDb, ...ghosts];
+      return [...fromDb, ...ghosts];
+    };
+
+    return [
+      ...buildItems(personalRows, personalOnline, 'personal'),
+      ...buildItems(workspaceRows, workspaceOnline, 'workspace'),
+    ];
   }),
+
+  /**
+   * Mint a short-lived connect token for enrolling a WORKSPACE-owned device.
+   * Workspace members (and owners) can call — enrolling a machine into the
+   * shared pool is self-service so members don't have to chase an owner to
+   * join their dev box. Viewers are blocked: writing a row to the workspace
+   * device pool is a mutation, not a read. The signed token carries the
+   * `workspace_id` claim the device gateway trusts to route the device to the
+   * `workspace:<id>` principal. The CLI (`lh connect --workspace`) / settings
+   * page use this.
+   */
+  mintWorkspaceConnectToken: wsWritableProcedure.mutation(async ({ ctx }) => {
+    const token = await signWorkspaceDeviceToken(ctx.workspaceId);
+    return { token, workspaceId: ctx.workspaceId };
+  }),
+
+  /**
+   * Enroll the calling machine as a device of the current workspace.
+   * Workspace members (and owners) may call — viewers are blocked because
+   * enrollment writes a row to the shared pool. `devices.userId` records the
+   * first enroller of each `(workspaceId, deviceId)` pair and is preserved on
+   * re-enroll (see `DeviceModel.registerWorkspaceDevice`), which
+   * `updateWorkspaceDevice` / `removeWorkspaceDevice` use to gate writes to
+   * "self or owner". Used by `lh connect --workspace` after minting the
+   * connect token.
+   */
+  registerWorkspaceDevice: wsWritableProcedure
+    .use(serverDatabase)
+    .input(
+      z.object({
+        deviceId: z.string().min(1).max(64),
+        hostname: z.string().nullish(),
+        identitySource: z.enum(['machine-id', 'fallback']),
+        platform: z.string().max(20).nullish(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const model = new DeviceModel(ctx.serverDB, ctx.userId, ctx.workspaceId);
+      return model.registerWorkspaceDevice({ ...input, workspaceId: ctx.workspaceId });
+    }),
+
+  /**
+   * Rename / set working dirs of a WORKSPACE device. Scoped by `workspace_id`
+   * and gated by {@link canEditWorkspaceDevice}: owners may edit any device in
+   * the pool; members may edit only devices they enrolled themselves. Mirrors
+   * {@link deviceRouter.updateDevice} but for the workspace pool.
+   */
+  updateWorkspaceDevice: wsWritableProcedure
+    .use(serverDatabase)
+    .input(
+      z.object({
+        defaultCwd: z.string().nullish(),
+        deviceId: z.string(),
+        friendlyName: z.string().max(100).nullish(),
+        workingDirs: z
+          .array(z.object({ path: z.string(), repoType: z.enum(['git', 'github']).optional() }))
+          .max(20)
+          .optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const model = new DeviceModel(ctx.serverDB, ctx.userId, ctx.workspaceId);
+      const { deviceId, workingDirs, ...value } = input;
+      const row = await model.findWorkspaceDeviceById(deviceId);
+      if (!row) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace device not found.' });
+      }
+      const role = (ctx as { workspaceRole?: WorkspaceRole }).workspaceRole;
+      if (!canEditWorkspaceDevice(role, ctx.userId, row.userId)) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Only the enrolling member or a workspace owner can modify this device.',
+        });
+      }
+      const nextWorkingDirs = workingDirs
+        ? preserveWorkspaceCache(workingDirs, row.workingDirs ?? [])
+        : undefined;
+      await model.updateWorkspaceDevice(deviceId, { ...value, workingDirs: nextWorkingDirs });
+      return { success: true };
+    }),
+
+  /**
+   * Remove a WORKSPACE device. Scoped by `workspace_id` and gated by
+   * {@link canEditWorkspaceDevice}: owners may remove any device in the pool;
+   * members may remove only devices they enrolled themselves.
+   */
+  removeWorkspaceDevice: wsWritableProcedure
+    .use(serverDatabase)
+    .input(z.object({ deviceId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const model = new DeviceModel(ctx.serverDB, ctx.userId, ctx.workspaceId);
+      const row = await model.findWorkspaceDeviceById(input.deviceId);
+      if (!row) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Workspace device not found.' });
+      }
+      const role = (ctx as { workspaceRole?: WorkspaceRole }).workspaceRole;
+      if (!canEditWorkspaceDevice(role, ctx.userId, row.userId)) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Only the enrolling member or a workspace owner can remove this device.',
+        });
+      }
+      await model.deleteWorkspaceDevice(input.deviceId);
+      return { success: true };
+    }),
 
   /**
    * Auto-register the calling device (desktop after OIDC login / CLI on first
@@ -612,9 +837,9 @@ export const deviceRouter = router({
     .input(
       z.object({
         deviceId: z.string().min(1).max(64),
-        hostname: z.string().nullable().optional(),
+        hostname: z.string().nullish(),
         identitySource: z.enum(['machine-id', 'fallback']),
-        platform: z.string().max(20).nullable().optional(),
+        platform: z.string().max(20).nullish(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -629,16 +854,16 @@ export const deviceRouter = router({
     }),
 
   status: deviceProcedure.query(async ({ ctx }) => {
-    return deviceGateway.queryDeviceStatus(ctx.userId);
+    return deviceGateway.queryDeviceStatus(ctx.userId, ctx.workspaceId);
   }),
 
   /** User-editable fields only — never the machine-reported identity columns. */
   updateDevice: deviceProcedure
     .input(
       z.object({
-        defaultCwd: z.string().nullable().optional(),
+        defaultCwd: z.string().nullish(),
         deviceId: z.string(),
-        friendlyName: z.string().max(100).nullable().optional(),
+        friendlyName: z.string().max(100).nullish(),
         workingDirs: z
           .array(z.object({ path: z.string(), repoType: z.enum(['git', 'github']).optional() }))
           .max(20)

@@ -22,6 +22,13 @@ vi.mock('antd-style', () => ({
   }),
 }));
 
+// Mock the council list so importing Group doesn't pull in the AgentCouncil
+// render chain (→ shared-tool-ui inspectors → antd-style `keyframes`), which is
+// out of scope for this unit test.
+vi.mock('../../AgentCouncil/components/CouncilList', () => ({
+  default: ({ members }: { members?: unknown[] }) => <div>council:{members?.length ?? 0}</div>,
+}));
+
 vi.mock('../../../store', () => ({
   messageStateSelectors: {
     isAssistantGroupItemGenerating: () => () => mockIsGenerating,
@@ -152,6 +159,7 @@ describe('Group', () => {
 
     render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -183,6 +191,7 @@ describe('Group', () => {
   it('keeps a short mixed status block inline when there is only one tool call', () => {
     render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -215,6 +224,7 @@ describe('Group', () => {
 
     const { container } = render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -271,6 +281,7 @@ describe('Group', () => {
   it('folds consecutive short mixed single-tool blocks into one workflow segment', () => {
     const { container } = render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -315,6 +326,7 @@ describe('Group', () => {
   it('keeps assistant runtime errors outside the workflow collapse', () => {
     const { container } = render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -367,6 +379,7 @@ describe('Group', () => {
   it('renders a single tool call inline instead of folding it', () => {
     render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -397,6 +410,7 @@ describe('Group', () => {
     mockIsGenerating = true;
     render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -416,6 +430,7 @@ describe('Group', () => {
     mockIsGenerating = true;
     render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -435,6 +450,7 @@ describe('Group', () => {
     mockIsGenerating = false;
     render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -453,6 +469,7 @@ describe('Group', () => {
   it('only animates the last block in a multi-block group', () => {
     const { container } = render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -489,6 +506,7 @@ describe('Group', () => {
 
     const { container } = render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[
@@ -523,6 +541,7 @@ describe('Group', () => {
 
     const { container } = render(
       <Group
+        isLatestItem
         id="assistant-1"
         messageIndex={0}
         blocks={[

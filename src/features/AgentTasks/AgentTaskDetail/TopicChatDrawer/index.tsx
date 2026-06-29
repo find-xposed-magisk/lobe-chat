@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   Flexbox,
   Freeze,
+  Tag,
   Text,
 } from '@lobehub/ui';
 import { cssVar } from 'antd-style';
@@ -35,6 +36,8 @@ import { authSelectors } from '@/store/user/selectors';
 
 import TopicStatusIcon from '../TopicStatusIcon';
 import FeedbackInput from './FeedbackInput';
+
+const SHARE_ICON_SIZE = { blockSize: 36, size: 18 } as const;
 
 interface TopicChatDrawerBodyProps {
   agentId: string;
@@ -159,13 +162,30 @@ const TopicChatDrawer = memo(() => {
   );
 
   const title = (
-    <Flexbox horizontal align={'center'} gap={8} style={{ minWidth: 0 }}>
+    <Flexbox
+      horizontal
+      align={'center'}
+      flex={1}
+      gap={8}
+      style={{ maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}
+    >
       <TopicStatusIcon size={16} status={status} />
-      <Text ellipsis weight={500}>
+      {activity?.sourceTaskIdentifier && (
+        <Tag
+          size={'small'}
+          style={{ flex: 'none' }}
+          title={t('taskDetail.topicSource', {
+            identifier: activity.sourceTaskIdentifier,
+          })}
+        >
+          {activity.sourceTaskIdentifier}
+        </Tag>
+      )}
+      <Text ellipsis style={{ flex: '0 1 auto', minWidth: 0 }} weight={500}>
         {activity?.title || t('taskDetail.topicDrawer.untitled')}
       </Text>
       {activity?.seq != null && (
-        <Text fontSize={12} type={'secondary'}>
+        <Text fontSize={12} style={{ flex: 'none' }} type={'secondary'}>
           #{activity.seq}
         </Text>
       )}
@@ -179,7 +199,7 @@ const TopicChatDrawer = memo(() => {
     <ActionIcon
       disabled={!canShare}
       icon={Share2}
-      size={'small'}
+      size={SHARE_ICON_SIZE}
       title={canShare ? t('share', { ns: 'common' }) : reason}
       onClick={enableTopicLinkShare || !canShare ? undefined : openShareModal}
     />
@@ -213,6 +233,13 @@ const TopicChatDrawer = memo(() => {
       styles={{
         body: { padding: 0 },
         bodyContent: { height: '100%' },
+        title: {
+          boxSizing: 'border-box',
+          maxWidth: '100%',
+          minWidth: 0,
+          overflow: 'hidden',
+          paddingInlineEnd: 48,
+        },
         wrapper: {
           border: `1px solid ${cssVar.colorBorderSecondary}`,
           borderRadius: 12,

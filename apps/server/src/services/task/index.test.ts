@@ -61,8 +61,9 @@ describe('TaskService', () => {
     getComments: vi.fn(),
     getCommentFileIdsMap: vi.fn().mockResolvedValue({}),
     getDependencies: vi.fn(),
-    getDependenciesByTaskIds: vi.fn(),
+    getDependenciesByTaskIds: vi.fn().mockResolvedValue([]),
     getReviewConfig: vi.fn(),
+    getVerifyConfig: vi.fn(),
     getTaskFileIds: vi.fn().mockResolvedValue([]),
     getTreeAgentIdsForTaskIds: vi.fn().mockResolvedValue({}),
     getTreePinnedDocuments: vi.fn(),
@@ -76,6 +77,7 @@ describe('TaskService', () => {
     cancelIfRunning: vi.fn(),
     findByTaskId: vi.fn(),
     findWithHandoff: vi.fn(),
+    findWithHandoffByTaskIds: vi.fn().mockResolvedValue([]),
     timeoutRunning: vi.fn(),
   };
 
@@ -131,7 +133,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -189,7 +191,7 @@ describe('TaskService', () => {
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.findById.mockResolvedValue(parentTask);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-2');
@@ -232,7 +234,7 @@ describe('TaskService', () => {
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.findById.mockResolvedValue(null);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-2');
@@ -292,7 +294,7 @@ describe('TaskService', () => {
       mockTaskModel.getDependenciesByTaskIds.mockResolvedValue(subtaskDeps);
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -374,7 +376,7 @@ describe('TaskService', () => {
       mockTaskModel.getDependenciesByTaskIds.mockResolvedValue([]);
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -433,7 +435,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue(depTasks);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-3');
@@ -474,7 +476,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-3');
@@ -544,7 +546,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -604,7 +606,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       // Mock model methods to return agent and user data
       mockAgentModel.getAgentAvatarsByIds.mockResolvedValue([
@@ -670,12 +672,124 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
 
       expect(result?.topicCount).toBe(2);
+    });
+
+    it('should include descendant task topics in parent activities with source task context', async () => {
+      const task = {
+        assigneeAgentId: 'agt_parent',
+        assigneeUserId: null,
+        createdAt: null,
+        description: null,
+        error: null,
+        heartbeatInterval: null,
+        heartbeatTimeout: null,
+        id: 'task_parent',
+        identifier: 'TASK-1',
+        instruction: null,
+        lastHeartbeatAt: null,
+        name: 'Parent task',
+        parentTaskId: null,
+        priority: 'normal',
+        status: 'todo',
+        totalTopics: 0,
+      };
+
+      const descendants = [
+        {
+          assigneeAgentId: 'agt_child',
+          automationMode: null,
+          heartbeatInterval: null,
+          id: 'task_child',
+          identifier: 'TASK-2',
+          name: 'Child task',
+          parentTaskId: 'task_parent',
+          priority: 'normal',
+          schedulePattern: null,
+          scheduleTimezone: null,
+          seq: 2,
+          sortOrder: 0,
+          status: 'running',
+        },
+      ];
+
+      const directTopics = [
+        {
+          agentId: null,
+          completedAt: null,
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+          handoff: { title: 'Parent run' },
+          metadata: null,
+          operationId: 'op-parent',
+          seq: 1,
+          status: 'completed',
+          title: null,
+          topicId: 'topic-parent',
+        },
+      ];
+
+      const descendantTopics = [
+        {
+          agentId: null,
+          completedAt: null,
+          createdAt: new Date('2024-01-02T00:00:00Z'),
+          handoff: { title: 'Child run' },
+          metadata: null,
+          operationId: 'op-child',
+          seq: 1,
+          sourceTaskAssigneeAgentId: null,
+          sourceTaskId: 'task_child',
+          sourceTaskIdentifier: null,
+          sourceTaskName: null,
+          status: 'running',
+          title: null,
+          topicId: 'topic-child',
+        },
+      ];
+
+      mockTaskModel.resolve.mockResolvedValue(task);
+      mockTaskModel.findAllDescendants.mockResolvedValue(descendants);
+      mockTaskModel.getDependencies.mockResolvedValue([]);
+      mockTaskTopicModel.findWithHandoff.mockResolvedValue(directTopics);
+      mockTaskTopicModel.findWithHandoffByTaskIds.mockResolvedValue(descendantTopics);
+      mockBriefModel.findByTaskId.mockResolvedValue([]);
+      mockTaskModel.getComments.mockResolvedValue([]);
+      mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
+      mockTaskModel.findByIds.mockResolvedValue([]);
+      mockTaskModel.getCheckpointConfig.mockReturnValue({});
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
+      mockAgentModel.getAgentAvatarsByIds.mockResolvedValue([
+        { avatar: null, id: 'agt_parent', title: 'Parent Agent' },
+        { avatar: null, id: 'agt_child', title: 'Child Agent' },
+      ]);
+
+      const service = new TaskService(db, userId);
+      const result = await service.getTaskDetail('TASK-1');
+
+      expect(mockTaskTopicModel.findWithHandoffByTaskIds).toHaveBeenCalledWith(['task_child'], 300);
+
+      const topicActivities = result?.activities?.filter((a) => a.type === 'topic') ?? [];
+      expect(topicActivities).toHaveLength(2);
+
+      const childTopic = topicActivities.find((a) => a.id === 'topic-child');
+      expect(childTopic).toMatchObject({
+        author: {
+          id: 'agt_child',
+          name: 'Child Agent',
+          type: 'agent',
+        },
+        operationId: 'op-child',
+        sourceTaskId: 'task_child',
+        sourceTaskIdentifier: 'TASK-2',
+        sourceTaskName: 'Child task',
+        status: 'running',
+        title: 'Child run',
+      });
     });
 
     it('should propagate topic completedAt to the topic activity', async () => {
@@ -726,7 +840,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -767,7 +881,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -831,7 +945,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue(workspace);
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -878,7 +992,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -919,7 +1033,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -957,7 +1071,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockRejectedValue(new Error('DB error'));
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -1020,7 +1134,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
       mockAgentModel.getAgentAvatarsByIds.mockResolvedValue([
         { avatar: 'avatar.png', backgroundColor: '#fff', id: 'agent-1', title: 'Agent One' },
       ]);
@@ -1091,7 +1205,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -1147,7 +1261,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
       // Force the brief enrichment path to reject without breaking the
       // sibling resolveAuthors call (which shares the agent model mock).
       const enrichSpy = vi
@@ -1213,7 +1327,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');
@@ -1273,7 +1387,7 @@ describe('TaskService', () => {
       mockTaskModel.getTreePinnedDocuments.mockResolvedValue({ nodeMap: {}, tree: [] });
       mockTaskModel.findByIds.mockResolvedValue([]);
       mockTaskModel.getCheckpointConfig.mockReturnValue({});
-      mockTaskModel.getReviewConfig.mockReturnValue(undefined);
+      mockTaskModel.getVerifyConfig.mockReturnValue(undefined);
 
       const service = new TaskService(db, userId);
       const result = await service.getTaskDetail('TASK-1');

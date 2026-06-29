@@ -1,5 +1,4 @@
-import type { VerifyCheckItem } from '@lobechat/types';
-import { and, eq, gte, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, eq, gte, isNotNull, sql } from 'drizzle-orm';
 
 import { today } from '@/utils/time';
 
@@ -60,7 +59,13 @@ export interface RecordOperationCompletionParams {
   error?: AgentOperationError | null;
   interruption?: AgentOperationInterruption | null;
   llmCalls?: number | null;
+  /** Backfill the executed model when it's only known at completion (e.g. a
+   * heterogeneous run learns its real model from the CLI mid-stream). Omit to
+   * keep the value seeded at `recordStart`. */
+  model?: string | null;
   processingTimeMs?: number | null;
+  /** Backfill the executed provider — see {@link RecordOperationCompletionParams.model}. */
+  provider?: string | null;
   status:
     | 'running'
     | 'waiting_for_human'
@@ -149,6 +154,8 @@ export class AgentOperationModel {
       updates.totalOutputTokens = params.totalOutputTokens;
     if (params.llmCalls !== undefined) updates.llmCalls = params.llmCalls;
     if (params.toolCalls !== undefined) updates.toolCalls = params.toolCalls;
+    if (params.model !== undefined) updates.model = params.model;
+    if (params.provider !== undefined) updates.provider = params.provider;
     if (params.cost !== undefined) updates.cost = params.cost;
     if (params.usage !== undefined) updates.usage = params.usage;
     if (params.error !== undefined) updates.error = params.error;
@@ -221,62 +228,10 @@ export class AgentOperationModel {
   }
 
   // ============================================
-  // Verify (delivery checker) — plan snapshot lives on this row
+  // Verify (delivery checker)
   // ============================================
-
-  /**
-   * Write a draft check plan onto the operation and flip the rollup to `planned`.
-   * The plan is mutable while a draft; it is frozen on `confirmVerifyPlan`.
-   */
-  async setVerifyPlan(operationId: string, items: VerifyCheckItem[]): Promise<void> {
-    await this.db
-      .update(agentOperations)
-      .set({ verifyPlan: items, verifyStatus: 'planned' })
-      .where(and(eq(agentOperations.id, operationId), eq(agentOperations.userId, this.userId)));
-  }
-
-  /** Replace the draft plan items (user edited the plan before confirming). */
-  async replaceVerifyPlanItems(operationId: string, items: VerifyCheckItem[]): Promise<void> {
-    await this.db
-      .update(agentOperations)
-      .set({ verifyPlan: items })
-      .where(
-        and(
-          eq(agentOperations.id, operationId),
-          eq(agentOperations.userId, this.userId),
-          // only a not-yet-confirmed plan may be edited
-          isNull(agentOperations.verifyPlanConfirmedAt),
-        ),
-      );
-  }
-
-  /** Freeze the plan (records confirmation time). Results relate to frozen items. */
-  async confirmVerifyPlan(operationId: string, confirmedAt: Date = new Date()): Promise<void> {
-    await this.db
-      .update(agentOperations)
-      .set({ verifyPlanConfirmedAt: confirmedAt })
-      .where(and(eq(agentOperations.id, operationId), eq(agentOperations.userId, this.userId)));
-  }
-
-  /** Update the denormalized rollup. Always go through the service-layer chokepoint. */
-  async updateVerifyStatus(operationId: string, verifyStatus: VerifyStatus | null): Promise<void> {
-    await this.db
-      .update(agentOperations)
-      .set({ verifyStatus })
-      .where(and(eq(agentOperations.id, operationId), eq(agentOperations.userId, this.userId)));
-  }
-
-  /** Read just the verify-related fields for an operation. */
-  async getVerifyState(operationId: string) {
-    const [row] = await this.db
-      .select({
-        verifyPlan: agentOperations.verifyPlan,
-        verifyPlanConfirmedAt: agentOperations.verifyPlanConfirmedAt,
-        verifyStatus: agentOperations.verifyStatus,
-      })
-      .from(agentOperations)
-      .where(and(eq(agentOperations.id, operationId), eq(agentOperations.userId, this.userId)))
-      .limit(1);
-    return row ?? null;
-  }
+  // The verify plan snapshot + rollup status moved off this table onto
+  // `verify_runs` (the session entity), addressed via `VerifyRunModel`. The
+  // `verify_plan` / `verify_status` columns here are deprecated (see schema) and
+  // no longer read or written through this model.
 }

@@ -132,6 +132,25 @@ const formatErrorForMetadata = (error: unknown): Record<string, any> | undefined
   return { message: String(error) };
 };
 
+/**
+ * Extract a short, human-readable reason string from a failed operation's
+ * `state.error`, for inlining into the tool-result `content` a parent agent
+ * sees. Without this the supervising agent only gets the opaque generic note
+ * ("Sub-agent did not complete (error).") and cannot tell *why* a `callAgent`
+ * dispatch failed — so it can't retry, switch target, or report the cause; it
+ * silently falls back to answering itself (issue #16257). The full structured
+ * error still rides on `pluginError`; this is just the readable summary.
+ */
+const formatSubAgentErrorReason = (error: unknown): string | undefined => {
+  const message = formatErrorForMetadata(error)?.message;
+  if (typeof message !== 'string') return undefined;
+  const trimmed = message.trim();
+  if (!trimmed) return undefined;
+  // Keep the tool result compact — a runaway provider error body would otherwise
+  // bloat the parent's LLM context.
+  return trimmed.length > 300 ? `${trimmed.slice(0, 300)}…` : trimmed;
+};
+
 const toAgentSignalSnapshotEvents = (
   emission: Awaited<ReturnType<typeof emitAgentSignalSourceEvent>> | undefined,
 ) => {
@@ -376,6 +395,7 @@ export class AgentRuntimeService {
       operationId,
       initialContext,
       agentConfig,
+      agentGroup,
       modelRuntimeConfig,
       userId,
       autoStart = true,
@@ -467,6 +487,7 @@ export class AgentRuntimeService {
         metadata: {
           activeDeviceId,
           agentConfig,
+          agentGroup,
           botContext,
           botPlatformContext,
           deviceAccessPolicy,
@@ -503,9 +524,16 @@ export class AgentRuntimeService {
         userInterventionConfig,
       } as Partial<AgentState>;
 
-      // Use coordinator to create operation, automatically sends initialization event
+      // Use coordinator to create operation, automatically sends initialization event.
+      // For an in-group broadcast/speak member, mirror its Gateway stream events
+      // onto the supervisor op's channel (parentOperationId) so they flow down the
+      // supervisor's existing WebSocket — the client subscribes to one connection,
+      // not one per member (single-connection multiplexing, LOBE-10868).
+      const mirrorToOperationId =
+        appContext?.orchestrationRole === 'member' ? (parentOperationId ?? undefined) : undefined;
       await this.coordinator.createAgentOperation(operationId, {
         agentConfig,
+        mirrorToOperationId,
         modelRuntimeConfig,
         userId,
         workspaceId: this.workspaceId,
@@ -600,10 +628,14 @@ export class AgentRuntimeService {
   async queryUiMessages(agentState: AgentState): Promise<UIChatMessage[] | undefined> {
     const agentId: string | undefined = agentState?.metadata?.agentId;
     const topicId: string | undefined = agentState?.metadata?.topicId;
+    // groupId scopes group conversations. Without it the query falls into the
+    // standard branch (`groupId IS NULL`) and returns ZERO group messages, so
+    // the step_start uiMessages snapshot would be empty and clobber the client.
+    const groupId: string | undefined = agentState?.metadata?.groupId;
     if (!agentId || !topicId) return undefined;
 
     try {
-      return await this.messageService.queryMessages({ agentId, topicId });
+      return await this.messageService.queryMessages({ agentId, groupId, topicId });
     } catch (error) {
       // Stream events must never fail the step. If the DB hiccups, fall back
       // to letting the client refresh as before.
@@ -1733,11 +1765,16 @@ export class AgentRuntimeService {
 
     const state = await this.coordinator.loadAgentState(parentOperationId);
     if (!state) {
-      // State expired (Redis TTL) or never persisted — nothing left to resume.
-      // Surface it: a missing state at completion time is how a parent silently
-      // strands. There is no stepCount/status to arm a verify against.
-      log('[%s] async-tool resume: parent state missing/expired, cannot resume', parentOperationId);
+      // State expired (Redis TTL) or never persisted. A missing state at
+      // completion time is a classic way a parent silently strands — but it is
+      // often transient: a read replica that hasn't seen the park yet, or the
+      // child outrunning the parent's park before its snapshot lands. Arm the
+      // bounded verify so a later re-check can resume once the state is visible,
+      // instead of giving up on the first miss. A genuinely-gone parent just
+      // exhausts the attempt cap (verify_exhausted) rather than stranding here.
+      log('[%s] async-tool resume: parent state missing/expired, arming verify', parentOperationId);
       asyncToolResumeCounter.add(1, { outcome: 'no_state' });
+      await this.maybeScheduleAsyncToolVerify(parentOperationId, null, options);
       return false;
     }
 
@@ -1836,12 +1873,16 @@ export class AgentRuntimeService {
    */
   private async maybeScheduleAsyncToolVerify(
     parentOperationId: string,
-    state: AgentState,
+    state: AgentState | null,
     options?: { scheduleVerifyOnHold?: boolean; verifyAttempt?: number },
   ): Promise<void> {
     if (!options?.scheduleVerifyOnHold || !this.queueService) return;
 
-    const status = state.status as string;
+    // `state` is null when the parked snapshot is missing/expired at completion
+    // time (no_state). We can't read a status to skip a terminal op, but the
+    // bounded attempt cap below keeps a genuinely-gone parent from re-arming
+    // forever, so it's safe to retry instead of stranding on a transient miss.
+    const status = state?.status as string | undefined;
     if (status === 'done' || status === 'error' || status === 'interrupted') return;
 
     const attempt = options.verifyAttempt ?? 1;
@@ -1853,7 +1894,7 @@ export class AgentRuntimeService {
         '[%s] async-tool barrier verify exhausted after %d attempts, giving up (status: %s)',
         parentOperationId,
         ASYNC_TOOL_VERIFY_MAX_ATTEMPTS,
-        status,
+        status ?? 'missing',
       );
       asyncToolResumeCounter.add(1, { outcome: 'verify_exhausted' });
       return;
@@ -1866,7 +1907,7 @@ export class AgentRuntimeService {
       attempt,
       ASYNC_TOOL_VERIFY_MAX_ATTEMPTS,
       delay,
-      status,
+      status ?? 'missing',
     );
 
     try {
@@ -1877,7 +1918,7 @@ export class AgentRuntimeService {
         operationId: parentOperationId,
         payload: { asyncToolVerifyAttempt: attempt, verifyAsyncToolBarrier: true },
         priority: 'high',
-        stepIndex: state.stepCount,
+        stepIndex: state?.stepCount ?? 0,
       });
     } catch (error) {
       log(
@@ -1934,8 +1975,11 @@ export class AgentRuntimeService {
     const lastAssistant = [...messages]
       .reverse()
       .find((m: { role?: string }) => m?.role === 'assistant');
+    const errorReason = failed ? formatSubAgentErrorReason(finalState?.error) : undefined;
     const content = failed
-      ? `Sub-agent did not complete (${reason}).`
+      ? errorReason
+        ? `Sub-agent did not complete (${reason}): ${errorReason}`
+        : `Sub-agent did not complete (${reason}).`
       : (lastAssistant?.content as string | undefined) ||
         'Sub-agent completed without a textual answer.';
 
@@ -2102,8 +2146,11 @@ export class AgentRuntimeService {
       .reverse()
       .find((m: { role?: string }) => m?.role === 'assistant');
     const agentLabel = (finalState?.metadata?.agentId as string | undefined) ?? 'member';
+    const memberErrorReason = failed ? formatSubAgentErrorReason(finalState?.error) : undefined;
     const anchorContent = failed
-      ? `Agent member did not complete (${reason}).`
+      ? memberErrorReason
+        ? `Agent member did not complete (${reason}): ${memberErrorReason}`
+        : `Agent member did not complete (${reason}).`
       : mode === 'in_group'
         ? `Agent ${agentLabel} responded in the group.`
         : (lastAssistant?.content as string | undefined) ||
@@ -2264,6 +2311,10 @@ export class AgentRuntimeService {
     const dbMessages = await this.messageModel.query(
       {
         agentId: state.metadata?.agentId,
+        // Group runs must pass groupId, else the query filters `groupId IS NULL`
+        // and returns no group messages — the next LLM step then gets an empty
+        // context and the provider rejects it ("at least one message is required").
+        groupId: state.metadata?.groupId,
         threadId: state.metadata?.threadId,
         topicId: state.metadata?.topicId,
       },
@@ -2412,6 +2463,9 @@ export class AgentRuntimeService {
     try {
       const dbMessages = await this.messageModel.query({
         agentId: state.metadata?.agentId,
+        // Group runs need groupId or the query returns no group messages
+        // (standard branch filters `groupId IS NULL`), losing the device context.
+        groupId: state.metadata?.groupId,
         threadId: state.metadata?.threadId,
         topicId: state.metadata?.topicId,
       });

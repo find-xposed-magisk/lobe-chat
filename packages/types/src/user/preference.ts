@@ -51,6 +51,10 @@ export const UserLabSchema = z.object({
    */
   enableFleet: z.boolean().optional(),
   /**
+   * fold a finished, non-latest agent turn's process under a "已处理" header
+   */
+  enableFoldFinishedTurn: z.boolean().optional(),
+  /**
    * enable multi-agent group chat mode
    */
   enableGroupChat: z.boolean().optional(),
@@ -66,6 +70,10 @@ export const UserLabSchema = z.object({
    * show the "Add Platform Agent" entry in the create menu
    */
   enablePlatformAgent: z.boolean().optional(),
+  /**
+   * enable the task delivery-acceptance (verify) config UI on the task detail
+   */
+  enableTaskVerify: z.boolean().optional(),
 });
 
 export type UserLab = z.infer<typeof UserLabSchema>;
@@ -161,7 +169,7 @@ export const UserPreferenceSchema = z
     guide: UserGuideSchema.optional(),
     hideSyncAlert: z.boolean().optional(),
     lab: UserLabSchema.optional(),
-    lastWorkspaceId: z.string().nullable().optional(),
+    lastWorkspaceId: z.string().nullish(),
     telemetry: z.boolean().nullable(),
     topicGroupMode: z.enum(['byTime', 'byProject', 'flat', 'byStatus']).optional(),
     topicIncludeCompleted: z.boolean().optional(),

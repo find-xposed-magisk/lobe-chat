@@ -1,4 +1,7 @@
+import type * as LobeChatConst from '@lobechat/const';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type * as Antd from 'antd';
+import type * as LucideReact from 'lucide-react';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -35,7 +38,8 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@lobechat/const', () => ({
+vi.mock('@lobechat/const', async (importOriginal) => ({
+  ...(await importOriginal<typeof LobeChatConst>()),
   isDesktop: false,
 }));
 
@@ -82,21 +86,30 @@ vi.mock('@lobehub/ui/base-ui', () => ({
   confirmModal: vi.fn(),
 }));
 
-vi.mock('antd', () => ({
-  App: {
-    useApp: () => ({
-      modal: {
-        confirm: vi.fn(),
-      },
-    }),
-  },
-  Modal: {
-    confirm: vi.fn(),
-  },
-}));
+vi.mock('antd', async (importOriginal) => {
+  const actual = await importOriginal<typeof Antd>();
 
-vi.mock('lucide-react', () => ({
+  return {
+    ...actual,
+    App: {
+      ...actual.App,
+      useApp: () => ({
+        modal: {
+          confirm: vi.fn(),
+        },
+      }),
+    },
+    Modal: {
+      ...actual.Modal,
+      confirm: vi.fn(),
+    },
+  };
+});
+
+vi.mock('lucide-react', async (importOriginal) => ({
+  ...(await importOriginal<typeof LucideReact>()),
   BotMessageSquareIcon: () => null,
+  Circle: () => null,
   Download: () => null,
   MoreHorizontal: () => null,
   Settings2Icon: () => null,
@@ -201,6 +214,7 @@ describe('Agent profile Header', () => {
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:agent-profile');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     mocks.agentState.isCurrentAgentHeterogeneous = false;
+    mocks.agentState.systemRole = 'You are helpful.';
     mocks.profileState.editor = undefined;
   });
 
@@ -244,5 +258,23 @@ describe('Agent profile Header', () => {
     expect(exportedMarkdown).toContain('# Test Agent');
     expect(exportedMarkdown).not.toContain('You are helpful.');
     expect(exportedMarkdown).not.toContain('settingAgent.prompt.title');
+  });
+
+  it('should ignore the hidden editor when exporting heterogeneous agent markdown', async () => {
+    const getDocument = vi.fn().mockReturnValue('');
+    mocks.agentState.isCurrentAgentHeterogeneous = true;
+    mocks.profileState.editor = { getDocument };
+
+    render(<Header />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'pageEditor.menu.export.markdown' }));
+
+    await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalled());
+
+    const exportedBlob = getLatestExportedBlob();
+    const exportedMarkdown = await exportedBlob.text();
+
+    expect(getDocument).not.toHaveBeenCalled();
+    expect(exportedMarkdown).toContain('You are helpful.');
   });
 });

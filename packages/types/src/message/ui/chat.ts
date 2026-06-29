@@ -32,7 +32,8 @@ export type UIMessageRoleType =
   | 'agentCouncil'
   | 'compressedGroup'
   | 'compareGroup'
-  | 'verify';
+  | 'verify'
+  | 'taskCallback';
 
 export interface ChatFileItem {
   content?: string;
@@ -86,6 +87,13 @@ export interface TaskBlock {
 
 export interface AssistantContentBlock {
   content: string;
+  /**
+   * Multi-agent broadcast members rendered inline as a single AgentCouncil block
+   * (parallel columns) within the supervisor's assistant group — instead of a
+   * separate top-level `agentCouncil` message. Set on a dedicated council block
+   * that carries no own content/tools.
+   */
+  council?: UIChatMessage[];
   error?: ChatMessageError | null;
   fileList?: ChatFileItem[];
   id: string;

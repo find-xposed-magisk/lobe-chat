@@ -1,6 +1,5 @@
-import { HETEROGENEOUS_TYPE_LABELS } from '@lobechat/heterogeneous-agents';
 import { type SidebarAgentItem } from '@lobechat/types';
-import { ActionIcon, Flexbox, Icon, Tag } from '@lobehub/ui';
+import { ActionIcon, Icon } from '@lobehub/ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { Loader2, PinIcon } from 'lucide-react';
 import { type CSSProperties, type DragEvent } from 'react';
@@ -80,7 +79,7 @@ interface AgentItemProps {
 }
 
 const AgentItem = memo<AgentItemProps>(({ item, style, className, onNavigate }) => {
-  const { id, avatar, backgroundColor, title, pinned, heterogeneousType } = item;
+  const { id, avatar, backgroundColor, title, pinned } = item;
   // Unread count is server-computed (topics.status === 'unread') and carried on
   // the sidebar list item, so it stays accurate across agents whose topics
   // aren't loaded into the chat store on this client.
@@ -98,25 +97,6 @@ const AgentItem = memo<AgentItemProps>(({ item, style, className, onNavigate }) 
 
   // Get display title with fallback
   const displayTitle = title || t('untitledAgent');
-
-  // Heterogeneous agents (Claude Code, Codex, …) show their runtime as a tag
-  // so they stand out from built-in agents in the sidebar.
-  const heterogeneousLabel = heterogeneousType
-    ? (HETEROGENEOUS_TYPE_LABELS[heterogeneousType] ?? heterogeneousType)
-    : null;
-
-  const titleNode = heterogeneousLabel ? (
-    <Flexbox horizontal align="center" gap={4}>
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {displayTitle}
-      </span>
-      <Tag size="small" style={{ flexShrink: 0 }}>
-        {heterogeneousLabel}
-      </Tag>
-    </Flexbox>
-  ) : (
-    displayTitle
-  );
 
   const agentUrl = usePreservedAgentUrl(id);
 
@@ -197,6 +177,7 @@ const AgentItem = memo<AgentItemProps>(({ item, style, className, onNavigate }) 
   const dropdownMenu = useAgentDropdownMenu({
     anchor,
     avatar: typeof avatar === 'string' ? avatar : undefined,
+    backgroundColor: backgroundColor || undefined,
     group: undefined, // TODO: pass group from parent if needed
     id,
     openCreateGroupModal: handleOpenCreateGroupModal,
@@ -222,7 +203,7 @@ const AgentItem = memo<AgentItemProps>(({ item, style, className, onNavigate }) 
         icon={avatarIcon}
         key={id}
         style={style}
-        title={titleNode}
+        title={displayTitle}
         onDoubleClick={handleDoubleClick}
         onDragEnd={handleDragEnd}
         onDragStart={handleDragStart}
