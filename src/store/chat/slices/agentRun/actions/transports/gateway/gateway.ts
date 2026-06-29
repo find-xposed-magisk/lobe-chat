@@ -18,7 +18,7 @@ import { topicSelectors } from '@/store/chat/selectors';
 import type { ChatStore } from '@/store/chat/store';
 import type { StoreSetter } from '@/store/types';
 import { useUserStore } from '@/store/user';
-import { settingsSelectors } from '@/store/user/selectors';
+import { settingsSelectors, toolInterventionSelectors } from '@/store/user/selectors';
 
 import { buildRunLifecycle } from '../../lifecycle/buildRunLifecycle';
 import type { RunScope } from '../../lifecycle/types';
@@ -432,6 +432,10 @@ export class GatewayActionImpl {
       : undefined;
 
     const localDeviceId = await resolveLocalDeviceId(context.agentId);
+    const userInterventionConfig = {
+      approvalMode: toolInterventionSelectors.approvalMode(useUserStore.getState()),
+      allowList: toolInterventionSelectors.allowList(useUserStore.getState()),
+    };
 
     const result = await aiAgentService.execAgentTask(
       {
@@ -465,6 +469,7 @@ export class GatewayActionImpl {
         prompt: message,
         resumeApproval,
         trigger: metadata?.trigger,
+        userInterventionConfig,
       },
       { signal: abortSignal },
     );
