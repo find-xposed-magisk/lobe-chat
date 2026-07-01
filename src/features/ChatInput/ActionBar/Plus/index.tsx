@@ -318,7 +318,7 @@ const PlusAction = memo(() => {
     chatConfigByIdSelectors.getUseModelBuiltinSearchById(agentId)(s),
     chatConfigByIdSelectors.getChatConfigById(agentId)(s).disableGatewayMode,
   ]);
-  const isGatewayModeConfigured = (disableGatewayMode ?? defaultDisableGatewayMode) !== true;
+  const isGatewayModeEnabled = (disableGatewayMode ?? defaultDisableGatewayMode) !== true;
 
   const isMemoryEnabled = useMemoryEnabled(agentId);
   const [showTypoBar, setShowTypoBar] = useChatInputStore((s) => [s.showTypoBar, s.setShowTypoBar]);
@@ -329,7 +329,6 @@ const PlusAction = memo(() => {
     agentId,
   );
   const enableFC = useModelSupportToolUse(model, provider);
-  const isGatewayModeEnabled = isGatewayModeConfigured && enableFC;
   const handleOpenKnowledge = useCallback(() => {
     setDropdownOpen(false);
     openAttachKnowledgeModal();
@@ -387,10 +386,9 @@ const PlusAction = memo(() => {
 
   const handleToggleGatewayMode = useCallback(
     async (checked: boolean) => {
-      if (!enableFC) return;
       await updateAgentChatConfig({ disableGatewayMode: checked ? false : true });
     },
-    [enableFC, updateAgentChatConfig],
+    [updateAgentChatConfig],
   );
 
   const handleToggleParams = useCallback(() => {
@@ -459,9 +457,7 @@ const PlusAction = memo(() => {
         />
         <div className="body">
           <div className="title">{t('gatewayMode.cardTitle')}</div>
-          <div className="desc">
-            {enableFC ? t('gatewayMode.desc') : t('chatMode.agentUnsupported')}
-          </div>
+          <div className="desc">{t('gatewayMode.desc')}</div>
         </div>
       </div>
     );
@@ -612,7 +608,6 @@ const PlusAction = memo(() => {
         ? [
             {
               checked: isGatewayModeEnabled,
-              disabled: !enableFC,
               icon: Cloud,
               key: 'gateway-mode',
               label: (
