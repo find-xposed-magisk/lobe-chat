@@ -19,8 +19,34 @@ also run as full cloud automation. Every test session follows the same
 contract:
 
 ```
-Step -1: Plan approval  →  Step 0: Env + Auth  →  Step 1: Pick surface  →  Step 2: Run  →  Step 3: Structured report  →  Step 4: Publish to LobeHub
+Step -2: Read the two living logs → Step -1: Plan approval → Step 0: Env + Auth → Step 1: Pick surface → Step 2: Run → Step 3: Structured report → Step 4: Publish to LobeHub
 ```
+
+## Step -2 — Read the two living logs (mandatory, before every run)
+
+Before doing anything else, read both of these in full and hold them in mind for
+this run:
+
+- [references/common-mistakes.md](./references/common-mistakes.md) — mistakes the
+  user has called out. Two that keep biting:
+  - **Never declare a case `passed` from grep/skeleton-count heuristics — open
+    the actual screenshot with Read and confirm it rendered the expected
+    content.** A blank/white page also has 0 skeletons and still matches
+    persistent nav text.
+  - **If the task's goal is verifying error/failure states, do NOT stop at
+    happy-path when injection is hard.** Escalate (see the pattern library) until
+    you have real failure-state evidence.
+- [references/probe-mock-patterns.md](./references/probe-mock-patterns.md) — the
+  verified recipes for forcing failures, beating the SWR cache/retry, and probing
+  runtime state. Read it before any run that must force an error state or inspect
+  store/SWR values, so you don't rediscover the dead ends.
+
+**Both files are living logs — append to them during the run**, in English:
+
+- User gives negative feedback → new case in `common-mistakes.md`
+  (Wrong approach / Why / What it breaks / Correct approach).
+- You hit any probe/mock that is blocked, bypassed, or needs a workaround → new
+  item in `probe-mock-patterns.md` (Situation / Doesn't work / Works).
 
 ## Step -1 — Plan approval for non-trivial tests
 
@@ -31,8 +57,11 @@ Otherwise, propose a test plan (surface, cases, expected evidence, assumptions)
 and use the runtime structured question tool (`request_user_input` /
 ask-user-question equivalent) with two fixed choices:
 
-1. `开始执行 (Recommended)` — 测试方案没问题，开始执行
-2. `先讨论下` — 方案有问题，先讨论下
+1. `Start (Recommended)` — the plan looks good, begin executing
+2. `Discuss first` — the plan has issues, let's talk it over first
+
+(Match the button labels to the user's conversation language at runtime, but
+keep this skill file in English.)
 
 Wait for the user's choice before proceeding.
 
@@ -183,8 +212,8 @@ So before the first `agent run`, start QStash in a separate terminal and gate on
 the preflight:
 
 ```bash
-./.agents/skills/agent-testing/scripts/init-dev-env.sh qstash      # terminal B — keep running
-./.agents/skills/agent-testing/scripts/init-dev-env.sh preflight    # exits non-zero if QStash (or Redis) is down
+./.agents/skills/agent-testing/scripts/init-dev-env.sh qstash    # terminal B — keep running
+./.agents/skills/agent-testing/scripts/init-dev-env.sh preflight # exits non-zero if QStash (or Redis) is down
 ```
 
 Default script env:
@@ -362,7 +391,7 @@ not a chat-only summary. Scaffold it up front and fill it as you test:
 DIR=$(./.agents/skills/agent-testing/scripts/report-init.sh my-feature "Verify my feature")
 # ... test, saving screenshots / CLI transcripts into $DIR/assets/ ...
 # fill $DIR/result.json (scenario, context, cases[], summary.conclusion) — the report;
-# $DIR/report.md holds only the narrative tail (跟进 / 本轮验证 / 评分)
+# $DIR/report.md holds only the narrative tail (follow-ups / notes / score)
 ```
 
 Reports live in `.records/reports/<timestamp>-<slug>/` (gitignored): `result.json`
@@ -380,15 +409,15 @@ Two hard rules worth front-loading:
   behavior is one entry in `cases[]` (`{ name, result, observation, evidence }`);
   the published `/verify/<id>` page builds the scope header from
   `scenario`+`context`, the check list from `cases[]`, and the headline verdict
-  from `summary.conclusion`. So do NOT hand-build a 用例 table or a 范围 block in
+  from `summary.conclusion`. So do NOT hand-build a case table or a scope block in
   `report.md` — they double up on the page. `report.md` is the narrative tail
-  only (跟进 / 本轮验证 / 评分).
+  only (follow-ups / this-round notes / score).
 - **Visual evidence lives in `result.json`, NOT in `report.md`.** Attach each
   screenshot/GIF to the relevant case via `cases[].evidence` (path or array of
   paths under `$DIR`); the verify page renders it next to that check. Do NOT
   embed images/GIFs in `report.md` (no `![...](assets/...)`) — they would just
   double up with the per-case evidence the page already shows. `report.md` stays
-  prose-only (跟进 / 备注 / 复现).
+  prose-only (follow-ups / notes / reproduction).
 - **Final replies must include visual evidence links.** When a run includes UI
   screenshots or GIFs, include the report directory and the most important
   visual artifacts in the final chat response. Each item must include a stable
