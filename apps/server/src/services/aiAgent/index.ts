@@ -44,7 +44,13 @@ import type {
   UserInterventionConfig,
   WorkspaceInitResult,
 } from '@lobechat/types';
-import { buildHeteroExecArgs, RequestTrigger, ThreadStatus, ThreadType } from '@lobechat/types';
+import {
+  buildHeteroExecArgs,
+  getWorkingDirEffectivePath,
+  RequestTrigger,
+  ThreadStatus,
+  ThreadType,
+} from '@lobechat/types';
 import { nanoid } from '@lobechat/utils';
 import { TRPCError } from '@trpc/server';
 import debug from 'debug';
@@ -126,7 +132,10 @@ import { resolveDeviceAccessPolicy } from './deviceAccessPolicy';
 import { buildAllowedBuiltinTools, isDeviceToolIdentifier } from './deviceToolRegistry';
 import { ingestAttachment } from './ingestAttachment';
 import { pruneRegeneratedBranch } from './pruneRegeneratedBranch';
-import { resolveDeviceWorkingDirectory } from './resolveDeviceWorkingDirectory';
+import {
+  resolveDeviceWorkingDirectory,
+  resolveDeviceWorkingDirectoryConfig,
+} from './resolveDeviceWorkingDirectory';
 import { isWorkspaceCacheFresh, upsertWorkspaceScan } from './workspaceInitCache';
 
 const log = debug('lobe-server:ai-agent-service');
@@ -605,12 +614,15 @@ export class AiAgentService {
         deviceDefaultCwd: device.defaultCwd,
         deviceId: activeDeviceId,
         topicWorkingDirectory: topic?.metadata?.workingDirectory,
+        topicWorkingDirectoryConfig: topic?.metadata?.workingDirectoryConfig,
         workingDirByDevice: agencyConfig?.workingDirByDevice,
       });
       if (!boundCwd) return { workspace: empty };
 
       const workingDirs = device.workingDirs ?? [];
-      const cached = workingDirs.find((dir) => dir.path === boundCwd);
+      const cached = workingDirs.find(
+        (dir) => dir.path === boundCwd || getWorkingDirEffectivePath(dir) === boundCwd,
+      );
 
       if (isWorkspaceCacheFresh(cached, Date.now()) && cached?.workspace) {
         log('execAgent: reusing cached workspace init for %s', boundCwd);
@@ -637,7 +649,19 @@ export class AiAgentService {
       // a new MRU entry), keeping the JSONB payload bounded. Workspace devices
       // are owned by the workspace, not a userId — use the workspace-scoped
       // update path so the writeback actually lands.
-      const updated = upsertWorkspaceScan(workingDirs, boundCwd, scanned, Date.now());
+      //
+      // Update the MATCHED entry's path, not `boundCwd`: the lookup above can
+      // match a source entry by its effective (worktree) path, so a selected
+      // worktree reaches here with `boundCwd` = the worktree path while the
+      // recorded entry is keyed by the source path. Upserting on `boundCwd`
+      // would prepend a bare worktree recent and lose the source/worktree
+      // metadata the picker relies on; upsert on the matched source path instead.
+      const updated = upsertWorkspaceScan(
+        workingDirs,
+        cached?.path ?? boundCwd,
+        scanned,
+        Date.now(),
+      );
       if (deviceWorkspaceId) {
         await deviceModel.updateWorkspaceDevice(activeDeviceId, { workingDirs: updated });
       } else {
@@ -1254,6 +1278,9 @@ export class AiAgentService {
               ...(initialTopicMeta?.workingDirectory && {
                 workingDirectory: initialTopicMeta.workingDirectory,
               }),
+              ...(initialTopicMeta?.workingDirectoryConfig && {
+                workingDirectoryConfig: initialTopicMeta.workingDirectoryConfig,
+              }),
             }
           : undefined;
 
@@ -1847,20 +1874,26 @@ export class AiAgentService {
           const dispatchWorkspaceId = await this.resolveDeviceWorkspaceId(dispatchDeviceId);
           // Resolve via the shared precedence helper so dispatch, workspace-init,
           // and the new-topic backfill below all agree on the cwd.
-          const deviceCwd = resolveDeviceWorkingDirectory({
+          const deviceCwdConfig = resolveDeviceWorkingDirectoryConfig({
             deviceDefaultCwd: boundDevice?.defaultCwd,
             deviceId: dispatchDeviceId,
             initialWorkingDirectory: appContext?.initialTopicMetadata?.workingDirectory,
+            initialWorkingDirectoryConfig: appContext?.initialTopicMetadata?.workingDirectoryConfig,
             topicWorkingDirectory: topic?.metadata?.workingDirectory,
+            topicWorkingDirectoryConfig: topic?.metadata?.workingDirectoryConfig,
             workingDirByDevice: agentConfig.agencyConfig?.workingDirByDevice,
           });
+          const deviceCwd = getWorkingDirEffectivePath(deviceCwdConfig);
 
           // A brand-new topic has no pinned cwd yet: the directory was only
           // recorded at agent level (`workingDirByDevice`) when no topic existed.
           // Persist the resolved cwd onto the topic so the sidebar groups it
           // under the right project and the next turn reuses the same directory.
           if (isNewTopic && deviceCwd && deviceCwd !== topic?.metadata?.workingDirectory) {
-            await this.topicModel.updateMetadata(topicId, { workingDirectory: deviceCwd });
+            await this.topicModel.updateMetadata(topicId, {
+              workingDirectory: deviceCwd,
+              ...(deviceCwdConfig ? { workingDirectoryConfig: deviceCwdConfig } : {}),
+            });
           }
 
           // A device is the user's own persistent machine — build a
