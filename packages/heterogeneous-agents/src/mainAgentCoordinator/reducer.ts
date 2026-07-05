@@ -156,8 +156,11 @@ const openTurn = (state: MainAgentRunState, data: any, ctx: MainAgentReduceCtx):
   next.currentAssistantId = messageId;
   // The spine only advances on NORMAL turns — a signal/reactive turn is a
   // tool-child callback, so the next normal turn re-mounts on the pre-callback
-  // spine assistant, not on the callback.
+  // spine assistant, not on the callback. But a signal turn that goes on to
+  // emit a tool_use is really back on the main chain: `reduceToolsChunk`
+  // promotes it onto the spine, gated on this flag.
   if (!isSignalTurn) next.lastSpineMessageId = messageId;
+  next.currentTurnIsSignal = isSignalTurn;
   next.currentMainMessageId = mainMessageId;
   next.accContent = '';
   next.accReasoning = '';
@@ -273,6 +276,16 @@ const reduceToolsChunk = (
   // Advance the chain fallback to this turn's last tool message.
   const lastToolMsgId = newToolMsgIds.at(-1);
   if (lastToolMsgId) next.lastToolMsgIdEver = lastToolMsgId;
+
+  // A signal/reactive turn that emits a tool_use is back on the main chain (the
+  // reactive-push phase is over — mirrors the adapter dropping its pending
+  // signal on the next tool_use). Promote it onto the spine so the NEXT normal
+  // turn chains off THIS turn, not the pre-signal spine assistant. Otherwise the
+  // wire forks and the read side drops everything after the fork. Consume once.
+  if (next.currentTurnIsSignal) {
+    next.lastSpineMessageId = next.currentAssistantId;
+    next.currentTurnIsSignal = false;
+  }
 
   return { intents, state: next };
 };
