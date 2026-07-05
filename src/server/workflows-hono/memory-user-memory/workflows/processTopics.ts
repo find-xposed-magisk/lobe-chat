@@ -12,11 +12,11 @@ import { getServerDB } from '@/database/server';
 import { parseMemoryExtractionConfig } from '@/server/globalConfig/parseMemoryExtractionConfig';
 import { type MemoryExtractionPayloadInput } from '@/server/services/memory/userMemory/extract';
 import {
+  buildWorkflowPayloadInput,
   MemoryExtractionWorkflowService,
   normalizeMemoryExtractionPayload,
 } from '@/server/services/memory/userMemory/extract';
 
-import { processTopicWorkflow } from './processTopic';
 import { checkGuard } from './runGuard';
 
 const { upstashWorkflowExtraHeaders } = parseMemoryExtractionConfig();
@@ -118,9 +118,12 @@ export const processTopicsHandler = (context: WorkflowContext<MemoryExtractionPa
             };
           }
         }
-        // Delegate per-topic extraction to dedicated workflow for better isolation.
+        // Fan out per-topic extraction as independent fire-and-forget workflow runs (replaces the
+        // former context.invoke). triggerProcessTopic applies a per-user flowControl key so a single
+        // user's concurrent process-topic runs stay bounded; the hard per-user, per-run topic
+        // ceiling is enforced upstream in process-user-topics.
         for (const [index, topicId] of payload.topicIds.entries()) {
-          const stepName = `memory:user-memory:extract:users:${userId}:topics:${topicId}:invoke:${index}`;
+          const stepName = `memory:user-memory:extract:users:${userId}:topics:${topicId}:trigger:${index}`;
           const guard = await checkGuard(context, WORKFLOW_PATH, {
             response: { processedTopics: 0, processedUsers: 0 },
             stepName,
@@ -130,28 +133,21 @@ export const processTopicsHandler = (context: WorkflowContext<MemoryExtractionPa
             return guard.response;
           }
 
-          await context.invoke(stepName, {
-            body: {
-              ...payload,
-              layers: payload.layers.length ? payload.layers : [...CEPA_LAYERS, ...IDENTITY_LAYERS],
-              topicIds: [topicId],
+          await context.run(stepName, () =>
+            MemoryExtractionWorkflowService.triggerProcessTopic(
               userId,
-              userIds: [userId],
-            },
-            // CEPA: run in parallel across the batch
-            //
-            // NOTICE: if modified the parallelism of CEPA_LAYERS
-            // or added new memory layer, make sure to update the number below.
-            //
-            // Currently, CEPA (context, experience, preference, activity) + identity = 5 layers.
-            // and since identity requires sequential processing, we set parallelism to 5.
-            flowControl: {
-              key: `memory-user-memory.pipelines.chat-topic.process-topic.user.${userId}.topic.${topicId}`,
-              parallelism: 5,
-            },
-            headers: upstashWorkflowExtraHeaders,
-            workflow: processTopicWorkflow,
-          });
+              {
+                ...buildWorkflowPayloadInput(payload),
+                layers: payload.layers.length
+                  ? payload.layers
+                  : [...CEPA_LAYERS, ...IDENTITY_LAYERS],
+                topicIds: [topicId],
+                userId,
+                userIds: [userId],
+              },
+              { extraHeaders: upstashWorkflowExtraHeaders },
+            ),
+          );
         }
 
         // Trigger user persona update after topic processing using the workflow client.
@@ -196,3 +192,18 @@ export const processTopicsHandler = (context: WorkflowContext<MemoryExtractionPa
       }
     },
   );
+
+// NOTICE: Serve-side flow control governs a running workflow's own step-continuation messages
+// (the QStash callbacks that advance each `context.run`). Without it, every process-topics step
+// callback is published with NO flow-control key and lands in the shared "$" (unbound) bucket,
+// which floods when steps retry (e.g. the auth-failure retry storm). `triggerProcessTopics`
+// additionally sets a per-user key for the *initial* delivery; serve-side flow control can only
+// use a static (config-time) key, so this global key bounds concurrent step execution and, more
+// importantly, keeps step callbacks out of "$". Parallelism is a conservative global cap — the
+// per-user trigger key (parallelism 20) remains the primary per-user throttle.
+export const processTopicsWorkflowOptions = {
+  flowControl: {
+    key: 'memory-user-memory.pipelines.chat-topic.process-topics',
+    parallelism: 20,
+  },
+};
