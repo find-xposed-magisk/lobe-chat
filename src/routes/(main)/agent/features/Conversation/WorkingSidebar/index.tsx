@@ -239,6 +239,7 @@ const AgentWorkingSidebar = memo(() => {
           {reviewAvailable && (
             <Flexbox className={activeTab === 'review' ? styles.pane : styles.paneHidden}>
               <Review
+                active={activeTab === 'review'}
                 deviceId={remoteDeviceId}
                 showTree={showReviewTree}
                 workingDirectory={workingDirectory}
