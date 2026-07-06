@@ -73,6 +73,10 @@ vi.mock('@/services/electron/heterogeneousAgent', () => ({
 // Gateway event handler — we spy on it but let it run (it calls getMessages)
 vi.mock('../transports/gateway/gatewayEventHandler', () => ({
   createGatewayEventHandler: vi.fn(() => vi.fn()),
+  // Faithful re-impl (the real one is unmocked to keep the import cycle out of
+  // this test): only 'interrupted' / 'waiting_for_async_tool' are non-clean.
+  isCompletedRuntimeEnd: (reason?: string | null) =>
+    reason !== 'interrupted' && reason !== 'waiting_for_async_tool',
 }));
 
 // isDesktop — defaults to `false` (matching the real test env / __ELECTRON__
@@ -4184,6 +4188,58 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
           topicId: 'topic-1',
         }),
       );
+    });
+
+    // ── 5. stuck-spinner regression: status reset must not wait on the drain ──
+    it('resets topic status even when the persist queue never drains', async () => {
+      // A DB write that never settles — mirrors a dropped desktop-IPC reply. It
+      // strands the executor's persistQueue, which onComplete used to `await`
+      // unbounded BEFORE resetting topic status, leaving the sidebar spinning
+      // forever after the CLI had already exited (the bug this guards against).
+      let releaseWrite!: () => void;
+      const hangingWrite = new Promise<void>((r) => {
+        releaseWrite = r;
+      });
+      mockUpdateMessage.mockReturnValue(hangingWrite);
+
+      const updateTopicStatus = vi.fn();
+      const store = createMockStore({
+        activeTopicId: 'topic-1', // viewing → a clean end writes 'active'
+        updateTopicStatus,
+      });
+      const get = vi.fn(() => store);
+
+      let resolveSendPrompt!: () => void;
+      mockSendPrompt.mockReturnValue(
+        new Promise<void>((r) => {
+          resolveSendPrompt = r;
+        }),
+      );
+
+      const executorPromise = executeHeterogeneousAgent(get, defaultParams);
+      await flush();
+
+      // A tool batch enqueues an awaited `updateMessage` onto persistQueue — the
+      // hanging write above stalls the queue before the terminal drain.
+      ipc.emitRawLine('ipc-sess-1', ccInit());
+      ipc.emitRawLine('ipc-sess-1', ccToolUse('msg_01', 'toolu_1', 'Read', { file_path: '/a' }));
+      ipc.emitRawLine('ipc-sess-1', ccToolResult('toolu_1', 'file content'));
+      ipc.emitRawLine('ipc-sess-1', ccResult());
+      ipc.emitComplete('ipc-sess-1');
+      await flush();
+
+      // The fix: status is reset synchronously at the top of onComplete, BEFORE
+      // the (now stalled + bounded) drain — so the spinner clears to 'active'
+      // even though the persist queue is still pending on the hanging write.
+      expect(updateTopicStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'active', topicId: 'topic-1' }),
+      );
+
+      // Release so the queue drains and the executor settles cleanly.
+      releaseWrite();
+      resolveSendPrompt();
+      await executorPromise;
+      await flush();
     });
   });
 });

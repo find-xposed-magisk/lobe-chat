@@ -868,9 +868,12 @@ export class ConversationLifecycleActionImpl {
       // branch returns early (line 498) and never reaches that clear.
       this.#get().updateOperationMetadata(operationId, { inputEditorTempState: null });
 
-      if (heteroData.topicId && !optimisticTopicResolved) {
-        this.#get().internal_updateTopicLoading(heteroData.topicId, true);
-      }
+      // Sidebar "running" spinner for hetero runs is driven off the persisted
+      // `topic.status === 'running'` (written by the executor's writeTopicStatus,
+      // and bucketed by resolveStatusBucket) — no separate client-only
+      // `topicLoadingIds` overlay, which used to desync: it cleared on the
+      // linear sendPrompt path (below) while `status` stayed 'running' when the
+      // executor's onComplete stalled, leaving the topic spinning after finish.
 
       // Start heterogeneous agent execution
       const { operationId: heteroOpId } = this.#get().startOperation({
@@ -924,8 +927,6 @@ export class ConversationLifecycleActionImpl {
           type: 'HeterogeneousAgentError',
         });
       }
-
-      if (heteroData.topicId) this.#get().internal_updateTopicLoading(heteroData.topicId, false);
 
       return {
         assistantMessageId: heteroData.assistantMessageId,
