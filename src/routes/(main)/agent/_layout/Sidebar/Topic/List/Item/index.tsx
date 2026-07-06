@@ -275,8 +275,11 @@ const TopicItem = memo<TopicItemProps>(
     const isFailed = status === 'failed';
     const isRunning = status === 'running';
     const isWaitingForHuman = status === 'waitingForHuman';
-    const shouldShowRunningIcon =
-      isLoading || (isRunning && (!hasLocalRunningRuntime || isRuntimeVisiblyRunning));
+    // Post-visible-output tail: the user-visible answer is complete but the run
+    // is still doing terminal bookkeeping (unread persist, title summary) —
+    // #16518 intentionally masks the running icon during this window.
+    const isMaskedRunningTail = isRunning && hasLocalRunningRuntime && !isRuntimeVisiblyRunning;
+    const shouldShowRunningIcon = isLoading || (isRunning && !isMaskedRunningTail);
 
     // By-status grouping mixes topics from different projects, so surface each
     // topic's working directory as a muted second line. Data is already on the
@@ -293,7 +296,12 @@ const TopicItem = memo<TopicItemProps>(
         </Flexbox>
       ) : undefined;
 
-    const hasUnread = id && isUnreadCompleted;
+    // Surface the unread dot right away during the masked tail instead of a
+    // blank icon gap until markTopicUnread's persisted 'unread' lands. Skipped
+    // while the user is viewing the topic, like markTopicUnread's own guard.
+    const isRunningTailUnread = isMaskedRunningTail && !isTopicActive;
+
+    const hasUnread = id && (isUnreadCompleted || isRunningTailUnread);
     const unreadIcon = (
       <span className={styles.unreadWrapper}>
         <span className={styles.unreadRipple} />
