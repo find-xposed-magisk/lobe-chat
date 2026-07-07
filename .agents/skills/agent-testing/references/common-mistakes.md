@@ -255,3 +255,47 @@ verify run. Either drive the real app UI with agent-browser/Electron/Web and att
 a screenshot, or explicitly mark the UI screenshot case blocked with the measured
 environment blocker. Do not present a UI-touching report as complete with only CLI
 evidence.
+
+## Case 11 — Skipping the agent-testing entry point for a UI E2E check
+
+**Wrong approach**: after implementing a user-facing Markdown/chat interaction,
+running generic local checks and an ad-hoc browser probe without first reading and
+following the repo's `agent-testing` skill. The user had to ask why the test plan
+did not use the dedicated skill.
+
+**Why it's wrong**: `agent-testing` encodes LobeHub-specific surface choice, auth,
+isolated Electron dev instances, screenshot evidence rules, reporting, and known
+tooling traps. Bypassing it makes the validation weaker even when individual unit
+tests pass.
+
+**What it breaks**: the run can stop at DOM/text heuristics, use the wrong app
+surface, miss required screenshot/report evidence, or fail to publish a verify
+report that the user can inspect.
+
+**Correct approach**: for any local end-to-end or manual verification task,
+especially UI-facing changes, start with `agent-testing`: read this file and
+`probe-mock-patterns.md`, resolve the test env, choose the correct surface, run
+the app-specific probes, capture visually confirmed evidence, publish the verify
+report, and tear down processes started by the run.
+
+## Case 12 — Verifying the selection chip but not the final model payload
+
+**Wrong approach**: after adding a chat text-selection action, marking the feature
+verified because the floating toolbar appeared, the selected-text chip rendered,
+and the UI store contained a `contextSelections` entry — without checking the
+final message payload that the model receives.
+
+**Why it's wrong**: UI metadata can be saved and displayed while a later
+context-engine/runtime gate drops it before request construction. In this case,
+the user bubble showed the selected text, but the Anthropic request only carried
+the raw user question because generic `contextSelections` were gated behind page
+editor context injection.
+
+**What it breaks**: ships a feature that looks successful in the chat UI but has
+no effect on model behavior; the user must inspect DevTools to discover the
+selected context never reached the assistant.
+
+**Correct approach**: for any feature that claims to "inject" context, verify the
+last mile: add or run an integration-level assertion against the transformed
+messages/request body (e.g. `MessagesEngine` output or transport payload), and
+only treat the UI chip/store as supporting evidence.
