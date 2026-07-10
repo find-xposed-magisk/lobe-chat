@@ -74,7 +74,8 @@ export const callLlm =
     const model = prepared?.model ?? llmPayload.model ?? state.modelRuntimeConfig?.model;
     const provider =
       prepared?.provider ?? llmPayload.provider ?? state.modelRuntimeConfig?.provider;
-    const tooling = prepared?.tooling ?? resolveServerCallLlmTooling(ctx, state);
+    const tooling =
+      prepared?.tooling ?? resolveServerCallLlmTooling(ctx, state, llmPayload.allowedToolNames);
     const { resolved, tools } = tooling;
 
     if (!model || !provider) {
@@ -575,7 +576,11 @@ export const callLlm =
                     }
                   },
                   onToolsCalling: async ({ toolsCalling: raw }) => {
-                    const resolvedCalls = new ToolNameResolver().resolve(raw, resolved.manifestMap);
+                    const resolvedCalls = new ToolNameResolver().resolve(
+                      raw,
+                      resolved.promptManifestMap,
+                      resolved.tools.map((tool) => tool.function.name),
+                    );
                     // Attach source (origin) and executor (dispatch target) for routing.
                     // `arguments` are kept RAW here on purpose so the tool executor can
                     // still detect malformed JSON and return an `INVALID_JSON_ARGUMENTS`
