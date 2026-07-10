@@ -13,6 +13,7 @@ import { aiModelRouter } from '../lambda/aiModel';
 import { aiProviderRouter } from '../lambda/aiProvider';
 import { briefRouter } from '../lambda/brief';
 import { chunkRouter } from '../lambda/chunk';
+import { composioRouter } from '../lambda/composio';
 import { configRouter } from '../lambda/config';
 import { deviceRouter } from '../lambda/device';
 import { documentRouter } from '../lambda/document';
@@ -26,6 +27,7 @@ import { pushTokenRouter } from '../lambda/pushToken';
 import { sessionRouter } from '../lambda/session';
 import { sessionGroupRouter } from '../lambda/sessionGroup';
 import { taskRouter } from '../lambda/task';
+import { taskTemplateRouter } from '../lambda/taskTemplate';
 import { topicRouter } from '../lambda/topic';
 import { uploadRouter } from '../lambda/upload';
 import { userRouter } from '../lambda/user';
@@ -39,6 +41,7 @@ export const mobileRouter = router({
   aiModel: aiModelRouter,
   aiProvider: aiProviderRouter,
   chunk: chunkRouter,
+  composio: composioRouter,
   config: configRouter,
   device: deviceRouter,
   document: documentRouter,
@@ -54,6 +57,7 @@ export const mobileRouter = router({
   sessionGroup: sessionGroupRouter,
   subscription: mobileSubscriptionRouter,
   task: taskRouter,
+  taskTemplate: taskTemplateRouter,
   topic: topicRouter,
   upload: uploadRouter,
   user: userRouter,

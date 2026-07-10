@@ -40,8 +40,9 @@ export interface GatewayMemberStreamHandlerParams {
 
 /**
  * A render-only handler for a broadcast council member whose streaming events
- * are multiplexed onto the supervisor's Gateway WebSocket (LOBE-10868, option
- * B: server forwards member events onto the supervisor op channel).
+ * are multiplexed onto the supervisor's Gateway WebSocket (server forwards
+ * member events onto the supervisor op channel, single-connection
+ * multiplexing).
  *
  * Scope is deliberately narrow — it owns ONLY the member's live text/reasoning/
  * tool-call streaming into its council column. It does NOT drive any run
@@ -143,6 +144,28 @@ export const createGatewayMemberStreamHandler = (
         }
         if (data.chunkType === 'tools_calling' && data.toolsCalling) {
           dispatch({ tools: data.toolsCalling });
+        }
+        break;
+      }
+
+      case 'visible_output_end': {
+        // Example: forwarded member streams can finish text before the
+        // supervisor's terminal barrier refetches the group tree. Clear only
+        // the member column's visible loading; terminal reconciliation still
+        // belongs to agent_runtime_end/error.
+        //
+        // Same guard as the main handler (LOBE-11501): if the member row isn't
+        // in the store yet (group hydration in flight) or its streamed text
+        // hasn't landed, clearing loading would show a "done" column with no
+        // text — skip the hint and let the terminal barrier reconcile both.
+        if (currentAssistantMessageId) {
+          const stored = (get().dbMessagesMap[bucketKey] ?? []).find(
+            (m) => m.id === currentAssistantMessageId,
+          );
+          if (!stored || (accumulatedContent && !stored.content)) break;
+        }
+        if (localOperationId) {
+          get().updateOperationMetadata(localOperationId, { visibleLoadingDone: true });
         }
         break;
       }

@@ -39,19 +39,19 @@ export type UserGuide = z.infer<typeof UserGuideSchema>;
 
 export const UserLabSchema = z.object({
   /**
+   * enable graph runtime configuration for agents
+   */
+  enableAgentGraphConfig: z.boolean().optional(),
+  /**
    * enable agent self-iteration feedback capture and policy execution
    */
   enableAgentSelfIteration: z.boolean().optional(),
-  /**
-   * enable the floating chat panel in agent document preview
-   */
-  enableAgentDocumentFloatingChatPanel: z.boolean().optional(),
   /**
    * enable the Fleet view (side-by-side running-task dashboard)
    */
   enableFleet: z.boolean().optional(),
   /**
-   * fold a finished, non-latest agent turn's process under a "已处理" header
+   * fold a finished agent turn's process under a "已处理" header when its final answer is visible
    */
   enableFoldFinishedTurn: z.boolean().optional(),
   /**
@@ -66,6 +66,10 @@ export const UserLabSchema = z.object({
    * enable markdown rendering in chat input editor
    */
   enableInputMarkdown: z.boolean().optional(),
+  /**
+   * enable selecting message text and adding it to the next conversation context
+   */
+  enableMessageTextSelectionActions: z.boolean().optional(),
   /**
    * show the "Add Platform Agent" entry in the create menu
    */
@@ -115,11 +119,7 @@ export interface UserPreference {
 }
 
 export type ReferralStatusString =
-  | 'pending_reward'
-  | 'registered'
-  | 'suspected'
-  | 'rewarded'
-  | 'revoked';
+  'pending_reward' | 'registered' | 'suspected' | 'rewarded' | 'revoked';
 
 export interface UserInitializationState {
   agentOnboarding?: UserAgentOnboarding;

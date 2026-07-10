@@ -62,6 +62,29 @@ describe('TaskTopicModel', () => {
       const topics = await topicModel.findByTaskId(task.id);
       expect(topics).toHaveLength(1);
     });
+
+    it('should find running topics for multiple tasks within the current owner scope', async () => {
+      const taskModel = new TaskModel(serverDB, userId);
+      const otherTaskModel = new TaskModel(serverDB, userId2);
+      const topicModel = new TaskTopicModel(serverDB, userId);
+      const otherTopicModel = new TaskTopicModel(serverDB, userId2);
+      const task1 = await taskModel.create({ instruction: 'A' });
+      const task2 = await taskModel.create({ instruction: 'B' });
+      const otherTask = await otherTaskModel.create({ instruction: 'Other' });
+      await createTopic('tpc_a1');
+      await createTopic('tpc_a3');
+      await createTopic('tpc_b2');
+      await createTopic('tpc_theirs', userId2);
+
+      await topicModel.add(task1.id, 'tpc_a1', { seq: 1 });
+      await topicModel.add(task1.id, 'tpc_a3', { seq: 3 });
+      await topicModel.add(task2.id, 'tpc_b2', { seq: 2 });
+      await otherTopicModel.add(otherTask.id, 'tpc_theirs', { seq: 99 });
+      await topicModel.updateStatus(task1.id, 'tpc_a1', 'completed');
+
+      const rows = await topicModel.findRunningByTaskIds([task1.id, task2.id, otherTask.id]);
+      expect(rows.map((row) => row.topicId)).toEqual(['tpc_a3', 'tpc_b2']);
+    });
   });
 
   describe('updateStatus', () => {
@@ -248,6 +271,29 @@ describe('TaskTopicModel', () => {
 
       expect(await topicModel.countByTask(task1.id)).toBe(1);
       expect(await topicModel.countByTask(task2.id)).toBe(1);
+    });
+
+    it('only counts the requested triggers, excluding manual + legacy-null rows', async () => {
+      // LOBE-11391: the maxExecutions quota must count scheduled ticks only —
+      // manual "run now" invocations and legacy rows (null trigger) don't count.
+      const taskModel = new TaskModel(serverDB, userId);
+      const topicModel = new TaskTopicModel(serverDB, userId);
+      const task = await taskModel.create({ instruction: 'Test' });
+      await createTopic('tpc_sched');
+      await createTopic('tpc_manual');
+      await createTopic('tpc_legacy');
+
+      await topicModel.add(task.id, 'tpc_sched', { seq: 1, trigger: 'schedule' });
+      await topicModel.add(task.id, 'tpc_manual', { seq: 2, trigger: 'manual' });
+      await topicModel.add(task.id, 'tpc_legacy', { seq: 3 }); // no trigger → null
+
+      // Unfiltered still counts everything.
+      expect(await topicModel.countByTask(task.id)).toBe(3);
+      // Scheduled-only counts just the one scheduled tick.
+      expect(await topicModel.countByTask(task.id, { triggers: ['schedule'] })).toBe(1);
+      expect(await topicModel.countByTask(task.id, { triggers: ['schedule', 'heartbeat'] })).toBe(
+        1,
+      );
     });
 
     it('does not count topics owned by a different user', async () => {
@@ -640,6 +686,36 @@ describe('TaskTopicModel', () => {
       await topicModel1.add(task.id, 'tpc_aaa', { seq: 1 });
       const removed = await topicModel2.remove(task.id, 'tpc_aaa');
       expect(removed).toBe(false);
+    });
+  });
+
+  describe('add — parent visibility mirroring', () => {
+    it('should snapshot the parent task’s public visibility onto the topic row', async () => {
+      const taskModel = new TaskModel(serverDB, userId);
+      const topicModel = new TaskTopicModel(serverDB, userId);
+      const task = await taskModel.create({ instruction: 'Public task', visibility: 'public' });
+      await createTopic('tpc_pub');
+
+      await topicModel.add(task.id, 'tpc_pub', { seq: 1 });
+
+      const row = (
+        await serverDB.select().from(taskTopics).where(eq(taskTopics.taskId, task.id)).limit(1)
+      )[0];
+      expect(row.visibility).toBe('public');
+    });
+
+    it('should snapshot the parent task’s private visibility onto the topic row', async () => {
+      const taskModel = new TaskModel(serverDB, userId);
+      const topicModel = new TaskTopicModel(serverDB, userId);
+      const task = await taskModel.create({ instruction: 'Private task', visibility: 'private' });
+      await createTopic('tpc_priv');
+
+      await topicModel.add(task.id, 'tpc_priv', { seq: 1 });
+
+      const row = (
+        await serverDB.select().from(taskTopics).where(eq(taskTopics.taskId, task.id)).limit(1)
+      )[0];
+      expect(row.visibility).toBe('private');
     });
   });
 });

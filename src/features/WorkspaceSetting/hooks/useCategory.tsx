@@ -1,5 +1,6 @@
 import { SkillsIcon } from '@lobehub/ui/icons';
 import {
+  Blocks,
   Brain,
   Building2,
   ChartColumnBigIcon,
@@ -10,6 +11,7 @@ import {
   KeyRound,
   Map,
   MonitorSmartphoneIcon,
+  ScrollText,
   Sparkles,
   Users,
 } from 'lucide-react';
@@ -119,6 +121,11 @@ export const useWorkspaceSettingCategory = (): WorkspaceSettingCategoryGroup[] =
               label: t('workspaceSetting.tab.skill'),
             },
             {
+              icon: Blocks,
+              key: WorkspaceSettingsTabs.Connector,
+              label: t('workspaceSetting.tab.connector'),
+            },
+            {
               icon: KeyRound,
               key: WorkspaceSettingsTabs.Creds,
               label: t('tab.creds'),
@@ -132,8 +139,8 @@ export const useWorkspaceSettingCategory = (): WorkspaceSettingCategoryGroup[] =
           key: WorkspaceSettingsGroupKey.Agent,
           title: t('workspaceSetting.group.agent'),
         },
-        // The Admin group (workspace storage / API keys) is owner-only — managing
-        // shared infra is an owner action.
+        // The Admin group is owner-only — managing shared infra and audit
+        // surfaces is an owner action.
         isOwner && {
           items: [
             {
@@ -145,6 +152,11 @@ export const useWorkspaceSettingCategory = (): WorkspaceSettingCategoryGroup[] =
               icon: KeyIcon,
               key: WorkspaceSettingsTabs.APIKey,
               label: tAuth('tab.apikey'),
+            },
+            {
+              icon: ScrollText,
+              key: WorkspaceSettingsTabs.AuditLog,
+              label: t('workspaceSetting.tab.auditLog'),
             },
           ].filter(Boolean) as WorkspaceSettingCategoryItem[],
           key: WorkspaceSettingsGroupKey.Admin,
