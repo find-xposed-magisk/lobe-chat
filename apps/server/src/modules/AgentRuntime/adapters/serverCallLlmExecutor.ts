@@ -1,10 +1,10 @@
 import {
   type AgentEvent,
-  type AgentInstruction,
-  type CallLLMPayload,
+  type AgentState,
+  type ContextBuildOutput,
   type GeneralAgentCallLLMResultPayload,
   getLLMRetryDelayMs,
-  type InstructionExecutor,
+  type InstructionExecutionResult,
   resolveLLMMaxAttempts,
   resolveLLMRetryBudget,
   shouldRetryLLM,
@@ -31,19 +31,18 @@ import { isOperationInterrupted, log, sleep } from '../executorHelpers';
 import { formatErrorEventData } from '../formatErrorEventData';
 import { classifyLLMError } from '../llmErrorClassification';
 import { createServerCallLlmAttempt } from './serverCallLlmAttempt';
-import { buildServerCallLlmContext } from './serverCallLlmContextBuilder';
 import {
   finalizeServerCallLlmResult,
   persistInterruptedServerCallLlmResult,
 } from './serverCallLlmFinalizer';
-import type { ServerCallLlmTooling } from './serverCallLlmTooling';
 
 interface ServerCallLlmExecutionContext {
   assistantMessage: { id: string };
+  context: ContextBuildOutput;
   model: string;
   provider: string;
+  state: AgentState;
   stepLabel?: string;
-  tooling: ServerCallLlmTooling;
 }
 
 const SERVER_LLM_RETRY_POLICY = {
@@ -51,22 +50,33 @@ const SERVER_LLM_RETRY_POLICY = {
   noRetryProviders: [BRANDING_PROVIDER],
 };
 
-export const callLlm =
-  (ctx: RuntimeExecutorContext, prepared: ServerCallLlmExecutionContext): InstructionExecutor =>
-  async (instruction, state) => {
-    const { payload } = instruction as Extract<AgentInstruction, { type: 'call_llm' }>;
-    const llmPayload = payload as CallLLMPayload;
+class ServerCallLlmTurn {
+  constructor(
+    private readonly ctx: RuntimeExecutorContext,
+    private readonly prepared: ServerCallLlmExecutionContext,
+  ) {}
+
+  async execute(): Promise<InstructionExecutionResult> {
+    const { ctx, prepared } = this;
+    const { state } = prepared;
     const { operationId, stepIndex, streamManager } = ctx;
     const events: AgentEvent[] = [];
     let visibleOutputEndPublishedStepIndex: number | undefined;
     const {
       assistantMessage: assistantMessageItem,
+      context,
       model,
       provider,
       stepLabel,
-      tooling,
     } = prepared;
-    const { resolved, tools } = tooling;
+    const {
+      messages: preparedMessages,
+      modelParameters: resolvedExtendParams,
+      preserveThinking: preserveThinkingForPayload,
+      replayAssistantReasoning: shouldReplayAssistantReasoning,
+      resolvedTools: resolved,
+    } = context;
+    const processedMessages = preparedMessages as ChatStreamPayload['messages'];
     const operationLogId = `${operationId}:${stepIndex}`;
     log(
       '[%s][call_llm] Starting operation with prepared assistant message: %s',
@@ -75,19 +85,8 @@ export const callLlm =
     );
 
     try {
-      const {
-        preserveThinkingForPayload,
-        processedMessages,
-        resolvedExtendParams,
-        shouldReplayAssistantReasoning,
-      } = await buildServerCallLlmContext({
-        ctx,
-        llmPayload,
-        model,
-        provider,
-        state,
-        tooling,
-      });
+      if (!resolved) throw new Error('Resolved tools are required for a server LLM turn');
+      const tools = resolved.tools.length > 0 ? resolved.tools : undefined;
 
       // A turn must carry at least one non-system message. Anthropic-compatible
       // providers (anthropic / deepseek) move `role: system` into a separate
@@ -393,4 +392,10 @@ export const callLlm =
       );
       throw error;
     }
-  };
+  }
+}
+
+export const executeServerCallLlmTurn = (
+  ctx: RuntimeExecutorContext,
+  prepared: ServerCallLlmExecutionContext,
+): Promise<InstructionExecutionResult> => new ServerCallLlmTurn(ctx, prepared).execute();
