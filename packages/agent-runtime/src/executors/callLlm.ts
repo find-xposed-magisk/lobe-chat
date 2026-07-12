@@ -1,18 +1,119 @@
-import type { AgentRuntimeHost, LLMTurnInput } from '../transport';
-import type { AgentInstruction, CallLLMPayload, InstructionExecutor } from '../types';
+import type {
+  AgentRuntimeHost,
+  LLMAttemptOutput,
+  LLMTurnInput,
+  LLMTurnSession,
+} from '../transport';
+import type { AgentEvent, AgentInstruction, CallLLMPayload, InstructionExecutor } from '../types';
+import { getLLMRetryDelayMs, shouldRetryLLM } from '../utils';
 
 const CONVERSATION_PARENT_MISSING_ERROR_TYPE = 'ConversationParentMissing';
 
 interface LLMCallTransport {
-  executeTurn: (input: LLMTurnInput) => ReturnType<InstructionExecutor>;
+  openTurn: (input: LLMTurnInput) => Promise<LLMTurnSession> | LLMTurnSession;
 }
 
 const requireLLMCallTransport = (host: AgentRuntimeHost) => {
   const llm = host.transports.llm;
-  if (!llm?.executeTurn) {
-    throw new Error('LLMTransport.executeTurn is required for call_llm executor');
+  if (!llm?.openTurn) {
+    throw new Error('LLMTransport.openTurn is required for call_llm executor');
   }
   return llm as NonNullable<AgentRuntimeHost['transports']['llm']> & LLMCallTransport;
+};
+
+const waitForRetry = (delayMs: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+
+const isOperationInterrupted = async (host: AgentRuntimeHost) => {
+  const operationStore = host.transports.operationStore;
+  if (!operationStore?.loadState) return false;
+
+  try {
+    const latestState = await operationStore.loadState(host.operation.operationId);
+    return latestState?.status === 'interrupted';
+  } catch (error) {
+    console.error('[call_llm] Failed to load operation state for retry guard:', error);
+    return false;
+  }
+};
+
+const executeTurnSession = async (host: AgentRuntimeHost, session: LLMTurnSession) => {
+  const events: AgentEvent[] = [];
+  let errorHandled = false;
+  let lastOutput: LLMAttemptOutput | undefined;
+  let terminalError: unknown;
+
+  try {
+    for (let attempt = 1; attempt <= session.maxAttempts; attempt++) {
+      const execution = await session.runAttempt({ attempt, events });
+      lastOutput = execution.output;
+
+      if (execution.ok) return await session.finalize({ events, output: execution.output });
+
+      const { error } = execution;
+      const classified = session.classifyError(error);
+      const retryBudget = session.resolveRetryBudget(error);
+      let interrupted = await isOperationInterrupted(host);
+
+      if (!interrupted && shouldRetryLLM(classified.kind, attempt, retryBudget)) {
+        const delayMs = getLLMRetryDelayMs(attempt);
+        const retryEvent: AgentEvent = {
+          data: {
+            attempt: attempt + 1,
+            delayMs,
+            errorType: classified.code,
+            kind: classified.kind,
+            maxAttempts: session.maxAttempts,
+          },
+          type: 'stream_retry',
+        };
+        events.push(retryEvent);
+
+        await session.onRetry?.({
+          attempt,
+          delayMs,
+          error: classified,
+          maxAttempts: session.maxAttempts,
+        });
+        await host.transports.stream.publishEvent({
+          data: retryEvent.data,
+          stepIndex: host.operation.stepIndex,
+          type: 'stream_retry',
+        });
+        await (session.waitForRetry ?? waitForRetry)(delayMs);
+
+        interrupted = await isOperationInterrupted(host);
+        if (!interrupted) continue;
+      }
+
+      errorHandled = true;
+      await session.handleError({
+        error,
+        events,
+        interrupted,
+        output: execution.output,
+        retryBudget,
+      });
+      throw error;
+    }
+
+    throw new Error('LLM execution retry loop exited unexpectedly');
+  } catch (error) {
+    terminalError = error;
+    if (!errorHandled) {
+      await session.handleError({
+        error,
+        events,
+        interrupted: await isOperationInterrupted(host),
+        output: lastOutput,
+      });
+    }
+    throw error;
+  } finally {
+    await session.close(terminalError);
+  }
 };
 
 const requireContextBuilder = (host: AgentRuntimeHost) => {
@@ -75,10 +176,9 @@ const buildAssistantMessageSeed = (
 /**
  * Package-owned `call_llm` executor entry point.
  *
- * The server-specific implementation still lives behind the LLM transport while
- * the remaining context/stream/persist internals are broken into narrower
- * package-owned ports. The transport executes a prepared turn rather than
- * masquerading as another instruction executor.
+ * The package prepares the turn and owns retry/interruption orchestration. The
+ * host-bound session temporarily retains model execution, tracing, and result
+ * persistence until those responsibilities move onto narrower ports.
  */
 export const callLlm =
   (host: AgentRuntimeHost): InstructionExecutor =>
@@ -159,12 +259,22 @@ export const callLlm =
         throw error;
       });
 
-    return llm.executeTurn({
-      assistantMessage,
-      context,
-      model,
-      provider,
-      state,
-      stepLabel,
-    });
+    try {
+      const session = await llm.openTurn({
+        assistantMessage,
+        context,
+        model,
+        provider,
+        state,
+        stepLabel,
+      });
+      return await executeTurnSession(host, session);
+    } catch (error) {
+      await transports.stream.publishError?.({
+        error,
+        phase: 'llm_execution',
+        stepIndex: operation.stepIndex,
+      });
+      throw error;
+    }
   };

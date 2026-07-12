@@ -9,6 +9,7 @@ import type {
 } from '@lobechat/types';
 
 import type { AgentEvent, AgentState, CallLLMPayload, InstructionExecutionResult } from '../types';
+import type { ClassifiedLLMError } from '../utils';
 import type { ContextBuildOutput } from './context';
 import type { RuntimeMessageRef } from './message';
 
@@ -86,6 +87,44 @@ export interface LLMTurnInput {
   stepLabel?: string;
 }
 
+export interface LLMTurnAttemptInput {
+  attempt: number;
+  events: AgentEvent[];
+}
+
+export interface LLMTurnErrorInput {
+  error: unknown;
+  events: AgentEvent[];
+  interrupted: boolean;
+  output?: LLMAttemptOutput;
+  retryBudget?: number;
+}
+
+export interface LLMTurnFinalizeInput {
+  events: AgentEvent[];
+  output: LLMAttemptOutput;
+}
+
+export interface LLMTurnRetryInput {
+  attempt: number;
+  delayMs: number;
+  error: ClassifiedLLMError;
+  maxAttempts: number;
+}
+
+/** Host-bound lifecycle for one logical model turn across all retry attempts. */
+export interface LLMTurnSession {
+  classifyError: (error: unknown) => ClassifiedLLMError;
+  close: (error?: unknown) => Promise<void> | void;
+  finalize: (input: LLMTurnFinalizeInput) => Promise<InstructionExecutionResult>;
+  handleError: (input: LLMTurnErrorInput) => Promise<void>;
+  maxAttempts: number;
+  onRetry?: (input: LLMTurnRetryInput) => Promise<void> | void;
+  resolveRetryBudget: (error: unknown) => number;
+  runAttempt: (input: LLMTurnAttemptInput) => Promise<LLMAttemptExecution>;
+  waitForRetry?: (delayMs: number) => Promise<void>;
+}
+
 /**
  * Streams a model completion. Server adapter wraps `initModelRuntimeFromDB` +
  * `ModelRuntime.chat` + `consumeStreamUntilDone`; the client adapter wraps
@@ -97,11 +136,10 @@ export interface LLMTurnInput {
  */
 export interface LLMTransport {
   /**
-   * Executes one prepared model turn. The package executor owns instruction
-   * setup/context while the adapter owns retry and persistence until those
-   * phases move onto narrower transport ports.
+   * Opens a host-bound turn session. The package owns retry orchestration while
+   * the session retains host-specific tracing and finalization temporarily.
    */
-  executeTurn?: (input: LLMTurnInput) => Promise<InstructionExecutionResult>;
+  openTurn?: (input: LLMTurnInput) => Promise<LLMTurnSession> | LLMTurnSession;
   /** Executes one model attempt and returns both successful or partial output. */
   runAttempt?: (input: LLMAttemptInput) => Promise<LLMAttemptExecution>;
   stream: (
