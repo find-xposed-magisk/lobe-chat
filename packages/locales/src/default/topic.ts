@@ -4,6 +4,8 @@ export default {
   'actions.autoRename': 'Smart Rename',
   'actions.confirmRemoveAll': 'You are about to delete all topics. This action cannot be undone.',
   'actions.confirmRemoveTopic': 'You are about to delete this topic. This action cannot be undone.',
+  'actions.confirmRemoveTopicFiles': 'Also delete images and files uploaded in this topic',
+  'actions.confirmRemoveTopicTitle': 'Delete this topic?',
   'actions.confirmRemoveUnstarred':
     'You are about to delete unstarred topics. This action cannot be undone.',
   'actions.copyLink': 'Copy Link',
@@ -23,6 +25,7 @@ export default {
   'actions.openInNewTab': 'Open in New Tab',
   'actions.openInNewWindow': 'Open in a new window',
   'actions.removeAll': 'Delete All Topics',
+  'actions.removeTopic': 'Delete Topic',
   'actions.removeUnstarred': 'Delete Unstarred Topics',
   'defaultTitle': 'Default Topic',
   'displayItems': 'Display Items',
