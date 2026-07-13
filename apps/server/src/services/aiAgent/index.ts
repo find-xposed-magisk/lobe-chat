@@ -69,7 +69,6 @@ import {
   ThreadType,
 } from '@lobechat/types';
 import { nanoid } from '@lobechat/utils';
-import { isRecord } from '@lobechat/utils/object';
 import { TRPCError } from '@trpc/server';
 import debug from 'debug';
 
@@ -173,9 +172,7 @@ const createGraphAwareAgentFactory =
       return upstreamFactory(config);
     }
 
-    const runtimeAgentConfig = isRecord(config.agentConfig)
-      ? (config.agentConfig as LobeAgentConfig)
-      : undefined;
+    const runtimeAgentConfig = config.agentConfig as LobeAgentConfig | undefined;
     const graph = runtimeAgentConfig?.chatConfig?.graph;
     if (runtimeAgentConfig?.chatConfig?.enableGraphMode && graph) {
       const graphResult = ReasoningGraphSchema.safeParse(graph);
