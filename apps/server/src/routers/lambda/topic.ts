@@ -11,7 +11,6 @@ import {
 import { cleanObject } from '@lobechat/utils';
 import { TRPCError } from '@trpc/server';
 import { inArray } from 'drizzle-orm';
-import { after } from 'next/server';
 import { z } from 'zod';
 
 import { withScopedPermission } from '@/business/server/trpc-middlewares/rbacPermission';
@@ -34,6 +33,7 @@ import type { LobeChatDatabase } from '@/database/type';
 import { router } from '@/libs/trpc/lambda';
 import { serverDatabase } from '@/libs/trpc/lambda/middleware';
 import { FileService } from '@/server/services/file';
+import { after } from '@/server/utils/scheduleAfterResponse';
 import { type BatchTaskResult } from '@/types/service';
 
 import { assertWorkspaceRowManageable } from './_helpers/assertWorkspaceRowManageable';
@@ -492,7 +492,6 @@ export const topicRouter = router({
         }
       };
 
-      // Use Next.js after() for non-blocking execution
       after(runMigration);
 
       return { items: result.items, total: result.total };
@@ -665,7 +664,6 @@ export const topicRouter = router({
         }
       };
 
-      // Use Next.js after() for non-blocking execution
       after(runMigration);
 
       // Assemble final result
