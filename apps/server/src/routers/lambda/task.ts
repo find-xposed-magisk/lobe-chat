@@ -22,6 +22,8 @@ import { TaskRunnerService } from '@/server/services/taskRunner';
 import { hasWorkspaceScopedPermission } from '@/server/services/workspacePermission';
 import { TransferErrorCode } from '@/types/transferError';
 
+import { assertWorkspaceRowManageable } from './_helpers/assertWorkspaceRowManageable';
+
 const taskProcedure = wsCompatProcedure.use(serverDatabase).use(async (opts) => {
   const { ctx } = opts;
   const wsId = ctx.workspaceId ?? undefined;
@@ -407,7 +409,11 @@ export const taskRouter = router({
   clearAll: taskProcedureWrite.mutation(async ({ ctx }) => {
     try {
       const model = ctx.taskModel;
-      const count = await model.deleteAll();
+      // Workspace clear-all is caller-scoped for every role — owners included
+      // (per docs/usage/workspace-permissions: bulk actions only affect
+      // caller-created content).
+      const restrictToCreator = !!ctx.workspaceId;
+      const count = await model.deleteAll({ restrictToCreator });
       return { count, message: `${count} tasks deleted`, success: true };
     } catch (error) {
       console.error('[task:clearAll]', error);
@@ -423,6 +429,7 @@ export const taskRouter = router({
     try {
       const model = ctx.taskModel;
       const task = await resolveOrThrow(model, input.id);
+      assertWorkspaceRowManageable(ctx, task.createdByUserId, 'task');
       await model.delete(task.id);
       return { data: task, message: 'Task deleted', success: true };
     } catch (error) {
