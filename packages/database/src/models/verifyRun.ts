@@ -293,7 +293,9 @@ export class VerifyRunModel {
 
   update = async (
     runId: string,
-    value: Partial<Pick<NewVerifyRun, 'context' | 'goal' | 'metadata' | 'scenario' | 'title'>>,
+    value: Partial<
+      Pick<NewVerifyRun, 'context' | 'goal' | 'metadata' | 'plan' | 'scenario' | 'title'>
+    >,
   ): Promise<VerifyRunItem | undefined> => {
     const [run] = await this.db
       .update(verifyRuns)
