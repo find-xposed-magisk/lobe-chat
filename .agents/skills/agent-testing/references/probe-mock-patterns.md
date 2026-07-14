@@ -1267,3 +1267,19 @@ nodeintegration, plugins, disablewebsecurity, allowpopups, preload, …`). The h
   IDENTICALLY whether the gate is broken or the session is missing. Always establish that the
   session is live (a 200 from an authed procedure) BEFORE concluding the gate is wrong —
   otherwise you publish a false bug against your own change.
+
+### E23. In zsh, a loop variable named `path` overwrites the command search path
+
+- **Situation**: parsing a Netscape cookie jar with `while read ... path ...` and then invoking
+  browser commands inside the loop. The first iteration succeeds at assigning the fields, but the
+  next executable fails with `command not found`.
+- **Cause**: zsh exposes `path` as a special array tied to `PATH`; assigning the cookie path field
+  (usually `/`) replaces the process command search path.
+- **Works**: name the field `cookie_path` (and similarly avoid other zsh special parameter names),
+  then pass it to the cookie command. This is a shell failure, not an auth or browser failure.
+
+### E24. Vite throws `EMFILE` — terminate Agent Testing and ask the user for help
+
+- **Situation**: an isolated frontend-only Vite surface exits at startup with `EMFILE: too many open files, watch`, while the intended port is free and the shell can successfully create thousands of `fs.watch` handles in a control process.
+- **Likely causes (not established)**: multiple LobeHub Cloud worktrees or clones are running file watchers; or a previously used workspace still has watchers owned by a surviving terminal process or a VS Code window, even after its visible terminal was closed.
+- **Required action**: immediately terminate Agent Testing, report the observed `EMFILE`, and ask the user to inspect and clean up other worktrees, terminal processes, or VS Code windows. Do not kill user-owned processes, close editor windows, change Vite watch mode, fall back to a one-shot static build, or publish a Verify report from a degraded surface.
