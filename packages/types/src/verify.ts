@@ -3,6 +3,15 @@
  * shape, Toulmin narrative, and rubric run-policy config. Kept here (not in the
  * DB schema) so every layer — schema, services, store, UI — depends on one
  * source of truth without reaching into the database package.
+ *
+ * The unions below are declared here, and their runtime counterparts (the `as
+ * const` arrays a schema or a `<Select>` iterates) live in
+ * `@lobechat/const/verify`. The duplication is deliberate: this package is
+ * replaced by a hand-written stub inside the isolated desktop workspace, so a
+ * runtime value exported from here is unreachable for members of that workspace
+ * (`@lobehub/cli`), while `@lobechat/types` must stay dependency-free of
+ * `@lobechat/const`. `packages/const/src/verify.test.ts` fails the type-check the
+ * moment the two sides drift apart.
  */
 
 /**
@@ -11,12 +20,10 @@
  * - agent:   spawn a sub agent_operations to investigate
  * - llm:     call generateObject and let an LLM judge produce a Toulmin verdict
  */
-export const verifierTypes = ['program', 'agent', 'llm'] as const;
-export type VerifierType = (typeof verifierTypes)[number];
+export type VerifierType = 'program' | 'agent' | 'llm';
 
 /** What to do when a check item fails. */
-export const verifyOnFailStrategies = ['manual', 'auto_repair'] as const;
-export type VerifyOnFailStrategy = (typeof verifyOnFailStrategies)[number];
+export type VerifyOnFailStrategy = 'manual' | 'auto_repair';
 
 /**
  * Lifecycle of a single check result.
@@ -24,42 +31,32 @@ export type VerifyOnFailStrategy = (typeof verifyOnFailStrategies)[number];
  *   delivery judgment. Kept distinct from `failed` so a broken verifier never
  *   reads as a rejected delivery and never seeds an auto-repair round.
  */
-export const verifyCheckResultStatuses = [
-  'pending',
-  'running',
-  'passed',
-  'failed',
-  'errored',
-  'skipped',
-] as const;
-export type VerifyCheckResultStatus = (typeof verifyCheckResultStatuses)[number];
+export type VerifyCheckResultStatus =
+  'pending' | 'running' | 'passed' | 'failed' | 'errored' | 'skipped';
 
 /** Toulmin Claim — the verifier's judgement. */
-export const verifyVerdicts = ['passed', 'failed', 'uncertain'] as const;
-export type VerifyVerdict = (typeof verifyVerdicts)[number];
+export type VerifyVerdict = 'passed' | 'failed' | 'uncertain';
 
 /** Human feedback on a result, feeding the data flywheel. */
-export const verifyUserDecisions = ['accepted', 'rejected', 'overridden'] as const;
-export type VerifyUserDecision = (typeof verifyUserDecisions)[number];
+export type VerifyUserDecision = 'accepted' | 'rejected' | 'overridden';
 
 /**
  * Denormalized rollup of a verification session's pipeline state — mirrors the
  * legacy `agent_operations.verify_status` set so the two stay interchangeable
  * while results/reports migrate from being operation-anchored to run-anchored.
+ *
+ * `errored`: at least one required check errored (verifier couldn't run) and none
+ * genuinely failed — verification is inconclusive, not a rejected delivery.
  */
-export const verifyRunStatuses = [
-  'unverified',
-  'planned',
-  'verifying',
-  'passed',
-  'failed',
-  // At least one required check errored (verifier couldn't run) and none
-  // genuinely failed — verification is inconclusive, not a rejected delivery.
-  'errored',
-  'repairing',
-  'delivered',
-] as const;
-export type VerifyRunStatus = (typeof verifyRunStatuses)[number];
+export type VerifyRunStatus =
+  | 'unverified'
+  | 'planned'
+  | 'verifying'
+  | 'passed'
+  | 'failed'
+  | 'errored'
+  | 'repairing'
+  | 'delivered';
 
 /**
  * What produced a verification session.
@@ -67,8 +64,7 @@ export type VerifyRunStatus = (typeof verifyRunStatuses)[number];
  * - agent-testing: a standalone session ingested from the agent-testing harness
  *   (no Agent Run — `operation_id` is null)
  */
-export const verifyRunSources = ['agent', 'agent-testing'] as const;
-export type VerifyRunSource = (typeof verifyRunSources)[number];
+export type VerifyRunSource = 'agent' | 'agent-testing';
 
 /**
  * The kind of thing a verification session checks. Orthogonal to `source` (which
@@ -77,8 +73,7 @@ export type VerifyRunSource = (typeof verifyRunSources)[number];
  * value here plus their own {@link VerifyRunContext} shape.
  * - coding: verifying a software change (branch / commit / surfaces under test).
  */
-export const verifyRunScenarios = ['coding'] as const;
-export type VerifyRunScenario = (typeof verifyRunScenarios)[number];
+export type VerifyRunScenario = 'coding';
 
 /**
  * The product surface a check was exercised on — *where* it ran, never *what
@@ -90,27 +85,27 @@ export type VerifyRunScenario = (typeof verifyRunScenarios)[number];
  * legible badge. Runtime detail ("packaged build", "CDP dev instance") belongs
  * on the plan item's `method`, not here.
  */
-export const verifySurfaces = ['web', 'desktop', 'cli', 'mobile', 'bot'] as const;
-export type VerifySurface = (typeof verifySurfaces)[number];
+export type VerifySurface = 'web' | 'desktop' | 'cli' | 'mobile' | 'bot';
+
+/** The medium of a captured evidence artifact. */
+export type VerifyEvidenceType =
+  'screenshot' | 'gif' | 'video' | 'text' | 'dom_snapshot' | 'transcript';
+
+/** Who / what captured an evidence artifact (provenance). */
+export type VerifyEvidenceCapturedBy = 'agent-browser' | 'cdp' | 'cli' | 'program' | 'llm_judge';
 
 /**
- * Historical spellings that name a surface in this set. Only unambiguous
- * synonyms — anything else is a rejected value, not a guess.
+ * The LobeHub conversation an ingested report was authored in. Lets the report
+ * link back to (and later resume) the agent session that produced it.
  */
-const VERIFY_SURFACE_ALIASES: Record<string, VerifySurface> = {
-  android: 'mobile',
-  browser: 'web',
-  electron: 'desktop',
-  ios: 'mobile',
-  terminal: 'cli',
-};
-
-/** Canonical surface for a raw value, or null when it names no known surface. */
-export const normalizeVerifySurface = (value: string): VerifySurface | null => {
-  const key = value.trim().toLowerCase();
-  if ((verifySurfaces as readonly string[]).includes(key)) return key as VerifySurface;
-  return VERIFY_SURFACE_ALIASES[key] ?? null;
-};
+export interface VerifyRunOrigin {
+  /** The agent that ran the verification. */
+  agentId?: string;
+  /** The agent operation (one execution) that produced the report. */
+  operationId?: string;
+  /** The topic to reopen to continue from this report. */
+  topicId?: string;
+}
 
 /**
  * Coding-scenario scope: where the code under test came from and how it ran.
@@ -189,9 +184,6 @@ export interface VerifyInteractionCost {
   waitSeconds: number;
 }
 
-/** Default cap on automatic repair rounds when a rubric doesn't override it. */
-export const DEFAULT_MAX_REPAIR_ROUNDS = 3;
-
 /**
  * Run-policy knobs for a rubric — applied to every run that mounts it. Lives in
  * one bag (not columns) so new policy switches can be added without a migration.
@@ -203,19 +195,6 @@ export interface VerifyRubricConfig {
    * runaway repair loops. Defaults to {@link DEFAULT_MAX_REPAIR_ROUNDS}.
    */
   maxRepairRounds?: number;
-}
-
-/**
- * The LobeHub conversation an ingested report was authored in. Lets the report
- * link back to (and later resume) the agent session that produced it.
- */
-export interface VerifyRunOrigin {
-  /** The agent that ran the verification. */
-  agentId?: string;
-  /** The agent operation (one execution) that produced the report. */
-  operationId?: string;
-  /** The topic to reopen to continue from this report. */
-  topicId?: string;
 }
 
 /**
@@ -316,27 +295,6 @@ export interface ToulminVerdict {
 // ============================================
 // Evidence — first-class artifacts a verifier produces (screenshots, logs, …)
 // ============================================
-
-/** The medium of a captured evidence artifact. */
-export const verifyEvidenceTypes = [
-  'screenshot',
-  'gif',
-  'video',
-  'text',
-  'dom_snapshot',
-  'transcript',
-] as const;
-export type VerifyEvidenceType = (typeof verifyEvidenceTypes)[number];
-
-/** Who / what captured an evidence artifact (provenance). */
-export const verifyEvidenceCapturedBy = [
-  'agent-browser',
-  'cdp',
-  'cli',
-  'program',
-  'llm_judge',
-] as const;
-export type VerifyEvidenceCapturedBy = (typeof verifyEvidenceCapturedBy)[number];
 
 /**
  * Declares that a criterion is evidence-driven: it cannot pass on the
