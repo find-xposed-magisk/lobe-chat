@@ -7,6 +7,46 @@
 
 ---
 
+## Case 20 — Publishing a replacement as a second Acceptance row and passing UI from text-only evidence
+
+**Wrong approach**: giving a refined check a new id without declaring `supersedes`, then marking
+visual UI checks passed from unit-test output or computed-style text without capturing and opening a
+screenshot of each claimed surface. A layout probe also accepted an absolutely positioned sidebar
+because it was right-aligned, without checking whether it covered the report.
+
+**Why it's wrong**: the Acceptance union intentionally does no fuzzy title matching; without an explicit
+replacement edge, both ids are valid independent requirements. Program output proves logic, not the
+rendered Markdown entity or the absence of visual overlap. A single CSS property is not the layout
+contract.
+
+**What it breaks**: superseded wording remains as a duplicate row, UI changes have no inspectable proof,
+and a green report can visibly cover its own content.
+
+**Correct approach**: when a new check replaces an older semantic requirement, put the prior stable id in
+the new plan item's `supersedes` array. Every user-visible UI case must require its own screenshot, open
+that image before passing, and assert the complete spatial outcome (right attachment plus zero overlap),
+not an isolated computed-style value. Never reuse one screenshot as evidence for unrelated UI cases.
+
+## Case 19 — Stopping after a fix without publishing the next Acceptance round
+
+**Wrong approach**: implementing and locally validating a user-requested second iteration, then
+ending the task without committing, pushing, or publishing a fresh immutable verify run to the
+existing Acceptance.
+
+**Why it's wrong**: an Acceptance is the cross-round audit trail. A local-only fix leaves the PR
+stale and makes the Acceptance claim that the previous round is still the latest result. Local
+tests are preparation, not the delivery.
+
+**What it breaks**: reviewers cannot inspect the updated code, the Acceptance timeline misses the
+iteration, and the user has to ask whether anything was actually shipped.
+
+**Correct approach**: after every requested iteration, complete the whole delivery loop unless the
+user explicitly says not to: validate the new state, commit and push the PR branch, create a fresh
+report directory, ingest exactly once as the next immutable run on the same subject Acceptance,
+verify the new round appears, then return both the commit and production links.
+
+---
+
 ## Case 18 — Treating a status badge as proof that the error message rendered
 
 **Wrong approach**: marking an error-state UI case as passed because the platform page showed

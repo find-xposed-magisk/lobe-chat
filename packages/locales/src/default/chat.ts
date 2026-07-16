@@ -679,6 +679,10 @@ export default {
     'Scheduled. This run will continue automatically once the limit resets.',
   'cliRateLimitGuide.schedule.scheduledForApprox':
     'Scheduled. This run will continue automatically in about {{duration}}.',
+  'cliRateLimitGuide.schedule.titleAfterReset':
+    'Scheduled {{name}} to continue after the limit resets',
+  'cliRateLimitGuide.schedule.titleForApprox':
+    'Scheduled {{name}} to continue in about {{duration}}',
   'cliRateLimitGuide.resetUnknown': 'the quota resets',
   'cliRateLimitGuide.title': '{{name}} is temporarily unavailable',
   'codexInstallGuide.actions.openDocs': 'Open Install Guide',
@@ -1731,6 +1735,11 @@ export default {
   'verifyConfig.verifierTypeDesc.agent': 'Spawn a sub-agent to investigate and judge',
   'verifyConfig.verifierTypeDesc.llm': 'Let an LLM judge the result',
   'verifyConfig.verifierTypeDesc.program': 'Run a deterministic script to check',
+  'internalLink.preview.acceptance': 'Acceptance',
+  'internalLink.preview.acceptanceCounts':
+    '{{passed}}/{{total}} passed · {{exceptions}} exceptions',
+  'internalLink.preview.acceptanceRounds_one': '{{count}} verification round',
+  'internalLink.preview.acceptanceRounds_other': '{{count}} verification rounds',
   'internalLink.preview.agent': 'Agent',
   'internalLink.preview.document': 'Page',
   'internalLink.preview.task': 'Task',
