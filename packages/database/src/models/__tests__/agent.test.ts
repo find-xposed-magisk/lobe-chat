@@ -2644,6 +2644,39 @@ describe('AgentModel', () => {
       });
     });
 
+    it('should replace an explicitly supplied reasoning graph', async () => {
+      const oldGraph = {
+        edges: [],
+        entry: 'legacy',
+        fields: {},
+        name: 'legacy-graph',
+        nodes: {},
+        states: { legacy: {} },
+        terminal: 'legacy',
+      };
+      const graph = {
+        edges: [{ from: '__root__', instruction: 'Complete the task.', to: 'work' }],
+        fields: {},
+        name: 'compiled-graph',
+        nodes: { work: { type: 'agent' } },
+        terminal: 'work',
+      };
+      const [agent] = await serverDB
+        .insert(agents)
+        .values({
+          chatConfig: { enableGraphMode: true, graph: oldGraph },
+          title: 'Graph Agent',
+          userId,
+        } as NewAgent)
+        .returning();
+
+      await agentModel.updateConfig(agent.id, { chatConfig: { graph } } as any);
+
+      const result = await serverDB.query.agents.findFirst({ where: eq(agents.id, agent.id) });
+
+      expect(result?.chatConfig).toEqual({ enableGraphMode: true, graph });
+    });
+
     it('should delete params field when value is undefined', async () => {
       const [agent] = await serverDB
         .insert(agents)

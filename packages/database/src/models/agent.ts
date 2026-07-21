@@ -1145,6 +1145,14 @@ export class AgentModel {
       }
     }
 
+    // A ReasoningGraph is a complete executable document, not a partial chatConfig patch.
+    if (data.chatConfig && Object.hasOwn(data.chatConfig, 'graph')) {
+      mergedValue.chatConfig = {
+        ...mergedValue.chatConfig,
+        graph: data.chatConfig.graph,
+      } as AgentItem['chatConfig'];
+    }
+
     // Apply the processed parameters
     mergedValue.params = Object.keys(updatedParams).length > 0 ? updatedParams : undefined;
 
