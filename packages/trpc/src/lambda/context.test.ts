@@ -81,10 +81,10 @@ vi.mock('@/business/server/workspaceApiKey', () => ({
   canUseWorkspaceApiKeys: mockCanUseWorkspaceApiKeys,
 }));
 
-const mockHasWorkspaceOwnerAccess = vi.hoisted(() => vi.fn(async () => true));
+const mockHasWorkspaceAdminAccess = vi.hoisted(() => vi.fn(async () => true));
 
 vi.mock('@/database/models/workspace', () => ({
-  hasWorkspaceOwnerAccess: mockHasWorkspaceOwnerAccess,
+  hasWorkspaceAdminAccess: mockHasWorkspaceAdminAccess,
 }));
 
 describe('createContextInner', () => {
@@ -324,9 +324,9 @@ describe('createLambdaContext', () => {
     expect(context.workspaceId).toBe('ws-1');
   });
 
-  it('should reject a workspace API key whose issuer is no longer an owner', async () => {
+  it('should reject a workspace API key whose issuer is no longer an admin', async () => {
     vi.mocked(ApiKeyModel.findByKey).mockResolvedValue(makeApiKeyRecord('ws-1'));
-    mockHasWorkspaceOwnerAccess.mockResolvedValueOnce(false);
+    mockHasWorkspaceAdminAccess.mockResolvedValueOnce(false);
 
     const request = new NextRequest('https://example.com/trpc/lambda', {
       headers: {
@@ -339,7 +339,7 @@ describe('createLambdaContext', () => {
 
     expect(context.userId).toBeNull();
     expect(context.workspaceId).toBeUndefined();
-    expect(mockHasWorkspaceOwnerAccess).toHaveBeenCalledWith(expect.anything(), {
+    expect(mockHasWorkspaceAdminAccess).toHaveBeenCalledWith(expect.anything(), {
       userId: 'api-user',
       workspaceId: 'ws-1',
     });

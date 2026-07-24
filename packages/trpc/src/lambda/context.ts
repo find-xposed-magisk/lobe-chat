@@ -10,7 +10,7 @@ import { auth } from '@/auth';
 import { canUseWorkspaceApiKeys } from '@/business/server/workspaceApiKey';
 import { getServerDB } from '@/database/core/db-adaptor';
 import { ApiKeyModel } from '@/database/models/apiKey';
-import { hasWorkspaceOwnerAccess } from '@/database/models/workspace';
+import { hasWorkspaceAdminAccess } from '@/database/models/workspace';
 import { authEnv, LOBE_CHAT_OIDC_AUTH_HEADER } from '@/envs/auth';
 import { extractTraceContext } from '@/libs/observability/traceparent';
 import { assertOIDCUserActive, isOIDCUserInactiveError } from '@/libs/oidc-provider/access-control';
@@ -212,18 +212,18 @@ export const createLambdaContext = async (request: NextRequest): Promise<LambdaC
     }
 
     // Same gates as the OpenAPI workspace middleware: workspace API keys are
-    // owner-only, so the issuer must still hold owner status (a demoted or
-    // removed owner's key stops working), and a workspace that loses the
+    // Admin-or-higher, so the issuer must still hold admin status (a demoted or
+    // removed admin's key stops working), and a workspace that loses the
     // workspace-API-key entitlement must not keep serving already-issued keys.
     if (apiKeyAuth.workspaceId) {
       const db = await getServerDB();
-      const isOwner = await hasWorkspaceOwnerAccess(db, {
+      const isAdmin = await hasWorkspaceAdminAccess(db, {
         userId: apiKeyAuth.userId,
         workspaceId: apiKeyAuth.workspaceId,
       });
 
-      if (!isOwner) {
-        log('Workspace API key issuer is no longer a workspace owner; rejecting request');
+      if (!isAdmin) {
+        log('Workspace API key issuer is no longer a workspace admin; rejecting request');
 
         return createContextInner({
           ...commonContext,
