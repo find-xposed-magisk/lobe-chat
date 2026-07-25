@@ -17,6 +17,7 @@ const topicMetaCardMock = vi.hoisted(() => ({
 }));
 
 vi.mock('@lobehub/ui', () => ({
+  ContextMenuTrigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
   Flexbox: ({ children, ...props }: { children?: ReactNode; [key: string]: unknown }) => (
     <div {...props}>{children}</div>
   ),
@@ -35,6 +36,9 @@ vi.mock('@lobehub/ui', () => ({
 }));
 
 vi.mock('antd-style', () => ({
+  // `ContextMenuTrigger` comes from the base-ui barrel, which pulls in
+  // ScrollArea's global style at import time.
+  createGlobalStyle: () => () => null,
   createStaticStyles: () => ({
     dotContainer: 'dotContainer',
     neonDot: 'neonDot',
@@ -115,10 +119,8 @@ vi.mock('@/store/chat', () => ({
     selector: (state: {
       prefetchMessages: typeof prefetchMessagesMock;
       topicLoadingIds: string[];
-      topicRenamingId: string;
     }) => unknown,
-  ) =>
-    selector({ prefetchMessages: prefetchMessagesMock, topicLoadingIds: [], topicRenamingId: '' }),
+  ) => selector({ prefetchMessages: prefetchMessagesMock, topicLoadingIds: [] }),
 }));
 vi.mock('@/store/chat/selectors', () => ({
   operationSelectors: {
@@ -146,9 +148,6 @@ vi.mock('./metaCardData', () => ({
   getTopicMetaCard: () => topicMetaCardMock.value,
 }));
 vi.mock('./Actions', () => ({
-  default: () => null,
-}));
-vi.mock('./Editing', () => ({
   default: () => null,
 }));
 vi.mock('./useDropdownMenu', () => ({
