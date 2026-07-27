@@ -280,6 +280,7 @@ export default {
   'acceptance.workspace.filters.active': 'In progress',
   'acceptance.workspace.filters.all': 'All acceptances',
   'acceptance.workspace.filters.completed': 'Completed',
+  'acceptance.workspace.filters.empty.all': 'No acceptances yet.',
   'acceptance.workspace.filters.empty.active': 'No acceptances in progress.',
   'acceptance.workspace.filters.empty.completed': 'No completed acceptances.',
   'acceptance.workspace.filters.noSearchResults': 'No acceptances match “{{query}}”.',
