@@ -49,6 +49,11 @@ import {
   EvidenceFileCard,
   markdownTextEvidenceTypes,
 } from '../components/MarkdownEvidence';
+import { hasRenderableEvidence, readVisualizationManifest } from '../components/visualization';
+import {
+  VisualizationDeltaBadge,
+  VisualizationRenderer,
+} from '../components/VisualizationRenderer';
 import { AnnotatedImage } from './Annotation';
 import { AttachmentThumbs } from './attachments';
 import { openCheckRejectModal } from './CheckRejectModal';
@@ -767,6 +772,7 @@ const CheckRow = memo<{
   const [ignoring, setIgnoring] = useState(false);
   const meta = STATE_META[check.state];
   const counts = evidenceCounts(check.evidence);
+  const visualization = readVisualizationManifest(check.result?.metadata);
 
   const reviewState = userReviewState(check);
   // The decision is stamped on the check's result row — a never-executed
@@ -954,6 +960,7 @@ const CheckRow = memo<{
                 <Icon color={cssVar.colorTextQuaternary} icon={BadgeCheck} size={14} />
               </Tooltip>
             )}
+            {visualization && <VisualizationDeltaBadge manifest={visualization} />}
             {EVIDENCE_BADGES.map(({ icon, key, labelKey }) =>
               counts[key] ? (
                 <Tooltip key={key} title={t(labelKey, { count: counts[key] })}>
@@ -1037,6 +1044,7 @@ const CheckRow = memo<{
               {check.result.toulmin.evidence}
             </Text>
           )}
+          {visualization && <VisualizationRenderer manifest={visualization} />}
           <EvidenceList evidence={check.evidence} />
 
           {check.state === 'not_executed' && (
@@ -1067,21 +1075,23 @@ const CheckRow = memo<{
           {/* An executed check with zero artifacts must SAY so — a silent blank
               under the verdict reads as a rendering bug, not as a fact. Filled
               so it reads as a status, never as more description text. */}
-          {check.state !== 'not_executed' && check.result && check.evidence.length === 0 && (
-            <Flexbox
-              paddingBlock={6}
-              paddingInline={10}
-              style={{
-                background: cssVar.colorFillQuaternary,
-                borderRadius: cssVar.borderRadius,
-                width: '100%',
-              }}
-            >
-              <Text fontSize={12} type={'secondary'}>
-                {t('acceptance.evidence.empty')}
-              </Text>
-            </Flexbox>
-          )}
+          {check.state !== 'not_executed' &&
+            check.result &&
+            !hasRenderableEvidence(check.evidence.length, visualization) && (
+              <Flexbox
+                paddingBlock={6}
+                paddingInline={10}
+                style={{
+                  background: cssVar.colorFillQuaternary,
+                  borderRadius: cssVar.borderRadius,
+                  width: '100%',
+                }}
+              >
+                <Text fontSize={12} type={'secondary'}>
+                  {t('acceptance.evidence.empty')}
+                </Text>
+              </Flexbox>
+            )}
 
           {/* The user's standing feedback hangs right under the evidence it
               judges. BOTH verdicts keep an undo path — a mis-click is the most
