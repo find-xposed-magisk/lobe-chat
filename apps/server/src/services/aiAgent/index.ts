@@ -69,7 +69,7 @@ import {
   getWorkingDirEffectivePath,
   ReasoningGraphSchema,
   RequestTrigger,
-  resolveAgencyConfig,
+  resolveAgentAgencyConfig,
   resolveAgentModelConfig,
   ThreadStatus,
   ThreadType,
@@ -77,11 +77,13 @@ import {
 import { nanoid } from '@lobechat/utils';
 import { TRPCError } from '@trpc/server';
 import debug from 'debug';
+import type { ModelAbilities } from 'model-bank';
 
 import { AgentModel } from '@/database/models/agent';
 import { AgentOperationModel } from '@/database/models/agentOperation';
 import { AgentSkillModel } from '@/database/models/agentSkill';
 import { AiModelModel } from '@/database/models/aiModel';
+import { AiProviderModel } from '@/database/models/aiProvider';
 import { ChatGroupModel } from '@/database/models/chatGroup';
 import { ConnectorModel } from '@/database/models/connector';
 import { ConnectorToolModel } from '@/database/models/connectorTool';
@@ -156,6 +158,7 @@ import type { ConversationHistoryEntry } from '@/server/services/heterogeneousAg
 import { buildCloudHeteroContext } from '@/server/services/heterogeneousAgent/cloudHeteroContext';
 import { buildRemoteDeviceHeteroContext } from '@/server/services/heterogeneousAgent/remoteDeviceHeteroContext';
 import { MarketService } from '@/server/services/market';
+import { isResourceAuthorOrAdmin } from '@/server/services/resourcePermission';
 import {
   buildConnectorOwnershipPrompt,
   collectBorrowedConnectors,
@@ -175,6 +178,7 @@ import {
   resolveDeviceWorkingDirectory,
   resolveDeviceWorkingDirectoryConfig,
 } from './resolveDeviceWorkingDirectory';
+import { resolveServerSearchDecision } from './searchDecision';
 import { isWorkspaceCacheFresh, upsertWorkspaceScan } from './workspaceInitCache';
 
 const log = debug('lobe-server:ai-agent-service');
@@ -1233,13 +1237,16 @@ export class AiAgentService {
 
     // Use actual agent ID from config for subsequent operations
     const resolvedAgentId = agentConfig.id;
+    let memberDeviceOverride:
+      Pick<LobeAgentAgencyConfig, 'boundDeviceId' | 'executionTarget'> | undefined;
     let memberModelOverride: AgentModelOverride | undefined;
+    let memberModeOverride: boolean | undefined;
 
     // Layer this caller's workspace-scoped execution and model preferences over
     // the shared Agent row. Device selection keeps its existing fallback rules;
-    // model selection is applied only when the author explicitly allows member
-    // choice (an omitted policy is fixed). Both overrides live in the dedicated
-    // per-(workspace, user) settings row and never mutate shared Agent config.
+    // public Workspace Agents allow member choice by default unless the author
+    // explicitly fixes the model. Both overrides live in the dedicated per-
+    // (workspace, user) settings row and never mutate shared Agent config.
     if (this.workspaceId) {
       try {
         const workspaceUserSettings = new WorkspaceUserSettingsModel(
@@ -1248,15 +1255,57 @@ export class AiAgentService {
           this.workspaceId,
         );
         const preference = await workspaceUserSettings.getPreference();
-        const deviceOverride = preference.agentDeviceOverrides?.[resolvedAgentId];
-        agentConfig.agencyConfig = resolveAgencyConfig(agentConfig.agencyConfig, deviceOverride);
-
+        memberDeviceOverride = preference.agentDeviceOverrides?.[resolvedAgentId];
         memberModelOverride = preference.agentModelOverrides?.[resolvedAgentId];
+        memberModeOverride = preference.agentModeOverrides?.[resolvedAgentId];
       } catch (error) {
         // Losing preferences is non-fatal: execution falls back to the shared
-        // Agent row, which is the safe fixed/default behavior.
+        // Agent row.
         log('execAgent: failed to load caller workspace_user_settings preferences: %O', error);
       }
+    }
+
+    let canManageAgent = agentConfig.userId === this.userId;
+    const agentWorkspaceId = agentConfig.workspaceId ?? this.workspaceId;
+    const isPublicWorkspaceAgent = !!agentWorkspaceId && agentConfig.visibility !== 'private';
+    if (isPublicWorkspaceAgent && !canManageAgent) {
+      try {
+        // Author-or-admin, NOT the configuration flag: this value decides whether
+        // the run ignores the member's own model / device / mode overrides, and a
+        // collaborative builtin must keep honoring them — the client runtime
+        // (`agentConfigResolver`) resolves the same distinction from authorship.
+        canManageAgent = await isResourceAuthorOrAdmin({
+          db: this.db,
+          meta: {
+            userId: agentConfig.userId,
+            visibility: agentConfig.visibility ?? 'public',
+            workspaceId: agentWorkspaceId,
+          },
+          resourceType: 'agent',
+          userId: this.userId,
+          workspaceId: agentWorkspaceId,
+        });
+      } catch (error) {
+        // Permission lookup failure is fail-closed: applying member policy is
+        // safer than accidentally granting shared-config semantics.
+        log('execAgent: failed to resolve Agent management access: %O', error);
+      }
+    }
+
+    agentConfig.agencyConfig = resolveAgentAgencyConfig(
+      agentConfig.agencyConfig,
+      memberDeviceOverride,
+      {
+        canManage: canManageAgent,
+        visibility: agentConfig.visibility,
+        workspaceId: agentWorkspaceId,
+      },
+    );
+    if (!canManageAgent && memberModeOverride !== undefined) {
+      agentConfig.chatConfig = {
+        ...agentConfig.chatConfig,
+        enableAgentMode: memberModeOverride,
+      };
     }
 
     // Persistence-attribution agent id. Background Agent Signal runs (memory /
@@ -1272,10 +1321,14 @@ export class AiAgentService {
     // above the caller's personal workspace choice and the shared Agent default.
     // The callSubAgent spawn site resolves the sub-agent default and passes it
     // explicitly, so this path never has to special-case sub-agents.
-    const effectiveModel = resolveAgentModelConfig(agentConfig, memberModelOverride, {
-      ...(modelOverride ? { model: modelOverride } : {}),
-      ...(providerOverride ? { provider: providerOverride } : {}),
-    });
+    const effectiveModel = resolveAgentModelConfig(
+      { ...agentConfig, canManage: canManageAgent, workspaceId: agentWorkspaceId },
+      memberModelOverride,
+      {
+        ...(modelOverride ? { model: modelOverride } : {}),
+        ...(providerOverride ? { provider: providerOverride } : {}),
+      },
+    );
     agentConfig.model = effectiveModel.model;
     agentConfig.provider = effectiveModel.provider;
 
@@ -2507,6 +2560,35 @@ export class AiAgentService {
     // Model metadata is needed both for tool support checks and agent-management context.
     const { loadModels } = await import('@/business/client/model-bank/loadModels');
     const builtinModels = await loadModels();
+    const [modelMetadataResult, providerMetadataResult] = await Promise.allSettled([
+      new AiModelModel(this.db, this.userId, this.workspaceId).findByIdAndProvider(model, provider),
+      new AiProviderModel(this.db, this.userId, this.workspaceId).findById(provider),
+    ]);
+    if (modelMetadataResult.status === 'rejected') {
+      log('execAgent: failed to load active model search metadata: %O', modelMetadataResult.reason);
+    }
+    if (providerMetadataResult.status === 'rejected') {
+      log(
+        'execAgent: failed to load active provider search metadata: %O',
+        providerMetadataResult.reason,
+      );
+    }
+    const activeModelMetadata =
+      modelMetadataResult.status === 'fulfilled' ? modelMetadataResult.value : undefined;
+    const activeProviderMetadata =
+      providerMetadataResult.status === 'fulfilled' ? providerMetadataResult.value : undefined;
+    const activeModelAbilities = activeModelMetadata?.abilities as ModelAbilities | undefined;
+    const searchDecision = resolveServerSearchDecision({
+      builtinModels,
+      chatConfig: agentConfig.chatConfig ?? undefined,
+      hasModelAbilitiesOverride:
+        !!activeModelAbilities && Object.keys(activeModelAbilities).length > 0,
+      model,
+      modelSearchAbility: activeModelAbilities?.search,
+      modelSearchImpl: activeModelMetadata?.settings?.searchImpl,
+      provider,
+      providerSearchMode: activeProviderMetadata?.settings?.searchMode,
+    });
     // Resolve file URLs before visual tool activation checks and context build.
     const fileService = new FileService(this.db, this.userId, this.workspaceId);
     const postProcessUrl = (path: string | null, file: { id?: string | null }) =>
@@ -3070,6 +3152,7 @@ export class AiAgentService {
         hasEnabledKnowledgeBases,
         isBotConversation,
         isGroupSupervisor,
+        modelAbilities,
         // Context-aware builtin manifests: inside a sub-agent (or group) run,
         // lobe-agent drops `callSubAgent` so the model can't recurse into nested
         // sub-agents (which the runtime rejects, looping until the inactivity
@@ -3087,6 +3170,7 @@ export class AiAgentService {
         },
         model,
         provider,
+        useApplicationBuiltinSearchTool: searchDecision.useApplicationBuiltinSearchTool,
       });
 
       // 5f. Generate tools and manifest map
@@ -3998,6 +4082,7 @@ export class AiAgentService {
         agentGroup: operationAgentGroup,
         deviceSystemInfo: Object.keys(deviceSystemInfo).length > 0 ? deviceSystemInfo : undefined,
         executionPlan,
+        searchDecision,
         userTimezone,
         appContext: {
           // Background self-iteration runs execute under a builtin slug (so they

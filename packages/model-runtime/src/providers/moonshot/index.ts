@@ -14,6 +14,7 @@ import { createRouterRuntime } from '../../core/RouterRuntime';
 import type { ChatStreamPayload } from '../../types';
 import { getModelPropertyWithFallback } from '../../utils/getFallbackModelProperty';
 import { MODEL_LIST_CONFIGS, processModelList } from '../../utils/modelParse';
+import { sanitizeAnthropicThinkingParts } from '../../utils/sanitizeAnthropicThinkingParts';
 import {
   isKimiNativeThinkingModel,
   isKimiPreserveThinkingModel,
@@ -30,6 +31,7 @@ export interface MoonshotModelCard {
 const DEFAULT_MOONSHOT_BASE_URL = 'https://api.moonshot.cn/v1';
 const DEFAULT_MOONSHOT_ANTHROPIC_BASE_URL = 'https://api.moonshot.cn/anthropic';
 const MOONSHOT_ANTHROPIC_BASE_URL_PATTERN = /\/anthropic\/?$/;
+const MOONSHOT_ANTHROPIC_MODEL_BASE_URL_PATTERN = /\/anthropic(?:\/v1\/messages)?\/?$/;
 const MOONSHOT_ANTHROPIC_MESSAGES_PATH_PATTERN = /\/v1\/messages\/?$/;
 
 type MoonshotSDKType = 'anthropic' | 'openai';
@@ -43,6 +45,14 @@ const hasValidReasoning = (reasoning: any) => reasoning?.content && !reasoning?.
 
 const normalizeMoonshotAnthropicBaseURL = (baseURL?: string | null) =>
   baseURL?.replace(MOONSHOT_ANTHROPIC_MESSAGES_PATH_PATTERN, '');
+
+const normalizeMoonshotOpenAIModelBaseURL = (baseURL?: string | null) => {
+  if (!baseURL) return DEFAULT_MOONSHOT_BASE_URL;
+
+  return baseURL
+    .replace(MOONSHOT_ANTHROPIC_MODEL_BASE_URL_PATTERN, '/v1')
+    .replace(MOONSHOT_ANTHROPIC_MESSAGES_PATH_PATTERN, '/v1');
+};
 
 /**
  * `sdkType` explicitly selects the Moonshot SDK wrapper for router-runtime channels.
@@ -86,9 +96,27 @@ const normalizeMessagesForAnthropic = (
     if (message.role !== 'assistant') return message;
 
     const { reasoning, ...rest } = message;
-    const thinkingBlock = buildThinkingBlock(reasoning);
+    // Array content may already carry thinking parts built by the context
+    // engine (possibly Claude-signed or signature-only) — sanitize them for
+    // Moonshot's thinking contract instead of stacking another block on top.
+    const existingParts = Array.isArray(message.content)
+      ? sanitizeAnthropicThinkingParts(message.content)
+      : undefined;
+    const hasThinkingPart = existingParts?.some((part: any) => part.type === 'thinking');
+
+    const thinkingBlock = hasThinkingPart ? null : buildThinkingBlock(reasoning);
     const effectiveBlock =
-      thinkingBlock || (forceThinking ? { thinking: ' ', type: 'thinking' as const } : null);
+      thinkingBlock ||
+      (!hasThinkingPart && forceThinking ? { thinking: ' ', type: 'thinking' as const } : null);
+
+    if (existingParts) {
+      const contentParts = effectiveBlock ? [effectiveBlock, ...existingParts] : existingParts;
+
+      return {
+        ...rest,
+        content: contentParts.length > 0 ? contentParts : [{ text: ' ', type: 'text' as const }],
+      };
+    }
 
     if (isEmptyContent(message.content)) {
       const placeholder = { text: ' ', type: 'text' as const };
@@ -271,7 +299,11 @@ const buildMoonshotOpenAIPayload = (
 /**
  * Fetch Moonshot models from the API using OpenAI client
  */
-const fetchMoonshotModels = async ({ client }: { client: OpenAI }): Promise<ChatModelCard[]> => {
+export const fetchMoonshotModels = async ({
+  client,
+}: {
+  client: OpenAI;
+}): Promise<ChatModelCard[]> => {
   const modelsPage = (await client.models.list()) as any;
   const modelList: MoonshotModelCard[] = modelsPage.data || [];
 
@@ -315,9 +347,21 @@ export const LobeMoonshotOpenAI = createOpenAICompatibleRuntime({
   },
   // Kimi models support prompt_cache_key for multi-turn session cache optimization.
   // Docs: https://platform.kimi.com/docs/api/chat#body-one-of-0-prompt-cache-key
+  models: fetchMoonshotModels,
   promptCacheKeyModels: [/^kimi-/],
   provider: ModelProvider.Moonshot,
 });
+
+type MoonshotOpenAIRuntimeOptions = ConstructorParameters<typeof LobeMoonshotOpenAI>[0];
+
+const fetchMoonshotModelsWithOpenAI = ({ options }: { options?: MoonshotOpenAIRuntimeOptions }) => {
+  const runtime = new LobeMoonshotOpenAI({
+    ...options,
+    baseURL: normalizeMoonshotOpenAIModelBaseURL(options?.baseURL),
+  });
+
+  return runtime.models();
+};
 
 /**
  * RouterRuntime configuration for Moonshot
@@ -348,7 +392,7 @@ const createOpenAIRouter = () => ({
 
 export const params: CreateRouterRuntimeOptions = {
   id: ModelProvider.Moonshot,
-  models: fetchMoonshotModels,
+  models: fetchMoonshotModelsWithOpenAI,
   routers: (options) => {
     const sdkType = resolveMoonshotSDKType(options.sdkType);
 

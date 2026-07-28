@@ -218,7 +218,23 @@ describe('applyModelExtendParams', () => {
 describe('resolveDefaultEnableAdaptiveThinkingForModel', () => {
   it('uses per-model defaults', () => {
     expect(resolveDefaultEnableAdaptiveThinkingForModel('claude-sonnet-5')).toBe(true);
+    expect(resolveDefaultEnableAdaptiveThinkingForModel('claude-opus-5')).toBe(true);
+    expect(resolveDefaultEnableAdaptiveThinkingForModel('claude-fable-5')).toBe(true);
     expect(resolveDefaultEnableAdaptiveThinkingForModel('claude-opus-4-8')).toBeUndefined();
+    expect(resolveDefaultEnableAdaptiveThinkingForModel('claude-haiku-4-5')).toBeUndefined();
+    expect(resolveDefaultEnableAdaptiveThinkingForModel('gpt-5')).toBeUndefined();
+    expect(resolveDefaultEnableAdaptiveThinkingForModel()).toBeUndefined();
+  });
+
+  // The previous hard-coded id map only matched bare ids, so the same model served under a
+  // provider-prefixed or dotted id silently lost its default and started with thinking off.
+  it('resolves the default across provider id spellings', () => {
+    expect(resolveDefaultEnableAdaptiveThinkingForModel('anthropic/claude-opus-5')).toBe(true);
+    expect(resolveDefaultEnableAdaptiveThinkingForModel('global.anthropic.claude-opus-5')).toBe(
+      true,
+    );
+    expect(resolveDefaultEnableAdaptiveThinkingForModel('claude-opus-5-fast')).toBe(true);
+    expect(resolveDefaultEnableAdaptiveThinkingForModel('claude-sonnet-4.6')).toBeUndefined();
   });
 });
 
@@ -228,6 +244,9 @@ describe('resolveDefaultThinkingLevelForModel', () => {
   });
 
   it('uses per-model defaults', () => {
+    expect(resolveDefaultThinkingLevelForModel('gemini-flash-latest')).toBe('medium');
+    expect(resolveDefaultThinkingLevelForModel('gemini-flash-lite-latest')).toBe('minimal');
+    expect(resolveDefaultThinkingLevelForModel('gemini-3.6-flash')).toBe('medium');
     expect(resolveDefaultThinkingLevelForModel('gemini-3.5-flash')).toBe('medium');
     expect(resolveDefaultThinkingLevelForModel('gemini-3.5-flash-lite')).toBe('minimal');
     expect(resolveDefaultThinkingLevelForModel('gemini-3.1-flash-lite')).toBe('minimal');

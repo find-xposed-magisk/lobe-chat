@@ -17,11 +17,15 @@ import type {
   OnboardingUnderstandingPollingResult,
   OnboardingUnderstandingTopicInput,
   RetryOnboardingUnderstandingProviderInput,
+  ReviseOnboardingUnderstandingInput,
+  StartOnboardingUnderstandingInput,
   UserInitializationState,
   UserPreference,
   UserSettings,
 } from '@lobechat/types';
 import {
+  MAX_COLLECTION_COUNT,
+  MAX_UNDERSTANDING_FEEDBACK_LENGTH,
   Plans,
   SaveUserQuestionInputSchema,
   UserAgentOnboardingSchema,
@@ -51,6 +55,7 @@ import { FileS3 } from '@/server/modules/S3';
 import { AgentDocumentsService } from '@/server/services/agentDocuments';
 import { FileService } from '@/server/services/file';
 import { OnboardingService } from '@/server/services/onboarding';
+import { understandingProviders } from '@/server/services/understanding/providers';
 import {
   createUnderstandingService,
   type UnderstandingService,
@@ -115,9 +120,37 @@ const understandingIdSchema = z.string().trim().min(1).max(512);
 const onboardingUnderstandingTopicInputSchema = z
   .object({ topicId: understandingIdSchema })
   .strict() satisfies z.ZodType<OnboardingUnderstandingTopicInput>;
+const startOnboardingUnderstandingInputSchema = z
+  .object({
+    providerIds: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1)
+          .max(64)
+          .regex(/^[\w-]+$/),
+      )
+      .max(16)
+      .optional(),
+    responseLanguage: z
+      .string()
+      .trim()
+      .min(2)
+      .max(64)
+      .regex(/^[A-Z]{2,3}(?:-[A-Z0-9]{2,8})*$/i),
+    topicId: understandingIdSchema,
+  })
+  .strict() satisfies z.ZodType<StartOnboardingUnderstandingInput>;
 const retryOnboardingUnderstandingSourceInputSchema = z
   .object({
     providerId: understandingIdSchema,
+    responseLanguage: z
+      .string()
+      .trim()
+      .min(2)
+      .max(64)
+      .regex(/^[A-Z]{2,3}(?:-[A-Z0-9]{2,8})*$/i),
     sessionId: understandingIdSchema,
     topicId: understandingIdSchema,
   })
@@ -129,6 +162,30 @@ const confirmOnboardingUnderstandingInputSchema = z
     topicId: understandingIdSchema,
   })
   .strict() satisfies z.ZodType<ConfirmOnboardingUnderstandingInput>;
+const reviseOnboardingUnderstandingInputSchema = z
+  .object({
+    expectedFeedbackRevision: z.number().int().nonnegative().max(MAX_COLLECTION_COUNT),
+    feedback: z.string().trim().min(1).max(MAX_UNDERSTANDING_FEEDBACK_LENGTH).optional(),
+    providerIds: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1)
+          .max(64)
+          .regex(/^[\w-]+$/),
+      )
+      .max(16),
+    responseLanguage: z
+      .string()
+      .trim()
+      .min(2)
+      .max(64)
+      .regex(/^[A-Z]{2,3}(?:-[A-Z0-9]{2,8})*$/i),
+    sessionId: understandingIdSchema,
+    topicId: understandingIdSchema,
+  })
+  .strict() satisfies z.ZodType<ReviseOnboardingUnderstandingInput>;
 
 const AVATAR_WEBAPI_PREFIX = '/webapi/';
 const OWNER_SETTING_KEYS = ['defaultAgent', 'image', 'memory', 'systemAgent', 'tts'] as const;
@@ -227,6 +284,12 @@ export const userRouter = router({
       return ctx.understandingService.get(input.topicId);
     }),
 
+  getSupportedUnderstandingProviders: authedProcedure.query(
+    async (): Promise<{ providerIds: string[] }> => {
+      return { providerIds: understandingProviders.map((provider) => provider.id) };
+    },
+  ),
+
   getUserRegistrationDuration: userProcedure.query(async ({ ctx }) => {
     return ctx.userModel.getUserRegistrationDuration();
   }),
@@ -317,6 +380,12 @@ export const userRouter = router({
     return ctx.userModel.deleteSetting();
   }),
 
+  reviseOnboardingUnderstanding: understandingServiceProcedure
+    .input(reviseOnboardingUnderstandingInputSchema)
+    .mutation(async ({ ctx, input }): Promise<OnboardingUnderstandingPollingResult> => {
+      return ctx.understandingService.revise(input);
+    }),
+
   retryOnboardingUnderstandingSource: understandingServiceProcedure
     .input(retryOnboardingUnderstandingSourceInputSchema)
     .mutation(async ({ ctx, input }): Promise<OnboardingUnderstandingPollingResult> => {
@@ -324,9 +393,11 @@ export const userRouter = router({
     }),
 
   startOnboardingUnderstanding: understandingServiceProcedure
-    .input(onboardingUnderstandingTopicInputSchema)
+    .input(startOnboardingUnderstandingInputSchema)
     .mutation(async ({ ctx, input }): Promise<OnboardingUnderstandingPollingResult> => {
-      return ctx.understandingService.start(input.topicId);
+      return input.providerIds
+        ? ctx.understandingService.start(input.topicId, input.responseLanguage, input.providerIds)
+        : ctx.understandingService.start(input.topicId, input.responseLanguage);
     }),
 
   updateAvatar: userProcedure.input(z.string()).mutation(async ({ ctx, input }) => {

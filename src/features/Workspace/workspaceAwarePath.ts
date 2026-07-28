@@ -42,6 +42,7 @@ export const WORKSPACE_SETTINGS_TABS: ReadonlySet<string> = new Set([
   'devices',
   'general',
   'members',
+  'notification',
   'oauth-apps',
   'plans',
   'provider',
@@ -57,6 +58,7 @@ const FIRST_SEGMENT_REGEX = /^\/([^/?#]+)/;
 
 const WORKSPACE_MIRRORED_FIRST_SEGMENTS = new Set([
   'agent',
+  'agents',
   'community',
   'eval',
   'group',

@@ -39,6 +39,7 @@ interface LocalFilePreviewKeyParams {
   allowExternalFile?: boolean;
   deviceId?: string;
   filePath: string;
+  resourceScope?: 'workspace';
   workingDirectory: string;
 }
 
@@ -126,11 +127,45 @@ export const topicKeys = {
     containerKey,
     opts,
   ]),
+  scheduledRunWatch: def('topic:scheduledRunWatch', (topicId: string) => [
+    'topic:scheduledRunWatch',
+    topicId,
+  ]),
   search: def('topic:search', (keywords: string, agentId?: string, groupId?: string) => [
     'topic:search',
     keywords,
     agentId,
     groupId,
+  ]),
+};
+
+// ---- topic comment ------------------------------------------------------
+export const topicCommentKeys = {
+  detail: def('topicComment:detail', (commentId: string) => ['topicComment:detail', commentId]),
+  replies: def(
+    'topicComment:replies',
+    (workspaceId: string | null, rootCommentId: string, cursor?: string) => [
+      'topicComment:replies',
+      workspaceId ?? '',
+      rootCommentId,
+      cursor ?? '',
+    ],
+  ),
+  summary: def('topicComment:summary', (topicId: string) => ['topicComment:summary', topicId]),
+  threads: def(
+    'topicComment:threads',
+    (workspaceId: string | null, topicId: string, messageId?: string, cursor?: string) => [
+      'topicComment:threads',
+      workspaceId ?? '',
+      topicId,
+      messageId ?? '',
+      cursor ?? '',
+    ],
+  ),
+  warmup: def('topicComment:warmup', (workspaceId: string, topicId: string) => [
+    'topicComment:warmup',
+    workspaceId,
+    topicId,
   ]),
 };
 
@@ -715,6 +750,11 @@ export const chatToolKeys = {
 // header is `portal:` not `document:`.
 // =========================================================================
 
+// ---- api key (settings/apikey) -------------------------------------------
+export const apiKeyKeys = {
+  list: def('apiKey:list', () => ['apiKey:list']),
+};
+
 // ---- stats (settings/stats + user header counts) ------------------------
 export const statsKeys = {
   agentUsageStat: def(
@@ -763,6 +803,7 @@ export const messengerKeys = {
     tokenScopeKey,
   ]),
   peek: def('messenger:peek', (randomId: string) => ['messenger:peek', randomId]),
+  pushWindow: def('messenger:pushWindow', (platform: string) => ['messenger:pushWindow', platform]),
 };
 
 // ---- verify (deliverable judging) ---------------------------------------
@@ -813,13 +854,19 @@ export const verifyKeys = {
 export const inboxKeys = {
   notifications: def(
     'inbox:notifications',
-    (cursor: string | undefined, unreadOnly: boolean | undefined) => [
+    // Keyed by context: the server scopes the inbox to the active workspace
+    // (null = personal), so cached pages must never be reused across contexts.
+    (workspaceId: string | null, cursor: string | undefined, unreadOnly: boolean | undefined) => [
       'inbox:notifications',
+      workspaceId,
       cursor,
       unreadOnly,
     ],
   ),
-  unreadCount: def('inbox:unreadCount', () => ['inbox:unreadCount']),
+  unreadCount: def('inbox:unreadCount', (workspaceId: string | null) => [
+    'inbox:unreadCount',
+    workspaceId,
+  ]),
 };
 
 // ---- share (shared topic / page) ----------------------------------------
@@ -863,6 +910,7 @@ export const localFileKeys = {
       allowExternalFile,
       deviceId,
       filePath,
+      resourceScope,
       workingDirectory,
     }: LocalFilePreviewKeyParams) => [
       'localFile:preview',
@@ -871,6 +919,7 @@ export const localFileKeys = {
       workingDirectory,
       accept ?? 'any',
       allowExternalFile ? 'external' : 'workspace',
+      resourceScope ?? 'single-file',
     ],
   ),
   projectIndex: def('localFile:projectIndex', (deviceId: string | undefined, dirPath: string) => [
@@ -902,6 +951,18 @@ export const onboardingKeys = {
     'onboarding:agentHistoryTopics',
     agentId,
   ]),
+  analysisStatus: def('onboarding:analysisStatus', () => ['onboarding:analysisStatus']),
+  profile: def('onboarding:profile', () => ['onboarding:profile']),
+  suggestedTasks: def('onboarding:suggestedTasks', () => ['onboarding:suggestedTasks']),
+  understandingSession: def('onboarding:understandingSession', (topicId: string) => [
+    'onboarding:understandingSession',
+    topicId,
+  ]),
+  understandingStart: def('onboarding:understandingStart', (topicId: string) => [
+    'onboarding:understandingStart',
+    topicId,
+  ]),
+  understandingTopic: def('onboarding:understandingTopic', () => ['onboarding:understandingTopic']),
 };
 
 // ---- agent home / profile / signal (kept off the `agent:` idb tier) -----
@@ -1081,6 +1142,7 @@ export const swrKeys = {
   thread: threadKeys,
   tool: toolKeys,
   topic: topicKeys,
+  topicComment: topicCommentKeys,
   topicAction: topicActionKeys,
   user: userKeys,
   userMemory: userMemoryKeys,

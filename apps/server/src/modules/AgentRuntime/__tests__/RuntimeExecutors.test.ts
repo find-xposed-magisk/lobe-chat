@@ -367,6 +367,47 @@ describe('RuntimeExecutors', { timeout: 60_000 }, () => {
       );
     });
 
+    it('passes the resolved native-search decision to the model payload', async () => {
+      const mockChat = vi.fn().mockImplementation(async (_payload: any, options: any) => {
+        await options?.callback?.onText?.('done');
+        return new Response('done');
+      });
+      vi.mocked(initModelRuntimeFromDB).mockResolvedValueOnce({ chat: mockChat } as any);
+      const executors = createRuntimeExecutors({
+        ...ctx,
+        agentConfig: {
+          chatConfig: {},
+          plugins: [],
+          systemRole: 'test',
+        },
+        searchDecision: {
+          enabledSearch: true,
+          isModelHasBuiltinSearch: false,
+          isProviderHasBuiltinSearch: true,
+          useApplicationBuiltinSearchTool: false,
+          useModelSearch: true,
+        },
+      });
+
+      await executors.call_llm!(
+        {
+          payload: {
+            messages: [{ content: 'Hello', role: 'user' }],
+            model: 'grok-4.3',
+            provider: 'supergrok',
+            tools: [],
+          },
+          type: 'call_llm' as const,
+        },
+        createMockState(),
+      );
+
+      expect(mockChat).toHaveBeenCalledWith(
+        expect.objectContaining({ enabledSearch: true }),
+        expect.anything(),
+      );
+    });
+
     it('should restrict context tools to allowedToolNames', async () => {
       const toolNameResolver = new ToolNameResolver();
       const readToolName = toolNameResolver.generate('workspace', 'read', 'builtin');
@@ -4599,6 +4640,43 @@ describe('RuntimeExecutors', { timeout: 60_000 }, () => {
         expect.anything(),
         expect.objectContaining({
           agentId: 'agent-docs-123',
+        }),
+      );
+    });
+
+    it('should pass clientIp from runtime metadata to executeTool', async () => {
+      const executors = createRuntimeExecutors(ctx);
+      const state = createMockState({
+        metadata: {
+          agentId: 'agent-123',
+          clientIp: '203.0.113.7',
+          threadId: 'thread-123',
+          topicId: 'topic-123',
+        },
+      });
+
+      const instruction = {
+        payload: {
+          parentMessageId: 'assistant-msg-123',
+          toolsCalling: [
+            {
+              apiName: 'generateImage',
+              arguments: '{"prompt":"A lighthouse"}',
+              id: 'tool-call-1',
+              identifier: 'lobe-image-generation',
+              type: 'builtin' as const,
+            },
+          ],
+        },
+        type: 'call_tools_batch' as const,
+      };
+
+      await executors.call_tools_batch!(instruction, state);
+
+      expect(mockToolExecutionService.executeTool).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          clientIp: '203.0.113.7',
         }),
       );
     });

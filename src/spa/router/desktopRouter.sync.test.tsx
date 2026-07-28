@@ -23,8 +23,6 @@ const KNOWN_DIVERGENCES: Record<string, string> = {
  */
 const WEB_ONLY_PATHS = new Set([
   '/onboarding',
-  '/onboarding/agent',
-  '/onboarding/classic',
   // Messenger link flow — web/CLI only (the verify workspace + acceptance
   // pages ship on Electron too, so they are synced, not listed here)
   '/verify-im',
@@ -83,6 +81,16 @@ async function readDesktopRouterSources() {
 }
 
 describe('desktopRouter config sync', () => {
+  it('matches the nested acceptance check route', () => {
+    const matches = matchRoutes(desktopRoutes, '/acceptance/acceptance-1/check/check-1');
+
+    expect(matches?.at(-1)?.route.path).toBe(':acceptanceId/check/:checkId');
+    expect(matches?.at(-1)?.params).toMatchObject({
+      acceptanceId: 'acceptance-1',
+      checkId: 'check-1',
+    });
+  });
+
   it('personal memory settings route is not shadowed by workspace memory route', () => {
     const matches = matchRoutes(desktopRoutes, '/settings/memory');
     const paths = matches?.map((match) => match.route.path);

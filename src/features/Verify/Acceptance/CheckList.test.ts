@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { type AcceptanceCheck, checkFilterState, groupChecks, userReviewState } from './CheckList';
+import {
+  type AcceptanceCheck,
+  checkFilterState,
+  focusedCheckStates,
+  groupChecks,
+  shouldGroupChecks,
+  userReviewState,
+} from './CheckList';
 
 const check = (id: string, category: string | null, surface: AcceptanceCheck['surface']) =>
   ({ category, id, surface }) as AcceptanceCheck;
@@ -41,6 +48,17 @@ describe('groupChecks', () => {
   });
 });
 
+describe('shouldGroupChecks', () => {
+  it('keeps checklists with 10 or fewer items flat', () => {
+    expect(shouldGroupChecks(9)).toBe(false);
+    expect(shouldGroupChecks(10)).toBe(false);
+  });
+
+  it('groups checklists only after they exceed 10 items', () => {
+    expect(shouldGroupChecks(11)).toBe(true);
+  });
+});
+
 describe('userReviewState', () => {
   const withReview = (userReview: AcceptanceCheck['userReview']) =>
     ({ userReview }) as AcceptanceCheck;
@@ -60,6 +78,19 @@ describe('userReviewState', () => {
         }),
       ),
     ).toBe('accepted');
+  });
+
+  it('an ignore stays out of the review queue across rounds', () => {
+    expect(
+      userReviewState(
+        withReview({
+          action: 'ignore',
+          createdAt: '2026-07-16T00:00:00.000Z',
+          roundIndex: 1,
+          stale: false,
+        }),
+      ),
+    ).toBe('ignored');
   });
 
   it('a reject stands until a newer round consumes it, then reverts to pending', () => {
@@ -123,4 +154,35 @@ describe('checkFilterState', () => {
       ),
     ).toBe('accepted');
   });
+
+  it('ignored when you removed the check from the acceptance scope', () => {
+    expect(
+      checkFilterState(
+        make('failed', {
+          action: 'ignore',
+          createdAt: '2026-07-16T00:00:00.000Z',
+          roundIndex: 1,
+          stale: false,
+        }),
+      ),
+    ).toBe('ignored');
+  });
+});
+
+describe('focusedCheckStates', () => {
+  it.each([
+    ['failed', 'failed'],
+    ['uncertain', 'uncertain'],
+    ['not_executed', 'notExecuted'],
+    ['passed', 'passed'],
+  ] as const)(
+    'preserves the %s verifier result while the user review remains pending',
+    (verifier, verifierLabel) => {
+      expect(focusedCheckStates({ state: verifier } as AcceptanceCheck)).toEqual({
+        review: 'pending',
+        verifier,
+        verifierLabel,
+      });
+    },
+  );
 });
