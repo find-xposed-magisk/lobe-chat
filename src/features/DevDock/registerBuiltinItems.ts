@@ -1,4 +1,5 @@
 import {
+  AppWindow,
   ArrowUpDown,
   Bot,
   Cpu,
@@ -154,13 +155,32 @@ export const registerBuiltinDevDockItems = () => {
   ];
 
   if (isDesktop) {
-    items.push({
-      icon: Terminal,
-      id: 'open-devtools',
-      label: 'Open DevTools',
-      onTrigger: triggerOpenDevtools,
-      type: 'action',
-    });
+    items.push(
+      {
+        defaultPinned: true,
+        icon: AppWindow,
+        id: 'tab-routers-count',
+        label: 'Live Tab Routers',
+        load: () => import('./widgets/TabRoutersWidget'),
+        slot: 'right',
+        type: 'readout',
+      },
+      {
+        defaultPinned: true,
+        icon: AppWindow,
+        id: 'tab-routers',
+        label: 'Tab Routers',
+        load: () => import('@/features/DevPanel/TabRouters'),
+        type: 'panel',
+      },
+      {
+        icon: Terminal,
+        id: 'open-devtools',
+        label: 'Open DevTools',
+        onTrigger: triggerOpenDevtools,
+        type: 'action',
+      },
+    );
   }
 
   registerDevDockItems(items);
