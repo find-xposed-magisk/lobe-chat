@@ -13,6 +13,7 @@ import {
   sharedModulePreload,
   sharedOptimizeDeps,
   sharedPwaGlobIgnores,
+  sharedPwaRuntimeCaching,
   sharedRendererDefine,
   sharedRendererPlugins,
 } from './plugins/vite/sharedRendererConfig';
@@ -265,6 +266,7 @@ export default defineConfig({
           globPatterns: ['**/*.{js,css,html,woff2}'],
           maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
           runtimeCaching: [
+            ...sharedPwaRuntimeCaching,
             {
               handler: 'StaleWhileRevalidate',
               options: { cacheName: 'google-fonts-stylesheets' },

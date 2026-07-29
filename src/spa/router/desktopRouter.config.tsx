@@ -32,15 +32,21 @@ import { groupRouteMeta } from '@/routes/(main)/group/features/routeMeta';
 import { settingsRouteMeta } from '@/routes/(main)/settings/features/routeMeta';
 import { sharePageRouteMeta } from '@/routes/share/page/[id]/routeMeta';
 import { shareTopicRouteMeta } from '@/routes/share/t/[id]/routeMeta';
+import { loadRouteWithBuiltinToolSurfaces } from '@/spa/initialize/toolSurfaces';
 import { routeMeta } from '@/spa/router/routeMeta';
 import { SettingsTabs } from '@/store/global/initialState';
 import { dynamicElement, dynamicLayout, ErrorBoundary, redirectElement } from '@/utils/router';
 
-const agentChatElement = dynamicElement(() => import('@/routes/(main)/agent'), 'Desktop > Chat');
+const agentChatElement = dynamicElement(
+  () => loadRouteWithBuiltinToolSurfaces(() => import('@/routes/(main)/agent')),
+  'Desktop > Chat',
+  { preloadId: 'agent' },
+);
 
 const groupChatElement = dynamicElement(
-  () => import('@/routes/(main)/group'),
+  () => loadRouteWithBuiltinToolSurfaces(() => import('@/routes/(main)/group')),
   'Desktop > Agent Group',
+  { preloadId: 'group' },
 );
 
 /**
@@ -77,6 +83,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
             element: dynamicLayout(
               () => import('@/routes/(main)/agent/(chat)/_layout'),
               'Desktop > Chat > ChatLayout',
+              { preloadId: 'agent' },
             ),
           },
           {
@@ -159,6 +166,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
         element: dynamicLayout(
           () => import('@/routes/(main)/agent/_layout'),
           'Desktop > Chat > Layout',
+          { preloadId: 'agent' },
         ),
         errorElement: <ErrorBoundary />,
         path: ':aid',
@@ -197,6 +205,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
         element: dynamicLayout(
           () => import('@/routes/(main)/group/_layout'),
           'Desktop > Group > Layout',
+          { preloadId: 'group' },
         ),
         errorElement: <ErrorBoundary />,
         path: ':gid',
@@ -318,6 +327,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
             element: dynamicElement(
               () => import('@/routes/(main)/community/(list)/(home)'),
               'Desktop > Discover > List > Home',
+              { preloadId: 'community' },
             ),
             handle: {
               meta: routeMeta({ icon: ShapesIcon, titleKey: 'navigation.discover' }),
@@ -328,6 +338,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
         element: dynamicElement(
           () => import('@/routes/(main)/community/(list)/_layout'),
           'Desktop > Discover > List > Layout',
+          { preloadId: 'community' },
         ),
       },
       // Detail routes (with DetailLayout)
@@ -399,6 +410,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
     element: dynamicElement(
       () => import('@/routes/(main)/community/_layout'),
       'Desktop > Discover > Layout',
+      { preloadId: 'community' },
     ),
     errorElement: <ErrorBoundary />,
     path: 'community',
@@ -414,6 +426,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
             element: dynamicElement(
               () => import('@/routes/(main)/resource/(home)'),
               'Desktop > Resource > Home',
+              { preloadId: 'resource' },
             ),
             handle: {
               meta: routeMeta({ icon: LibraryBigIcon, titleKey: 'navigation.resources' }),
@@ -425,6 +438,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
         element: dynamicElement(
           () => import('@/routes/(main)/resource/(home)/_layout'),
           'Desktop > Resource > Home > Layout',
+          { preloadId: 'resource' },
         ),
       },
       // Library routes (knowledge base detail)
@@ -461,6 +475,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
     element: dynamicElement(
       () => import('@/routes/(main)/resource/_layout'),
       'Desktop > Resource > Layout',
+      { preloadId: 'resource' },
     ),
     errorElement: <ErrorBoundary />,
     path: 'resource',
@@ -473,6 +488,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
         element: dynamicElement(
           () => import('@/routes/(main)/memory/(home)'),
           'Desktop > Memory > Home',
+          { preloadId: 'memory' },
         ),
         handle: {
           meta: routeMeta({ icon: BrainCircuit, titleKey: 'navigation.memory' }),
@@ -533,6 +549,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
     element: dynamicLayout(
       () => import('@/routes/(main)/memory/_layout'),
       'Desktop > Memory > Layout',
+      { preloadId: 'memory' },
     ),
     errorElement: <ErrorBoundary />,
     path: 'memory',
@@ -542,13 +559,16 @@ export const sharedMainAreaChildren: RouteObject[] = [
   {
     children: [
       {
-        element: dynamicElement(() => import('@/routes/(main)/(create)/video'), 'Desktop > Video'),
+        element: dynamicElement(() => import('@/routes/(main)/(create)/video'), 'Desktop > Video', {
+          preloadId: 'video',
+        }),
         index: true,
       },
     ],
     element: dynamicLayout(
       () => import('@/routes/(main)/(create)/video/_layout'),
       'Desktop > Video > Layout',
+      { preloadId: 'video' },
     ),
     errorElement: <ErrorBoundary />,
     path: 'video',
@@ -558,7 +578,9 @@ export const sharedMainAreaChildren: RouteObject[] = [
   {
     children: [
       {
-        element: dynamicElement(() => import('@/routes/(main)/(create)/image'), 'Desktop > Image'),
+        element: dynamicElement(() => import('@/routes/(main)/(create)/image'), 'Desktop > Image', {
+          preloadId: 'image',
+        }),
         handle: {
           meta: routeMeta({ icon: Image, titleKey: 'navigation.image' }),
         },
@@ -568,6 +590,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
     element: dynamicLayout(
       () => import('@/routes/(main)/(create)/image/_layout'),
       'Desktop > Image > Layout',
+      { preloadId: 'image' },
     ),
     errorElement: <ErrorBoundary />,
     path: 'image',
@@ -585,6 +608,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
             element: dynamicElement(
               () => import('@/routes/(main)/eval'),
               'Desktop > Eval > Overview',
+              { preloadId: 'eval' },
             ),
             index: true,
           },
@@ -599,6 +623,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
         element: dynamicElement(
           () => import('@/routes/(main)/eval/(home)/_layout'),
           'Desktop > Eval > Home > Layout',
+          { preloadId: 'eval' },
         ),
       },
       // Bench routes (with dedicated sidebar)
@@ -649,6 +674,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
     element: dynamicElement(
       () => import('@/routes/(main)/eval/_layout'),
       'Desktop > Eval > Layout',
+      { preloadId: 'eval' },
     ),
     errorElement: <ErrorBoundary />,
     path: 'eval',
@@ -658,7 +684,9 @@ export const sharedMainAreaChildren: RouteObject[] = [
   {
     children: [
       {
-        element: dynamicElement(() => import('@/routes/(main)/agents'), 'Desktop > Agents'),
+        element: dynamicElement(() => import('@/routes/(main)/agents'), 'Desktop > Agents', {
+          preloadId: 'agents',
+        }),
         handle: { meta: agentsRouteMeta },
         index: true,
       },
@@ -673,7 +701,9 @@ export const sharedMainAreaChildren: RouteObject[] = [
       {
         children: [
           {
-            element: dynamicElement(() => import('@/routes/(main)/tasks'), 'Desktop > Tasks'),
+            element: dynamicElement(() => import('@/routes/(main)/tasks'), 'Desktop > Tasks', {
+              preloadId: 'tasks',
+            }),
             handle: { meta: tasksRouteMeta },
             index: true,
           },
@@ -699,6 +729,7 @@ export const sharedMainAreaChildren: RouteObject[] = [
     element: dynamicLayout(
       () => import('@/routes/(main)/(task-workspace)/_layout'),
       'Desktop > Task Workspace > Layout',
+      { preloadId: 'tasks' },
     ),
   },
 
@@ -706,7 +737,9 @@ export const sharedMainAreaChildren: RouteObject[] = [
   {
     children: [
       {
-        element: dynamicElement(() => import('@/routes/(main)/page'), 'Desktop > Page'),
+        element: dynamicElement(() => import('@/routes/(main)/page'), 'Desktop > Page', {
+          preloadId: 'page',
+        }),
         handle: {
           meta: routeMeta({ icon: FilePenIcon, titleKey: 'navigation.pages' }),
         },
@@ -721,7 +754,11 @@ export const sharedMainAreaChildren: RouteObject[] = [
         path: ':id',
       },
     ],
-    element: dynamicLayout(() => import('@/routes/(main)/page/_layout'), 'Desktop > Page > Layout'),
+    element: dynamicLayout(
+      () => import('@/routes/(main)/page/_layout'),
+      'Desktop > Page > Layout',
+      { preloadId: 'page' },
+    ),
     errorElement: <ErrorBoundary />,
     path: 'page',
   },
@@ -846,6 +883,7 @@ export const createMainAreaChildren = (): RouteObject[] => [
             element: dynamicElement(
               () => import('@/routes/(main)/[workspaceSlug]/settings/skill'),
               'Desktop > Workspace > Settings > Skill',
+              { preloadId: 'settings' },
             ),
             path: 'skill',
           },
@@ -853,6 +891,7 @@ export const createMainAreaChildren = (): RouteObject[] => [
             element: dynamicElement(
               () => import('@/routes/(main)/[workspaceSlug]/settings/connector'),
               'Desktop > Workspace > Settings > Connector',
+              { preloadId: 'settings' },
             ),
             path: 'connector',
           },
@@ -985,12 +1024,14 @@ export const createMainAreaChildren = (): RouteObject[] => [
             element: dynamicLayout(
               () => import('@/routes/(main)/[workspaceSlug]/settings/_content-layout'),
               'Desktop > Workspace > Settings > Content Layout',
+              { preloadId: 'settings' },
             ),
           },
         ],
         element: dynamicLayout(
           () => import('@/routes/(main)/[workspaceSlug]/settings/_layout'),
           'Desktop > Workspace > Settings > Layout',
+          { preloadId: 'settings' },
         ),
         errorElement: <ErrorBoundary />,
         path: 'settings',
@@ -1054,7 +1095,10 @@ export const desktopRoutes: RouteObject[] = [
   {
     children: [
       {
-        element: dynamicElement(() => import('@/routes/share/t/[id]'), 'Desktop > Share > Topic'),
+        element: dynamicElement(
+          () => loadRouteWithBuiltinToolSurfaces(() => import('@/routes/share/t/[id]')),
+          'Desktop > Share > Topic',
+        ),
         handle: { meta: shareTopicRouteMeta },
         path: ':id',
       },

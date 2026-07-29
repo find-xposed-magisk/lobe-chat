@@ -1,6 +1,7 @@
 'use client';
 
-import { TooltipGroup } from '@lobehub/ui';
+import { ContextMenuHost, ModalHost, TooltipGroup } from '@lobehub/ui';
+import { ModalHost as BaseModalHost, ToastHost } from '@lobehub/ui/base-ui';
 import { StyleProvider } from 'antd-style';
 import { domMax, LazyMotion } from 'motion/react';
 import { type CSSProperties, lazy, memo, type PropsWithChildren, Suspense } from 'react';
@@ -13,30 +14,22 @@ import AuthProvider from '@/layout/AuthProvider';
 import { MarketAuthProvider } from '@/layout/AuthProvider/MarketAuth';
 import AppTheme from '@/layout/GlobalProvider/AppTheme';
 import CacheHydrationGate from '@/layout/GlobalProvider/CacheHydrationGate';
-import DynamicFavicon from '@/layout/GlobalProvider/DynamicFavicon';
 import { FaviconProvider } from '@/layout/GlobalProvider/FaviconProvider';
 import { GroupWizardProvider } from '@/layout/GlobalProvider/GroupWizardProvider';
 import QueryProvider from '@/layout/GlobalProvider/Query';
 import ServerVersionOutdatedAlert from '@/layout/GlobalProvider/ServerVersionOutdatedAlert';
 import StoreInitialization from '@/layout/GlobalProvider/StoreInitialization';
 import { registerNativeContextMenuInterceptor } from '@/libs/contextMenu';
+import { usePostRenderReady } from '@/spa/atoms/app';
 import { ServerConfigStoreProvider } from '@/store/serverConfig/Provider';
 import type { SPAServerConfig } from '@/types/spaServerConfig';
 
 import Locale from './Locale';
 
 registerNativeContextMenuInterceptor();
-
-const ModalHost = lazy(() => import('@lobehub/ui').then((m) => ({ default: m.ModalHost })));
-const BaseModalHost = lazy(() =>
-  import('@lobehub/ui/base-ui').then((m) => ({ default: m.ModalHost })),
-);
-const ToastHost = lazy(() => import('@lobehub/ui/base-ui').then((m) => ({ default: m.ToastHost })));
-const ContextMenuHost = lazy(() =>
-  import('@lobehub/ui').then((m) => ({ default: m.ContextMenuHost })),
-);
 const DevDock = lazy(() => import('@/features/DevDock'));
 const ImperativeMountHost = lazy(() => import('@/components/ImperativeMount'));
+const DynamicFavicon = lazy(() => import('@/layout/GlobalProvider/DynamicFavicon'));
 
 const devDockLayoutStyle: CSSProperties = {
   alignItems: 'center',
@@ -65,6 +58,7 @@ export const DevDockLayout = memo<PropsWithChildren>(({ children }) => {
 DevDockLayout.displayName = 'DevDockLayout';
 
 const SPAGlobalProvider = memo<PropsWithChildren>(({ children }) => {
+  const postRenderReady = usePostRenderReady();
   const serverConfig: SPAServerConfig | undefined = window.__SERVER_CONFIG__;
 
   const locale = document.documentElement.lang || 'en-US';
@@ -79,7 +73,11 @@ const SPAGlobalProvider = memo<PropsWithChildren>(({ children }) => {
 
           {isDesktop && <ServerVersionOutdatedAlert />}
           <FaviconProvider>
-            <DynamicFavicon />
+            {postRenderReady && (
+              <Suspense>
+                <DynamicFavicon />
+              </Suspense>
+            )}
             <GroupWizardProvider>
               <DragUploadProvider>
                 <LazyMotion features={domMax}>
@@ -90,11 +88,11 @@ const SPAGlobalProvider = memo<PropsWithChildren>(({ children }) => {
                       </LobeAnalyticsProviderWrapper>
                     </StyleProvider>
                   </TooltipGroup>
+                  <ModalHost />
+                  <BaseModalHost />
+                  <ToastHost />
+                  <ContextMenuHost />
                   <Suspense>
-                    <ModalHost />
-                    <BaseModalHost />
-                    <ToastHost />
-                    <ContextMenuHost />
                     <ImperativeMountHost />
                   </Suspense>
                 </LazyMotion>
