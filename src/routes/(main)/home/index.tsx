@@ -2,10 +2,9 @@ import { Flexbox } from '@lobehub/ui';
 import { type FC } from 'react';
 
 import HomePageTracker from '@/components/Analytics/HomePageTracker';
+import HomeContent from '@/features/Home';
 import NavHeader from '@/features/NavHeader';
 import WideScreenContainer from '@/features/WideScreenContainer';
-
-import HomeContent from './features';
 
 const Home: FC = () => {
   return (
@@ -14,10 +13,14 @@ const Home: FC = () => {
       <NavHeader />
       <Flexbox
         height={'100%'}
-        style={{ overflowY: 'auto', paddingBlock: '44px 16vh' }}
+        style={{ overflow: 'hidden', paddingBlockStart: 32, paddingInline: 24 }}
         width={'100%'}
       >
-        <WideScreenContainer>
+        <WideScreenContainer
+          fullWidth
+          style={{ marginInline: 'auto', maxWidth: 1240, minHeight: 0 }}
+          wrapperStyle={{ flex: 1, minHeight: 0 }}
+        >
           <HomeContent />
         </WideScreenContainer>
       </Flexbox>
