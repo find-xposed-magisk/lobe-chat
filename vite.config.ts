@@ -18,6 +18,7 @@ import {
   sharedRendererPlugins,
 } from './plugins/vite/sharedRendererConfig';
 import { vercelSkewProtection } from './plugins/vite/vercelSkewProtection';
+import { createViteWatchOptions } from './plugins/vite/watchOptions';
 
 const isMobile = process.env.MOBILE === 'true';
 const isAuth = process.env.AUTH === 'true';
@@ -368,8 +369,6 @@ export default defineConfig({
         './packages/agent-manager-runtime/src/**/*.ts',
       ],
     },
-    watch: {
-      ignored: ['**/e2e/reports/**', '**/e2e/screenshots/**'],
-    },
+    watch: createViteWatchOptions([__dirname]),
   },
 });
