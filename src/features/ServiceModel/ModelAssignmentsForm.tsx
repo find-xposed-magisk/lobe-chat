@@ -3,7 +3,6 @@
 import type { FormGroupItemType, FormItemProps } from '@lobehub/ui';
 import { Flexbox, Form, InputNumber, Skeleton, Tooltip } from '@lobehub/ui';
 import { Switch } from '@lobehub/ui/base-ui';
-import { ConfigProvider } from 'antd';
 import isEqual from 'fast-deep-equal';
 import { memo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +17,8 @@ import { useSaveState } from '@/hooks/useSaveState';
 import { useUserStore } from '@/store/user';
 import { settingsSelectors } from '@/store/user/selectors';
 import type { SystemAgentItem, UserServiceModelConfigKey } from '@/types/user/settings';
+
+import { serviceModelFormStyles as styles } from './styles';
 
 interface SystemAgentModelItem {
   contextLimit?: boolean;
@@ -132,6 +133,7 @@ const ModelAssignmentsForm = memo(() => {
   };
 
   const defaultAgentItem: FormItemProps = {
+    className: styles.centeredLabel,
     children: (
       <Tooltip title={reason}>
         <Flexbox
@@ -160,6 +162,7 @@ const ModelAssignmentsForm = memo(() => {
     const value = systemAgentSettings[key];
 
     return {
+      className: styles.centeredLabel,
       children: (
         <Tooltip title={reason}>
           <Flexbox
@@ -188,7 +191,12 @@ const ModelAssignmentsForm = memo(() => {
 
       return {
         children: (
-          <Flexbox direction="vertical" gap={8} style={{ width: 448 }}>
+          <Flexbox
+            align="center"
+            direction="horizontal"
+            gap={12}
+            style={{ width: 'min(100%, 448px)' }}
+          >
             <ModelSelect
               modelType={modelType}
               showAbility={false}
@@ -197,19 +205,19 @@ const ModelAssignmentsForm = memo(() => {
               onChange={(props) => updateSystemAgentModel(key, props)}
             />
             {contextLimit && (
-              <ConfigProvider theme={{ token: { controlHeight: 32 } }}>
-                <InputNumber
-                  min={1}
-                  placeholder={t('serviceModel.contextLimit.placeholder')}
-                  style={{ alignSelf: 'flex-end', width: 180 }}
-                  value={value.contextLimit}
-                  onChange={(contextLimit) =>
-                    updateSystemAgentModel(key, {
-                      contextLimit: typeof contextLimit === 'number' ? contextLimit : undefined,
-                    })
-                  }
-                />
-              </ConfigProvider>
+              <InputNumber
+                min={1}
+                placeholder={t('serviceModel.contextLimit.placeholder')}
+                // Sits beside the picker, so it keeps the picker's height and
+                // holds its width while the picker takes the slack.
+                style={{ flex: 'none', width: 140 }}
+                value={value.contextLimit}
+                onChange={(contextLimit) =>
+                  updateSystemAgentModel(key, {
+                    contextLimit: typeof contextLimit === 'number' ? contextLimit : undefined,
+                  })
+                }
+              />
             )}
           </Flexbox>
         ),
@@ -230,15 +238,21 @@ const ModelAssignmentsForm = memo(() => {
             align="center"
             direction="horizontal"
             gap={12}
+            justify="flex-end"
             style={{ width: 'min(100%, 448px)' }}
           >
-            <ModelSelect
-              disabled={!canManageServiceModel}
-              showAbility={false}
-              style={{ minWidth: 0, width: '100%' }}
-              value={value}
-              onChange={(props) => updateSystemAgentModel(key, props)}
-            />
+            {/* Which model runs a feature is only worth asking once the feature
+                itself is on — off, the picker is a dead control, so the switch
+                stands alone until it's flipped back. */}
+            {!featureDisabled && (
+              <ModelSelect
+                disabled={!canManageServiceModel}
+                showAbility={false}
+                style={{ minWidth: 0, width: '100%' }}
+                value={value}
+                onChange={(props) => updateSystemAgentModel(key, props)}
+              />
+            )}
             <Flexbox align="center" direction="horizontal" gap={8}>
               <Switch
                 aria-label={t(`systemAgent.${key}.title`)}
