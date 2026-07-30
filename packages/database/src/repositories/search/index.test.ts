@@ -1,17 +1,27 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { drizzle as nodeDrizzle } from 'drizzle-orm/node-postgres';
+import { Pool as NodePool } from 'pg';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { getTestDB } from '../../core/getTestDB';
-import { documents } from '../../schemas';
+import * as schema from '../../schemas';
+import { chatGroups, documents, workspaces } from '../../schemas';
 import type { NewAgent } from '../../schemas/agent';
 import { agents } from '../../schemas/agent';
 import type { NewFile } from '../../schemas/file';
-import { files, knowledgeBaseFiles, knowledgeBases } from '../../schemas/file';
+import {
+  DOCUMENT_FOLDER_TYPE,
+  files,
+  knowledgeBaseFiles,
+  knowledgeBases,
+} from '../../schemas/file';
 import { messages } from '../../schemas/message';
 import type { NewTopic } from '../../schemas/topic';
 import { topics } from '../../schemas/topic';
 import { users } from '../../schemas/user';
 import type { LobeChatDatabase } from '../../type';
+import type { SearchResult } from './index';
 import { SearchRepo } from './index';
 
 const userId = 'search-test-user';
@@ -34,6 +44,34 @@ beforeEach(async () => {
 
 // BM25 search requires pg_search extension (ParadeDB), not available in PGlite
 const isServerDB = process.env.TEST_SERVER_DB === '1';
+
+/**
+ * Result types produced by the eight search methods whose BM25 scan was split
+ * into an inner subquery. `memory` is absent on purpose — `searchMemories` is
+ * user-scoped with no join, so it was left on its original single-level shape.
+ */
+const REWRITTEN_RESULT_TYPES = [
+  'agent',
+  'chatGroup',
+  'file',
+  'folder',
+  'knowledgeBase',
+  'message',
+  'page',
+  'topic',
+] as const;
+
+/** Subquery alias each rewritten method gives its isolated BM25 scan. */
+const SCAN_ALIASES = [
+  'agent_hits',
+  'chat_group_hits',
+  'file_hits',
+  'folder_hits',
+  'knowledge_base_hits',
+  'message_hits',
+  'page_hits',
+  'topic_hits',
+];
 
 describe.skipIf(!isServerDB)('SearchRepo', () => {
   describe('search - empty query', () => {
@@ -1082,9 +1120,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
       });
 
       it('does not surface another user PDF when querying their KB', async () => {
-        const results = await searchRepo.searchKnowledgeBaseDocuments('attention', [
-          'kb-other-1',
-        ]);
+        const results = await searchRepo.searchKnowledgeBaseDocuments('attention', ['kb-other-1']);
         expect(results).toEqual([]);
       });
     });
@@ -1288,6 +1324,327 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
         expect(message.content).toBeDefined();
         expect(message.role).toBeDefined();
         expect(['user', 'assistant']).toContain(message.role);
+      }
+    });
+  });
+
+  // Regression guard for LOBE-12379: the BM25 scans were split into an inner
+  // single-table subquery (so ParadeDB can pick its TopN custom scan) with the
+  // joins and — in personal mode — the `workspace_id IS NULL` check moved above
+  // it. These tests pin the two things that split could break: rows leaking
+  // across the personal/workspace boundary, and enrichment lost with the joins.
+  describe('search - workspace scoping', () => {
+    const workspaceId = 'search-test-workspace';
+    let workspaceAgentId: string;
+    let personalAgentId: string;
+
+    beforeEach(async () => {
+      await serverDB.insert(workspaces).values({
+        id: workspaceId,
+        name: 'Search Test Workspace',
+        primaryOwnerId: userId,
+        slug: 'search-test-workspace',
+      });
+
+      const insertedAgents = await serverDB
+        .insert(agents)
+        .values([
+          { title: 'Kubernetes Personal Agent', userId, workspaceId: null },
+          { title: 'Kubernetes Workspace Agent', userId, workspaceId },
+        ])
+        .returning({ id: agents.id, workspaceId: agents.workspaceId });
+
+      personalAgentId = insertedAgents.find((a) => !a.workspaceId)!.id;
+      workspaceAgentId = insertedAgents.find((a) => a.workspaceId)!.id;
+
+      await serverDB.insert(topics).values([
+        { agentId: personalAgentId, title: 'Kubernetes personal topic', userId, workspaceId: null },
+        { agentId: workspaceAgentId, title: 'Kubernetes workspace topic', userId, workspaceId },
+      ]);
+
+      await serverDB.insert(messages).values([
+        {
+          agentId: personalAgentId,
+          content: 'Kubernetes personal message',
+          role: 'user',
+          userId,
+          workspaceId: null,
+        },
+        {
+          agentId: workspaceAgentId,
+          content: 'Kubernetes workspace message',
+          role: 'user',
+          userId,
+          workspaceId,
+        },
+      ]);
+
+      await serverDB.insert(files).values([
+        {
+          fileType: 'text/plain',
+          name: 'kubernetes-personal.txt',
+          size: 10,
+          url: 'file://kubernetes-personal.txt',
+          userId,
+          workspaceId: null,
+        },
+        {
+          fileType: 'text/plain',
+          name: 'kubernetes-workspace.txt',
+          size: 10,
+          url: 'file://kubernetes-workspace.txt',
+          userId,
+          workspaceId,
+        },
+      ]);
+
+      await serverDB.insert(documents).values([
+        {
+          content: 'Kubernetes personal page body',
+          fileType: 'custom/document',
+          filename: 'kubernetes-personal-page',
+          source: 'internal://ws-page-1',
+          sourceType: 'file',
+          title: 'Kubernetes personal page',
+          totalCharCount: 0,
+          totalLineCount: 0,
+          userId,
+          workspaceId: null,
+        },
+        {
+          content: 'Kubernetes workspace page body',
+          fileType: 'custom/document',
+          filename: 'kubernetes-workspace-page',
+          source: 'internal://ws-page-2',
+          sourceType: 'file',
+          title: 'Kubernetes workspace page',
+          totalCharCount: 0,
+          totalLineCount: 0,
+          userId,
+          workspaceId,
+        },
+        {
+          fileType: DOCUMENT_FOLDER_TYPE,
+          filename: 'kubernetes-personal-folder',
+          source: 'internal://ws-folder-1',
+          sourceType: 'file',
+          title: 'Kubernetes personal folder',
+          totalCharCount: 0,
+          totalLineCount: 0,
+          userId,
+          workspaceId: null,
+        },
+        {
+          fileType: DOCUMENT_FOLDER_TYPE,
+          filename: 'kubernetes-workspace-folder',
+          source: 'internal://ws-folder-2',
+          sourceType: 'file',
+          title: 'Kubernetes workspace folder',
+          totalCharCount: 0,
+          totalLineCount: 0,
+          userId,
+          workspaceId,
+        },
+      ]);
+
+      await serverDB.insert(chatGroups).values([
+        { title: 'Kubernetes personal group', userId, workspaceId: null },
+        { title: 'Kubernetes workspace group', userId, workspaceId },
+      ]);
+
+      await serverDB.insert(knowledgeBases).values([
+        { name: 'Kubernetes personal base', userId, workspaceId: null },
+        { name: 'Kubernetes workspace base', userId, workspaceId },
+      ]);
+    });
+
+    /**
+     * Every fixture titles itself after the scope it belongs to, so asserting
+     * that each hit *is* from the expected scope catches a leak whatever its
+     * title says — stricter than asserting the other scope's word is absent,
+     * which a differently-worded row could slip past. Case is normalised
+     * because the fixtures are not consistently cased.
+     */
+    const expectEveryHitScopedTo = (results: SearchResult[], scope: 'personal' | 'workspace') => {
+      expect(results.length).toBeGreaterThan(0);
+
+      const foreign = results.filter((r) => !r.title.toLowerCase().includes(scope));
+      expect(foreign.map((r) => `${r.type}: ${r.title}`)).toEqual([]);
+
+      // every rewritten search method is represented
+      expect(new Set(results.map((r) => r.type))).toEqual(new Set(REWRITTEN_RESULT_TYPES));
+    };
+
+    it('should never surface workspace-scoped rows in personal mode', async () => {
+      const results = await new SearchRepo(serverDB, userId).search({ query: 'Kubernetes' });
+
+      expectEveryHitScopedTo(results, 'personal');
+    });
+
+    it('should never surface personal rows in workspace mode', async () => {
+      const results = await new SearchRepo(serverDB, userId, workspaceId).search({
+        query: 'Kubernetes',
+      });
+
+      expectEveryHitScopedTo(results, 'workspace');
+    });
+
+    it('should keep joined agent metadata on topics and messages after the scan split', async () => {
+      const results = await new SearchRepo(serverDB, userId).search({ query: 'Kubernetes' });
+
+      const topic = results.find((r) => r.type === 'topic');
+      expect(topic).toBeDefined();
+      if (topic?.type === 'topic') {
+        expect(topic.agentId).toBe(personalAgentId);
+        expect(topic.agent?.title).toBe('Kubernetes Personal Agent');
+      }
+
+      const message = results.find((r) => r.type === 'message');
+      expect(message).toBeDefined();
+      if (message?.type === 'message') {
+        expect(message.agentId).toBe(personalAgentId);
+        // messages render the owning agent's title as their subtitle
+        expect(message.description).toBe('Kubernetes Personal Agent');
+      }
+    });
+
+    it('should keep knowledgeBaseId on files after the scan split', async () => {
+      const [file] = await serverDB
+        .select({ id: files.id })
+        .from(files)
+        .where(eq(files.name, 'kubernetes-personal.txt'));
+      const [base] = await serverDB
+        .select({ id: knowledgeBases.id })
+        .from(knowledgeBases)
+        .where(eq(knowledgeBases.name, 'Kubernetes personal base'));
+
+      await serverDB
+        .insert(knowledgeBaseFiles)
+        .values({ fileId: file.id, knowledgeBaseId: base.id, userId });
+
+      const results = await new SearchRepo(serverDB, userId).search({
+        query: 'kubernetes',
+        type: 'file',
+      });
+
+      const hit = results.find((r) => r.type === 'file' && r.id === file.id);
+      expect(hit).toBeDefined();
+      if (hit?.type === 'file') expect(hit.knowledgeBaseId).toBe(base.id);
+    });
+  });
+  // The workspace-scoping tests above pin *results*, and this change is
+  // deliberately result-neutral — they pass against the pre-fix implementation
+  // too. What actually fixes LOBE-12379 is the *shape* of the emitted SQL, so
+  // it needs its own guard: ParadeDB only picks `TopNScanExecState` when the
+  // scan node itself carries the whole `ORDER BY paradedb.score() LIMIT n`.
+  //
+  // Asserting the plan directly is not an option in CI: the container runs a
+  // newer pg_search than production, and its `heap_filter` keeps TopN even with
+  // a non-indexed qual — the exact regression would be invisible. So we assert
+  // the structural invariant that makes TopN reachable instead, which fails on
+  // the pre-fix single-level query regardless of engine version.
+  describe('search - BM25 scan shape', () => {
+    let loggingPool: NodePool | undefined;
+
+    afterAll(async () => {
+      await loggingPool?.end();
+    });
+
+    /** Runs a search against the test DB and returns every BM25 statement it emitted. */
+    const captureScanSql = async (workspaceId?: string): Promise<string[]> => {
+      const captured: string[] = [];
+      loggingPool ??= new NodePool({ connectionString: process.env.DATABASE_TEST_URL });
+      const db = nodeDrizzle(loggingPool, {
+        logger: { logQuery: (query: string) => captured.push(query) },
+        schema,
+      });
+
+      await new SearchRepo(db as unknown as LobeChatDatabase, userId, workspaceId).search({
+        query: 'kubernetes',
+      });
+
+      return captured.filter((query) => query.includes('@@@'));
+    };
+
+    /** Body of the first parenthesised subquery, i.e. the isolated BM25 scan. */
+    const innerScanOf = (query: string): string | undefined => {
+      const open = query.indexOf('from (');
+      if (open === -1) return undefined;
+
+      const start = open + 'from ('.length;
+      let depth = 1;
+      for (let i = start; i < query.length; i++) {
+        if (query[i] === '(') depth++;
+        else if (query[i] === ')' && --depth === 0) return query.slice(start, i);
+      }
+      return undefined;
+    };
+
+    /** Locates one method's statement and returns its isolated scan, failing loudly if absent. */
+    const scanOf = (statements: string[], alias: string): string => {
+      const statement = statements.find((query) => query.includes(`"${alias}"`));
+      expect(statement, `no statement produced the ${alias} subquery`).toBeDefined();
+
+      const scan = innerScanOf(statement!);
+      expect(scan, `${alias}: BM25 scan is not isolated in a subquery`).toBeDefined();
+
+      return scan!;
+    };
+
+    const whereClauseOf = (scan: string): string =>
+      scan.slice(scan.indexOf(' where '), scan.indexOf(' order by '));
+
+    it('gives every rewritten method a join-free single-table BM25 scan', async () => {
+      const statements = await captureScanSql();
+
+      // memories is the one BM25 search that was intentionally left unsplit
+      expect(statements).toHaveLength(SCAN_ALIASES.length + 1);
+
+      for (const alias of SCAN_ALIASES) {
+        const scan = scanOf(statements, alias);
+
+        // the scan node owns the whole ranking clause …
+        expect(scan).toContain('@@@');
+        expect(scan).toContain('order by paradedb.score');
+        expect(scan).toContain('limit');
+
+        // … and nothing sits between it and that clause
+        expect(scan, `${alias}: a join moved back inside the BM25 scan`).not.toContain(' join ');
+      }
+    });
+
+    it('keeps the non-indexed workspace filter above the scan in personal mode', async () => {
+      const statements = await captureScanSql();
+
+      for (const alias of SCAN_ALIASES) {
+        const where = whereClauseOf(scanOf(statements, alias));
+
+        // `workspace_id` is not a BM25 field, so a qual on it inside the scan
+        // is what costs TopN. It is still selected as a column for the outer
+        // filter — only the scan's predicate has to stay clear of it.
+        expect(where, `${alias}: workspace qual moved back into the BM25 scan`).not.toContain(
+          'workspace_id',
+        );
+        expect(where).toContain('user_id');
+
+        // the filter must survive somewhere, or scoping would silently break
+        const statement = statements.find((query) => query.includes(`"${alias}"`))!;
+        expect(statement).toContain(`"${alias}"."workspace_id" is null`);
+      }
+    });
+
+    it('keeps the ownership predicate exact and inline in workspace mode', async () => {
+      const statements = await captureScanSql('search-test-workspace');
+
+      for (const alias of SCAN_ALIASES) {
+        const where = whereClauseOf(scanOf(statements, alias));
+
+        // Workspace mode has no pushdown-able owner column, so over-fetching
+        // would silently drop rows. It keeps the exact predicate instead and
+        // stays on the slower plan until the column is indexed.
+        expect(where, `${alias}: workspace mode must not lift its own filter`).toContain(
+          'workspace_id',
+        );
       }
     });
   });
