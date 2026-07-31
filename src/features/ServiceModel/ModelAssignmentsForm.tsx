@@ -20,9 +20,14 @@ import type { SystemAgentItem, UserServiceModelConfigKey } from '@/types/user/se
 
 import { serviceModelFormStyles as styles } from './styles';
 
+type ModelAssignmentItemKey = Exclude<
+  UserServiceModelConfigKey,
+  'onboardingTaskRecommender' | 'onboardingUnderstanding'
+>;
+
 interface SystemAgentModelItem {
   contextLimit?: boolean;
-  key: UserServiceModelConfigKey;
+  key: ModelAssignmentItemKey;
   modelType?: 'chat' | 'embedding';
 }
 

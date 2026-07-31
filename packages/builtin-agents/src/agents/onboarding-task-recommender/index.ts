@@ -4,15 +4,15 @@ import type { BuiltinAgentDefinition } from '../../types';
 import { BUILTIN_AGENT_SLUGS } from '../../types';
 import { systemRole } from './systemRole';
 
-export const ONBOARDING_UNDERSTANDING: BuiltinAgentDefinition = {
+export const ONBOARDING_TASK_RECOMMENDER: BuiltinAgentDefinition = {
   persist: {
     chatConfig: {
       enableAgentMode: false,
       searchMode: 'off',
       toolMode: 'custom',
     },
-    model: DEFAULT_SYSTEM_AGENT_CONFIG.onboardingUnderstanding.model,
-    provider: DEFAULT_SYSTEM_AGENT_CONFIG.onboardingUnderstanding.provider,
+    model: DEFAULT_SYSTEM_AGENT_CONFIG.onboardingTaskRecommender.model,
+    provider: DEFAULT_SYSTEM_AGENT_CONFIG.onboardingTaskRecommender.provider,
   },
   runtime: {
     agencyConfig: { executionTarget: 'none' },
@@ -25,5 +25,5 @@ export const ONBOARDING_UNDERSTANDING: BuiltinAgentDefinition = {
     plugins: [],
     systemRole,
   },
-  slug: BUILTIN_AGENT_SLUGS.onboardingUnderstanding,
+  slug: BUILTIN_AGENT_SLUGS.onboardingTaskRecommender,
 };
