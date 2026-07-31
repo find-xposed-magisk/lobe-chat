@@ -94,13 +94,9 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
   `,
 }));
 
-/**
- * The two modes are the runtime's existing chat / agent split, so they borrow
- * that copy rather than restating it.
- */
 const MODES = [
-  { descKey: 'chatMode.chatDesc', icon: MessageCircleIcon, key: 'chat' },
-  { descKey: 'chatMode.agentDesc', icon: InfinityIcon, key: 'task' },
+  { icon: MessageCircleIcon, key: 'chat' },
+  { icon: InfinityIcon, key: 'task' },
 ] as const;
 
 interface ModeSelectProps {
@@ -132,7 +128,7 @@ const ModeSelect = memo<ModeSelectProps>(({ onChange, value }) => {
 
   const content = (
     <Flexbox gap={4} role={'menu'} style={{ maxWidth: 320, minWidth: 280 }}>
-      {MODES.map(({ descKey, icon, key }) => {
+      {MODES.map(({ icon, key }) => {
         const disabled = isHomeModeDisabled(key, canCreateContent);
 
         return (
@@ -158,7 +154,9 @@ const ModeSelect = memo<ModeSelectProps>(({ onChange, value }) => {
               </Flexbox>
               <Flexbox className={styles.optionText} flex={1}>
                 <div className={styles.optionTitle}>{t(`dashboard.mode.${key}`)}</div>
-                <div className={styles.optionDesc}>{tChat(descKey)}</div>
+                <div className={styles.optionDesc}>
+                  {key === 'chat' ? tChat('chatMode.agentDesc') : t('dashboard.modeDesc.task')}
+                </div>
               </Flexbox>
             </Flexbox>
           </Button>

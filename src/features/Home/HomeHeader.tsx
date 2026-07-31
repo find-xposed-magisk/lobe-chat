@@ -10,6 +10,7 @@ import { authSelectors, userProfileSelectors } from '@/store/user/slices/auth/se
 
 import AgentSelect from './AgentSelect';
 import GreetingLine from './GreetingLine';
+import RailToggle from './RailToggle';
 import { parseGreetingLine } from './welcomeText';
 
 const styles = createStaticStyles(({ css }) => ({
@@ -36,6 +37,13 @@ const styles = createStaticStyles(({ css }) => ({
       display: none;
     }
   `,
+  railToggle: css`
+    display: none;
+
+    @media (width <= 1100px) {
+      display: block;
+    }
+  `,
   toolbar: css`
     container-type: inline-size;
     width: 100%;
@@ -53,7 +61,12 @@ const getGreetingKey = (hour: number): 'afternoon' | 'evening' | 'morning' => {
 /** CJK greetings already end on a full-width stop, which carries its own trailing space. */
 const greetingSeparator = (greeting: string) => (/[。！？]$/.test(greeting) ? '' : ' ');
 
-const HomeHeader = memo(() => {
+interface HomeHeaderProps {
+  onToggleRail?: () => void;
+  railVisible: boolean;
+}
+
+const HomeHeader = memo<HomeHeaderProps>(({ onToggleRail, railVisible }) => {
   const { t } = useTranslation('home');
   const displayName = useUserStore(userProfileSelectors.displayUserName);
   const isLogin = useUserStore(authSelectors.isLogin);
@@ -67,7 +80,6 @@ const HomeHeader = memo(() => {
   // Falls back to the static line until the daily brief lands — or forever, for
   // an account the generator has not run for yet.
   const parsed = currentPair?.welcome ? parseGreetingLine(currentPair.welcome) : undefined;
-
   return (
     <Flexbox gap={16} justify={'center'}>
       <Flexbox
@@ -78,9 +90,20 @@ const HomeHeader = memo(() => {
         justify={'space-between'}
       >
         <AgentSelect />
-        <div className={styles.promo}>
-          <HomePromoBanner />
-        </div>
+        <Flexbox horizontal align={'center'} flex={'none'} gap={4}>
+          <div className={styles.promo}>
+            <HomePromoBanner />
+          </div>
+          {isLogin && onToggleRail && (
+            <div className={styles.railToggle}>
+              <RailToggle
+                railVisible={railVisible}
+                testId={'home-rail-toggle-mobile'}
+                onToggle={onToggleRail}
+              />
+            </div>
+          )}
+        </Flexbox>
       </Flexbox>
       <Text as={'h1'} className={styles.greeting} weight={600}>
         {greeting}
