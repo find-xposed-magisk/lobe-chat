@@ -61,7 +61,7 @@ interface AgentModalContextValue {
   closeGroupWizardModal: () => void;
   closeMemberSelectionModal: () => void;
   openConfigGroupModal: (scope?: 'private' | 'public') => void;
-  openCreateGroupModal: (sessionId: string, visibility?: 'private' | 'public') => void;
+  openCreateGroupModal: (sessionId?: string, visibility?: 'private' | 'public') => void;
   openCreateModal: (type: 'agent' | 'group', options?: OpenCreateModalOptions) => void;
   openCreatePlatformAgentModal: (options?: OpenCreateModalOptions) => void;
   openGroupWizardModal: (callbacks: GroupWizardCallbacks) => void;
@@ -114,12 +114,12 @@ const CreateModalRenderer = memo<CreateModalRendererProps>(
     const handleSubmit = useCallback(
       async (prompt: string) => {
         if (type === 'agent') {
-          await sendAsAgent({ groupId, message: prompt });
+          await sendAsAgent({ groupId, message: prompt, visibility });
         } else {
-          await sendAsGroup({ groupId, message: prompt });
+          await sendAsGroup({ groupId, message: prompt, visibility });
         }
       },
-      [type, sendAsAgent, sendAsGroup, groupId],
+      [type, sendAsAgent, sendAsGroup, groupId, visibility],
     );
 
     const handleCreateBlank = useCallback(async () => {
@@ -129,7 +129,7 @@ const CreateModalRenderer = memo<CreateModalRendererProps>(
         navigate(`/agent/${result.agentId}/profile`);
         await refreshAgentList();
       } else {
-        await sendAsGroup({ groupId, message: '' });
+        await sendAsGroup({ groupId, message: '', visibility });
       }
     }, [type, storeCreateAgent, navigate, refreshAgentList, sendAsGroup, groupId, visibility]);
 
@@ -169,7 +169,7 @@ interface AgentModalProviderProps {
 export const AgentModalProvider = memo<AgentModalProviderProps>(({ children }) => {
   // CreateGroupModal state
   const [createGroupModalOpen, setCreateGroupModalOpen] = useState(false);
-  const [createGroupSessionId, setCreateGroupSessionId] = useState<string>('');
+  const [createGroupSessionId, setCreateGroupSessionId] = useState<string | undefined>(undefined);
   const [createGroupVisibility, setCreateGroupVisibility] = useState<
     'private' | 'public' | undefined
   >(undefined);
@@ -215,7 +215,7 @@ export const AgentModalProvider = memo<AgentModalProviderProps>(({ children }) =
         setConfigGroupModalScope(scope ?? 'public');
         setConfigGroupModalOpen(true);
       },
-      openCreateGroupModal: (sessionId: string, visibility?: 'private' | 'public') => {
+      openCreateGroupModal: (sessionId?: string, visibility?: 'private' | 'public') => {
         setCreateGroupSessionId(sessionId);
         setCreateGroupVisibility(visibility);
         setCreateGroupModalOpen(true);
