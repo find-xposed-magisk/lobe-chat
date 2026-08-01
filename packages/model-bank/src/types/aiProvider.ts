@@ -410,11 +410,26 @@ export interface AiProviderRuntimeConfig {
   settings: AiProviderSettings;
 }
 
+export interface BuiltinModelIdentifier {
+  id: string;
+  providerId: string;
+}
+
 export interface AiProviderRuntimeState {
   enabledAiModels: EnabledAiModel[];
   enabledAiProviders: EnabledProvider[];
   enabledChatAiProviders: EnabledProvider[];
   enabledImageAiProviders: EnabledProvider[];
   enabledVideoAiProviders: EnabledProvider[];
+  hiddenBuiltinModels?: BuiltinModelIdentifier[];
+  /** False when the server could not resolve the current user's hidden-model policy. */
+  hiddenBuiltinModelsResolved?: boolean;
+  /**
+   * Retired `${providerId}/${modelId}` → successor model id (same provider).
+   * Requests for a key are transparently served by its successor, so clients can
+   * render "superseded by X" instead of "removed". Keys are provider-scoped so a
+   * same-named model under an unrelated provider is never treated as redirected.
+   */
+  modelRedirects?: Record<string, string>;
   runtimeConfig: Record<string, AiProviderRuntimeConfig>;
 }

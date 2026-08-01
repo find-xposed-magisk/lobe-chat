@@ -200,6 +200,143 @@ in the renderer graph, which makes Vite optimize and execute `vitest` in the app
 import the locale resource there. Restart the isolated Electron instance after a
 bad scan because the optimized dependency graph can remain poisoned.
 
+### Desktop tab switching is not `activateTab` alone — drive the real tab element
+
+**Situation:** benchmarking or driving a desktop tab switch from an `eval`
+payload, using `window.__LOBE_STORES.electron().activateTab(id)`.
+
+**Doesn't work:** on the single-router shell, `activateTab` only writes
+`activeTabId`; navigation is a second step performed by the TabBar
+(`handleActivate` = `activateTab(id)` + `startTransition(navigate(url))`). Calling
+the store action alone leaves `location.pathname` on the previous route, so the
+run measures a no-op — visible as a tiny settle time, \~4 DOM mutations, and zero
+long tasks, which reads like an impossibly fast surface rather than a broken
+probe. The per-tab-router shell does switch content from the store action alone,
+so the same payload is a real switch on one build and a no-op on the other:
+any A/B built on it is invalid.
+
+**Works:** drive the tab element the user actually clicks, and assert the
+navigation happened.
+
+```js
+const all = [...document.querySelectorAll('[data-insp-path*="TabBar/TabItem.tsx"]')].filter(
+  (e) => e.getBoundingClientRect().width > 100,
+);
+// two nested nodes per tab match — keep only the outermost
+const roots = all
+  .filter((e) => !all.some((o) => o !== e && o.contains(e)))
+  .sort((a, b) => a.getBoundingClientRect().x - b.getBoundingClientRect().x);
+// roots[i] aligns 1:1 with store tabs[i]; verify roots.length === tabs.length
+roots[idx].click();
+```
+
+`el.click()` reaches the React `onClick` here (this is not a controlled input, so
+the generic D11 trusted-input caveat does not apply). Always record
+`location.pathname` before and after and keep a `navigated` flag on every sample —
+that flag is what catches a payload that silently stopped switching.
+
+### Clicking an already-active tab is a no-op — a desynced tab can never be re-entered by clicking
+
+**Situation:** a probe adds a tab with `addTab(url)` and then clicks it to enter that route.
+
+**Doesn't work:** `addTab` already activates the new tab, so the later click lands on the _active_ tab
+and the shell does nothing. On the single-router shell this can leave `activeTabId` pointing at a tab
+whose URL names one topic while `location.pathname` and `chat().activeTopicId` still name another —
+after which no amount of clicking recovers it, and every downstream assertion reads the wrong page.
+Symptom: the probe's final `location.pathname` is not the tab you clicked, with no error anywhere.
+
+**Works:** after `addTab`, enter the route with a full navigation
+(`app-probe.sh goto <url>`) before starting the trials, and assert the three values agree before
+measuring:
+
+```js
+const st = window.__LOBE_STORES.electron();
+const chat = window.__LOBE_STORES.chat();
+const tab = (st.tabs || []).find((t) => t.id === st.activeTabId);
+// tab.url, location.pathname and chat.activeTopicId must all point at the same topic
+```
+
+### Attributing switch work to hidden keep-alive trees — classify on BOTH sides of the action
+
+**Situation:** measuring what a per-tab keep-alive shell costs while a tab is hidden.
+
+**Doesn't work:** collecting the hidden slots (the `display: none` children of the TabHost root) _before_
+the switch and classifying every mutation against that list. The switch is precisely what makes the
+target tab visible, and that tab was hidden when the list was captured — so the incoming tab's own
+render, which is necessary user-visible work, is counted as hidden-tree work. This produced a confident
+"\~44% of switch work happens off-screen" that was pure artefact, and it survived review because the
+number looked plausible.
+
+**Works:** classify against the intersection — slots hidden **before** the switch that are **still
+hidden after** it:
+
+```js
+const before = hiddenSlots(); // display:none children of the TabHost root
+/* click the tab, observe mutations */
+const after = hiddenSlots();
+const stillHidden = before.filter((s) => after.includes(s));
+```
+
+Measured this way, still-hidden slots produced **0** mutations in 6/6 switches: React
+`<Activity mode="hidden">` keeps state, tears down effects, and commits nothing while hidden.
+
+**General rule:** when a measurement classifies work by a property that the measured action itself
+changes (visible/hidden, active/inactive, mounted/unmounted), capture the classification on both sides
+and use the intersection. Otherwise the action's own effect lands in the wrong bucket.
+
+### Agent Mock playback leaves `pluginState` empty — backfill it before capturing pluginState-driven renders
+
+**Situation:** verifying a builtin-tool Render/Inspector (lobe-agent todos, plans —
+anything reading `message.pluginState`) with DevDock → Agent Mock case playback as
+the deterministic driver (no LLM).
+
+**Doesn't work:** capturing right after playback. The mock pipeline writes each
+tool step's `result` into the tool message `content` only and never sets
+`pluginState`, so a Render keyed off `pluginState` mounts empty (expanded rows
+show nothing) and inspectors fall to their no-data fallback. Reads as "the new
+rendering is broken" when the components are fine. Also note: consecutive todo
+tool rows are folded into the latest by the conversation UI, so early-state rows
+may never mount.
+
+**Works:** after playback completes, backfill in-memory from each message's own
+result JSON, at the layer the Render actually reads:
+
+```js
+const c = window.__LOBE_STORES.chat();
+const msgs = c.dbMessagesMap['main_<agentId>_<topicId>'];
+for (const m of msgs.filter((m) => m.role === 'tool' && m.plugin)) {
+  const parsed = JSON.parse(m.content);
+  if (parsed?.todos)
+    c.internal_dispatchMessage({
+      type: 'updatePluginState',
+      id: m.id,
+      key: 'todos',
+      value: parsed.todos,
+    });
+}
+```
+
+To render a payload the case doesn't cover (another builtin tool, a specific
+state), payload-swap an already-MOUNTED mock row in place — update BOTH the
+assistant's `tools[]` entry (`updateMessageTools`, keyed by `tool_call_id`; this
+is what selects the Render component) and the tool message (`updateMessagePlugin`
+
+- `replaceMessagePluginState`). Dispatching brand-new messages at the end of the
+  list may never mount. Claude Code builtin payloads use `identifier: 'claude-code'`
+  (NOT `lobe-claude-code`) and PascalCase `apiName` (`TodoWrite`). All of this is
+  in-memory only — a reload clears it; delete the temp topic at teardown.
+
+### `eval` declarations persist in the page global scope
+
+**Situation:** running several `agent-browser eval` payloads against one renderer.
+
+**Doesn't work:** a bare top-level `const els = …` in a second payload fails with
+`SyntaxError: Identifier 'els' has already been declared`, because each `eval`
+shares the page's global scope.
+
+**Works:** wrap every payload in an IIFE (`(() => { … })()`), or attach state to a
+single namespaced `window.__X` object.
+
 ### Shared agent-browser session names can cross-wire concurrent acceptance runs
 
 **Situation:** a Web acceptance run uses the adapter's default `lobehub-dev`
@@ -220,6 +357,115 @@ agent-browser --session "$RUN_SESSION" \
 
 Then assert `get url` and `app-probe.sh auth` on that exact session before
 capturing evidence.
+
+### Leftover React Scan instrumentation poisons every screenshot
+
+**Situation:** capturing UI evidence in a dev instance the user (or an earlier
+round) had DevTools / the DevDock open on.
+
+**Doesn't work:** deleting the overlay canvas (`html > canvas`) once and
+screenshotting. React Scan re-creates it on the next render pass, so a probe that
+reports `0 canvases` a few seconds later is only measuring that nothing
+re-rendered in that window — the outlines return the moment the app updates.
+`localStorage` is also not a reliable read: `react-scan-options.enabled` and
+`LOBE_DEV_DOCK_UI.reactScan` can both say `false` while the instrumentation is
+live, because it was enabled at runtime and never written back.
+
+**Works:** inject a capture-time style rule instead of removing nodes —
+`html > canvas { display: none !important; }` appended to `documentElement`. It
+survives re-creation, touches no product code or styles, and disappears on
+reload. Remove it at teardown. Disclose it in the report: it suppresses a dev
+overlay, which is a capture-time adjustment a reviewer should know about.
+
+### Production-backend web runs have no seeded agent-browser session
+
+**Situation:** verifying frontend-only work against real production data through
+`bun run dev:spa`'s `_dangerous_local_dev_proxy` URL.
+
+**Doesn't work:** the adapter's Web evidence path (`agent-browser --session
+lobehub-dev` seeded by `setup-auth.sh web-seed`) authenticates against the LOCAL
+server. There is no sanctioned way to give that session a production login —
+`setup-auth.sh web`'s Chrome-cookie injection is explicitly forbidden against
+production.
+
+**Works:** drive the proxy in the user's already-authenticated Chrome (the
+`claude-in-chrome` tooling), and compensate for the weaker evidence channel with
+DOM measurements (`getBoundingClientRect` / `getComputedStyle`) alongside every
+screenshot, plus an independent server-side check through `lh` in a clean env.
+Prove the working-tree bundle is actually live first — read back a string that
+exists only in the working tree (e.g. a changed placeholder), never assume HMR
+applied.
+
+### Managed command runners can reap `electron-dev.sh start` children after the helper returns
+
+**Situation:** `electron-dev.sh start` (legacy and pool forms) reports that CDP
+and the renderer are ready, but the CDP port closes immediately after the helper
+command returns. The Electron log contains a normal renderer mount and no crash;
+changing from the saved login snapshot to the fresh golden profile does not alter
+the exit. The cause is not established.
+
+**Doesn't work:** retrying the helper with another pool id or changing the auth
+seed. Both instances become interactive during the helper's readiness loop and
+are gone before the next command can connect.
+
+**Works:** use the documented multi-instance Model B command in a long-lived PTY
+with the same isolated userData, Vite port, IPC id, and CDP port:
+
+```bash
+LOBE_DESKTOP_VITE_PORT=5175 \
+  LOBE_DESKTOP_USER_DATA_DIR=/tmp/lobe-electron-pool/ud-2 \
+  LOBE_IPC_ID=lobehub-desktop-dev-2 \
+  pnpm -C apps/desktop dev -- --remote-debugging-port=9224
+```
+
+Keep that command session open for the run. Confirm the CDP endpoint, project
+process path, `app-probe.sh ready`, renderer auth, server auth, and a raw-CDP
+screenshot before collecting evidence.
+
+### `app-probe.sh goto /` cannot reach the desktop Home route — seed the tab first
+
+**Situation:** driving the Electron shell to the Home route (`/`) to check the nav
+panel there.
+
+**Doesn't work:** `app-probe.sh goto /` prints `"/"` but the renderer stays on the
+previous route. `goto` is a full reload, and the desktop shell restores the active
+tab's persisted url on boot — every non-root route survives that restore, so `goto`
+appears to work for `/tasks`, `/agents`, `/settings` and silently fails only for
+`/`. The follow-up probe then describes the old page with no error anywhere.
+
+**Works:** create and activate a Home tab first, then navigate:
+
+```js
+window.__LOBE_STORES.electron().addTab('/'); // addTab also activates it
+```
+
+```bash
+.agents/acceptance/scripts/app-probe.sh goto /
+```
+
+Assert `location.pathname` after the reload rather than trusting `goto`'s echo.
+
+### Anchor nav-panel assertions on `#nav-panel-drawer`, not a `data-insp-path` match
+
+**Situation:** asserting what the left nav panel renders on a given route.
+
+**Doesn't work:** `document.querySelector('[data-insp-path*="NavPanelDraggable"]')`.
+It resolves during a settled render but returns `null` in the seconds after a full
+reload, and the usual `|| document.body` fallback then reads
+`document.body.innerText === ''` (generic C4) — which looks exactly like an empty
+panel and turns a normal loading window into a false regression.
+
+**Works:** the panel is the `<aside>` sibling of the stable drawer anchor:
+
+```js
+const drawer = document.getElementById('nav-panel-drawer');
+const aside = drawer && [...drawer.parentElement.children].find((c) => c.tagName === 'ASIDE');
+```
+
+Then assert on `aside.innerText` line count plus a count of text-free rounded boxes
+(the skeleton rows). Distinguish the two skeleton states explicitly: the whole panel
+collapsing to \~8 text-free rows is the nav-panel fallback, while fixed items present
+with only the list area shimmering is ordinary data loading.
 
 ## Detailed references
 

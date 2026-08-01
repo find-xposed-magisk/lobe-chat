@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import { WORKSPACE_SETTINGS_TABS } from '@/features/Workspace/workspaceAwarePath';
 
-import { desktopRoutes } from './desktopRouter.config';
+import { createMainAreaChildren, desktopRoutes } from './desktopRouter.config';
 
 /**
  * Known path pairs that intentionally differ between web and desktop (Electron).
@@ -30,6 +30,14 @@ const WEB_ONLY_PATHS = new Set([
 
 /** Extra `index: true` routes present only on web. */
 const WEB_ONLY_INDEX_DELTA = 0;
+
+/**
+ * The Electron `/` route hosts only the TabHost shell; its children are two
+ * slim stubs (`{ index }` + `{ path: '*' }`). The stub index route has no web
+ * counterpart (web's `/` renders `createMainAreaChildren()` directly), so the
+ * desktop config carries exactly one extra `index: true`.
+ */
+const DESKTOP_ROOT_STUB_INDEX_ROUTES = 1;
 
 /** handle.meta blobs present only on web. */
 const WEB_ONLY_HANDLE_METAS = new Set<string>([]);
@@ -91,6 +99,33 @@ describe('desktopRouter config sync', () => {
     });
   });
 
+  // Regression for agent sub-page tab titles show section and agent name (not bare "LobeHub"): these pages rendered a bare "LobeHub" tab title
+  // because no route in the matched chain declared a handle.meta.
+  it.each([
+    '/agent/agent-1/profile',
+    '/agent/agent-1/channel',
+    '/agent/agent-1/channel/slack',
+    '/agent/agent-1/statistics',
+    '/group/group-1/profile',
+  ])('%s declares route meta so the tab title is not bare branding', (pathname) => {
+    const matches = matchRoutes(desktopRoutes, pathname);
+
+    expect(matches, `${pathname} must match a route`).toBeTruthy();
+
+    const meta = matches!
+      .map((match) => (match.route.handle as { meta?: unknown } | undefined)?.meta)
+      .findLast(Boolean);
+    expect(meta, `${pathname} must declare handle.meta`).toBeDefined();
+  });
+
+  // `/agent/:aid/stats` was renamed to `statistics`; bookmarks, shared links and
+  // restored Electron tabs still carry the old segment and must not 404.
+  it('keeps the legacy agent stats path matching so deep-links still resolve', () => {
+    const matches = matchRoutes(desktopRoutes, '/agent/agent-1/stats');
+
+    expect(matches?.at(-1)?.route.path).toBe('stats');
+  });
+
   it('personal memory settings route is not shadowed by workspace memory route', () => {
     const matches = matchRoutes(desktopRoutes, '/settings/memory');
     const paths = matches?.map((match) => match.route.path);
@@ -115,7 +150,7 @@ describe('desktopRouter config sync', () => {
     expect(missingInSync, `Missing in desktop config: ${missingInSync.join(', ')}`).toEqual([]);
     expect(extraInSync, `Extra in desktop config: ${extraInSync.join(', ')}`).toEqual([]);
     expect(syncIndexCount, 'Desktop config index route count must match async config').toBe(
-      asyncIndexCount - WEB_ONLY_INDEX_DELTA,
+      asyncIndexCount - WEB_ONLY_INDEX_DELTA + DESKTOP_ROOT_STUB_INDEX_ROUTES,
     );
   });
 
@@ -133,6 +168,39 @@ describe('desktopRouter config sync', () => {
     expect(syncMetas, 'Desktop config handle.meta declarations must match async config').toEqual(
       asyncMetas,
     );
+  });
+
+  it('electron `/` route children are the slim TabHost stubs', async () => {
+    const [, syncSource] = await readDesktopRouterSources();
+    const collapsed = syncSource.replaceAll(/\s+/g, ' ');
+
+    expect(collapsed).toMatch(
+      /children:\s*\[\s*\{\s*element:\s*null,\s*index:\s*true\s*\},\s*\{\s*element:\s*null,\s*path:\s*'\*'\s*\},?\s*\]/,
+    );
+  });
+
+  it('index-element divergence: electron index routes render home, web index routes are element-less', async () => {
+    const [asyncSource, syncSource] = await readDesktopRouterSources();
+    const collapsedSync = syncSource.replaceAll(/\s+/g, ' ');
+
+    // Electron builder mounts the home element on the root + workspace index routes.
+    const homeElementMatches = [
+      ...collapsedSync.matchAll(/<DesktopHomeLayout>\s*<DesktopHome \/>\s*<\/DesktopHomeLayout>/g),
+    ];
+    expect(homeElementMatches).toHaveLength(2);
+
+    // Web builder never renders home via the router (it uses the always-mounted
+    // sibling). Comments may mention the component name, so match the JSX element.
+    expect(asyncSource).not.toContain('<DesktopHome');
+
+    // Structural check: the web `createMainAreaChildren()` index routes carry no element.
+    const webChildren = createMainAreaChildren();
+    const webRootIndex = webChildren.find((route) => route.index);
+    expect(webRootIndex?.element).toBeUndefined();
+
+    const webWorkspace = webChildren.find((route) => route.path === ':workspaceSlug');
+    const webWorkspaceIndex = webWorkspace?.children?.find((route) => route.index);
+    expect(webWorkspaceIndex?.element).toBeUndefined();
   });
 
   it('workspace settings tree is registered with all tabs in both configs', async () => {

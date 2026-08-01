@@ -692,7 +692,7 @@ export class MessageModel {
           // `asc + limit` truncated exactly the newest batch, which is the worst
           // possible slice for a chat transcript. The page is reversed back to
           // ascending immediately below, so every downstream consumer is
-          // unaffected; only *which* rows are fetched changed. See LOBE-12011.
+          // unaffected; only *which* rows are fetched changed. See.
           .orderBy(desc(messages.createdAt), desc(messages.id))
           .limit(pageSize)
           .offset(offset),
@@ -715,7 +715,7 @@ export class MessageModel {
     //
     // Scope: this only serves the single "most recent page" load (`current === 0`),
     // which is the only page the chat read path ever requests — `current`/`pageSize`
-    // offset paging is dead code here (the very premise of LOBE-12011). The trim is
+    // offset paging is dead code here (the very premise of). The trim is
     // deliberately NOT offset-exact: the rows it drops from page 0 also fall outside
     // page 1's `offset = pageSize` window, so a hypothetical offset walk would skip
     // them. That is acceptable because nothing offset-walks this path; loading older
@@ -1729,6 +1729,12 @@ export class MessageModel {
     });
   };
 
+  findByClientId = async (clientId: string) => {
+    return this.db.query.messages.findFirst({
+      where: and(eq(messages.clientId, clientId), this.ownership()),
+    });
+  };
+
   findLatestAssistantMessageByThread = async ({
     agentId,
     threadId,
@@ -2712,7 +2718,7 @@ export class MessageModel {
     startedAt: Date;
     threadId?: string | null;
     topicId: string;
-  }): Promise<Array<MessagePluginItem & { createdAt: Date }>> => {
+  }): Promise<Array<MessagePluginItem & { content?: string; createdAt: Date }>> => {
     const completedAt = params.completedAt ?? new Date();
 
     const withinWindow = and(
@@ -2729,6 +2735,11 @@ export class MessageModel {
         apiName: messagePlugins.apiName,
         arguments: messagePlugins.arguments,
         clientId: messagePlugins.clientId,
+        // The tool message's text body. Heterogeneous CLI adapters (claude-code
+        // Bash) persist the command's stdout here rather than in a structured
+        // `state` field, and the completion-time github Work scan reads the gh
+        // CLI's printed entity URL from it.
+        content: messages.content,
         createdAt: messages.createdAt,
         error: messagePlugins.error,
         id: messagePlugins.id,
@@ -2748,6 +2759,7 @@ export class MessageModel {
       apiName: row.apiName ?? undefined,
       arguments: row.arguments ?? undefined,
       clientId: row.clientId ?? undefined,
+      content: row.content ?? undefined,
       createdAt: row.createdAt,
       error: row.error ?? undefined,
       id: row.id,
@@ -3068,7 +3080,7 @@ export class MessageModel {
    * persist the new turn with `parentId: undefined` — a second root that forks
    * the conversation tree. The renderer walks that forest depth-first, so an
    * earlier root's long-running subtree gets emitted before a later root and the
-   * newest reply surfaces ABOVE older messages (LOBE-11489).
+   * newest reply surfaces ABOVE older messages.
    *
    * `role:'tool'` stays excluded: tool results are inline children of their
    * assistant turn, and anchoring a normal turn onto one orphans it under the

@@ -1,15 +1,20 @@
 'use client';
 
 import { AGENT_CHAT_URL } from '@lobechat/const';
-import { type ReactNode, useCallback } from 'react';
-import { createContext, memo, use, useMemo, useState } from 'react';
+import {
+  createContext,
+  lazy,
+  memo,
+  type ReactNode,
+  Suspense,
+  use,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 
-import { ChatGroupWizard } from '@/components/ChatGroupWizard';
-import { MemberSelectionModal } from '@/components/MemberSelectionModal';
-import { openCreatePlatformAgentModal } from '@/features/CreatePlatformAgent';
 import EditingPopover from '@/features/EditingPopover';
 import { useWorkspaceAwareNavigate } from '@/features/Workspace/useWorkspaceAwareNavigate';
-import { CreateAgentModal } from '@/routes/(main)/home/_layout/hooks/useCreateModal';
 import { useAgentStore } from '@/store/agent';
 import { builtinAgentSelectors } from '@/store/agent/selectors';
 import { useGlobalStore } from '@/store/global';
@@ -17,6 +22,24 @@ import { useHomeStore } from '@/store/home';
 
 import ConfigGroupModal from './Modals/ConfigGroupModal';
 import CreateGroupModal from './Modals/CreateGroupModal';
+
+const CreateAgentModal = lazy(() =>
+  import('@/routes/(main)/home/_layout/hooks/useCreateModal').then((module) => ({
+    default: module.CreateAgentModal,
+  })),
+);
+
+const ChatGroupWizard = lazy(() =>
+  import('@/components/ChatGroupWizard').then((module) => ({
+    default: module.ChatGroupWizard,
+  })),
+);
+
+const MemberSelectionModal = lazy(() =>
+  import('@/components/MemberSelectionModal').then((module) => ({
+    default: module.MemberSelectionModal,
+  })),
+);
 
 interface OpenCreateModalOptions {
   groupId?: string;
@@ -37,9 +60,8 @@ interface AgentModalContextValue {
   closeGroupWizardModal: () => void;
   closeMemberSelectionModal: () => void;
   openConfigGroupModal: (scope?: 'private' | 'public') => void;
-  openCreateGroupModal: (sessionId: string, visibility?: 'private' | 'public') => void;
+  openCreateGroupModal: (sessionId?: string, visibility?: 'private' | 'public') => void;
   openCreateModal: (type: 'agent' | 'group', options?: OpenCreateModalOptions) => void;
-  openCreatePlatformAgentModal: (options?: OpenCreateModalOptions) => void;
   openGroupWizardModal: (callbacks: GroupWizardCallbacks) => void;
   openMemberSelectionModal: (callbacks: MemberSelectionCallbacks) => void;
   setGroupWizardLoading: (loading: boolean) => void;
@@ -90,12 +112,12 @@ const CreateModalRenderer = memo<CreateModalRendererProps>(
     const handleSubmit = useCallback(
       async (prompt: string) => {
         if (type === 'agent') {
-          await sendAsAgent({ groupId, message: prompt });
+          await sendAsAgent({ groupId, message: prompt, visibility });
         } else {
-          await sendAsGroup({ groupId, message: prompt });
+          await sendAsGroup({ groupId, message: prompt, visibility });
         }
       },
-      [type, sendAsAgent, sendAsGroup, groupId],
+      [type, sendAsAgent, sendAsGroup, groupId, visibility],
     );
 
     const handleCreateBlank = useCallback(async () => {
@@ -105,7 +127,7 @@ const CreateModalRenderer = memo<CreateModalRendererProps>(
         navigate(`/agent/${result.agentId}/profile`);
         await refreshAgentList();
       } else {
-        await sendAsGroup({ groupId, message: '' });
+        await sendAsGroup({ groupId, message: '', visibility });
       }
     }, [type, storeCreateAgent, navigate, refreshAgentList, sendAsGroup, groupId, visibility]);
 
@@ -145,7 +167,7 @@ interface AgentModalProviderProps {
 export const AgentModalProvider = memo<AgentModalProviderProps>(({ children }) => {
   // CreateGroupModal state
   const [createGroupModalOpen, setCreateGroupModalOpen] = useState(false);
-  const [createGroupSessionId, setCreateGroupSessionId] = useState<string>('');
+  const [createGroupSessionId, setCreateGroupSessionId] = useState<string | undefined>(undefined);
   const [createGroupVisibility, setCreateGroupVisibility] = useState<
     'private' | 'public' | undefined
   >(undefined);
@@ -191,7 +213,7 @@ export const AgentModalProvider = memo<AgentModalProviderProps>(({ children }) =
         setConfigGroupModalScope(scope ?? 'public');
         setConfigGroupModalOpen(true);
       },
-      openCreateGroupModal: (sessionId: string, visibility?: 'private' | 'public') => {
+      openCreateGroupModal: (sessionId?: string, visibility?: 'private' | 'public') => {
         setCreateGroupSessionId(sessionId);
         setCreateGroupVisibility(visibility);
         setCreateGroupModalOpen(true);
@@ -201,12 +223,6 @@ export const AgentModalProvider = memo<AgentModalProviderProps>(({ children }) =
         setCreateModalGroupId(options?.groupId);
         setCreateModalVisibility(options?.visibility);
         setCreateModalOpen(true);
-      },
-      openCreatePlatformAgentModal: (options?: OpenCreateModalOptions) => {
-        openCreatePlatformAgentModal({
-          groupId: options?.groupId,
-          visibility: options?.visibility,
-        });
       },
       openGroupWizardModal: (callbacks: GroupWizardCallbacks) => {
         setGroupWizardCallbacks(callbacks);
@@ -223,13 +239,17 @@ export const AgentModalProvider = memo<AgentModalProviderProps>(({ children }) =
 
   return (
     <AgentModalContext value={contextValue}>
-      <CreateModalRenderer
-        groupId={createModalGroupId}
-        open={createModalOpen}
-        type={createModalType}
-        visibility={createModalVisibility}
-        onClose={() => setCreateModalOpen(false)}
-      />
+      {createModalOpen && (
+        <Suspense fallback={null}>
+          <CreateModalRenderer
+            open
+            groupId={createModalGroupId}
+            type={createModalType}
+            visibility={createModalVisibility}
+            onClose={() => setCreateModalOpen(false)}
+          />
+        </Suspense>
+      )}
       {children}
 
       {/* All modals rendered at top level */}
@@ -248,32 +268,40 @@ export const AgentModalProvider = memo<AgentModalProviderProps>(({ children }) =
         onCancel={() => setConfigGroupModalOpen(false)}
       />
 
-      <ChatGroupWizard
-        isCreatingFromTemplate={groupWizardLoading}
-        open={groupWizardOpen}
-        onCancel={() => {
-          groupWizardCallbacks.onCancel?.();
-          setGroupWizardOpen(false);
-        }}
-        onCreateCustom={async (selectedAgents: string[]) => {
-          await groupWizardCallbacks.onCreateCustom?.(selectedAgents);
-        }}
-        onCreateFromTemplate={async (templateId: string, selectedMemberTitles?: string[]) => {
-          await groupWizardCallbacks.onCreateFromTemplate?.(templateId, selectedMemberTitles);
-        }}
-      />
+      {groupWizardOpen && (
+        <Suspense fallback={null}>
+          <ChatGroupWizard
+            open
+            isCreatingFromTemplate={groupWizardLoading}
+            onCancel={() => {
+              groupWizardCallbacks.onCancel?.();
+              setGroupWizardOpen(false);
+            }}
+            onCreateCustom={async (selectedAgents: string[]) => {
+              await groupWizardCallbacks.onCreateCustom?.(selectedAgents);
+            }}
+            onCreateFromTemplate={async (templateId: string, selectedMemberTitles?: string[]) => {
+              await groupWizardCallbacks.onCreateFromTemplate?.(templateId, selectedMemberTitles);
+            }}
+          />
+        </Suspense>
+      )}
 
-      <MemberSelectionModal
-        mode="create"
-        open={memberSelectionOpen}
-        onCancel={() => {
-          memberSelectionCallbacks.onCancel?.();
-          setMemberSelectionOpen(false);
-        }}
-        onConfirm={async (selectedAgents: string[]) => {
-          await memberSelectionCallbacks.onConfirm?.(selectedAgents);
-        }}
-      />
+      {memberSelectionOpen && (
+        <Suspense fallback={null}>
+          <MemberSelectionModal
+            open
+            mode="create"
+            onCancel={() => {
+              memberSelectionCallbacks.onCancel?.();
+              setMemberSelectionOpen(false);
+            }}
+            onConfirm={async (selectedAgents: string[]) => {
+              await memberSelectionCallbacks.onConfirm?.(selectedAgents);
+            }}
+          />
+        </Suspense>
+      )}
 
       <EditingPopover />
     </AgentModalContext>

@@ -1,5 +1,6 @@
 import { AgentManagementIdentifier } from '@lobechat/builtin-tool-agent-management';
 import { HETERO_CONTINUE_PROMPT, LOADING_FLAT } from '@lobechat/const';
+import { shouldDropUnsupportedClaudeAssistantPrefill } from '@lobechat/model-runtime/providers/anthropic/modelId';
 import type {
   ChatImageItem,
   ChatTTS,
@@ -14,6 +15,7 @@ import { message as antdMessage } from '@/components/AntdStaticMethods';
 import { MESSAGE_CANCEL_FLAT } from '@/const/index';
 import { saveDraft } from '@/features/ChatInput/draftStorage';
 import { isHeterogeneousAgentStatusGuideError } from '@/features/Conversation/Error/heterogeneous';
+import { getEffectiveConversationModel } from '@/features/Conversation/store/utils/effectiveModel';
 import { resolveAgentWorkingDirectory } from '@/helpers/agentWorkingDirectory';
 import { resolveWorkspaceScoped } from '@/helpers/executionTarget';
 import { globalAgentContextManager } from '@/helpers/GlobalAgentContextManager';
@@ -551,6 +553,18 @@ export const generationSlice: StateCreator<
     // the session and confuse the model. The button is a no-op in this mode.
     if (runtimeType === 'hetero') return;
 
+    // Claude 4.6+/5 removed assistant prefill: a payload ending with an
+    // assistant turn is rejected (400), and the model runtime strips trailing
+    // assistant messages for these models — so "continue" would silently
+    // regenerate instead of continuing. Surface that instead of pretending.
+    // Resolve the effective model (topic override > agent default) — the topic
+    // may have been switched to/from a prefill-capable model independently.
+    const continueModel = getEffectiveConversationModel(context);
+    if (continueModel && shouldDropUnsupportedClaudeAssistantPrefill(continueModel)) {
+      antdMessage.warning(t('messageAction.continueGenerationUnsupported', { ns: 'chat' }));
+      return;
+    }
+
     // Create continue operation with ConversationStore context (includes groupId)
     const { operationId } = chatStore.startOperation({
       context: { ...context, messageId: displayMessageId },
@@ -1068,20 +1082,29 @@ export const generationSlice: StateCreator<
 
   stopGenerating: () => {
     const state = get();
-    const { context, hooks } = state;
-    const { agentId, topicId } = context;
+    const { context, editor, hooks } = state;
+    const { agentId, groupId, isNew, scope, threadId, topicId } = context;
 
     const chatStore = useChatStore.getState();
 
     // Cancel all running operations in this conversation context
     // Includes sendMessage, AI runtime (client-side and server-side), and agent mode stream
     chatStore.cancelOperations(
-      { agentId, status: 'running', topicId, type: INPUT_LOADING_OPERATION_TYPES },
+      {
+        agentId,
+        groupId,
+        isNew,
+        scope,
+        status: 'running',
+        threadId,
+        topicId,
+        type: INPUT_LOADING_OPERATION_TYPES,
+      },
       MESSAGE_CANCEL_FLAT,
     );
 
     // Restore editor content if a sendMessage operation was cancelled
-    chatStore.cancelSendMessageInServer(topicId ?? undefined);
+    chatStore.cancelSendMessageInServer(context, editor);
 
     // ===== Hook: onGenerationStop =====
     if (hooks.onGenerationStop) {

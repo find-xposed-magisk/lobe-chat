@@ -72,40 +72,23 @@ import CheckList, {
   focusedCheckStates,
   groupChecks,
   hasVisualEvidence,
+  isCheckWorkActionable,
   isException,
   isGroupFullyAccepted,
   shouldGroupChecks,
   userReviewState,
 } from './CheckList';
+import { buildRepairPrompt, copyCheckRepairPrompt } from './checkWork';
 import DecisionBar from './DecisionBar';
 import { EMPTY_ID_SET, setAggregateEntry } from './expandState';
 import FeedbackDrawer, { type FeedbackListEntry } from './FeedbackDrawer';
-import { acceptanceFocusedLayout } from './layout';
+import { acceptanceFocusedLayout, acceptanceScrollLayout } from './layout';
 import LedgerPanel, { type AcceptanceRound } from './LedgerPanel';
 import { openAcceptModal, openRejectModal } from './modals';
 import { acceptanceCheckPath, acceptanceOverviewPath } from './routes';
 import { getAcceptanceStatusActions } from './statusActions';
 import TopicPanel from './TopicPanel';
 import { canViewAcceptanceHistory, resolveAcceptanceHistoryNavigation } from './visibility';
-
-/**
- * The hardcoded repair prompt (复制 review 建议 / 打回重跑 share it): points the
- * agent at the CLI as the source of truth for this acceptance's feedback, so
- * nobody has to hand-summarize review notes into an instruction.
- */
-const buildRepairPrompt = (acceptanceId: string) =>
-  `Use the LobeHub CLI to read the latest review feedback for acceptance ${acceptanceId}:
-
-lh acceptance feedback ${acceptanceId} --actionable
-
-Every entry it prints (per-check comments, circled-region annotations on the evidence screenshots, and attachments) is the full set of feedback to handle this round. Fix the code item by item; then re-run verification and ingest the new result back into the SAME acceptance (reuse the existing check ids, and use supersedes for any check whose meaning changed). Keep the final report in the same language the previous rounds used.`;
-
-const buildCheckRepairPrompt = (
-  acceptanceId: string,
-  check: { id: string; seq: number; title: string },
-) => `${buildRepairPrompt(acceptanceId)}
-
-For this pass, focus on check C${check.seq} "${check.title}" (check id: ${check.id}). Treat it as the bounded work item: read its evidence and feedback, make the necessary change, and re-verify it without disturbing unrelated accepted or ignored checks.`;
 
 const styles = createStaticStyles(({ css }) => ({
   banner: css`
@@ -165,6 +148,9 @@ const styles = createStaticStyles(({ css }) => ({
       opacity: 1;
     }
   `,
+  contentFrame: css`
+    overflow: ${acceptanceScrollLayout.frameOverflow};
+  `,
   page: css`
     position: relative;
 
@@ -211,6 +197,8 @@ const styles = createStaticStyles(({ css }) => ({
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
+
+    line-height: 1.6;
   `,
   verdictPill: css`
     display: inline-flex;
@@ -235,7 +223,6 @@ const styles = createStaticStyles(({ css }) => ({
   focusLayout: css`
     display: grid;
     grid-template-columns: 320px minmax(0, 1fr);
-    min-height: ${acceptanceFocusedLayout.viewportHeight};
 
     @media (width <= 900px) {
       grid-template-columns: 1fr;
@@ -245,9 +232,6 @@ const styles = createStaticStyles(({ css }) => ({
     position: sticky;
     inset-block-start: 0;
 
-    overflow: auto;
-
-    height: ${acceptanceFocusedLayout.viewportHeight};
     padding: 8px;
     border-inline-end: 1px solid ${cssVar.colorBorderSecondary};
 
@@ -255,12 +239,19 @@ const styles = createStaticStyles(({ css }) => ({
 
     @media (width <= 900px) {
       position: static;
-      height: auto;
       border-block-end: 1px solid ${cssVar.colorBorderSecondary};
       border-inline-end: 0;
     }
   `,
+  focusOutlineList: css`
+    overflow: ${acceptanceScrollLayout.paneOverflow};
+
+    > * {
+      flex-shrink: 0;
+    }
+  `,
   focusMain: css`
+    overflow: ${acceptanceScrollLayout.paneOverflow};
     min-width: 0;
     padding-block: ${acceptanceFocusedLayout.contentPaddingBlock};
     padding-inline: 32px;
@@ -457,7 +448,6 @@ const AcceptancePage = memo<AcceptancePageProps>(
     }, [isEmbedded, data, urlRoundRaw]);
     const [pending, setPending] = useState(false);
     const [rerunPending, setRerunPending] = useState(false);
-    const [checkWorkPending, setCheckWorkPending] = useState(false);
     const [actionError, setActionError] = useState<string>();
     const [feedbackOpen, setFeedbackOpen] = useState(false);
 
@@ -962,7 +952,6 @@ const AcceptancePage = memo<AcceptancePageProps>(
       });
 
     const repairPrompt = buildRepairPrompt(acceptance.id);
-
     // Hand the repair prompt to the reviewer's clipboard — for pasting to any
     // agent, not just the origin conversation.
     const handleCopyReview = async () => {
@@ -1022,34 +1011,8 @@ const AcceptancePage = memo<AcceptancePageProps>(
 
     const handleCheckWork = async () => {
       if (!focusedCheck) return;
-      const prompt = buildCheckRepairPrompt(acceptance.id, focusedCheck);
-      if (isEmbedded) {
-        if (onDraftToComposer?.(prompt)) {
-          toast.success({ title: t('acceptance.checkWork.drafted') });
-        }
-        return;
-      }
-      if (!origin?.topic) {
-        await copyToClipboard(prompt);
-        toast.success({ title: t('acceptance.checkWork.copied') });
-        return;
-      }
-      setCheckWorkPending(true);
-      try {
-        await verifyService.dispatchAcceptanceRepair({
-          agentId: origin.agent?.id,
-          content: prompt,
-          topicId: origin.topic.id,
-        });
-        await verifyService.markAcceptanceRepairing(acceptance.id);
-        await mutate();
-        void globalMutate(verifyKeys.acceptances());
-        toast.success({ title: t('acceptance.checkWork.sent') });
-      } catch (cause) {
-        toast.error(cause instanceof Error ? cause.message : t('acceptance.actionError'));
-      } finally {
-        setCheckWorkPending(false);
-      }
+      await copyCheckRepairPrompt(acceptance.id, focusedCheck, copyToClipboard);
+      toast.success({ title: t('acceptance.checkWork.copied') });
     };
 
     const saveStandingChecklist = async (checklist: AcceptanceChecklistItem[]) => {
@@ -1095,7 +1058,7 @@ const AcceptancePage = memo<AcceptancePageProps>(
             onClick={() => setLedgerExpand(true)}
           />
         )}
-        <Flexbox flex={1} style={{ minWidth: 0, overflow: 'auto' }}>
+        <Flexbox className={styles.contentFrame} flex={1} style={{ minWidth: 0 }}>
           <Flexbox
             gap={16}
             paddingBlock={focusedCheck ? 0 : 20}
@@ -1378,7 +1341,7 @@ const AcceptancePage = memo<AcceptancePageProps>(
             {focusedCheck ? (
               <div className={styles.focusLayout}>
                 <Flexbox className={styles.focusOutline}>
-                  <Flexbox gap={10} paddingBlock={8} paddingInline={4}>
+                  <Flexbox flex={'none'} gap={10} paddingBlock={8} paddingInline={4}>
                     <Button
                       icon={<Icon icon={ArrowLeft} />}
                       size={'small'}
@@ -1425,94 +1388,100 @@ const AcceptancePage = memo<AcceptancePageProps>(
                       )}
                     </Flexbox>
                   </Flexbox>
-                  {orderedChecks.map((check) => {
-                    const state = checkFilterState(check);
-                    const icon =
-                      state === 'accepted'
-                        ? BadgeCheck
-                        : state === 'needsFix'
-                          ? RotateCcw
-                          : state === 'ignored'
-                            ? Ban
-                            : CircleDashed;
-                    const color =
-                      state === 'accepted'
-                        ? 'success'
-                        : state === 'needsFix'
-                          ? 'error'
-                          : state === 'ignored'
-                            ? 'default'
-                            : 'default';
+                  <Flexbox className={styles.focusOutlineList} flex={1}>
+                    {orderedChecks.map((check) => {
+                      const state = checkFilterState(check);
+                      const icon =
+                        state === 'accepted'
+                          ? BadgeCheck
+                          : state === 'needsFix'
+                            ? RotateCcw
+                            : state === 'ignored'
+                              ? Ban
+                              : CircleDashed;
+                      const color =
+                        state === 'accepted'
+                          ? 'success'
+                          : state === 'needsFix'
+                            ? 'error'
+                            : state === 'ignored'
+                              ? 'default'
+                              : 'default';
 
-                    return (
-                      <NavItem
-                        active={check.id === focusedCheck.id}
-                        key={check.id}
-                        paddingBlock={acceptanceFocusedLayout.outlineItemPaddingBlock}
-                        paddingInline={acceptanceFocusedLayout.outlineItemPaddingInline}
-                        title={check.title}
-                        titleColor={cssVar.colorText}
-                        description={
-                          <Flexbox horizontal align={'center'} gap={8}>
-                            <Tag color={color} icon={<Icon icon={icon} />} size={'small'}>
-                              {t(`acceptance.focus.state.${state}`)}
-                            </Tag>
-                            <Text fontSize={12} type={'secondary'}>
-                              {t('acceptance.focus.evidenceCount', {
-                                count: check.evidence.length,
-                              })}
-                            </Text>
-                          </Flexbox>
-                        }
-                        extra={
-                          <Icon color={cssVar.colorTextQuaternary} icon={ChevronRight} size={14} />
-                        }
-                        slots={{
-                          titlePrefix: (
-                            <Flexbox
-                              align={'center'}
-                              height={22}
-                              style={{ alignSelf: 'flex-start' }}
-                            >
-                              <Text
-                                style={{
-                                  color: cssVar.colorTextQuaternary,
-                                  fontFamily: cssVar.fontFamilyCode,
-                                  fontSize: 11,
-                                }}
-                              >
-                                C{check.seq}
-                              </Text>
-                            </Flexbox>
-                          ),
-                        }}
-                        onClick={() => setFocusedCheck(check.id)}
-                      />
-                    );
-                  })}
-                  {unverifiedStandingChecks.length > 0 && (
-                    <Flexbox gap={4} paddingBlock={8} paddingInline={8}>
-                      <Text fontSize={11} type={'secondary'}>
-                        {t('acceptance.checkCreate.pendingGroup')}
-                      </Text>
-                      {unverifiedStandingChecks.map((item) => (
+                      return (
                         <NavItem
-                          extra={<Icon color={cssVar.colorTextQuaternary} icon={PencilLine} />}
-                          key={item.id}
+                          active={check.id === focusedCheck.id}
+                          key={check.id}
                           paddingBlock={acceptanceFocusedLayout.outlineItemPaddingBlock}
                           paddingInline={acceptanceFocusedLayout.outlineItemPaddingInline}
-                          title={item.name}
+                          title={check.title}
                           titleColor={cssVar.colorText}
                           description={
-                            <Text fontSize={12} type={'secondary'}>
-                              {item.method || t('acceptance.checkCreate.pendingDescription')}
-                            </Text>
+                            <Flexbox horizontal align={'center'} gap={8}>
+                              <Tag color={color} icon={<Icon icon={icon} />} size={'small'}>
+                                {t(`acceptance.focus.state.${state}`)}
+                              </Tag>
+                              <Text fontSize={12} type={'secondary'}>
+                                {t('acceptance.focus.evidenceCount', {
+                                  count: check.evidence.length,
+                                })}
+                              </Text>
+                            </Flexbox>
                           }
-                          onClick={() => handleEditStandingCheck(item)}
+                          extra={
+                            <Icon
+                              color={cssVar.colorTextQuaternary}
+                              icon={ChevronRight}
+                              size={14}
+                            />
+                          }
+                          slots={{
+                            titlePrefix: (
+                              <Flexbox
+                                align={'center'}
+                                height={22}
+                                style={{ alignSelf: 'flex-start' }}
+                              >
+                                <Text
+                                  style={{
+                                    color: cssVar.colorTextQuaternary,
+                                    fontFamily: cssVar.fontFamilyCode,
+                                    fontSize: 11,
+                                  }}
+                                >
+                                  C{check.seq}
+                                </Text>
+                              </Flexbox>
+                            ),
+                          }}
+                          onClick={() => setFocusedCheck(check.id)}
                         />
-                      ))}
-                    </Flexbox>
-                  )}
+                      );
+                    })}
+                    {unverifiedStandingChecks.length > 0 && (
+                      <Flexbox gap={4} paddingBlock={8} paddingInline={8}>
+                        <Text fontSize={11} type={'secondary'}>
+                          {t('acceptance.checkCreate.pendingGroup')}
+                        </Text>
+                        {unverifiedStandingChecks.map((item) => (
+                          <NavItem
+                            extra={<Icon color={cssVar.colorTextQuaternary} icon={PencilLine} />}
+                            key={item.id}
+                            paddingBlock={acceptanceFocusedLayout.outlineItemPaddingBlock}
+                            paddingInline={acceptanceFocusedLayout.outlineItemPaddingInline}
+                            title={item.name}
+                            titleColor={cssVar.colorText}
+                            description={
+                              <Text fontSize={12} type={'secondary'}>
+                                {item.method || t('acceptance.checkCreate.pendingDescription')}
+                              </Text>
+                            }
+                            onClick={() => handleEditStandingCheck(item)}
+                          />
+                        ))}
+                      </Flexbox>
+                    )}
+                  </Flexbox>
                 </Flexbox>
 
                 <Flexbox className={styles.focusMain}>
@@ -1598,25 +1567,21 @@ const AcceptancePage = memo<AcceptancePageProps>(
                         {t(`acceptance.focus.verifierDescription.${focusedStates.verifierLabel}`)}
                       </Text>
                     </Flexbox>
-                    {isOwner && acceptance.status !== 'closed' && (
-                      <Flexbox horizontal align={'center'} className={styles.focusWork} gap={16}>
-                        <Flexbox flex={1} gap={3}>
-                          <Text strong>{t('acceptance.checkWork.title')}</Text>
-                          <Text fontSize={12} type={'secondary'}>
-                            {t('acceptance.checkWork.description')}
-                          </Text>
+                    {isOwner &&
+                      acceptance.status !== 'closed' &&
+                      isCheckWorkActionable(focusedCheck) && (
+                        <Flexbox horizontal align={'center'} className={styles.focusWork} gap={16}>
+                          <Flexbox flex={1} gap={3}>
+                            <Text strong>{t('acceptance.checkWork.title')}</Text>
+                            <Text fontSize={12} type={'secondary'}>
+                              {t('acceptance.checkWork.description')}
+                            </Text>
+                          </Flexbox>
+                          <Button type={'primary'} onClick={handleCheckWork}>
+                            {t('acceptance.checkWork.copy')}
+                          </Button>
                         </Flexbox>
-                        <Button
-                          loading={checkWorkPending}
-                          type={'primary'}
-                          onClick={handleCheckWork}
-                        >
-                          {origin?.topic || isEmbedded
-                            ? t('acceptance.checkWork.action')
-                            : t('acceptance.checkWork.copy')}
-                        </Button>
-                      </Flexbox>
-                    )}
+                      )}
                     <FocusedCheckDetails
                       canReview={isOwner}
                       check={focusedCheck}

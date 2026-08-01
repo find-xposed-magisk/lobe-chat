@@ -232,6 +232,12 @@ export const recentKeys = {
     limit,
     scope,
   ]),
+  /** Home chat-only list; filtering happens before the server-side limit. */
+  topicList: def('recent:topicList', (limit: number, scope: string) => [
+    'recent:topicList',
+    limit,
+    scope,
+  ]),
 };
 
 // ---- task ---------------------------------------------------------------
@@ -253,6 +259,12 @@ export const taskKeys = {
       visibility,
     ],
   ),
+  /**
+   * AgentSidebar task panel. Lives in the `task:` domain (not a `sidebar:`
+   * one) so the tiered cache provider persists it to IndexedDB and the second
+   * open renders from cache instead of a skeleton.
+   */
+  sidebarGroups: def('task:sidebarGroups', (agentId: string) => ['task:sidebarGroups', agentId]),
 };
 
 // ---- work ---------------------------------------------------------------
@@ -803,7 +815,11 @@ export const messengerKeys = {
     tokenScopeKey,
   ]),
   peek: def('messenger:peek', (randomId: string) => ['messenger:peek', randomId]),
-  pushWindow: def('messenger:pushWindow', (platform: string) => ['messenger:pushWindow', platform]),
+  pushWindow: def('messenger:pushWindow', (platform: string, tenantId?: string) => [
+    'messenger:pushWindow',
+    platform,
+    tenantId ?? null,
+  ]),
 };
 
 // ---- verify (deliverable judging) ---------------------------------------
@@ -1060,9 +1076,6 @@ export const builtinAgentKeys = {
 export const imessageKeys = {
   bridgeStatus: def('imessage:bridgeStatus', () => ['imessage:bridgeStatus']),
 };
-export const sidebarKeys = {
-  taskGroups: def('sidebar:taskGroups', (agentId: string) => ['sidebar:taskGroups', agentId]),
-};
 // Desktop/electron IPC fetches — roots keep their existing `electron:getXxx` value.
 export const electronKeys = {
   appTrayVisible: def('electron:getAppTrayVisible', () => ['electron:getAppTrayVisible']),
@@ -1135,7 +1148,6 @@ export const swrKeys = {
   serverConfig: serverConfigKeys,
   session: sessionKeys,
   share: shareKeys,
-  sidebar: sidebarKeys,
   stats: statsKeys,
   task: taskKeys,
   taskTemplate: taskTemplateKeys,

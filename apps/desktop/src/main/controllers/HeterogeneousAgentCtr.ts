@@ -35,6 +35,13 @@ import {
   buildHeteroExecStdinPayload,
   buildHeterogeneousPrompt,
 } from '@lobechat/heterogeneous-agents/protocol';
+import {
+  CLAUDE_CODE_QUOTA_FRESH_MS,
+  createQuotaCacheKey,
+  fetchClaudeCodeQuota,
+  QuotaSnapshotCache,
+  readClaudeCodeIdentity,
+} from '@lobechat/heterogeneous-agents/quota-sampler';
 import type { AgentStreamEvent, UsageData } from '@lobechat/heterogeneous-agents/spawn';
 import {
   AgentStreamPipeline,
@@ -59,18 +66,10 @@ import { resolveCliScript } from '@/modules/cliEmbedding';
 import { getHeterogeneousAgentDriver } from '@/modules/heterogeneousAgent';
 import { buildBrowserMcpTools } from '@/modules/heterogeneousAgent/browserMcpTools';
 import {
-  fetchClaudeCodeQuota,
-  readClaudeCodeIdentity,
-} from '@/modules/heterogeneousAgent/claudeCodeQuota';
-import {
   consumeCodexRateLimitResetCredit as consumeCodexRateLimitResetCreditRequest,
   fetchCodexQuota,
 } from '@/modules/heterogeneousAgent/codexQuota';
 import { createLambdaFileStorePort } from '@/modules/heterogeneousAgent/fileStorePort';
-import {
-  createQuotaCacheKey,
-  QuotaSnapshotCache,
-} from '@/modules/heterogeneousAgent/quotaSnapshotCache';
 import type {
   HeterogeneousAgentBuildPlan,
   HeterogeneousAgentImageAttachment,
@@ -350,7 +349,11 @@ export default class HeterogeneousAgentCtr extends ControllerModule {
   /** Lazy single MCP server, started on first claude-code prompt. */
   private builtinMcpServer?: LobeBuiltinMcpServer;
   private builtinMcpStartPromise?: Promise<LobeBuiltinMcpServer>;
-  private readonly claudeCodeQuotaCache = new QuotaSnapshotCache<ClaudeCodeQuotaSnapshot>();
+  // Fresh window sits under the renderer's 2-minute auto-refresh so each
+  // scheduled poll reaches the usage API instead of a cache echo.
+  private readonly claudeCodeQuotaCache = new QuotaSnapshotCache<ClaudeCodeQuotaSnapshot>({
+    freshMs: CLAUDE_CODE_QUOTA_FRESH_MS,
+  });
   private readonly codexQuotaCache = new QuotaSnapshotCache<CodexQuotaSnapshot>();
 
   private get remoteServerConfigCtr() {
@@ -932,7 +935,7 @@ export default class HeterogeneousAgentCtr extends ControllerModule {
       this.builtinMcpStartPromise = (async () => {
         const server = new LobeBuiltinMcpServer({
           // In-app browser control tools ride the same per-op MCP server so
-          // CC can drive the browser sidebar (LOBE-11712 M3, hetero path).
+          // CC can drive the browser sidebar ( M3, hetero path).
           extraTools: buildBrowserMcpTools((operationId, apiName, args) =>
             this.runBrowserMcpTool(operationId, apiName, args),
           ),

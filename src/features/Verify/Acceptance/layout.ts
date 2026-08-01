@@ -3,5 +3,9 @@ export const acceptanceFocusedLayout = {
   headerGap: 8,
   outlineItemPaddingBlock: 10,
   outlineItemPaddingInline: 8,
-  viewportHeight: '100%',
+} as const;
+
+export const acceptanceScrollLayout = {
+  frameOverflow: 'auto',
+  paneOverflow: 'visible',
 } as const;
