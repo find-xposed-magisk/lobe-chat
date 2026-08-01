@@ -142,11 +142,18 @@ export const isException = (check: AcceptanceCheck) =>
   check.state === 'failed' || check.state === 'uncertain';
 
 const VISUAL_EVIDENCE = new Set(['gif', 'screenshot', 'video']);
+const ANNOTATABLE_EVIDENCE = new Set(['gif', 'screenshot']);
 
 const isVisual = (item: AcceptanceEvidence) =>
   Boolean(item.fileUrl) && VISUAL_EVIDENCE.has(item.type);
 
 export const hasVisualEvidence = (check: AcceptanceCheck) => check.evidence.some(isVisual);
+
+const isAnnotatable = (item: AcceptanceEvidence) =>
+  Boolean(item.fileUrl) && ANNOTATABLE_EVIDENCE.has(item.type);
+
+export const hasAnnotatableEvidence = (check: AcceptanceCheck) =>
+  check.evidence.some(isAnnotatable);
 
 const styles = createStaticStyles(({ css }) => ({
   caption: css`
@@ -816,16 +823,20 @@ const CheckRow = memo<{
       checkTitle: `C${check.seq} · ${check.title}`,
       draftKey: check.id,
       evidence: check.evidence
-        .filter((item) => isVisual(item))
+        .filter((item) => isAnnotatable(item))
         .map((item) => ({ fileUrl: item.fileUrl!, id: item.id })),
-      onConfirm: ({ annotations, comment, fileIds }) =>
-        onReview({
+      initialComment: reviewComment,
+      onConfirm: async ({ annotations, comment, fileIds }) => {
+        const ok = await onReview({
           action: 'reject',
           annotations: annotations.length > 0 ? annotations : undefined,
           checkItemIds: [check.id],
           comment: comment || undefined,
           fileIds: fileIds.length > 0 ? fileIds : undefined,
-        }),
+        });
+        if (ok) setReviewComment('');
+        return ok;
+      },
     });
 
   // Accepting settles the check — the row folds itself away once the write
@@ -1212,6 +1223,19 @@ const CheckRow = memo<{
             !activeReview &&
             (detailMode ? (
               <Flexbox gap={10} style={{ marginBlockStart: 6 }}>
+                {hasAnnotatableEvidence(check) && (
+                  <Button
+                    icon={<Icon icon={Images} />}
+                    style={{ alignSelf: 'flex-start' }}
+                    type={'text'}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openReject();
+                    }}
+                  >
+                    {t('acceptance.review.annotate')}
+                  </Button>
+                )}
                 <TextArea
                   autoSize={{ maxRows: 8, minRows: 3 }}
                   placeholder={t('acceptance.review.detailPlaceholder')}
