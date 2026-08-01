@@ -1,7 +1,7 @@
 import type { SFSymbol } from '@lobechat/electron-client-ipc';
 import { Flexbox, Icon, Text } from '@lobehub/ui';
+import { toast } from '@lobehub/ui/base-ui';
 import { GroupBotSquareIcon } from '@lobehub/ui/icons';
-import { App } from 'antd';
 import type { ItemType } from 'antd/es/menu/interface';
 import {
   BotIcon,
@@ -52,7 +52,7 @@ interface CreateAgentOptions {
 export const useCreateMenuItems = () => {
   const { t } = useTranslation('chat');
   const { t: tFile } = useTranslation('file');
-  const { message } = App.useApp();
+
   const navigate = useWorkspaceAwareNavigate();
   const activeWorkspaceId = useActiveWorkspaceId();
   const groupTemplates = useGroupTemplates();
@@ -177,13 +177,13 @@ export const useCreateMenuItems = () => {
         return true;
       } catch (error) {
         console.error('Failed to create group from template:', error);
-        message.error({ content: t('sessionGroup.createGroupFailed') });
+        toast.error(t('sessionGroup.createGroupFailed'));
         return false;
       } finally {
         setIsCreatingGroup(false);
       }
     },
-    [canCreate, groupTemplates, refreshAgentList, loadGroups, switchToGroup, message, t],
+    [canCreate, groupTemplates, refreshAgentList, loadGroups, switchToGroup, t],
   );
 
   /**
@@ -208,13 +208,13 @@ export const useCreateMenuItems = () => {
         return true;
       } catch (error) {
         console.error('Failed to create group:', error);
-        message.error({ content: t('sessionGroup.createGroupFailed') });
+        toast.error(t('sessionGroup.createGroupFailed'));
         return false;
       } finally {
         setIsCreatingGroup(false);
       }
     },
-    [canCreate, createGroup, message, t],
+    [canCreate, createGroup, t],
   );
 
   /**
@@ -423,9 +423,9 @@ export const useCreateMenuItems = () => {
       navigate(`/page/${newPageId}`);
     } catch (error) {
       console.error('Failed to create page:', error);
-      message.error('Failed to create page');
+      toast.error('Failed to create page');
     }
-  }, [canCreate, createNewPage, tFile, navigate, message, activeWorkspaceId]);
+  }, [canCreate, createNewPage, tFile, navigate, activeWorkspaceId]);
 
   /**
    * Create page menu item
