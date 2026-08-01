@@ -269,6 +269,30 @@ export const deviceRouter = router({
       return result ?? null;
     }),
 
+  /**
+   * Claude Code subscription quota sampled by the device with its own local
+   * credentials, so web clients can show live quota for a bound-device run.
+   * `null` when the device is offline or its client predates this RPC.
+   */
+  getClaudeCodeQuota: deviceProcedure
+    .input(
+      z.object({
+        deviceId: z.string(),
+        env: z.record(z.string(), z.string()).optional(),
+        force: z.boolean().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const result = await deviceGateway.claudeCodeQuota({
+        deviceId: input.deviceId,
+        env: input.env,
+        force: input.force,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+      });
+      return result ?? null;
+    }),
+
   /** Query OpenCode's model catalog on the device that will execute the agent. */
   listHeterogeneousAgentModels: deviceProcedure
     .input(
