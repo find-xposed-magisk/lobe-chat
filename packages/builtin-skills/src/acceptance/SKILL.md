@@ -34,10 +34,10 @@ no local report directory.
 Every evidence command targets a **verification session** (a round). How you
 name that session is a choice, not a prerequisite:
 
-| You have | Target the round with | Path |
-| --- | --- | --- |
-| A verify plan (`$LOBE_OPERATION_ID` set) | `--operation "$LOBE_OPERATION_ID"` | This document: discover the plan, satisfy its criteria |
-| No plan — you author the checks | `--run <verifyRunId>` from `lh acceptance run create`, or publish a whole directory with `lh acceptance run ingest` | [references/report.md](references/report.md) |
+| You have                                 | Target the round with                                                                                               | Path                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| A verify plan (`$LOBE_OPERATION_ID` set) | `--operation "$LOBE_OPERATION_ID"`                                                                                  | This document: discover the plan, satisfy its criteria |
+| No plan — you author the checks          | `--run <verifyRunId>` from `lh acceptance run create`, or publish a whole directory with `lh acceptance run ingest` | [references/report.md](references/report.md)           |
 
 `--operation` and `--run` are interchangeable on `result submit` and
 `result list`; a round created without an operation is simply recorded as
