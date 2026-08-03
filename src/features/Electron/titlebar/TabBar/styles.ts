@@ -1,11 +1,25 @@
 import { createStaticStyles } from 'antd-style';
 
+import { TAB_ICON_SIZE, TAB_INLINE_INSET } from './tabLayout';
+
 const TAB_HEIGHT = 26;
 
 export const useStyles = createStaticStyles(({ css, cssVar }) => ({
+  // A fixed slot, because the indicator is not one size: a tab with metadata renders a
+  // 16px Avatar and one without falls back to a 14px Icon. resolveTabInset centres on
+  // TAB_ICON_SIZE for both, so the slot has to be that size or the fallback sits a pixel
+  // off centre in a pinned pill. Measured on the desktop app, not inferred.
   avatarWrapper: css`
     position: relative;
-    flex-shrink: 0;
+
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+
+    width: ${TAB_ICON_SIZE}px;
+    height: ${TAB_ICON_SIZE}px;
+
     line-height: 0;
   `,
   closeIcon: css`
@@ -77,7 +91,10 @@ export const useStyles = createStaticStyles(({ css, cssVar }) => ({
     align-items: center;
 
     height: ${TAB_HEIGHT}px;
-    padding-inline: 8px 6px;
+
+    /* The start is the resting value only; TabItem overrides it with a sprung inset so the
+       avatar can travel to the middle of a tab that has shrunk to icon width. */
+    padding-inline: ${TAB_INLINE_INSET}px 6px;
     border-radius: ${cssVar.borderRadius};
 
     font-size: 12px;
@@ -90,40 +107,48 @@ export const useStyles = createStaticStyles(({ css, cssVar }) => ({
       background-color: ${cssVar.colorFillQuaternary};
     }
 
-    /* Persistent on a full tab, hover-only on a compact one. Below that the tab cannot
-       spare the button's 20px: the title would be cut to a couple of glyphs to make room
-       for it, and at icon width the icon is the only identity signal left. Pinned tabs
-       are always at icon width, so they fall out of this rule too. The button stays
-       mounted at every tier and fades — unmounting it made it vanish mid-pin. */
-    &[data-tier='full'] [data-tab-close],
-    &[data-tier='compact']:hover [data-tab-close] {
-      pointer-events: auto;
-      opacity: 1;
-    }
-
-    /* Reserve the button's footprint whether or not it is currently visible, so the
-       title's fade lands before it and no glyph is ever drawn under the button. Margin
-       rather than padding: the mask applies to the padding box, so padding would put the
-       gradient inside the reservation instead of at the text's edge. Keeping the
-       reservation constant also stops the text reflowing on hover.
-       20px button + 3px inset - the tab's own 6px end padding. */
-    &[data-tier='full'] [data-tab-title],
-    &[data-tier='compact'] [data-tab-title] {
-      margin-inline-end: 17px;
-    }
-
-    /* The avatar is the only thing left, so centre it and collapse the title rather than
-       unmounting it — the tab is mid-shrink at this point and a title that pops out of
-       the flow would jerk the avatar sideways instead of gliding it to the middle. */
+    /* Nothing here may touch layout. The tier is resolved from the target width, so this
+       rule lands a whole spring before the box reaches it: centring the avatar from here
+       applied while the tab was still 200px wide and threw it into the middle of a box it
+       had not begun to shrink into — a jump to the right before the travel left. The
+       avatar still centres at this tier, but through the sprung inset in TabItem, which
+       arrives with the width instead of ahead of it. The title likewise only fades:
+       collapsing its width clipped the fade away in the frame it started. */
     &[data-tier='icon'] {
-      gap: 0;
-      justify-content: center;
-      padding-inline: 0;
+      [data-tab-title] {
+        opacity: 0;
+      }
+    }
+
+    /* The button and the room for it are one rule on purpose: reserving the footprint
+       full-time cost the title 17px it almost never needed, and revealing the button
+       without the reservation would run the title's fade straight under it. Sharing a
+       selector makes the second state unreachable. Both sides ease over the same 0.15s,
+       so the gap opens exactly as the glyph arrives.
+
+       Below the compact tier neither appears: the tab cannot spare the button's 20px —
+       the title would be cut to a couple of glyphs — and at icon width the avatar is the
+       only identity signal left. Pinned tabs are always at icon width, so they fall out
+       too. The button stays mounted at every tier and fades; unmounting it made it vanish
+       mid-pin.
+
+       :has() carries the keyboard path — the button is focusable at these tiers, so
+       without it a tabbing user would land on something invisible.
+
+       Reservation is 20px button + 3px inset - the tab's own 6px end padding. Margin
+       rather than padding: the mask applies to the padding box, so padding would put the
+       gradient inside the reservation instead of at the text's edge. */
+    &[data-tier='full']:hover,
+    &[data-tier='compact']:hover,
+    &[data-tier='full']:has([data-tab-close]:focus-visible),
+    &[data-tier='compact']:has([data-tab-close]:focus-visible) {
+      [data-tab-close] {
+        pointer-events: auto;
+        opacity: 1;
+      }
 
       [data-tab-title] {
-        flex: none;
-        width: 0;
-        opacity: 0;
+        margin-inline-end: 17px;
       }
     }
   `,
@@ -207,7 +232,9 @@ export const useStyles = createStaticStyles(({ css, cssVar }) => ({
     color: ${cssVar.colorText};
     white-space: nowrap;
 
-    transition: opacity 0.12s ${cssVar.motionEaseInOut};
+    transition:
+      margin-inline-end 0.15s ${cssVar.motionEaseInOut},
+      opacity 0.12s ${cssVar.motionEaseInOut};
 
     /* The one physical direction left in this file — mask-image has no logical form, and
        nothing in the app sets dir="rtl". max(60%, …) caps the ramp at 40% of the box:
