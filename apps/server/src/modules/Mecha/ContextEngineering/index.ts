@@ -15,12 +15,45 @@ const createServerVariableGenerators = (params: {
 }) => {
   const { model, provider, timezone } = params;
   const tz = timezone || 'UTC';
+  // Wall-clock components in the user's timezone. The client generators read them
+  // off a local Date (2-digit, 24h) — h23 keeps midnight as "00" instead of "24".
+  const timeParts = (): Record<string, string> => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      day: '2-digit',
+      hour: '2-digit',
+      hourCycle: 'h23',
+      minute: '2-digit',
+      month: '2-digit',
+      second: '2-digit',
+      timeZone: tz,
+      year: 'numeric',
+    }).formatToParts(new Date());
+    return Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  };
   return {
-    // Time-related variables (localized to user's timezone)
+    // Time-related variables (localized to user's timezone), mirroring the client
+    // VARIABLE_GENERATORS set so no temporal placeholder leaks as a literal in
+    // server-side runs. Prefer the coarse ones ({{date}}, {{hour}}) in system
+    // prompts: fine-grained values change every request and break prompt caching.
     date: () => new Date().toLocaleDateString('en-US', { dateStyle: 'full', timeZone: tz }),
     datetime: () => new Date().toLocaleString('en-US', { timeZone: tz }),
+    day: () => timeParts().day,
+    hour: () => timeParts().hour,
+    iso: () => new Date().toISOString(),
+    // The client resolves {{locale}} from the browser (Intl resolvedOptions). The
+    // server has no request locale here — the user's configured response language
+    // arrives via `additionalVariables` and overrides this through the spread
+    // order below; without it, fall back to the same default as
+    // UserModel.getInfoForAIGeneration instead of leaking the literal token.
+    locale: () => 'en-US',
+    minute: () => timeParts().minute,
+    month: () => timeParts().month,
+    second: () => timeParts().second,
     time: () => new Date().toLocaleTimeString('en-US', { timeStyle: 'medium', timeZone: tz }),
+    timestamp: () => Date.now().toString(),
     timezone: () => tz,
+    weekday: () => new Date().toLocaleDateString('en-US', { timeZone: tz, weekday: 'long' }),
+    year: () => timeParts().year,
     // Model-related variables
     model: () => model ?? '',
     provider: () => provider ?? '',
