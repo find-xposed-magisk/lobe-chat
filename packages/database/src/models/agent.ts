@@ -81,6 +81,7 @@ import {
  */
 const AGENT_BUILDER_PROTECTED_FIELDS = [
   'title',
+  'name',
   'description',
   'avatar',
   'backgroundColor',
@@ -122,6 +123,13 @@ const IMMUTABLE_AGENT_FIELDS = [
   'visibility',
   'workspaceId',
 ] as const;
+
+/**
+ * Accepted shape for a user-chosen slug: lowercase words joined by single
+ * hyphens, matching what `randomSlug` generates. No underscores — the agent
+ * route tells an id from a slug by the underscore in every generated id.
+ */
+const AGENT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /** Slugs owned by builtin provisioning; user input must never set one. */
 const RESERVED_AGENT_SLUGS: ReadonlySet<string> = new Set<string>(
@@ -166,6 +174,7 @@ export class AgentModel {
         backgroundColor: agents.backgroundColor,
         count: count(topics.id).as('count'),
         id: agents.id,
+        name: agents.name,
         slug: agents.slug,
         title: agents.title,
       })
@@ -481,6 +490,7 @@ export class AgentModel {
         backgroundColor: agents.backgroundColor,
         description: agents.description,
         id: agents.id,
+        name: agents.name,
         slug: agents.slug,
         title: agents.title,
         userId: agents.userId,
@@ -547,6 +557,7 @@ export class AgentModel {
         avatar: agents.avatar,
         backgroundColor: agents.backgroundColor,
         id: agents.id,
+        name: agents.name,
         slug: agents.slug,
         title: agents.title,
       })
@@ -561,10 +572,11 @@ export class AgentModel {
    * the inbox (other virtual agents excluded), ordered by `updatedAt DESC` with
    * the inbox pinned to the top.
    *
-   * Title fallback is fully owned here: the inbox resolves to the LobeAI
-   * default, and any other agent with a blank title resolves to
-   * `options.fallbackTitle` (default `null`, so a caller that omits it can let
-   * the client supply its own i18n default).
+   * Returns `name` and `title` separately — resolving them into one label is the
+   * caller's job (see `agentDisplayName`), since only the caller knows whether it
+   * can render an i18n fallback. `title` is still normalized here for the inbox
+   * (LobeAI default) and falls back to `options.fallbackTitle` when blank
+   * (default `null`, so a client caller can supply its own i18n default).
    */
   listMessengerBindableAgents = async (options?: {
     fallbackTitle?: string | null;
@@ -575,6 +587,7 @@ export class AgentModel {
       id: string;
       isInbox: boolean;
       isPrivate: boolean;
+      name: string | null;
       title: string | null;
     }>
   > => {
@@ -585,6 +598,7 @@ export class AgentModel {
         avatar: agents.avatar,
         backgroundColor: agents.backgroundColor,
         id: agents.id,
+        name: agents.name,
         slug: agents.slug,
         title: agents.title,
         visibility: agents.visibility,
@@ -608,6 +622,7 @@ export class AgentModel {
           // rows are all implicitly private, so the flag stays false there to
           // signal "no grouping needed".
           isPrivate: Boolean(this.workspaceId) && visibility === 'private',
+          name: meta.name ?? null,
           // The inbox title is already resolved by normalizeInboxAgentMeta; any
           // other blank title falls back to the caller-provided default.
           title: meta.title?.trim() || fallbackTitle,
@@ -1434,6 +1449,81 @@ export class AgentModel {
       .returning();
 
     return { agentId: newAgent.id };
+  };
+
+  /**
+   * Resolve a user-facing slug to its agent id, scoped by the caller's ownership
+   * predicate. Returns `null` when no visible agent owns that slug — callers must
+   * treat that as "not found" and must NOT distinguish it from "exists but not
+   * yours", or the endpoint becomes an existence oracle for other users' agents.
+   */
+  resolveIdBySlug = async (slug: string): Promise<string | null> => {
+    const trimmed = slug.trim();
+    if (!trimmed) return null;
+
+    const rows = await this.db
+      .select({ id: agents.id })
+      .from(agents)
+      .where(and(this.ownership(), eq(agents.slug, trimmed)))
+      .limit(1);
+
+    return rows[0]?.id ?? null;
+  };
+
+  /**
+   * Rename an agent's url slug.
+   *
+   * Deliberately its own method rather than a field on `updateConfig`: `slug`
+   * stays in {@link IMMUTABLE_AGENT_FIELDS} so it can never ride along in a
+   * passthrough config patch. Renaming needs validation the config path has no
+   * place for — shape, reserved builtin slugs, and a uniqueness scope that
+   * differs between personal and workspace rows.
+   *
+   * Returns a discriminated result instead of throwing so the caller can render
+   * a field-level message; only a genuinely missing agent throws.
+   */
+  updateSlug = async (
+    agentId: string,
+    slug: string,
+  ): Promise<{ reason?: 'builtin' | 'invalid' | 'reserved' | 'taken'; success: boolean }> => {
+    const next = slug.trim().toLowerCase();
+
+    if (!AGENT_SLUG_PATTERN.test(next)) return { reason: 'invalid', success: false };
+
+    const current = await this.db.query.agents.findFirst({
+      columns: { slug: true },
+      where: and(eq(agents.id, agentId), this.ownership()),
+    });
+    if (!current) throw new TRPCError({ code: 'NOT_FOUND', message: 'Agent not found' });
+    if (current.slug === next) return { success: true };
+
+    // A builtin agent IS its slug: `getBuiltinAgent` resolves it by that string,
+    // so renaming one away would silently mint a second, empty inbox / page
+    // agent and strand the original's history on an ordinary agent.
+    if (current.slug && RESERVED_AGENT_SLUGS.has(current.slug))
+      return { reason: 'builtin', success: false };
+    if (RESERVED_AGENT_SLUGS.has(next)) return { reason: 'reserved', success: false };
+
+    // Check within the same scope the unique indexes use, so the pre-check and
+    // the constraint agree. The insert can still lose a race, hence the catch.
+    const clash = await this.db
+      .select({ id: agents.id })
+      .from(agents)
+      .where(and(this.ownership(), eq(agents.slug, next)))
+      .limit(1);
+    if (clash.length > 0) return { reason: 'taken', success: false };
+
+    try {
+      await this.db
+        .update(agents)
+        .set({ slug: next, updatedAt: new Date() })
+        .where(and(eq(agents.id, agentId), this.ownership()));
+    } catch {
+      // Unique violation from a concurrent rename — same user-facing outcome.
+      return { reason: 'taken', success: false };
+    }
+
+    return { success: true };
   };
 
   /**

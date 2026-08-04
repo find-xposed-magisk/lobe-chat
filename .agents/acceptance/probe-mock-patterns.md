@@ -563,6 +563,56 @@ Prove the working-tree bundle is actually live first — read back a string that
 exists only in the working tree (e.g. a changed placeholder), never assume HMR
 applied.
 
+### Counting section instances across the Home rail collapse needs real visibility, not a rect
+
+**Situation:** asserting that a Home section moved between the rail and the main
+column rather than being duplicated or lost.
+
+**Doesn't work:** two independent traps, each of which inverts the verdict.
+
+- Filtering candidates by `getBoundingClientRect()` alone. The collapsed rail is
+  hidden with `visibility: hidden` after a transition, and a `visibility: hidden`
+  subtree **keeps its layout boxes** — so the rail's copy still measures non-zero
+  and every folded-in section reads as duplicated. This is the inverse of the
+  generic D12 phantom (zero-size decoy); here the stale node is full-size.
+- Collecting only leaf elements. The main column's `GroupBlock` renders its
+  subtitle as a `<span>` inside the title, so the title element has children,
+  while the rail's `RailCard` takes no subtitle and its title _is_ a leaf. A
+  leaf-only walk therefore finds a section in the rail and "loses" it in the main
+  column — reading exactly like the fold-in never happened.
+
+**Works:** match on the element's own direct text nodes and gate on
+`el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })`, then sort
+by viewport `y`:
+
+```js
+const own = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join('');
+if (!label.test(own)) continue;
+if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) continue;
+```
+
+Assert both columns in the same pass — a claim about _moving_ is only settled by
+observing the source column go empty and the destination fill in one snapshot.
+
+### A worktree Electron run leaves a second `@types/react` that fails the worktree type-check
+
+**Situation:** running the Electron surface from a git worktree, which requires
+the `apps/desktop` standalone install (adapter §1), then running `bun run check --type`.
+
+**Doesn't work:** treating the resulting type errors as the branch's own. The
+desktop install brings its own `@types/react` (e.g. `19.2.18`) alongside the
+root's (`19.2.13`), and the two identities collide on every `lucide-react` icon
+`ref`, producing a cluster of "Two different types with this name exist, but they
+are unrelated" errors in files the branch never touched.
+
+**Works:** intersect the erroring files with the branch's changed-file list before
+drawing any conclusion, and confirm causality by A/B — moving
+`apps/desktop/node_modules` aside makes the cluster vanish. At teardown, remove
+`apps/desktop/node_modules` and re-run the root `pnpm install` to restore a clean
+`✓ types clean` baseline. **Do not run the A/B while the instance is live** — the
+Electron binary runs out of that directory, so parking it kills the instance;
+capture all UI evidence first.
+
 ### Managed command runners can reap `electron-dev.sh start` children after the helper returns
 
 **Situation:** `electron-dev.sh start` (legacy and pool forms) reports that CDP
@@ -787,6 +837,47 @@ cache, so the renderer still shows the pre-write value (generic M18). Clear
 `lobechat-swr-cache*` + `lobehub-local-data` through
 `Page.addScriptToEvaluateOnNewDocument` and reload (see "Cold SWR cache" above),
 then assert `agentMap[id].agencyConfig` before drawing any conclusion.
+### An unconverged lockfile puts two copies of a dep in the graph — every route using it dies at the ErrorBoundary
+
+**Situation:** after rebasing onto a canary that bumped a shared UI dependency and
+running `pnpm install`, every route rendering the rich-text editor (agent profile,
+Home composer) fails with
+`LexicalComposerContext.useLexicalComposerContext: cannot find a LexicalComposerContext`
+and the SPA shows 页面暂时不可用.
+
+**Doesn't work:** reading it as a defect in the change under test, or as a stale
+Vite dep cache. Clearing `node_modules/.vite` (both root and `src/`) and a plain
+`pnpm install` both leave it broken, because the duplicate is in the resolution,
+not the cache.
+
+**Works:** attribute first, then measure the resolution.
+
+1. Attribution is cheap and decisive: load a route the branch definitely does not
+   touch that uses the same dependency. If it fails too, the change under test is
+   ruled out without checking out the base ref.
+
+2. The mechanism is two physical copies with different peer sets. The root
+   declares an exact-ish range while workspace packages declare a loose one, so a
+   dependency bump moves only the root:
+
+   ```bash
+   readlink node_modules/@lobehub/editor            # -> …editor@4.23.1_…ui@5.27.0
+   readlink packages/*/node_modules/@lobehub/editor # -> …editor@4.20.3_…ui@5.20.2
+   ```
+
+   A React context is module-scoped, so two copies means the provider and the
+   consumer read different context objects — the symptom is always "cannot find
+   the context", never a version error.
+
+3. `pnpm dedupe` converges them; clear the Vite dep caches and restart afterwards.
+
+**`pnpm-lock.yaml` is gitignored in this repo (`.gitignore`), so this divergence is
+always LOCAL install state — never something canary committed and never something to
+open a PR about.** A loose workspace range (`^4`) stays satisfied by the old version
+across incremental installs, so the drift accumulates silently in a long-lived
+checkout and appears right after a rebase that bumps the root range. Do not report it
+as a defect of the branch or of the base ref; note it as an environment finding and
+move on. Back up the lockfile before `dedupe` anyway — it is the only copy.
 
 ## Detailed references
 
