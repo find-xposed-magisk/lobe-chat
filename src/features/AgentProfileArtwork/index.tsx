@@ -1,9 +1,14 @@
 'use client';
 
+import {
+  AGENT_ARTWORK_STYLES,
+  type AgentArtworkStyle,
+  DEFAULT_AGENT_ARTWORK_STYLE,
+} from '@lobechat/prompts';
 import { ActionIcon, Alert, Avatar, Center, Flexbox, Icon, Text, Tooltip } from '@lobehub/ui';
-import { Button, toast } from '@lobehub/ui/base-ui';
+import { Button, type DropdownItem, DropdownMenu, toast } from '@lobehub/ui/base-ui';
 import { createStaticStyles, cssVar } from 'antd-style';
-import { ImageIcon, Trash2, UploadIcon, WandSparkles } from 'lucide-react';
+import { Check, ImageIcon, MoreHorizontal, Trash2, UploadIcon, WandSparkles } from 'lucide-react';
 import { memo, useCallback, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -52,10 +57,11 @@ const styles = createStaticStyles(({ css }) => ({
 
     overflow: hidden;
 
+    /* The cover bleeds flush to the pane edges, so rounded corners would leave
+       bare notches in the two narrow strips where it meets them. */
     width: calc(100% + 32px);
     height: 160px;
     margin-inline: -16px;
-    border-radius: ${cssVar.borderRadiusLG};
 
     background: transparent;
     background-position: center;
@@ -99,9 +105,6 @@ const styles = createStaticStyles(({ css }) => ({
   `,
   emptyBackgroundHint: css`
     color: ${cssVar.colorTextSecondary};
-  `,
-  generatedAction: css`
-    width: 100%;
   `,
   generatedPreview: css`
     position: relative;
@@ -199,6 +202,9 @@ export const AgentProfileArtwork = memo<AgentProfileArtworkProps>(
     const backgroundInputId = useId();
     const [avatarUploading, setAvatarUploading] = useState(false);
     const [backgroundUploading, setBackgroundUploading] = useState(false);
+    const [artworkStyle, setArtworkStyle] = useState<AgentArtworkStyle>(
+      DEFAULT_AGENT_ARTWORK_STYLE,
+    );
     const generating = generation?.status === 'generating' ? generation.kind : null;
     const generationError = generation?.status === 'error' ? generation.kind : null;
     const backgroundGenerationActive = generation?.kind === 'background';
@@ -237,7 +243,7 @@ export const AgentProfileArtwork = memo<AgentProfileArtworkProps>(
     );
 
     const generateArtwork = useCallback(
-      async (kind: 'avatar' | 'background') => {
+      async (kind: 'avatar' | 'background', style: AgentArtworkStyle) => {
         if (!canEdit || !canGenerate) return;
 
         try {
@@ -247,6 +253,7 @@ export const AgentProfileArtwork = memo<AgentProfileArtworkProps>(
             kind,
             name,
             referenceImageUrl: kind === 'background' ? avatar : backgroundUrl,
+            style,
             systemRole,
             title,
           });
@@ -267,6 +274,68 @@ export const AgentProfileArtwork = memo<AgentProfileArtworkProps>(
         title,
       ],
     );
+
+    // The generate buttons fire directly with the remembered style; the style
+    // menu lives behind a separate "…" trigger beside them. Picking a style
+    // there also generates, and the pick is remembered for both artwork kinds
+    // so avatar and cover stay one system.
+    const buildStyleItems = useCallback(
+      (kind: 'avatar' | 'background'): DropdownItem[] =>
+        AGENT_ARTWORK_STYLES.map((style) => ({
+          icon: style === artworkStyle ? Check : undefined,
+          key: style,
+          label: t(`settingAgent.artwork.style.${style}`),
+          onClick: () => {
+            setArtworkStyle(style);
+            void generateArtwork(kind, style);
+          },
+        })),
+      [artworkStyle, generateArtwork, t],
+    );
+
+    // On the existing-cover hover bar every artwork action folds into the one
+    // "…" menu: regenerate, the style presets, and remove.
+    const buildBackgroundMenuItems = useCallback((): DropdownItem[] => {
+      const items: DropdownItem[] = [];
+
+      if (canGenerate) {
+        items.push(
+          {
+            icon: WandSparkles,
+            key: 'generate',
+            label: t('settingAgent.artwork.background.generate'),
+            onClick: () => void generateArtwork('background', artworkStyle),
+          },
+          {
+            children: buildStyleItems('background'),
+            key: 'styles',
+            label: t('settingAgent.artwork.styleMenu'),
+            type: 'group',
+          },
+        );
+      }
+
+      if (backgroundUrl) {
+        if (items.length > 0) items.push({ type: 'divider' });
+        items.push({
+          danger: true,
+          icon: Trash2,
+          key: 'remove',
+          label: t('settingAgent.artwork.background.remove'),
+          onClick: () => onBackgroundChange(null),
+        });
+      }
+
+      return items;
+    }, [
+      artworkStyle,
+      backgroundUrl,
+      buildStyleItems,
+      canGenerate,
+      generateArtwork,
+      onBackgroundChange,
+      t,
+    ]);
 
     return (
       <div style={{ paddingBlockEnd: 36, position: 'relative' }}>
@@ -304,7 +373,7 @@ export const AgentProfileArtwork = memo<AgentProfileArtworkProps>(
                 <Button
                   icon={WandSparkles}
                   size={'small'}
-                  onClick={() => void generateArtwork('background')}
+                  onClick={() => void generateArtwork('background', artworkStyle)}
                 >
                   {t('settingAgent.artwork.retry')}
                 </Button>
@@ -327,14 +396,23 @@ export const AgentProfileArtwork = memo<AgentProfileArtworkProps>(
                     {t('settingAgent.artwork.background.upload')}
                   </Button>
                   {canGenerate ? (
-                    <Button
-                      icon={WandSparkles}
-                      loading={generating === 'background'}
-                      size={'small'}
-                      onClick={() => void generateArtwork('background')}
-                    >
-                      {t('settingAgent.artwork.background.generate')}
-                    </Button>
+                    <>
+                      <Button
+                        icon={WandSparkles}
+                        loading={generating === 'background'}
+                        size={'small'}
+                        onClick={() => void generateArtwork('background', artworkStyle)}
+                      >
+                        {t('settingAgent.artwork.background.generate')}
+                      </Button>
+                      <DropdownMenu items={() => buildStyleItems('background')}>
+                        <Button
+                          aria-label={t('settingAgent.artwork.styleMenu')}
+                          icon={MoreHorizontal}
+                          size={'small'}
+                        />
+                      </DropdownMenu>
+                    </>
                   ) : null}
                 </Flexbox>
               </Flexbox>
@@ -355,21 +433,11 @@ export const AgentProfileArtwork = memo<AgentProfileArtworkProps>(
                   onClick={openBackgroundFilePicker}
                 />
               </Tooltip>
-              {canGenerate ? (
-                <Tooltip title={t('settingAgent.artwork.background.generate')}>
-                  <ActionIcon
-                    glass
-                    icon={WandSparkles}
-                    loading={generating === 'background'}
-                    onClick={() => void generateArtwork('background')}
-                  />
-                </Tooltip>
-              ) : null}
-              {backgroundUrl ? (
-                <Tooltip title={t('settingAgent.artwork.background.remove')}>
-                  <ActionIcon glass icon={Trash2} onClick={() => onBackgroundChange(null)} />
-                </Tooltip>
-              ) : null}
+              <Tooltip title={t('more', { ns: 'common' })}>
+                <DropdownMenu items={() => buildBackgroundMenuItems()}>
+                  <ActionIcon glass icon={MoreHorizontal} loading={generating === 'background'} />
+                </DropdownMenu>
+              </Tooltip>
             </Flexbox>
           ) : null}
         </div>
@@ -426,13 +494,21 @@ export const AgentProfileArtwork = memo<AgentProfileArtworkProps>(
                             ) : null}
                           </Center>
                           {generating !== 'avatar' ? (
-                            <Button
-                              className={styles.generatedAction}
-                              icon={WandSparkles}
-                              onClick={() => void generateArtwork('avatar')}
-                            >
-                              {t('settingAgent.artwork.avatar.generateAction')}
-                            </Button>
+                            <Flexbox horizontal gap={8}>
+                              <Button
+                                icon={WandSparkles}
+                                style={{ flex: 1 }}
+                                onClick={() => void generateArtwork('avatar', artworkStyle)}
+                              >
+                                {t('settingAgent.artwork.avatar.generateAction')}
+                              </Button>
+                              <DropdownMenu items={() => buildStyleItems('avatar')}>
+                                <Button
+                                  aria-label={t('settingAgent.artwork.styleMenu')}
+                                  icon={MoreHorizontal}
+                                />
+                              </DropdownMenu>
+                            </Flexbox>
                           ) : null}
                           {generationError === 'avatar' ? (
                             <Alert
