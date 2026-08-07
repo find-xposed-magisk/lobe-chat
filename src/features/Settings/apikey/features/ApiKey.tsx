@@ -1,13 +1,15 @@
 'use client';
 
-import { Center, Empty, Text } from '@lobehub/ui';
+import { isDesktop } from '@lobechat/const';
+import { Center, Empty, Flexbox, Text } from '@lobehub/ui';
 import { Button, Switch, toast } from '@lobehub/ui/base-ui';
 import { useMutation } from '@tanstack/react-query';
 import { Popconfirm } from 'antd';
 import { createStaticStyles } from 'antd-style';
-import { Trash } from 'lucide-react';
+import { BookOpen, Trash } from 'lucide-react';
 import { type FC } from 'react';
 import { useTranslation } from 'react-i18next';
+import urlJoin from 'url-join';
 
 import { useActiveWorkspaceId } from '@/business/client/hooks/useActiveWorkspaceId';
 import { type LiteTableColumn } from '@/components/LiteTable';
@@ -16,6 +18,8 @@ import { usePermission } from '@/hooks/usePermission';
 import { useClientDataSWR } from '@/libs/swr';
 import { apiKeyKeys } from '@/libs/swr/keys';
 import { lambdaClient } from '@/libs/trpc/client';
+import { useElectronStore } from '@/store/electron';
+import { electronSyncSelectors } from '@/store/electron/selectors';
 import { type ApiKeyItem, type CreateApiKeyParams, type UpdateApiKeyParams } from '@/types/apiKey';
 import { isForbiddenError } from '@/utils/forbiddenError';
 
@@ -45,6 +49,10 @@ const ApiKey: FC = () => {
   const activeWorkspaceId = useActiveWorkspaceId();
 
   const { allowed: canEdit, reason } = usePermission('create_content');
+  // Desktop renders from app://renderer, where a relative href is denied by the
+  // window-open handler — resolve the docs link against the active server origin.
+  const remoteServerUrl = useElectronStore(electronSyncSelectors.remoteServerUrl);
+  const docsHref = isDesktop ? urlJoin(remoteServerUrl, '/api/v1/docs') : '/api/v1/docs';
   // Workspace API keys are shared admin config: the server gates every
   // mutation (create included) at Admin-or-higher
   // (`requireWorkspaceRoleWhenScoped('admin')`), with no per-row creator
@@ -258,14 +266,19 @@ const ApiKey: FC = () => {
         <Text as={'h3'} style={{ fontSize: 16, fontWeight: 500, margin: 0 }}>
           {t('apikey.list.title')}
         </Text>
-        <Button
-          disabled={!canCreate}
-          title={canCreate ? undefined : canEdit ? manageTooltip : reason}
-          type="primary"
-          onClick={handleCreate}
-        >
-          {t('apikey.list.actions.create')}
-        </Button>
+        <Flexbox horizontal gap={8}>
+          <Button href={docsHref} icon={BookOpen} target="_blank" type="text">
+            {t('apikey.list.actions.viewDocs')}
+          </Button>
+          <Button
+            disabled={!canCreate}
+            title={canCreate ? undefined : canEdit ? manageTooltip : reason}
+            type="primary"
+            onClick={handleCreate}
+          >
+            {t('apikey.list.actions.create')}
+          </Button>
+        </Flexbox>
       </div>
       <LiteTable
         columns={columns}
