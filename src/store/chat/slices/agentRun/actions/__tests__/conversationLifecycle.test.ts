@@ -6,12 +6,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { agentService } from '@/services/agent';
 import { aiChatService } from '@/services/aiChat';
 import { chatService } from '@/services/chat';
+import * as skillPreload from '@/services/chat/mecha/skillPreload';
 import { messageService } from '@/services/message';
 import * as agentGroupStore from '@/store/agentGroup';
 import { setPendingTopicRepos } from '@/store/chat/pendingTopicRepos';
 import { operationSelectors } from '@/store/chat/slices/operation/selectors';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
 import { topicMapKey } from '@/store/chat/utils/topicMapKey';
+import { fileChatSelectors, useFileStore } from '@/store/file';
 import { getSessionStoreState } from '@/store/session';
 import * as toolStoreModule from '@/store/tool';
 import { pageAgentRuntime } from '@/store/tool/slices/builtin/executors/pageAgentRuntime';
@@ -68,6 +70,7 @@ beforeEach(() => {
   vi.spyOn(sessionStore, 'triggerSessionUpdate').mockResolvedValue(undefined);
   vi.spyOn(agentService, 'getAgentConfigById').mockResolvedValue(createMockAgentConfig() as any);
   useUserStore.setState({ workspaceUserPreference: {} });
+  useFileStore.setState({ chatContextSelectionsByContext: {} });
 
   act(() => {
     useChatStore.setState({
@@ -473,10 +476,17 @@ describe('ConversationLifecycle actions', () => {
         expect(result.current.executeClientAgent).toHaveBeenCalled();
       });
 
-      it('should adopt the minted topic id for the whole send (no _new -> topic transition)', async () => {
+      it('should adopt the minted topic id and move context added during preflight', async () => {
         const { result } = renderHook(() => useChatStore());
         const agentId = TEST_IDS.SESSION_ID;
         const newBucketKey = messageMapKey({ agentId, topicId: null });
+        let resolveSkillPreload!: (value: []) => void;
+        const skillPreloadPromise = new Promise<[]>((resolve) => {
+          resolveSkillPreload = resolve;
+        });
+        const skillPreloadSpy = vi
+          .spyOn(skillPreload, 'resolveSelectedSkillsWithContent')
+          .mockReturnValue(skillPreloadPromise);
         let resolveServerSend!: (value: any) => void;
         const serverSendPromise = new Promise<any>((resolve) => {
           resolveServerSend = resolve;
@@ -511,14 +521,26 @@ describe('ConversationLifecycle actions', () => {
           });
         });
 
+        await waitFor(() => expect(skillPreloadSpy).toHaveBeenCalled());
+
+        const pendingSelection = {
+          content: 'context added while preparing the first send',
+          id: 'pending-selection',
+          type: 'text' as const,
+        };
+        act(() => {
+          useFileStore.getState().addChatContextSelection({
+            contextKey: newBucketKey,
+            selection: pendingSelection,
+          });
+          resolveSkillPreload([]);
+        });
+
         await waitFor(() => expect(sendMessageInServerSpy).toHaveBeenCalled());
 
         // The conversation adopted the minted id BEFORE the server answered:
         // activeTopicId already points at it, the optimistic pair lives in the
-        // minted bucket (NOT `_new`), and the id is marked as creating. This is
-        // the invariant that keeps the conversation surface's contextKey stable
-        // for the whole send — the remount/blank-frame flicker cannot happen
-        // when the key never changes.
+        // minted bucket (NOT `_new`), and the id is marked as creating.
         const midState = useChatStore.getState();
         const mintedTopicId = midState.activeTopicId!;
         expect(mintedTopicId).toMatch(/^tpc_/);
@@ -528,6 +550,12 @@ describe('ConversationLifecycle actions', () => {
         const mintedBucketKey = messageMapKey({ agentId, topicId: mintedTopicId });
         expect(midState.dbMessagesMap[mintedBucketKey]?.length).toBe(2);
         expect(midState.dbMessagesMap[newBucketKey] ?? []).toEqual([]);
+        expect(
+          fileChatSelectors.chatContextSelections(mintedBucketKey)(useFileStore.getState()),
+        ).toEqual([pendingSelection]);
+        expect(
+          fileChatSelectors.chatContextSelections(newBucketKey)(useFileStore.getState()),
+        ).toEqual([]);
 
         await act(async () => {
           resolveServerSend({
@@ -558,6 +586,26 @@ describe('ConversationLifecycle actions', () => {
         // Server confirmed: the id must leave the creating set so fetching and
         // refetch reconciliation return to normal.
         expect(endState.creatingTopicIds).not.toContain(mintedTopicId);
+      });
+
+      it('should return composer context ownership when preflight fails', async () => {
+        const { result } = renderHook(() => useChatStore());
+        const preflightError = new Error('skill preload failed');
+        const onPreflightFailure = vi.fn();
+        vi.spyOn(skillPreload, 'resolveSelectedSkillsWithContent').mockRejectedValue(
+          preflightError,
+        );
+
+        await expect(
+          result.current.sendMessage({
+            context: createTestContext(),
+            message: TEST_CONTENT.USER_MESSAGE,
+            onPreflightFailure,
+          }),
+        ).rejects.toBe(preflightError);
+
+        expect(onPreflightFailure).toHaveBeenCalledOnce();
+        expect(result.current.operations).toEqual({});
       });
 
       it('should show an optimistic topic while the first message is still creating the server topic', async () => {
@@ -1199,6 +1247,89 @@ describe('ConversationLifecycle actions', () => {
 
         expect(useChatStore.getState().topicDataMap[topicKey]?.items ?? []).toEqual([]);
         expect(useChatStore.getState().activeTopicId).not.toBe(optimisticTopicId);
+      });
+
+      it('should restore optimistic topic selections after switching away before rollback', async () => {
+        const { result } = renderHook(() => useChatStore());
+        const agentId = TEST_IDS.SESSION_ID;
+        const topicKey = topicMapKey({ agentId });
+        const newContextKey = messageMapKey({ agentId, topicId: null });
+        const otherTopicId = 'other-topic';
+        let resolveServerSend!: (value: any) => void;
+        const serverSendPromise = new Promise<any>((resolve) => {
+          resolveServerSend = resolve;
+        });
+
+        act(() => {
+          useChatStore.setState({
+            activeAgentId: agentId,
+            activeTopicId: undefined,
+            executeClientAgent: vi.fn().mockResolvedValue(undefined),
+            summaryTopicTitle: vi.fn().mockResolvedValue(undefined),
+            topicDataMap: {
+              [topicKey]: {
+                currentPage: 0,
+                hasMore: false,
+                isExpandingPageSize: false,
+                isLoadingMore: false,
+                items: [],
+                pageSize: 20,
+                total: 0,
+              },
+            },
+          });
+        });
+
+        vi.spyOn(aiChatService, 'sendMessageInServer').mockReturnValue(serverSendPromise);
+
+        let sendPromise!: ReturnType<typeof result.current.sendMessage>;
+        act(() => {
+          sendPromise = result.current.sendMessage({
+            context: { agentId, threadId: null, topicId: null },
+            message: TEST_CONTENT.USER_MESSAGE,
+          });
+        });
+
+        await waitFor(() =>
+          expect(useChatStore.getState().topicDataMap[topicKey]?.items[0]?.id).toMatch(/^tpc_/),
+        );
+        const optimisticTopicId = useChatStore.getState().topicDataMap[topicKey]!.items[0].id;
+        const optimisticContextKey = messageMapKey({ agentId, topicId: optimisticTopicId });
+        const pendingSelection = {
+          content: 'context added before the failed send',
+          id: 'rollback-selection',
+          type: 'text' as const,
+        };
+
+        act(() => {
+          useFileStore.getState().addChatContextSelection({
+            contextKey: optimisticContextKey,
+            selection: pendingSelection,
+          });
+          useChatStore.setState({ activeTopicId: otherTopicId });
+        });
+
+        await act(async () => {
+          resolveServerSend({
+            assistantMessageId: TEST_IDS.ASSISTANT_MESSAGE_ID,
+            messages: [
+              createMockMessage({ id: TEST_IDS.USER_MESSAGE_ID, role: 'user' }),
+              createMockMessage({ id: TEST_IDS.ASSISTANT_MESSAGE_ID, role: 'assistant' }),
+            ],
+            topics: undefined,
+            userMessageId: TEST_IDS.USER_MESSAGE_ID,
+          } as any);
+          await sendPromise;
+        });
+
+        expect(useChatStore.getState().activeTopicId).toBe(otherTopicId);
+        expect(useChatStore.getState().topicDataMap[topicKey]?.items ?? []).toEqual([]);
+        expect(
+          fileChatSelectors.chatContextSelections(newContextKey)(useFileStore.getState()),
+        ).toEqual([pendingSelection]);
+        expect(
+          fileChatSelectors.chatContextSelections(optimisticContextKey)(useFileStore.getState()),
+        ).toEqual([]);
       });
 
       it('should persist selected tool tags into user message content before runtime execution', async () => {
