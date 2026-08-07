@@ -4,6 +4,12 @@ import { cleanObject } from '@lobechat/utils';
 import { and, asc, eq, inArray, ne, not, sql } from 'drizzle-orm';
 
 import {
+  AGENT_TRANSFER_IN_PROGRESS,
+  AgentTransferJobModel,
+  rewriteMessageScopeForTopics,
+  rewriteResidualMessageScope,
+} from '../../models/agentTransferJob';
+import {
   hasForeignTopicComments,
   syncTopicCommentsOnTopicTransfer,
   TOPIC_COMMENT_TRANSFER_HAS_FOREIGN_AUTHORS,
@@ -917,7 +923,7 @@ export class AgentGroupRepository {
     targetUserId: string,
     targetVisibility?: 'private' | 'public',
     options: { rejectForeignTopicCommentAuthors?: boolean } = {},
-  ): Promise<{ groupId: string } | null> {
+  ): Promise<{ groupId: string; transferJobId: string | null } | null> {
     const sourceGroup = await this.db.query.chatGroups.findFirst({
       where: and(eq(chatGroups.id, groupId), this.groupOwnership()),
     });
@@ -931,6 +937,22 @@ export class AgentGroupRepository {
         .where(eq(chatGroupsAgents.chatGroupId, groupId));
 
       const agentIds = memberRows.map((row) => row.agentId);
+
+      // Same lock-then-guard as AgentModel.transferAgents: serialize with a
+      // concurrent transfer of any member agent BEFORE consulting the pending
+      // job table, so two racing transfers cannot both pass the guard.
+      if (agentIds.length > 0) {
+        await trx
+          .select({ id: agents.id })
+          .from(agents)
+          .where(inArray(agents.id, agentIds))
+          .orderBy(asc(agents.id))
+          .for('update');
+      }
+      if (await AgentTransferJobModel.hasPendingJobForAgents(trx, agentIds)) {
+        throw new Error(AGENT_TRANSFER_IN_PROGRESS);
+      }
+
       const ownershipUpdate = {
         userId: targetUserId,
         workspaceId: targetWorkspaceId,
@@ -1014,10 +1036,9 @@ export class AgentGroupRepository {
         .update(topics)
         .set(ownershipUpdate)
         .where(eq(topics.groupId, groupId))
-        .returning({ id: topics.id });
+        .returning({ id: topics.id, updatedAt: topics.updatedAt });
       const movedTopicIds = movedTopics.map((topic) => topic.id);
       await trx.update(threads).set(ownershipUpdate).where(eq(threads.groupId, groupId));
-      await trx.update(messages).set(ownershipUpdate).where(eq(messages.groupId, groupId));
 
       // Topic comments denormalize the topic's workspaceId — move them with
       // the topic (or drop them when leaving workspace scope entirely),
@@ -1029,13 +1050,25 @@ export class AgentGroupRepository {
           .update(threads)
           .set(ownershipUpdate)
           .where(inArray(threads.topicId, movedTopicIds));
-        await trx
-          .update(messages)
-          .set(ownershipUpdate)
-          .where(inArray(messages.topicId, movedTopicIds));
       }
 
-      return { groupId };
+      // Message scope rewrite — always inline for group transfers. Unlike
+      // AgentModel.transferAgents, groups have no async-backfill UX yet (the
+      // migration status endpoint, pending-topic gating, and prioritize flow
+      // are all keyed to agent conversations), so a queued group topic would
+      // open as an empty, writable history with no explanation. Keep group
+      // transfers synchronous until group-aware gating exists; the group
+      // surface is far smaller than the workspace agent-migration path the
+      // async job was built for.
+      const targetScope = { userId: targetUserId, workspaceId: targetWorkspaceId };
+      await rewriteMessageScopeForTopics(trx, movedTopicIds, targetScope);
+      await rewriteResidualMessageScope(
+        trx,
+        { agentIds: [], groupIds: [groupId], sessionIds: [] },
+        targetScope,
+      );
+
+      return { groupId, transferJobId: null };
     });
   }
 

@@ -5,15 +5,24 @@ import { KnowledgeType } from '@lobechat/types';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
+import {
+  prioritizeAgentTransferTopic,
+  startAgentTransferJob,
+} from '@/business/server/agent-transfer/jobRunner';
 import { withScopedPermission } from '@/business/server/trpc-middlewares/rbacPermission';
 import { wsCompatProcedure } from '@/business/server/trpc-middlewares/workspaceAuth';
 import { AgentModel } from '@/database/models/agent';
+import {
+  AGENT_TRANSFER_IN_PROGRESS,
+  AgentTransferJobModel,
+} from '@/database/models/agentTransferJob';
 import { ChatGroupModel } from '@/database/models/chatGroup';
 import { FileModel } from '@/database/models/file';
 import { KnowledgeBaseModel } from '@/database/models/knowledgeBase';
 import { ResourcePermissionModel } from '@/database/models/resourcePermission';
 import { SessionModel } from '@/database/models/session';
 import { TaskModel } from '@/database/models/task';
+import { TopicModel } from '@/database/models/topic';
 import { TOPIC_COMMENT_TRANSFER_HAS_FOREIGN_AUTHORS } from '@/database/models/topicComment';
 import { UserModel } from '@/database/models/user';
 import type { ResourceAccessLevel } from '@/database/schemas';
@@ -767,6 +776,70 @@ export const agentRouter = router({
       );
     }),
 
+  /**
+   * Progress of the async history backfill after a heavy transfer, plus the
+   * topic ids still awaiting their scope rewrite (the UI's gray-out set).
+   * Returns null when no backfill is running for the agent.
+   */
+  getTransferJobStatus: agentProcedure
+    .input(
+      z.object({
+        agentId: z.string(),
+        /**
+         * Topics the client currently shows (sidebar rows + active topic).
+         * `pendingTopicIds` is the intersection with the job's queue, keeping
+         * the 3s poll payload bounded however large the backfill is. Required
+         * so no caller can pull the whole queue (this endpoint ships with the
+         * clients that send it — there is no released-client compat to keep).
+         */
+        topicIds: z.array(z.string()).max(1000),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      // Scope check: only report migration state for agents visible to the
+      // caller's current personal/workspace scope (agent ids are guessable).
+      const visibility = await ctx.agentModel.getAgentVisibility(input.agentId);
+      if (!visibility) return null;
+
+      const job = await AgentTransferJobModel.findPendingJobForAgent(ctx.serverDB, input.agentId);
+      if (!job) return null;
+      const pendingTopicIds = await AgentTransferJobModel.getPendingTopicIds(
+        ctx.serverDB,
+        job.id,
+        input.topicIds,
+      );
+      return {
+        completedTopics: job.completedTopics,
+        jobId: job.id,
+        pendingTopicIds,
+        totalTopics: job.totalTopics,
+      };
+    }),
+
+  /**
+   * The user opened a topic whose history is still migrating — jump it to the
+   * front of the backfill queue. Returns whether the topic was still pending
+   * (false → already migrated, the client can refetch messages immediately).
+   */
+  prioritizeTransferTopic: agentProcedure
+    .input(z.object({ topicId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      // Scope check: reordering the backfill queue is only allowed for topics
+      // the caller can see (the transfer moves topics to the target scope
+      // synchronously, so a pending topic is visible to its new owner).
+      const topic = await new TopicModel(
+        ctx.serverDB,
+        ctx.userId,
+        ctx.workspaceId ?? undefined,
+      ).findById(input.topicId);
+      if (!topic) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Topic not found' });
+      }
+
+      const flagged = await prioritizeAgentTransferTopic(ctx.serverDB, input.topicId);
+      return { pending: flagged };
+    }),
+
   transferAgent: agentProcedure
     .use(withScopedPermission('agent:update'))
     .input(
@@ -868,8 +941,19 @@ export const agentRouter = router({
             message: "Only workspace owners can transfer an agent carrying others' conversations",
           });
         }
+        if (error instanceof Error && error.message === AGENT_TRANSFER_IN_PROGRESS) {
+          throw new TRPCError({
+            cause: { data: { code: TransferErrorCode.TransferInProgress } },
+            code: 'CONFLICT',
+            message: 'A previous transfer of this agent is still migrating its history',
+          });
+        }
         throw error;
       }
+
+      // Heavy history goes through an async backfill — kick the driver now
+      // that the transfer transaction has committed.
+      if (result.transferJobId) startAgentTransferJob(ctx.serverDB, result.transferJobId);
 
       if (ctx.workspaceId) {
         await new ResourcePermissionModel(ctx.serverDB, ctx.workspaceId).removeAll(
@@ -1004,8 +1088,19 @@ export const agentRouter = router({
             message: "Only workspace owners can transfer agents carrying others' conversations",
           });
         }
+        if (error instanceof Error && error.message === AGENT_TRANSFER_IN_PROGRESS) {
+          throw new TRPCError({
+            cause: { data: { code: TransferErrorCode.TransferInProgress } },
+            code: 'CONFLICT',
+            message: 'A previous transfer of these agents is still migrating their history',
+          });
+        }
         throw error;
       }
+
+      // The whole batch shares one backfill job; kick it post-commit.
+      const batchTransferJobId = results[0]?.transferJobId;
+      if (batchTransferJobId) startAgentTransferJob(ctx.serverDB, batchTransferJobId);
 
       if (ctx.workspaceId) {
         const sourcePermissionModel = new ResourcePermissionModel(ctx.serverDB, ctx.workspaceId);
