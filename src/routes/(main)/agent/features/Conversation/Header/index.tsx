@@ -1,17 +1,18 @@
 'use client';
 
-import { Flexbox } from '@lobehub/ui';
+import { Avatar, Flexbox } from '@lobehub/ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { memo } from 'react';
 
 import { AgentMigrationBadge, useAgentTransferJob } from '@/features/AgentTransferMigration';
+import { useAgentContext } from '@/features/Conversation/useAgentContext';
 import NavHeader from '@/features/NavHeader';
 import OpenInAppButton from '@/features/OpenInAppButton';
 import TopicCommentButton from '@/features/TopicComment/TopicCommentButton';
 import { useEffectiveWorkingDirectory } from '@/hooks/useEffectiveWorkingDirectory';
 import { useAgentStore } from '@/store/agent';
-import { chatConfigByIdSelectors } from '@/store/agent/selectors';
-import { useChatStore } from '@/store/chat';
+import { agentSelectors, chatConfigByIdSelectors } from '@/store/agent/selectors';
+import { useElectronStore } from '@/store/electron';
 
 import HeaderActions from './HeaderActions';
 import ShareButton from './ShareButton';
@@ -125,12 +126,17 @@ const headerStyles = createStaticStyles(({ css }) => ({
 }));
 
 const Header = memo(() => {
-  const agentId = useChatStore((s) => s.activeAgentId);
+  const { agentId, topicId } = useAgentContext();
   // No home/desktop fallback: the IDE button should only show up once the user
   // explicitly picked a working directory (topic / agent / device default).
   const workingDirectory = useEffectiveWorkingDirectory(agentId || undefined, {
     homeFallback: false,
+    topicId,
   });
+  const splitView = useElectronStore((s) => s.splitView);
+  const agentMeta = useAgentStore((s) =>
+    agentId ? agentSelectors.getAgentMetaById(agentId)(s) : undefined,
+  );
   const isLocalSystemEnabled = useAgentStore((s) =>
     agentId ? chatConfigByIdSelectors.isLocalSystemEnabledById(agentId)(s) : false,
   );
@@ -150,6 +156,17 @@ const Header = memo(() => {
             className={headerStyles.leftContent}
             gap={4}
           >
+            {splitView && agentMeta && (
+              <Avatar
+                alt={agentMeta.title}
+                avatar={agentMeta.avatar}
+                background={agentMeta.backgroundColor}
+                shape={'square'}
+                size={24}
+                style={{ flex: 'none', marginInlineStart: 8 }}
+                title={agentMeta.title}
+              />
+            )}
             <Tags />
             <HeaderActions />
           </Flexbox>
