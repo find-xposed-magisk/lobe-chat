@@ -16,6 +16,7 @@ import type {
 import { TRPCError } from '@trpc/server';
 
 import { AgentModel } from '@/database/models/agent';
+import { ProjectModel } from '@/database/models/project';
 import { TaskModel } from '@/database/models/task';
 import { TaskTopicModel } from '@/database/models/taskTopic';
 import { TopicModel } from '@/database/models/topic';
@@ -64,6 +65,7 @@ export interface CreateTaskInput {
   name?: string;
   parentTaskId?: string;
   priority?: number;
+  projectId?: string;
   schedulePattern?: string;
   scheduleTimezone?: string;
   sortOrder?: number;
@@ -93,6 +95,7 @@ export class TaskService {
   private agentModel: AgentModel;
   private db: LobeChatDatabase;
   private taskModel: TaskModel;
+  private projectModel: ProjectModel;
   private taskTopicModel: TaskTopicModel;
   private topicModel: TopicModel;
   private userId: string;
@@ -104,6 +107,7 @@ export class TaskService {
     this.userId = userId;
     this.workspaceId = workspaceId;
     this.agentModel = new AgentModel(db, userId, workspaceId);
+    this.projectModel = new ProjectModel(db, userId, workspaceId);
     this.taskModel = new TaskModel(db, userId, workspaceId);
     this.taskTopicModel = new TaskTopicModel(db, userId, workspaceId);
     this.topicModel = new TopicModel(db, userId, workspaceId);
@@ -125,6 +129,20 @@ export class TaskService {
       const parent = await this.resolveOrThrow(createData.parentTaskId);
       createData.parentTaskId = parent.id;
       parentVisibility = parent.visibility;
+      if (createData.projectId && createData.projectId !== parent.projectId) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'Subtask must belong to the same project as its parent',
+        });
+      }
+      createData.projectId ??= parent.projectId ?? undefined;
+    }
+
+    if (
+      createData.projectId &&
+      !(await this.projectModel.findManageableById(createData.projectId))
+    ) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Project not found' });
     }
 
     // Pull the model/provider snapshot and the agent's visibility in a single

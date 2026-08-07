@@ -66,6 +66,7 @@ const createSchema = z.object({
   name: z.string().optional(),
   parentTaskId: z.string().optional(),
   priority: z.number().min(0).max(4).optional(),
+  projectId: z.string().optional(),
   schedulePattern: z.string().optional(),
   scheduleTimezone: z.string().optional(),
   // When omitted, the server derives visibility from the parent task or the
@@ -180,6 +181,14 @@ async function resolveSafeParentTaskId(
     throw new TRPCError({
       code: 'BAD_REQUEST',
       message: 'Task cannot be parented to its own descendant',
+    });
+  }
+
+  const task = await resolveOrThrow(model, taskId);
+  if (task.projectId !== parent.projectId) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Parent task must belong to the same project',
     });
   }
 
@@ -348,6 +357,9 @@ export const taskRouter = router({
       } catch (error) {
         if (error instanceof TRPCError) throw error;
         console.error('[task:addDependency]', error);
+        if (error instanceof Error && error.message.includes('project boundaries')) {
+          throw new TRPCError({ cause: error, code: 'BAD_REQUEST', message: error.message });
+        }
         throw new TRPCError({
           cause: error,
           code: 'INTERNAL_SERVER_ERROR',
