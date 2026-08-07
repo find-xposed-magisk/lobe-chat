@@ -8,7 +8,7 @@ import {
   isRemoteHeterogeneousType,
   resolveHeterogeneousAgentCommand,
 } from './config';
-import { HETEROGENEOUS_TYPE_LABELS } from './labels';
+import { getHeterogeneousTypeLabel, HETEROGENEOUS_TYPE_LABELS } from './labels';
 
 describe('heterogeneous agent config', () => {
   it('defines create config for all registered agent types', () => {
@@ -90,6 +90,14 @@ describe('heterogeneous agent config', () => {
       'pi': 'Pi',
       'qoder': 'Qoder',
     });
+  });
+
+  it('resolves display labels with safe fallbacks', () => {
+    expect(getHeterogeneousTypeLabel('hermes')).toBe('Hermes');
+    expect(getHeterogeneousTypeLabel('future-runtime')).toBe('future-runtime');
+    expect(getHeterogeneousTypeLabel('toString')).toBe('toString');
+    expect(getHeterogeneousTypeLabel(null)).toBeUndefined();
+    expect(getHeterogeneousTypeLabel()).toBeUndefined();
   });
 
   it('classifies local CLIs separately from remote platforms', () => {
