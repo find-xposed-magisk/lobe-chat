@@ -1,10 +1,6 @@
 'use client';
 
-import type {
-  HeterogeneousAgentModel,
-  HeterogeneousProviderConfig,
-  ListHeterogeneousAgentModelsParams,
-} from '@lobechat/types';
+import type { HeterogeneousAgentModel, ListHeterogeneousAgentModelsParams } from '@lobechat/types';
 import { HETEROGENEOUS_AGENT_DEFAULT_SELECTION } from '@lobechat/types';
 import { ActionIcon, Icon, Input, Tooltip } from '@lobehub/ui';
 import {
@@ -26,19 +22,19 @@ import {
 } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
 
 import { isDesktop } from '@/const/version';
 import { resolveTargetDeviceId } from '@/helpers/agentWorkingDirectory';
 import { resolveExecutionTarget } from '@/helpers/executionTarget';
 import { useEffectiveAgencyConfig } from '@/hooks/useEffectiveAgencyConfig';
 import { useEffectiveWorkingDirectory } from '@/hooks/useEffectiveWorkingDirectory';
-import { heterogeneousAgentCatalogService } from '@/services/heterogeneousAgent';
+import { useDeviceStore } from '@/store/device';
 import { useElectronStore } from '@/store/electron';
+import { useUserStore } from '@/store/user';
+import { authSelectors } from '@/store/user/selectors';
 
+import { useHeterogeneousAgentModelCatalog } from './useHeterogeneousAgentModelCatalog';
 import { useMenuContentLifecycle } from './useMenuContentLifecycle';
-
-const DEDUPING_INTERVAL = 5 * 60 * 1000;
 
 const styles = createStaticStyles(({ css }) => ({
   check: css`
@@ -158,19 +154,6 @@ const styles = createStaticStyles(({ css }) => ({
   `,
 }));
 
-const fingerprintConfig = (provider: HeterogeneousProviderConfig | undefined) => {
-  const serialized = JSON.stringify({
-    args: provider?.args ?? [],
-    env: Object.entries(provider?.env ?? {}).sort(([a], [b]) => a.localeCompare(b)),
-  });
-  let hash = 2166136261;
-  for (let index = 0; index < serialized.length; index += 1) {
-    hash ^= serialized.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(36);
-};
-
 const getCatalogErrorKey = (name: string) => {
   switch (name) {
     case 'cli_not_found': {
@@ -206,13 +189,17 @@ export const HeterogeneousAgentModelSelector = memo<HeterogeneousAgentModelSelec
     const agentName = type === 'pi' ? 'Pi' : type === 'qoder' ? 'Qoder' : 'OpenCode';
     const [search, setSearch] = useState('');
     const {
-      contentActive,
       deferSelection: handleSelect,
       handleOpenChange,
       handleOpenChangeComplete: completeOpenChange,
       open,
     } = useMenuContentLifecycle(onSelect);
-    const { agencyConfig, workspaceScoped } = useEffectiveAgencyConfig(agentId);
+    const { agencyConfig, isPreferenceLoading, workspaceScoped } =
+      useEffectiveAgencyConfig(agentId);
+    const isLogin = useUserStore(authSelectors.isLogin);
+    const { isLoading: isDeviceListLoading } = useDeviceStore((s) => s.useFetchDevices)(
+      isLogin || isDesktop,
+    );
     const cwd = useEffectiveWorkingDirectory(agentId);
     const provider = agencyConfig?.heterogeneousProvider;
     useElectronStore((s) => s.useFetchGatewayDeviceInfo)();
@@ -232,40 +219,16 @@ export const HeterogeneousAgentModelSelector = memo<HeterogeneousAgentModelSelec
       model && model !== HETEROGENEOUS_AGENT_DEFAULT_SELECTION
         ? model
         : HETEROGENEOUS_AGENT_DEFAULT_SELECTION;
-    const configFingerprint = fingerprintConfig(provider);
-
-    const { data, error, isLoading, isValidating, mutate } = useSWR(
-      contentActive && targetReady
-        ? [
-            'heterogeneous-agent-model-catalog',
-            type,
-            useLocalIpc ? 'local' : rpcDeviceId,
-            cwd ?? '',
-            provider?.command ?? '',
-            configFingerprint,
-          ]
-        : null,
-      async () => {
-        const result = await heterogeneousAgentCatalogService.listModels({
-          command: provider?.command,
-          cwd,
-          deviceId: rpcDeviceId,
-          env: provider?.env,
-          type,
-        });
-        if (result.status === 'error') {
-          const catalogError = new Error(result.error.message);
-          catalogError.name = result.error.code;
-          throw catalogError;
-        }
-        return result;
-      },
-      {
-        dedupingInterval: DEDUPING_INTERVAL,
-        revalidateOnFocus: false,
-        shouldRetryOnError: false,
-      },
-    );
+    const { data, error, isLoading, isValidating, mutate } = useHeterogeneousAgentModelCatalog({
+      cwd,
+      deviceId: rpcDeviceId,
+      isDeviceListLoading,
+      isPreferenceLoading,
+      open,
+      provider,
+      targetReady,
+      type,
+    });
 
     const catalogModels = useMemo(() => data?.models ?? [], [data]);
     const selectedIsStale =
