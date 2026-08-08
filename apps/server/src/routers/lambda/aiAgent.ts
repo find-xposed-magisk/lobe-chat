@@ -21,6 +21,7 @@ import { wsCompatProcedure } from '@/business/server/trpc-middlewares/workspaceA
 import { MessageModel } from '@/database/models/message';
 import { ThreadModel } from '@/database/models/thread';
 import { TopicModel } from '@/database/models/topic';
+import { UserModel } from '@/database/models/user';
 import { agentOperations, topics } from '@/database/schemas';
 import type { LobeChatDatabase } from '@/database/type';
 import { heteroAuthedProcedure, router } from '@/libs/trpc/lambda';
@@ -631,12 +632,24 @@ const aiAgentProcedure = wsCompatProcedure.use(serverDatabase).use(async (opts) 
   const { ctx } = opts;
   const wsId = ctx.workspaceId ?? undefined;
 
+  // Read market accessToken from user_settings.market so server-side agent runtime
+  // can authenticate with the Market API for creds operations.
+  let marketAccessToken: string | undefined;
+  try {
+    const userModel = new UserModel(ctx.serverDB!, ctx.userId);
+    const settings = await userModel.getUserSettings();
+    marketAccessToken = (settings?.market as any)?.accessToken;
+  } catch {
+    // non-fatal — MarketService will fall back to trustedClientToken
+  }
+
   return opts.next({
     ctx: {
       agentRuntimeService: new AgentRuntimeService(ctx.serverDB, ctx.userId, {
         workspaceId: wsId,
       }),
       aiAgentService: new AiAgentService(ctx.serverDB, ctx.userId, {
+        marketAccessToken,
         withholdGatewayToken:
           ctx.apiKeyScopes !== undefined && !isFullAccessApiKey(ctx.apiKeyScopes),
         workspaceId: wsId,
