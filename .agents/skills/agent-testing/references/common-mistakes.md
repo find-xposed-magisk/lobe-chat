@@ -102,7 +102,7 @@ one-line probe could have checked.
 ## M5 — Attaching a stale "before" screenshot as a passed case's evidence (unlabeled)
 
 **Wrong approach**: putting BOTH the "after" and a stale "before" screenshot into the
-same `cases[].evidence` array, unlabeled. The verify page renders every evidence
+same `cases[].evidence` array, unlabeled. The acceptance page renders every evidence
 image with its filename as a heading, so the user opens the stale shots and concludes
 the fix didn't land.
 
@@ -146,7 +146,7 @@ logic bug.
 
 ---
 
-## M7 — Embedding a local-path screenshot in the chat reply
+## M7 — Exposing working-artifact paths in the chat reply
 
 **Wrong approach**: ending the final reply with an inline image embed or link
 pointing at the local report dir, believing it will render as a picture in chat.
@@ -159,12 +159,12 @@ never inside the message.
 **What it breaks**: the reply looks like it has evidence but shows nothing — the user
 gets a broken box and has to go find the acceptance link anyway.
 
-**Correct approach**: put NO images and NO local-file links in the chat reply. The
+**Correct approach**: put NO images and NO local paths or local-file links in the
+chat reply. The
 published `/acceptance/<id>` page already renders every screenshot inline (append
 `?r=<roundIndex>` for this round's fixed snapshot) — that URL is the only visual
-deliverable; never link the raw `/verify/<id>` page. Describe key visual outcomes in
-prose; mention the local report dir as a plain string (not a markdown link) if a
-reference is useful.
+deliverable. Describe key visual outcomes in prose without exposing the working
+artifact location or any internal run-page path.
 
 ---
 
