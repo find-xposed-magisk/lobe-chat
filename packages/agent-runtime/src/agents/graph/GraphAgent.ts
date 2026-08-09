@@ -1,6 +1,7 @@
 import { ToolNameResolver } from '@lobechat/context-engine';
 import type { AgentGraphEdge, AgentGraphNode, ReasoningGraph } from '@lobechat/types';
 import { AGENT_GRAPH_ROOT_NODE_ID } from '@lobechat/types';
+import { toJsonSafe } from '@lobechat/utils/json';
 import type { UnknownRecord } from '@lobechat/utils/object';
 import { isRecord } from '@lobechat/utils/object';
 import Ajv from 'ajv';
@@ -13,8 +14,13 @@ import type {
   FinishReason,
   GeneralAgentCallLLMInstructionPayload,
   GeneralAgentConfig,
-} from '../types';
-import { GeneralChatAgent } from './GeneralChatAgent';
+} from '../../types';
+import { GeneralChatAgent } from '../GeneralChatAgent';
+import {
+  evaluateGraphPromptTrigger,
+  getGraphBudgetStatus,
+  materializeGraphPromptContext,
+} from './graphPromptContext';
 
 const GRAPH_RUNTIME_STATE_KEY = '__graphRuntimeState';
 const DEFAULT_MAX_GRAPH_INSTRUCTION_COUNT = 256;
@@ -207,7 +213,13 @@ export class GraphAgent implements Agent {
       graphState = orchestration.graphState;
       this.updateGraphRuntimeState(state, { graphContext, graphState, instructionCount });
 
-      const instruction = this.resolveRuntimeInstruction(orchestration);
+      const instruction = this.applyGraphPromptHooks({
+        context,
+        graphContext,
+        graphState,
+        instruction: this.resolveRuntimeInstruction(orchestration),
+        state,
+      });
 
       // If the graph state machine lowers to a runtime instruction or reaches fin,
       // we can return the instruction to the runtime.
@@ -344,25 +356,12 @@ export class GraphAgent implements Agent {
             .filter((name): name is string => typeof name === 'string');
 
     if (!graphState.active) {
-      const prompt = this.renderPrompt({
-        input_context: this.resolveNodeInputContext(graphState.incomingEdge, input),
-        output_contract: this.getOutputSchema(graphState.incomingEdge) as PromptObject,
-        task_instruction: graphState.incomingEdge.instruction,
-      });
-      const callLlm = (prompt: string): AgentInstruction => {
-        const payload: GeneralAgentCallLLMInstructionPayload = {
-          allowedToolNames,
-          messages: [...state.messages, { content: prompt, role: 'user' as const }],
-          model: state.modelRuntimeConfig?.model ?? '',
-          provider: state.modelRuntimeConfig?.provider ?? '',
-          tools,
-        };
-
-        return {
-          payload,
-          stepLabel: graphState.currentNode,
-          type: 'call_llm',
-        };
+      const payload: GeneralAgentCallLLMInstructionPayload = {
+        allowedToolNames,
+        messages: state.messages,
+        model: state.modelRuntimeConfig?.model ?? '',
+        provider: state.modelRuntimeConfig?.provider ?? '',
+        tools,
       };
 
       return {
@@ -372,7 +371,11 @@ export class GraphAgent implements Agent {
           active: true,
           nodeStartStepCount: state.stepCount,
         },
-        instruction: callLlm(prompt),
+        instruction: {
+          payload,
+          stepLabel: graphState.currentNode,
+          type: 'call_llm',
+        },
       };
     }
 
@@ -630,6 +633,61 @@ export class GraphAgent implements Agent {
     return Array.isArray(instruction)
       ? instruction.some((item) => item.type === 'finish')
       : instruction.type === 'finish';
+  }
+
+  private applyGraphPromptHooks(input: {
+    context: AgentRuntimeContext;
+    graphContext: GraphContext;
+    graphState: GraphState;
+    instruction?: AgentInstruction | AgentInstruction[];
+    state: AgentState;
+  }): AgentInstruction | AgentInstruction[] | undefined {
+    const { graphState, instruction } = input;
+    const callsLlm = Array.isArray(instruction)
+      ? instruction.some((item) => item.type === 'call_llm')
+      : instruction?.type === 'call_llm';
+
+    if (!instruction || !callsLlm || graphState.phase !== 'node_in' || !graphState.active) {
+      return instruction;
+    }
+
+    const node = this.getNodeById(graphState.currentNode);
+    if (!node) return instruction;
+
+    const usedNodeRuntimeSteps = Math.max(
+      0,
+      input.state.stepCount - (graphState.nodeStartStepCount ?? input.state.stepCount),
+    );
+    const budgetStatus = getGraphBudgetStatus(node, usedNodeRuntimeSteps);
+    const additionalContexts = materializeGraphPromptContext({
+      ...(node.type === 'agent' && node.allowedToolApiNames !== undefined
+        ? { allowedToolApiNames: node.allowedToolApiNames }
+        : {}),
+      budgetStatus,
+      inputContext: toJsonSafe(
+        this.resolveNodeInputContext(graphState.incomingEdge, {
+          context: input.context,
+          graphContext: input.graphContext,
+          graphState,
+          state: input.state,
+        }),
+      ),
+      outputContract: toJsonSafe(this.getOutputSchema(graphState.incomingEdge)),
+      stage: graphState.currentNode,
+      taskInstruction: graphState.incomingEdge.instruction,
+      trigger: evaluateGraphPromptTrigger({
+        budgetStatus,
+        isAfterCompression: input.context.phase === 'compression_result',
+        usedNodeRuntimeSteps,
+      }),
+    });
+
+    const attach = (item: AgentInstruction): AgentInstruction =>
+      item.type === 'call_llm'
+        ? { ...item, payload: { ...item.payload, additionalContexts } }
+        : item;
+
+    return Array.isArray(instruction) ? instruction.map(attach) : attach(instruction);
   }
 
   private loadGraphRuntimeState(state: Readonly<AgentState>): GraphRuntimeState {

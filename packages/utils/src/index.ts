@@ -12,6 +12,7 @@ export * from './format';
 export * from './imageMimeType';
 export * from './imageToBase64';
 export * from './jina';
+export * from './json';
 export * from './keyboard';
 export * from './merge';
 export * from './mimeType';

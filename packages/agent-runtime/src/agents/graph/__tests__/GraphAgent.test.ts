@@ -3,11 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { ToolNameResolver } from '@lobechat/context-engine';
-import type { ReasoningGraph } from '@lobechat/types';
+import type { ReasoningGraph, RuntimeAdditionalContextFragment } from '@lobechat/types';
 import { AGENT_GRAPH_ROOT_NODE_ID, ReasoningGraphSchema } from '@lobechat/types';
 import { describe, expect, it } from 'vitest';
 
-import type { AgentInstruction, AgentRuntimeContext, AgentState } from '../../types';
+import type { AgentInstruction, AgentRuntimeContext, AgentState } from '../../../types';
 import { GraphAgent } from '../GraphAgent';
 
 const GRAPH_RUNTIME_STATE_KEY = '__graphRuntimeState';
@@ -98,6 +98,36 @@ const getLastPrompt = (instruction: AgentInstruction | AgentInstruction[]) => {
 
   return typeof lastMessage?.content === 'string' ? lastMessage.content : '';
 };
+
+const getAdditionalContexts = (
+  instruction: AgentInstruction | AgentInstruction[],
+): readonly RuntimeAdditionalContextFragment[] => {
+  const additionalContexts = expectCallLlm(instruction).payload.additionalContexts;
+  expect(additionalContexts).toBeDefined();
+
+  return additionalContexts as readonly RuntimeAdditionalContextFragment[];
+};
+
+const getFragment = (
+  instruction: AgentInstruction | AgentInstruction[],
+  tag: string,
+): RuntimeAdditionalContextFragment | undefined =>
+  getAdditionalContexts(instruction).find((fragment) => fragment.wrapper.tag === tag);
+
+const getGraphNodeContext = (instruction: AgentInstruction | AgentInstruction[]) => {
+  const fragment = getFragment(instruction, 'graph_node_context');
+  expect(fragment?.content.type).toBe('sections');
+
+  return fragment as RuntimeAdditionalContextFragment & {
+    content: Extract<RuntimeAdditionalContextFragment['content'], { type: 'sections' }>;
+  };
+};
+
+const getGraphNodeSection = (instruction: AgentInstruction | AgentInstruction[], tag: string) =>
+  getGraphNodeContext(instruction).content.sections.find((section) => section.tag === tag)?.value;
+
+const getGraphNodeContextText = (instruction: AgentInstruction | AgentInstruction[]) =>
+  JSON.stringify(getGraphNodeContext(instruction));
 
 const loadGoalLoopGraph = (): ReasoningGraph => {
   const graph = JSON.parse(
@@ -441,7 +471,47 @@ describe('GraphAgent', () => {
   });
 
   describe('prompt', () => {
-    it('should render node instruction, upstream field value, upstream field description, and deliverable target', async () => {
+    it('should attach node context and entry guidance without the legacy node envelope', async () => {
+      const agent = new GraphAgent({
+        agentConfig: { maxSteps: 100 },
+        graph: loadGoalLoopGraph(),
+        operationId: 'test-operation',
+      });
+      const messages = [{ content: '/goal inspect graph context', role: 'user' as const }];
+      const state = createMockState({ messages });
+
+      const instruction = await agent.runner(createContext('init'), state);
+      const call = expectCallLlm(instruction);
+      const additionalContexts = getAdditionalContexts(instruction);
+
+      expect(call.payload.messages).toEqual(messages);
+      expect(call.payload.messages).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ content: expect.stringContaining('<task_instruction>') }),
+        ]),
+      );
+      expect(additionalContexts).toHaveLength(2);
+      expect(additionalContexts.map(({ wrapper }) => wrapper.tag)).toEqual([
+        'graph_node_context',
+        'graph_runtime_guidance',
+      ]);
+      expect(additionalContexts.map(({ placement }) => placement)).toEqual([
+        'stable_prefix',
+        'virtual_tail',
+      ]);
+      expect(getFragment(instruction, 'graph_runtime_guidance')).toMatchObject({
+        wrapper: { attributes: { stage: 'plan' } },
+      });
+      expect(getGraphNodeSection(instruction, 'allowed_tool_api_names')).toEqual([
+        'read',
+        'search',
+      ]);
+      expect(getGraphNodeSection(instruction, 'task_instruction')).toContain(
+        'Convert the user /goal request into concrete goals.',
+      );
+    });
+
+    it('should attach node instruction, upstream field value, field description, and deliverable target', async () => {
       const agent = new GraphAgent({
         agentConfig: { maxSteps: 100 },
         graph: loadGoalLoopGraph(),
@@ -463,22 +533,20 @@ describe('GraphAgent', () => {
         createLlmResultContext(JSON.stringify({ goals })),
         state,
       );
-      const prompt = getLastPrompt(workInstruction);
+      const serializedContext = getGraphNodeContextText(workInstruction);
 
-      expect(prompt).toContain('<task_instruction>');
-      expect(prompt).toContain('<input_context>');
-      expect(prompt).toContain('<output_contract>');
-      expect(prompt).not.toContain('<taskInstruction>');
-      expect(prompt).not.toContain('<inputContext>');
-      expect(prompt).not.toContain('<outputContract>');
-      expect(prompt).toContain(
+      expect(getGraphNodeSection(workInstruction, 'task_instruction')).toBe(
         'Complete the planned goals. Work through the provided goals and summarize what changed.',
       );
-      expect(prompt).toContain('close prompt loop');
-      expect(prompt).toContain('Ensure prompt contains values and field semantics.');
-      expect(prompt).toContain('Concrete goals planned from the user request.');
-      expect(prompt).toContain('summary');
-      expect(prompt).toContain('Worker summary describing completed work and remaining risk.');
+      expect(getGraphNodeSection(workInstruction, 'allowed_tool_api_names')).toBeUndefined();
+      expect(serializedContext).toContain('close prompt loop');
+      expect(serializedContext).toContain('Ensure prompt contains values and field semantics.');
+      expect(serializedContext).toContain('Concrete goals planned from the user request.');
+      expect(serializedContext).toContain('summary');
+      expect(serializedContext).toContain(
+        'Worker summary describing completed work and remaining risk.',
+      );
+      expect(expectCallLlm(workInstruction).payload.messages).toEqual(state.messages);
     });
 
     it('should render multi-source input context and verifier output contract', async () => {
@@ -506,17 +574,21 @@ describe('GraphAgent', () => {
         createLlmResultContext(JSON.stringify({ summary })),
         state,
       );
-      const prompt = getLastPrompt(verifyInstruction);
+      const serializedContext = getGraphNodeContextText(verifyInstruction);
 
-      expect(prompt).toContain(
+      expect(getGraphNodeSection(verifyInstruction, 'task_instruction')).toBe(
         'Verify whether the work satisfies the planned goals. Return fin=true only when all goals are complete.',
       );
-      expect(prompt).toContain('Concrete goals planned from the user request.');
-      expect(prompt).toContain('Render upstream plan fields and worker result together.');
-      expect(prompt).toContain('Worker summary describing completed work and remaining risk.');
-      expect(prompt).toContain(summary);
-      expect(prompt).toContain('review');
-      expect(prompt).toContain('Verifier decision and unfinished goals.');
+      expect(serializedContext).toContain('Concrete goals planned from the user request.');
+      expect(serializedContext).toContain(
+        'Render upstream plan fields and worker result together.',
+      );
+      expect(serializedContext).toContain(
+        'Worker summary describing completed work and remaining risk.',
+      );
+      expect(serializedContext).toContain(summary);
+      expect(serializedContext).toContain('review');
+      expect(serializedContext).toContain('Verifier decision and unfinished goals.');
     });
 
     it('should render extraction instruction, format instruction, schema, and previous error', async () => {
@@ -546,6 +618,7 @@ describe('GraphAgent', () => {
       expect(prompt).toContain('Concrete goals planned from the user request.');
       expect(prompt).toContain('<previous_error>');
       expect(prompt).toContain('The node output is not valid JSON.');
+      expect(expectCallLlm(extractionInstruction).payload.additionalContexts).toBeUndefined();
     });
 
     it('should render raw fallback context once when declared input fields are missing', async () => {
@@ -587,14 +660,129 @@ describe('GraphAgent', () => {
         workInstruction = await agent.runner(createLlmResultContext(content), state);
       }
       if (!workInstruction) throw new Error('Expected work instruction');
-      const prompt = getLastPrompt(workInstruction);
+      const context = getGraphNodeContextText(workInstruction);
 
-      expect(prompt).toContain('rawFallback');
-      expect(prompt).toContain(
+      expect(context).toContain('rawFallback');
+      expect(context).toContain(
         'Declared input fields were missing from this source output. Use this raw source output as fallback context.',
       );
-      expect(prompt).toContain('plan failed but left useful raw planning notes');
-      expect(prompt.match(/plan failed but left useful raw planning notes/g)).toHaveLength(1);
+      expect(context).toContain('plan failed but left useful raw planning notes');
+      expect(context.match(/plan failed but left useful raw planning notes/g)).toHaveLength(1);
+    });
+
+    it('should derive normal guidance cadence from existing node runtime steps', async () => {
+      const graph = loadGoalLoopGraph();
+      const agent = new GraphAgent({
+        agentConfig: { maxSteps: 100 },
+        graph: {
+          ...graph,
+          nodes: {
+            ...graph.nodes,
+            plan: { allowedToolApiNames: ['read', 'search'], maxAgentSteps: 100, type: 'agent' },
+          },
+        },
+        modelRuntimeConfig: { model: 'gpt-4', provider: 'openai' },
+        operationId: 'test-operation',
+      });
+      const state = createMockState({
+        messages: [{ content: '/goal inspect cadence', role: 'user' }],
+      });
+
+      await agent.runner(createContext('init'), state);
+      state.stepCount = 7;
+      const stepSeven = await agent.runner(
+        createContext('tools_batch_result', { parentMessageId: 'tool-msg-7' }),
+        state,
+      );
+      state.stepCount = 8;
+      const stepEight = await agent.runner(
+        createContext('tools_batch_result', { parentMessageId: 'tool-msg-8' }),
+        state,
+      );
+
+      expect(getFragment(stepSeven, 'graph_runtime_guidance')).toBeUndefined();
+      expect(getFragment(stepSeven, 'graph_node_context')).toMatchObject({
+        wrapper: { tag: 'graph_node_context' },
+      });
+      expect(getFragment(stepEight, 'graph_runtime_guidance')).toMatchObject({
+        wrapper: { attributes: { stage: 'plan' } },
+      });
+      expect(Object.keys(getGraphRuntimeState(state) ?? {}).sort()).toEqual([
+        'graphContext',
+        'graphState',
+        'instructionCount',
+      ]);
+    });
+
+    it('should use four-step guidance cadence near a finite node budget', async () => {
+      const graph = loadGoalLoopGraph();
+      const agent = new GraphAgent({
+        agentConfig: { maxSteps: 100 },
+        graph: {
+          ...graph,
+          nodes: {
+            ...graph.nodes,
+            plan: { allowedToolApiNames: ['read', 'search'], maxAgentSteps: 20, type: 'agent' },
+          },
+        },
+        modelRuntimeConfig: { model: 'gpt-4', provider: 'openai' },
+        operationId: 'test-operation',
+      });
+      const state = createMockState({
+        messages: [{ content: '/goal inspect near budget cadence', role: 'user' }],
+      });
+
+      await agent.runner(createContext('init'), state);
+      state.stepCount = 15;
+      const beforeWindow = await agent.runner(
+        createContext('tools_batch_result', { parentMessageId: 'tool-msg-15' }),
+        state,
+      );
+      state.stepCount = 16;
+      const inWindow = await agent.runner(
+        createContext('tools_batch_result', { parentMessageId: 'tool-msg-16' }),
+        state,
+      );
+      state.stepCount = 17;
+      const betweenCadence = await agent.runner(
+        createContext('tools_batch_result', { parentMessageId: 'tool-msg-17' }),
+        state,
+      );
+
+      expect(getFragment(beforeWindow, 'graph_runtime_guidance')).toBeUndefined();
+      expect(getFragment(inWindow, 'graph_runtime_guidance')).toMatchObject({
+        wrapper: { attributes: { budget_status: 'near_exhaustion', stage: 'plan' } },
+      });
+      expect(getFragment(betweenCadence, 'graph_runtime_guidance')).toBeUndefined();
+    });
+
+    it('should emit guidance immediately after compression', async () => {
+      const agent = new GraphAgent({
+        agentConfig: { maxSteps: 100 },
+        graph: loadGoalLoopGraph(),
+        modelRuntimeConfig: { model: 'gpt-4', provider: 'openai' },
+        operationId: 'test-operation',
+      });
+      const state = createMockState({
+        messages: [{ content: '/goal rebuild after compression', role: 'user' }],
+      });
+
+      await agent.runner(createContext('init'), state);
+      state.stepCount = 3;
+      const instruction = await agent.runner(
+        createContext('compression_result', {
+          compressedMessages: state.messages,
+          parentMessageId: 'compressed-parent',
+        }),
+        state,
+      );
+
+      expect(getFragment(instruction, 'graph_runtime_guidance')).toMatchObject({
+        wrapper: { attributes: { stage: 'plan' } },
+      });
+      expect(getFragment(instruction, 'graph_node_context')).toMatchObject({
+        wrapper: { tag: 'graph_node_context' },
+      });
     });
   });
 
@@ -643,7 +831,9 @@ describe('GraphAgent', () => {
       expect(getGraphStore(state)?.[AGENT_GRAPH_ROOT_NODE_ID]).toEqual({
         query: '/goal refactor graph agent runtime',
       });
-      expect(getLastPrompt(planInstruction)).toContain('/goal refactor graph agent runtime');
+      expect(getGraphNodeContextText(planInstruction)).toContain(
+        '/goal refactor graph agent runtime',
+      );
 
       const goals = [
         { desc: 'Define the graph schema for goal loops.', name: 'design schema' },
@@ -659,8 +849,8 @@ describe('GraphAgent', () => {
       const workCall = expectCallLlm(workInstruction);
       expect(workCall.stepLabel).toBe('work');
       expect(workCall.payload.allowedToolNames).toBeUndefined();
-      expect(getLastPrompt(workInstruction)).toContain('design schema');
-      expect(getLastPrompt(workInstruction)).toContain(
+      expect(getGraphNodeContextText(workInstruction)).toContain('design schema');
+      expect(getGraphNodeContextText(workInstruction)).toContain(
         'Cover the plan-work-verify loop with tests.',
       );
 
@@ -676,8 +866,8 @@ describe('GraphAgent', () => {
       expect(verifyCall.stepLabel).toBe('verify');
       expect(verifyCall.payload.allowedToolNames).toEqual([]);
       expect(verifyCall.payload.tools).toEqual([]);
-      expect(getLastPrompt(verifyInstruction)).toContain('design schema');
-      expect(getLastPrompt(verifyInstruction)).toContain(firstSummary);
+      expect(getGraphNodeContextText(verifyInstruction)).toContain('design schema');
+      expect(getGraphNodeContextText(verifyInstruction)).toContain(firstSummary);
 
       const unfinishedGoal = {
         desc: 'The goal-loop E2E still needs a passing verification branch.',
@@ -703,8 +893,8 @@ describe('GraphAgent', () => {
       });
       expect(getGraphState(state)).toMatchObject({ currentNode: 'work', phase: 'node_in' });
       expect(expectCallLlm(reworkInstruction).stepLabel).toBe('work');
-      expect(getLastPrompt(reworkInstruction)).toContain('finish tests');
-      expect(getLastPrompt(reworkInstruction)).toContain(
+      expect(getGraphNodeContextText(reworkInstruction)).toContain('finish tests');
+      expect(getGraphNodeContextText(reworkInstruction)).toContain(
         'The goal-loop E2E still needs a passing verification branch.',
       );
 
@@ -717,7 +907,7 @@ describe('GraphAgent', () => {
       expect(getGraphStore(state)?.work).toEqual({ summary: finalSummary });
       expect(getGraphState(state)).toMatchObject({ currentNode: 'verify', phase: 'node_in' });
       expect(expectCallLlm(finalVerifyInstruction).stepLabel).toBe('verify');
-      expect(getLastPrompt(finalVerifyInstruction)).toContain(finalSummary);
+      expect(getGraphNodeContextText(finalVerifyInstruction)).toContain(finalSummary);
 
       const result = await agent.runner(
         createLlmResultContext(
@@ -1053,8 +1243,8 @@ describe('GraphAgent', () => {
       );
 
       expect(expectCallLlm(matchedInstruction).stepLabel).toBe('matched');
-      expect(getLastPrompt(matchedInstruction)).toContain('Matched route instruction.');
-      expect(getLastPrompt(matchedInstruction)).toContain('go');
+      expect(getGraphNodeContextText(matchedInstruction)).toContain('Matched route instruction.');
+      expect(getGraphNodeContextText(matchedInstruction)).toContain('go');
 
       const fallbackAgent = new GraphAgent({
         agentConfig: { maxSteps: 100 },
@@ -1072,8 +1262,8 @@ describe('GraphAgent', () => {
       );
 
       expect(expectCallLlm(fallbackInstruction).stepLabel).toBe('fallback');
-      expect(getLastPrompt(fallbackInstruction)).toContain('Fallback route instruction.');
-      expect(getLastPrompt(fallbackInstruction)).toContain('stop');
+      expect(getGraphNodeContextText(fallbackInstruction)).toContain('Fallback route instruction.');
+      expect(getGraphNodeContextText(fallbackInstruction)).toContain('stop');
     });
 
     it('should treat invalid condition schemas as no match and use the default edge', async () => {
@@ -1137,10 +1327,12 @@ describe('GraphAgent', () => {
       );
 
       expect(expectCallLlm(fallbackInstruction).stepLabel).toBe('fallback');
-      expect(getLastPrompt(fallbackInstruction)).toContain(
+      expect(getGraphNodeContextText(fallbackInstruction)).toContain(
         'Default route after invalid condition.',
       );
-      expect(getLastPrompt(fallbackInstruction)).not.toContain('Invalid condition route.');
+      expect(getGraphNodeContextText(fallbackInstruction)).not.toContain(
+        'Invalid condition route.',
+      );
     });
 
     it('should retry extraction when parsed JSON does not match the edge output schema', async () => {
@@ -1181,7 +1373,9 @@ describe('GraphAgent', () => {
 
       expect(getGraphStore(state)?.plan).toEqual({ goals });
       expect(expectCallLlm(workInstruction).stepLabel).toBe('work');
-      expect(getLastPrompt(workInstruction)).toContain('Recovered with a valid goal description.');
+      expect(getGraphNodeContextText(workInstruction)).toContain(
+        'Recovered with a valid goal description.',
+      );
     });
 
     it('should request fenced json extraction and commit recovered node output', async () => {
@@ -1224,7 +1418,7 @@ describe('GraphAgent', () => {
       expect(getGraphStore(state)?.plan).toEqual({ goals });
       expect(getGraphState(state)).toMatchObject({ currentNode: 'work', phase: 'node_in' });
       expect(expectCallLlm(workInstruction).stepLabel).toBe('work');
-      expect(getLastPrompt(workInstruction)).toContain('Cover graph extraction retry.');
+      expect(getGraphNodeContextText(workInstruction)).toContain('Cover graph extraction retry.');
     });
 
     it('should stop the verify-to-work loop when maxTraversals is reached', async () => {
