@@ -1441,11 +1441,13 @@ export default {
   'createGoal.costBudgetPlaceholder': 'No cap',
   'createGoal.createFailed': 'Failed to create goal',
   'createGoal.back': 'Back',
+  'createGoal.budgetTitle': 'Budget',
   'createGoal.contextLabel': 'Context for the Agent',
   'createGoal.contextHint': 'Add constraints, source material, or anything the Agent should know',
   'createGoal.criterionPlaceholder': 'Describe a result that can be clearly checked',
   'createGoal.criteriaHint': 'Review and edit these before the goal starts',
-  'createGoal.criteriaTitle': 'What counts as done',
+  'createGoal.criteriaTitle': 'Acceptance criteria',
+  'createGoal.describeTitle': 'What outcome do you want?',
   'createGoal.describeHint': 'Describe the outcome first, then complete its execution plan.',
   'createGoal.generateFailed': 'Could not draft acceptance criteria. Try again.',
   'createGoal.instructionPlaceholder':
@@ -1468,7 +1470,7 @@ export default {
   'createGoal.roundBudgetUncappedHint':
     'It keeps going until the goal is reached — watch the cost.',
   'createGoal.submit': 'Create goal',
-  'createGoal.titlePlaceholder': 'The outcome you want',
+  'createGoal.titlePlaceholder': 'Goal title',
   'createTask.assignee': 'Assignee',
   'createTask.collapse': 'Hide input',
   'createTask.createFailed': 'Failed to create task',
