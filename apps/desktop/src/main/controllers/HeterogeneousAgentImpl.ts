@@ -404,6 +404,23 @@ export default class HeterogeneousAgentCtr {
     });
   }
 
+  private resolveSessionWorkingDirectory(session: AgentSession): string {
+    return session.cwd || electronApp.getPath('desktop');
+  }
+
+  private buildWorkingDirectoryMissingError(
+    session: AgentSession,
+    workingDirectory: string,
+  ): HeterogeneousAgentSessionError {
+    return {
+      agentType: session.agentType,
+      code: HeterogeneousAgentSessionErrorCode.WorkingDirectoryNotFound,
+      command: this.resolveSessionCommand(session),
+      message: `Working directory does not exist: ${workingDirectory}`,
+      workingDirectory,
+    };
+  }
+
   private buildCliAuthRequiredError(
     session: AgentSession,
     stderr: string,
@@ -492,6 +509,11 @@ export default class HeterogeneousAgentCtr {
 
   private getSessionErrorPayload(error: unknown, session: AgentSession): SessionErrorPayload {
     if (typeof error === 'object' && error && 'code' in error && error.code === 'ENOENT') {
+      const workingDirectory = this.resolveSessionWorkingDirectory(session);
+      if (!existsSync(workingDirectory)) {
+        return this.buildWorkingDirectoryMissingError(session, workingDirectory);
+      }
+
       const cliMissingError = this.buildCliMissingError(session);
       if (cliMissingError) return cliMissingError;
     }
@@ -551,6 +573,11 @@ export default class HeterogeneousAgentCtr {
   private async getSpawnPreflightError(
     session: AgentSession,
   ): Promise<HeterogeneousAgentSessionError | undefined> {
+    const workingDirectory = this.resolveSessionWorkingDirectory(session);
+    if (!existsSync(workingDirectory)) {
+      return this.buildWorkingDirectoryMissingError(session, workingDirectory);
+    }
+
     const defaultCommand = getHeterogeneousAgentConfigOrThrow(session.agentType).defaultCommand;
 
     const command = this.resolveSessionCommand(session);
