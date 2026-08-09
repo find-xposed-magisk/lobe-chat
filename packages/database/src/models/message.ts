@@ -49,6 +49,7 @@ import {
   isNotNull,
   isNull,
   lte,
+  ne,
   not,
   or,
   sql,
@@ -406,6 +407,40 @@ export class MessageModel {
     buildWorkspaceWhere({ userId: this.userId, workspaceId: this.workspaceId }, agentsToSessions);
 
   // **************** Query *************** //
+
+  /**
+   * The newest user message of each given topic, keyed by topic id. Used to
+   * pre-inject recent same-channel history for IM platforms that can't read
+   * chat history at runtime (e.g. WeChat). Only `role = 'user'` rows with
+   * non-empty text are considered.
+   */
+  queryLastUserMessageByTopics = async (topicIds: string[]): Promise<Map<string, string>> => {
+    if (topicIds.length === 0) return new Map();
+
+    const rows = await this.db
+      .selectDistinctOn([messages.topicId], {
+        content: messages.content,
+        topicId: messages.topicId,
+      })
+      .from(messages)
+      .where(
+        and(
+          this.ownership(),
+          inArray(messages.topicId, topicIds),
+          eq(messages.role, 'user'),
+          isNotNull(messages.content),
+          ne(messages.content, ''),
+        ),
+      )
+      .orderBy(messages.topicId, desc(messages.createdAt));
+
+    const result = new Map<string, string>();
+    for (const row of rows) {
+      const content = (row.content ?? '').trim();
+      if (row.topicId && content) result.set(row.topicId, content);
+    }
+    return result;
+  };
 
   /**
    * Query messages by params (high-level API)
