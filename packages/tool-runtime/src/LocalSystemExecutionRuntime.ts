@@ -416,6 +416,10 @@ export class LocalSystemExecutionRuntime extends ComputerRuntime {
             commandId: raw.shell_id,
             durationMs: raw.duration_ms,
             outputFiles: raw.output_files,
+            // Carried through so the run itself can say whether it was fenced.
+            // The picker's chip only shows the user's intent, and a run that
+            // lost the flag somewhere in between looks identical otherwise.
+            sandboxed: raw.sandboxed,
             stderr: raw.stderr,
             stdout: raw.stdout,
             success: raw.success,

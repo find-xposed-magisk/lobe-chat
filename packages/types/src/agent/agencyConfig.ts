@@ -755,6 +755,38 @@ export interface LobeAgentAgencyConfig {
   executionTargetSelectionPolicy?: ExecutionTargetSelectionPolicy;
   heterogeneousProvider?: HeterogeneousProviderConfig;
   /**
+   * Confine the run's shell commands to the device sandbox. A *modifier* on
+   * `executionTarget: 'local'`, not a target of its own — the run still goes to
+   * the same machine through the same routing, it is only what the spawned
+   * command may touch that changes (writes limited to the working directory,
+   * no network).
+   *
+   * Modelled as a flag rather than a sixth `DeviceExecutionTarget` deliberately:
+   * every existing routing rule (web coercion, gateway upgrade, bot-trigger
+   * promotion, fixed-workspace policy) stays literally unchanged, and the flag
+   * composes if sandboxed execution later extends to `device` targets.
+   *
+   * Only shell commands are affected. File tools (`writeFile` / `editFile`) run
+   * in the desktop process itself, and heterogeneous CLI agents spawn through
+   * their own path — neither passes through the sandboxed runner. Say
+   * "commands" in user-facing copy, never "the agent".
+   */
+  localSandbox?: boolean;
+  /**
+   * Let the sandboxed commands reach the package-registry allowlist. Only
+   * meaningful with {@link localSandbox}; defaults to off.
+   *
+   * A separate field rather than a tri-state on `localSandbox` because the two
+   * answer different questions ("fence this?" vs "may the fence let installs
+   * through?"), and because the network choice must survive toggling the
+   * sandbox off and back on.
+   *
+   * Never means "the network is open" — the sandbox backend rejects a catch-all
+   * allowlist outright, so this opens a fixed set of registries and forges.
+   * User-facing copy must not promise more than that.
+   */
+  localSandboxNetwork?: boolean;
+  /**
    * Workspace model-selection policy. `fixed` keeps the shared agent model
    * authoritative; `member` enables a per-user model override stored in
    * `workspace_user_settings.preference`. Missing values on public Workspace
@@ -841,6 +873,9 @@ export const DEFAULT_WORKSPACE_AGENT_SELECTION_POLICIES = {
  * - `fixed` shared config ignores the caller override entirely
  * - `override.executionTarget` wins when set; falls back to shared
  * - `override.boundDeviceId` wins when set; falls back to shared
+ * - `override.localSandbox` wins when set; falls back to shared. It rides along
+ *   with the target because it qualifies *this member's* local execution — one
+ *   member sandboxing their own machine says nothing about anyone else's.
  * - Nothing else (heterogeneousProvider, verifyRubricId, workingDirByDevice)
  *   is overridable — those describe the agent, not this user's routing
  *
@@ -850,18 +885,31 @@ export const DEFAULT_WORKSPACE_AGENT_SELECTION_POLICIES = {
  */
 export const resolveAgencyConfig = (
   agencyConfig: LobeAgentAgencyConfig | null | undefined,
-  override: Pick<LobeAgentAgencyConfig, 'boundDeviceId' | 'executionTarget'> | null | undefined,
+  override:
+    | Pick<
+        LobeAgentAgencyConfig,
+        'boundDeviceId' | 'executionTarget' | 'localSandbox' | 'localSandboxNetwork'
+      >
+    | null
+    | undefined,
 ): LobeAgentAgencyConfig | undefined => {
   const base = normalizeAgencyConfigHeterogeneousProvider(agencyConfig);
   if (base?.executionTargetSelectionPolicy === 'fixed') return base;
   if (!override) return base;
   const hasTarget = override.executionTarget !== undefined;
   const hasDevice = override.boundDeviceId !== undefined;
-  if (!hasTarget && !hasDevice) return base;
+  // `false` is a real value here — a member turning the sandbox (or its network
+  // allowance) back off must override a shared `true`, so test for presence,
+  // not truthiness.
+  const hasLocalSandbox = override.localSandbox !== undefined;
+  const hasLocalSandboxNetwork = override.localSandboxNetwork !== undefined;
+  if (!hasTarget && !hasDevice && !hasLocalSandbox && !hasLocalSandboxNetwork) return base;
   return {
     ...base,
     ...(hasTarget ? { executionTarget: override.executionTarget } : {}),
     ...(hasDevice ? { boundDeviceId: override.boundDeviceId } : {}),
+    ...(hasLocalSandbox ? { localSandbox: override.localSandbox } : {}),
+    ...(hasLocalSandboxNetwork ? { localSandboxNetwork: override.localSandboxNetwork } : {}),
   };
 };
 
@@ -882,7 +930,13 @@ export interface AgentAgencyConfigContext {
  */
 export const resolveAgentAgencyConfig = (
   agencyConfig: LobeAgentAgencyConfig | null | undefined,
-  override: Pick<LobeAgentAgencyConfig, 'boundDeviceId' | 'executionTarget'> | null | undefined,
+  override:
+    | Pick<
+        LobeAgentAgencyConfig,
+        'boundDeviceId' | 'executionTarget' | 'localSandbox' | 'localSandboxNetwork'
+      >
+    | null
+    | undefined,
   context: AgentAgencyConfigContext,
 ): LobeAgentAgencyConfig | undefined => {
   const base = normalizeAgencyConfigHeterogeneousProvider(agencyConfig);

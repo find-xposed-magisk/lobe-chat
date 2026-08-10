@@ -36,6 +36,31 @@ vi.mock('../CliCtr', () => ({
   default: class CliCtr {},
 }));
 
+const {
+  mockCanInstallSandbox,
+  mockCreateSandboxLaunchPlan,
+  mockInstallDeviceSandbox,
+  mockProbeSandboxCapability,
+} = vi.hoisted(() => ({
+  mockCanInstallSandbox: vi.fn(),
+  mockCreateSandboxLaunchPlan: vi.fn(),
+  mockInstallDeviceSandbox: vi.fn(),
+  mockProbeSandboxCapability: vi.fn(),
+}));
+
+vi.mock('@lobechat/device-sandbox', () => ({
+  canInstallSandbox: () => mockCanInstallSandbox(),
+  installDeviceSandbox: () => mockInstallDeviceSandbox(),
+  createLocalSandboxPolicy: (cwd: string, options?: { allowNetwork?: boolean }) => ({
+    allowNetwork: options?.allowNetwork === true,
+    onUnavailable: 'deny',
+    writableRoots: [cwd],
+    ...(options?.allowNetwork ? { allowedNetworkDomains: ['*.npmjs.org'] } : {}),
+  }),
+  createSandboxLaunchPlan: (...args: unknown[]) => mockCreateSandboxLaunchPlan(...args),
+  probeSandboxCapability: () => mockProbeSandboxCapability(),
+}));
+
 const mockCliCtr = {
   runCliCommand: vi.fn().mockResolvedValue({ exitCode: 0, stderr: '', stdout: 'cli output\n' }),
 };
@@ -178,6 +203,322 @@ describe('ShellCommandCtr (thin wrapper)', () => {
 
     expect(mockCliCtr.runCliCommand).toHaveBeenCalledWith('search test');
     expect(result.success).toBe(true);
+  });
+
+  describe('local sandbox', () => {
+    beforeEach(() => {
+      // Default to a host with a one-click setup (Windows); the cases that care
+      // about the other platforms override it.
+      mockCanInstallSandbox.mockReturnValue(true);
+      mockProbeSandboxCapability.mockResolvedValue({
+        available: true,
+        backend: 'srt',
+        networkIsolation: true,
+      });
+      mockCreateSandboxLaunchPlan.mockResolvedValue({
+        args: ['-c', 'echo test'],
+        capability: { available: true, backend: 'srt', networkIsolation: true },
+        cmd: '/usr/bin/sandbox-exec',
+        env: {},
+        release: vi.fn(),
+        sandboxed: true,
+      });
+    });
+
+    it('never touches the sandbox for an ordinary command', async () => {
+      // The historical path must stay byte-identical for agents that never
+      // opted in — including not loading the sandbox runtime at all.
+      mockProcessOutput = 'output\n';
+      setTimeout(() => {
+        mockChildProcess.exitCode = 0;
+        emitChildProcess('exit', 0);
+        emitChildProcess('close', 0);
+      }, 10);
+
+      await ctr.handleRunCommand({ command: 'echo test', cwd: '/repo' });
+
+      expect(mockProbeSandboxCapability).not.toHaveBeenCalled();
+      expect(mockCreateSandboxLaunchPlan).not.toHaveBeenCalled();
+    });
+
+    it('spawns the sandbox-wrapped command when the run is sandboxed', async () => {
+      mockProcessOutput = 'output\n';
+      setTimeout(() => {
+        mockChildProcess.exitCode = 0;
+        emitChildProcess('exit', 0);
+        emitChildProcess('close', 0);
+      }, 10);
+
+      await ctr.handleRunCommand({ command: 'echo test', cwd: '/repo', sandbox: true });
+
+      expect(mockCreateSandboxLaunchPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cwd: '/repo',
+          policy: expect.objectContaining({ allowNetwork: false, writableRoots: ['/repo'] }),
+        }),
+      );
+      expect(mockSpawn).toHaveBeenCalledWith(
+        '/usr/bin/sandbox-exec',
+        ['-c', 'echo test'],
+        expect.anything(),
+      );
+    });
+
+    it('refuses a sandboxed run with no working directory to confine', async () => {
+      // Falling back to process.cwd() would fence the app install directory and
+      // still report success — a guarantee about the wrong place.
+      const result = await ctr.handleRunCommand({ command: 'echo test', sandbox: true });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('working directory');
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    it('fails the command instead of running it unsandboxed on an unsupported host', async () => {
+      mockProbeSandboxCapability.mockResolvedValue({
+        available: false,
+        backend: 'none',
+        networkIsolation: false,
+        reason: 'Sandbox Runtime does not support win32',
+      });
+
+      const result = await ctr.handleRunCommand({
+        command: 'echo test',
+        cwd: '/repo',
+        sandbox: true,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Sandbox Runtime does not support win32');
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    it('keeps the network shut unless the run opted in', async () => {
+      mockProcessOutput = 'output\n';
+      setTimeout(() => {
+        mockChildProcess.exitCode = 0;
+        emitChildProcess('exit', 0);
+        emitChildProcess('close', 0);
+      }, 10);
+
+      await ctr.handleRunCommand({ command: 'echo test', cwd: '/repo', sandbox: true });
+
+      expect(mockCreateSandboxLaunchPlan).toHaveBeenCalledWith(
+        expect.objectContaining({ policy: expect.objectContaining({ allowNetwork: false }) }),
+      );
+    });
+
+    it('opens the registry allowlist when the run opted in', async () => {
+      mockProcessOutput = 'output\n';
+      setTimeout(() => {
+        mockChildProcess.exitCode = 0;
+        emitChildProcess('exit', 0);
+        emitChildProcess('close', 0);
+      }, 10);
+
+      await ctr.handleRunCommand({
+        command: 'npm install',
+        cwd: '/repo',
+        sandbox: true,
+        sandboxNetwork: true,
+      });
+
+      expect(mockCreateSandboxLaunchPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          policy: expect.objectContaining({
+            allowNetwork: true,
+            allowedNetworkDomains: ['*.npmjs.org'],
+          }),
+        }),
+      );
+    });
+
+    it('downgrades the advertised capability once a fence fails to establish', async () => {
+      // Observed on a real Windows host: dependencies check out, then the first
+      // spawn is denied. Without the downgrade the picker keeps offering an
+      // environment where every command fails.
+      mockCreateSandboxLaunchPlan.mockRejectedValue(
+        new Error('WFP egress fence could not be verified'),
+      );
+
+      expect(await ctr.getSandboxCapability()).toEqual({
+        available: true,
+        canInstall: false,
+        reason: undefined,
+      });
+
+      const result = await ctr.handleRunCommand({
+        command: 'echo test',
+        cwd: '/repo',
+        sandbox: true,
+      });
+
+      expect(result.success).toBe(false);
+      expect(mockSpawn).not.toHaveBeenCalled();
+      expect(await ctr.getSandboxCapability()).toEqual({
+        available: false,
+        canInstall: true,
+        reason: 'WFP egress fence could not be verified',
+      });
+    });
+
+    it('does not downgrade because a sandboxed command exited non-zero', async () => {
+      // Only a failure to BUILD the fence says anything about the host. A
+      // command failing inside a working sandbox is the command's problem.
+      mockProcessOutput = 'boom\n';
+      setTimeout(() => {
+        mockChildProcess.exitCode = 1;
+        emitChildProcess('exit', 1);
+        emitChildProcess('close', 1);
+      }, 10);
+
+      await ctr.handleRunCommand({ command: 'exit 1', cwd: '/repo', sandbox: true });
+
+      expect(await ctr.getSandboxCapability()).toEqual({
+        available: true,
+        canInstall: false,
+        reason: undefined,
+      });
+    });
+
+    it('reports the host verdict to the renderer', async () => {
+      mockProbeSandboxCapability.mockResolvedValue({
+        available: false,
+        backend: 'none',
+        networkIsolation: false,
+        reason: 'bubblewrap is not installed',
+      });
+
+      expect(await ctr.getSandboxCapability()).toEqual({
+        available: false,
+        canInstall: true,
+        reason: 'bubblewrap is not installed',
+      });
+    });
+
+    describe('setup', () => {
+      it('re-reads the capability after a successful install', async () => {
+        // Installing the desktop app is supposed to be enough: the row goes
+        // from unavailable to usable without the user touching a terminal.
+        mockCanInstallSandbox.mockReturnValue(true);
+        mockProbeSandboxCapability.mockResolvedValue({
+          available: false,
+          backend: 'none',
+          networkIsolation: false,
+          reason: 'Sandbox user is not provisioned',
+        });
+        expect(await ctr.getSandboxCapability()).toEqual({
+          available: false,
+          canInstall: true,
+          reason: 'Sandbox user is not provisioned',
+        });
+
+        mockInstallDeviceSandbox.mockResolvedValue({ status: 'installed' });
+        mockProbeSandboxCapability.mockResolvedValue({
+          available: true,
+          backend: 'srt',
+          networkIsolation: true,
+        });
+
+        const result = await ctr.installSandbox();
+
+        expect(result.status).toBe('installed');
+        expect(result.capability.available).toBe(true);
+      });
+
+      it('clears a downgraded verdict so a fixed host can recover', async () => {
+        // The downgrade is sticky for the app run; setup is the one thing that
+        // must be able to lift it, or the button could never work.
+        mockCanInstallSandbox.mockReturnValue(true);
+        mockCreateSandboxLaunchPlan.mockRejectedValue(new Error('egress fence unverified'));
+        await ctr.handleRunCommand({ command: 'echo test', cwd: '/repo', sandbox: true });
+        expect((await ctr.getSandboxCapability()).available).toBe(false);
+
+        mockInstallDeviceSandbox.mockResolvedValue({ status: 'installed' });
+        mockProbeSandboxCapability.mockResolvedValue({
+          available: true,
+          backend: 'srt',
+          networkIsolation: true,
+        });
+
+        expect((await ctr.installSandbox()).capability.available).toBe(true);
+      });
+
+      it('reports a dismissed elevation prompt as cancelled, not a failure', async () => {
+        mockCanInstallSandbox.mockReturnValue(true);
+        mockInstallDeviceSandbox.mockResolvedValue({ status: 'cancelled' });
+        mockProbeSandboxCapability.mockResolvedValue({
+          available: false,
+          backend: 'none',
+          networkIsolation: false,
+          reason: 'Sandbox user is not provisioned',
+        });
+
+        const result = await ctr.installSandbox();
+
+        expect(result.status).toBe('cancelled');
+        expect(result.error).toBeUndefined();
+        expect(result.capability.available).toBe(false);
+      });
+
+      it('surfaces an install failure without leaving the capability stale', async () => {
+        mockCanInstallSandbox.mockReturnValue(true);
+        mockInstallDeviceSandbox.mockRejectedValue(new Error('WFP filter install failed'));
+        mockProbeSandboxCapability.mockResolvedValue({
+          available: false,
+          backend: 'none',
+          networkIsolation: false,
+          reason: 'Sandbox user is not provisioned',
+        });
+
+        const result = await ctr.installSandbox();
+
+        expect(result.status).toBe('failed');
+        expect(result.error).toBe('WFP filter install failed');
+        expect(result.capability.available).toBe(false);
+      });
+
+      it('carries manual instructions when the app cannot install it', async () => {
+        mockCanInstallSandbox.mockReturnValue(false);
+        mockInstallDeviceSandbox.mockResolvedValue({
+          instructions: 'sudo apt install bubblewrap',
+          status: 'not-installable',
+        });
+        mockProbeSandboxCapability.mockResolvedValue({
+          available: false,
+          backend: 'none',
+          networkIsolation: false,
+          reason: 'bubblewrap is not installed',
+        });
+
+        const result = await ctr.installSandbox();
+
+        expect(result.status).toBe('not-installable');
+        expect(result.capability.canInstall).toBe(false);
+        expect(result.capability.instructions).toBe('sudo apt install bubblewrap');
+      });
+
+      it('does not offer setup on a host that already has a sandbox', async () => {
+        mockCanInstallSandbox.mockReturnValue(true);
+        mockProbeSandboxCapability.mockResolvedValue({
+          available: true,
+          backend: 'srt',
+          networkIsolation: true,
+        });
+
+        expect((await ctr.getSandboxCapability()).canInstall).toBe(false);
+      });
+    });
+
+    it('treats a crashing probe as no sandbox', async () => {
+      mockProbeSandboxCapability.mockRejectedValue(new Error('module not found'));
+
+      expect(await ctr.getSandboxCapability()).toEqual({
+        available: false,
+        canInstall: true,
+        reason: 'module not found',
+      });
+    });
   });
 
   it('should return error for non-existent shell_id', async () => {

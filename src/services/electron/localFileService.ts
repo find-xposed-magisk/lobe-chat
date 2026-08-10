@@ -2,6 +2,8 @@ import { MARKDOWN_MIME_TYPES } from '@lobechat/const';
 import {
   type AuditSafePathsParams,
   type AuditSafePathsResult,
+  type DeviceSandboxCapabilityResult,
+  type DeviceSandboxInstallResult,
   type EditLocalFileParams,
   type EditLocalFileResult,
   type GetCommandOutputParams,
@@ -259,6 +261,23 @@ class LocalFileService {
   // Shell Commands
   async runCommand(params: RunCommandParams): Promise<RunCommandResult> {
     return ensureElectronIpc().shellCommand.handleRunCommand(params);
+  }
+
+  /**
+   * Whether this machine can run sandboxed commands. Asked before offering the
+   * "Local Sandbox" execution environment — the host, not the platform string,
+   * is the authority (Linux support depends on binaries that may be absent).
+   */
+  async getSandboxCapability(): Promise<DeviceSandboxCapabilityResult> {
+    return ensureElectronIpc().shellCommand.getSandboxCapability();
+  }
+
+  /**
+   * Provision the sandbox backend on this machine (one elevation prompt on
+   * Windows) and report the capability afterwards. User-initiated only.
+   */
+  async installSandbox(): Promise<DeviceSandboxInstallResult> {
+    return ensureElectronIpc().shellCommand.installSandbox();
   }
 
   async getCommandOutput(params: GetCommandOutputParams): Promise<GetCommandOutputResult> {
