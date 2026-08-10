@@ -272,6 +272,12 @@ export const taskKeys = {
       visibility,
     ],
   ),
+  /**
+   * The home rail's cross-agent goal roll-up. Scoped by cache scope like the
+   * other home feeds — goals are workspace rows, so a list left over from the
+   * previous workspace holds ids this one cannot open.
+   */
+  homeGoals: def('task:homeGoals', (scope: string) => ['task:homeGoals', scope]),
   list: def(
     'task:list',
     (agentKey: string | undefined, visibility: 'all' | 'private' | 'workspace' = 'all') => [
@@ -875,6 +881,15 @@ export const verifyKeys = {
       'verify:acceptanceBySubject',
       subjectType,
       subjectId,
+    ],
+  ),
+  /** Statuses for a known subject set. Ids are sorted+joined so the key is order-free. */
+  acceptanceStatuses: def(
+    'verify:acceptanceStatuses',
+    (subjectType: string, subjectIds: string[]) => [
+      'verify:acceptanceStatuses',
+      subjectType,
+      [...subjectIds].sort().join(','),
     ],
   ),
   acceptances: def('verify:acceptances', () => ['verify:acceptances']),
