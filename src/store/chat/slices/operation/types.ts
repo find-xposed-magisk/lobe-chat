@@ -16,6 +16,7 @@ import type {
 export type OperationType =
   // === Message sending ===
   | 'sendMessage' // Send message to server
+  | 'uploadVoiceMessage' // Upload a local voice recording before dispatching its turn
   | 'createTopic' // Auto create topic
   | 'regenerate' // Regenerate message
   | 'continue' // Continue generation
@@ -88,7 +89,8 @@ export type OperationStatus =
 /**
  * Operation context - business entity associations
  * Extends ConversationContext with operation-specific fields
- * Captured when Operation is created, never changes afterwards
+ * Captured when an operation is created. A temporary `_new` conversation may be rekeyed once
+ * the server resolves its persisted topic/thread id; all other context changes create a new op.
  */
 export interface OperationContext extends Partial<ConversationContext> {
   agentId?: string; // Associated agent ID (specific agent in Group Chat)
@@ -223,10 +225,11 @@ export interface Operation {
 /**
  * Per-file preview metadata snapshotted at enqueue time so the queue tray can
  * render thumbnails and the resumed sendMessage can rebuild the optimistic
- * imageList/videoList without relying on the global chat upload store (which
+ * audioList/imageList/videoList without relying on the global chat upload store (which
  * is cleared as soon as the user submits).
  */
 export interface QueuedFile {
+  audioMetadata?: UploadFileItem['audioMetadata'];
   id: string;
   /** MIME type, e.g. `image/png`, `video/mp4`, `application/pdf` */
   mimeType: string;
@@ -237,7 +240,7 @@ export interface QueuedFile {
 
 /**
  * Rebuild `UploadFileItem`-shaped objects from queued previews so the resumed
- * `sendMessage` can derive imageList/videoList AND so we can repopulate
+ * `sendMessage` can derive audioList/imageList/videoList AND so we can repopulate
  * `chatUploadFileList` when the user edits a queued message. The synthesized
  * `File` carries only `name` + `type` (zero bytes) — the consumers we hit only
  * read `file.name`, `file.type`, plus the URL fields we set below.
@@ -248,6 +251,7 @@ export interface QueuedFile {
  */
 export const reconstructUploadFilesFromQueue = (files: QueuedFile[]): UploadFileItem[] =>
   files.map((f) => ({
+    audioMetadata: f.audioMetadata,
     id: f.id,
     file: new File([], f.name, { type: f.mimeType }),
     fileUrl: f.url || undefined,
@@ -501,5 +505,9 @@ export const INPUT_LOADING_OPERATION_TYPES: OperationType[] = [
 export const QUEUE_BLOCKING_OPERATION_TYPES: OperationType[] = [
   ...AI_RUNTIME_OPERATION_TYPES,
   'sendMessage',
+  // A voice turn becomes visible before its binary upload finishes. Keep later composer sends in
+  // the normal queue so the model observes the same order as the optimistic transcript. This is
+  // intentionally not an INPUT_LOADING operation: recording upload must not lock the composer.
+  'uploadVoiceMessage',
   ...INTERIM_LOADING_OPERATION_TYPES,
 ];
