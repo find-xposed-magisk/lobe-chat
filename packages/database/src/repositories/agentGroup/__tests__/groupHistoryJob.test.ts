@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { getTestDB } from '../../../core/getTestDB';
+import { AgentModel } from '../../../models/agent';
 import { AGENT_COPY_IN_PROGRESS, AgentCopyJobModel } from '../../../models/agentCopyJob';
 import {
   AGENT_TRANSFER_IN_PROGRESS,
@@ -148,6 +149,70 @@ describe('group transfer fast path (small history)', () => {
   });
 });
 
+/**
+ * `ghj-member` is a standalone agent the group only references (`virtual`
+ * defaults to false), so a transfer leaves it in the source scope and takes a
+ * clone instead. Everything the group said in its voice has to follow the
+ * clone, or the moved transcript attributes messages to an agent the new scope
+ * cannot resolve — and `messages.agent_id` is ON DELETE CASCADE, so the day
+ * that agent is deleted the moved messages go with it.
+ */
+const clonedMemberId = async () => {
+  const rows = await serverDB
+    .select()
+    .from(chatGroupsAgents)
+    .where(eq(chatGroupsAgents.chatGroupId, groupId));
+  const cloned = rows.find((row) => row.agentId !== supervisorId)!;
+  return cloned.agentId;
+};
+
+const agentIdsOf = async (messageId: string) => {
+  const row = await serverDB.query.messages.findFirst({ where: eq(messages.id, messageId) });
+  return { agentId: row?.agentId ?? null, targetId: row?.targetId ?? null };
+};
+
+describe('group transfer member cloning', () => {
+  it('leaves a referenced member behind and remaps its history onto the clone', async () => {
+    await seedGroupWithHistory();
+
+    await new AgentGroupRepository(serverDB, userId).transferToWorkspace(groupId, wsId, userId);
+
+    const original = await serverDB.query.agents.findFirst({ where: eq(agents.id, memberId) });
+    expect(original).toMatchObject({ virtual: false, workspaceId: null });
+
+    const cloneId = await clonedMemberId();
+    expect(cloneId).not.toBe(memberId);
+    const clone = await serverDB.query.agents.findFirst({ where: eq(agents.id, cloneId) });
+    expect(clone).toMatchObject({ title: 'Member', virtual: true, workspaceId: wsId });
+
+    // Both the speaker and the addressee columns follow the clone.
+    expect(await agentIdsOf('ghj-m2')).toEqual({ agentId: cloneId, targetId: cloneId });
+    expect(await agentIdsOf('ghj-m4')).toEqual({ agentId: cloneId, targetId: null });
+    // A message addressed to the human is not an agent reference.
+    expect(await agentIdsOf('ghj-m1')).toEqual({ agentId: supervisorId, targetId: 'user' });
+
+    // Threads carry the same cascade risk as messages.
+    const thread = await serverDB.query.threads.findFirst({ where: eq(threads.id, 'ghj-th1') });
+    expect(thread?.agentId).toBe(cloneId);
+  });
+
+  it('does not evict members from the other groups they belong to', async () => {
+    await seedGroupWithHistory();
+    await serverDB.insert(chatGroups).values([{ id: 'ghj-other', title: 'Other', userId }]);
+    await serverDB
+      .insert(chatGroupsAgents)
+      .values([{ agentId: memberId, chatGroupId: 'ghj-other', order: 0, userId }]);
+
+    await new AgentGroupRepository(serverDB, userId).transferToWorkspace(groupId, wsId, userId);
+
+    const otherRoster = await serverDB
+      .select()
+      .from(chatGroupsAgents)
+      .where(eq(chatGroupsAgents.chatGroupId, 'ghj-other'));
+    expect(otherRoster.map((row) => row.agentId)).toEqual([memberId]);
+  });
+});
+
 describe('group transfer slow path (async backfill job)', () => {
   beforeEach(() => {
     process.env.AGENT_TRANSFER_SYNC_MESSAGE_THRESHOLD = '2';
@@ -194,6 +259,63 @@ describe('group transfer slow path (async backfill job)', () => {
     const [finished] = await serverDB.query.agentHistoryJobs.findMany();
     expect(finished).toMatchObject({ completedTopics: 2, status: 'completed', totalTopics: 2 });
     expect(await AgentTransferJobModel.findPendingJobForGroup(serverDB, groupId)).toBeUndefined();
+  });
+
+  it('blocks deleting a left-behind member until the remap drains', async () => {
+    // `memberId` did not move, so the job does not cover it — but until the
+    // drain reaches each topic, those rows still carry
+    // `messages.agent_id = memberId`, and that column is ON DELETE CASCADE.
+    // Deleting it here would destroy the moved history mid-rescue.
+    await seedGroupWithHistory();
+
+    const result = await new AgentGroupRepository(serverDB, userId).transferToWorkspace(
+      groupId,
+      wsId,
+      userId,
+    );
+
+    // Not registered as a covered agent: it never moved, and the migration
+    // badge reads that junction.
+    expect(await AgentTransferJobModel.hasPendingJobForAgents(serverDB, [memberId])).toBe(false);
+    // ...but the delete guard still sees it.
+    expect(await AgentTransferJobModel.hasPendingRemapForSourceAgents(serverDB, [memberId])).toBe(
+      true,
+    );
+
+    await expect(new AgentModel(serverDB, userId).delete(memberId)).rejects.toThrow(
+      AGENT_TRANSFER_IN_PROGRESS,
+    );
+
+    await AgentTransferJobModel.drain(serverDB, result!.transferJobId!);
+
+    // Once the remap has landed, the original is free again.
+    expect(await AgentTransferJobModel.hasPendingRemapForSourceAgents(serverDB, [memberId])).toBe(
+      false,
+    );
+  });
+
+  it('defers the member remap to the drain, on exactly the rows it rewrites', async () => {
+    // The remap must follow the same fast/slow split as the scope rewrite: if
+    // the synchronous branch did it and the drain did not, a heavy group would
+    // silently keep pointing at the agent left behind.
+    await seedGroupWithHistory();
+
+    const result = await new AgentGroupRepository(serverDB, userId).transferToWorkspace(
+      groupId,
+      wsId,
+      userId,
+    );
+    const cloneId = await clonedMemberId();
+
+    expect((await agentIdsOf('ghj-m2')).agentId).toBe(memberId);
+
+    await AgentTransferJobModel.drain(serverDB, result!.transferJobId!);
+
+    expect(await agentIdsOf('ghj-m2')).toEqual({ agentId: cloneId, targetId: cloneId });
+    expect((await agentIdsOf('ghj-m4')).agentId).toBe(cloneId);
+    // The topicless residual row is remapped by the finalization step, not by
+    // any per-topic pass.
+    expect((await agentIdsOf('ghj-m5')).agentId).toBe(supervisorId);
   });
 
   it('orders the drain by pre-transfer activity, not by transfer time', async () => {

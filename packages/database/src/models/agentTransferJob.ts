@@ -137,6 +137,85 @@ export const rewriteResidualMessageScope = async (
 };
 
 /**
+ * One member agent's redirection during a group transfer: the group left a
+ * referenced member behind and took a clone of it instead.
+ */
+export interface AgentIdRemapPair {
+  newAgentId: string;
+  sourceAgentId: string;
+}
+
+/**
+ * Repoint `messages.agent_id` / `messages.target_id` from agents that stayed
+ * in the source scope onto the clones the group took with it.
+ *
+ * Runs on exactly the message rows the surrounding scope rewrite selects, so
+ * the two always agree about what "this group's history" means, and stays a
+ * pure function of (condition, pairs) so a retried drain is idempotent — a
+ * second pass simply matches no rows.
+ */
+const remapMessageAgentIds = async (
+  executor: Executor,
+  condition: SQL,
+  pairs: AgentIdRemapPair[],
+): Promise<void> => {
+  if (pairs.length === 0) return;
+
+  const remapValues = sql.join(
+    pairs.map((pair) => sql`(${pair.sourceAgentId}, ${pair.newAgentId})`),
+    sql`, `,
+  );
+
+  await executor.execute(sql`
+    UPDATE ${messages}
+    SET agent_id = _remap.new_id
+    FROM (VALUES ${remapValues}) AS _remap(source_id, new_id)
+    WHERE ${messages.agentId} = _remap.source_id AND ${condition}
+  `);
+
+  // `target_id` records who a message was addressed to in a group thread. It
+  // carries no foreign key, so a stale value cannot cascade anything away — but
+  // leaving it pointed at the source scope would make "@mention" attribution in
+  // the moved history resolve to an agent the new scope cannot see. The group
+  // copy path remaps it for the same reason (`_amap_target`).
+  await executor.execute(sql`
+    UPDATE ${messages}
+    SET target_id = _remap.new_id
+    FROM (VALUES ${remapValues}) AS _remap(source_id, new_id)
+    WHERE ${messages.targetId} = _remap.source_id AND ${condition}
+  `);
+};
+
+/** {@link remapMessageAgentIds} over the messages of the given topics. */
+export const remapMessageAgentIdsForTopics = async (
+  executor: Executor,
+  topicIds: string[],
+  pairs: AgentIdRemapPair[],
+): Promise<void> => {
+  if (topicIds.length === 0) return;
+
+  await remapMessageAgentIds(executor, inArray(messages.topicId, topicIds), pairs);
+};
+
+/**
+ * {@link remapMessageAgentIds} over the topicless residue of the given groups —
+ * the same rows `rewriteResidualMessageScope` picks up on its group arm.
+ */
+export const remapResidualMessageAgentIds = async (
+  executor: Executor,
+  groupIds: string[],
+  pairs: AgentIdRemapPair[],
+): Promise<void> => {
+  if (groupIds.length === 0) return;
+
+  await remapMessageAgentIds(
+    executor,
+    and(isNull(messages.topicId), inArray(messages.groupId, groupIds))!,
+    pairs,
+  );
+};
+
+/**
  * The owner-delete guards below match ONLY pending `transfer` jobs.
  *
  * A transfer re-homes existing rows, so between the synchronous half and the
@@ -163,6 +242,12 @@ const isPendingTransfer = () =>
   and(eq(agentHistoryJobs.status, 'pending'), eq(agentHistoryJobs.type, 'transfer'));
 
 export interface CreateAgentTransferJobParams {
+  /**
+   * Group-transfer member redirections, applied to every message row this job
+   * rewrites. Empty for an agent transfer, and for a group whose roster is all
+   * group-owned.
+   */
+  agentIdRemap?: AgentIdRemapPair[];
   /**
    * Agents this job covers: one junction row each, which is what the guards
    * and the progress badge read. NOT automatically the residual linkage — see
@@ -218,6 +303,12 @@ export class AgentTransferJobModel {
         // the junction below is the coverage set. They differ for a group job.
         agentIds: params.residualAgentIds ?? params.agentIds,
         groupIds: params.groupIds ?? [],
+        // `payload` is the generic per-job slot; the remap only exists for
+        // group transfers, so it stays out of the columns.
+        payload:
+          params.agentIdRemap && params.agentIdRemap.length > 0
+            ? { agentIdRemap: params.agentIdRemap }
+            : undefined,
         sessionIds: params.sessionIds,
         sourceUserId: params.source.userId,
         sourceWorkspaceId: params.source.workspaceId,
@@ -278,6 +369,52 @@ export class AgentTransferJobModel {
         ),
       )
       .limit(1);
+    return !!row;
+  };
+
+  /**
+   * Agents a pending group transfer is still remapping AWAY from.
+   *
+   * Deliberately separate from {@link hasPendingJobForAgents}: these agents did
+   * not move and are not covered by the job, so registering them in the
+   * junction would light the migration badge on an agent whose own history is
+   * sitting still ({@link findPendingJobForAgent} keys off that same table).
+   * But until the drain reaches every topic, undrained rows still carry
+   * `messages.agent_id = sourceAgentId`, and that column is ON DELETE CASCADE —
+   * so deleting one of these mid-drain would take the moved history with it,
+   * the very rows the remap was about to rescue.
+   *
+   * Guard the delete; leave the badge alone.
+   */
+  static hasPendingRemapForSourceAgents = async (
+    db: Transaction | LobeChatDatabase,
+    agentIds: string[],
+  ): Promise<boolean> => {
+    if (agentIds.length === 0) return false;
+
+    const [row] = await db
+      .select({ id: agentHistoryJobs.id })
+      .from(agentHistoryJobs)
+      .where(
+        and(
+          eq(agentHistoryJobs.status, 'pending'),
+          eq(agentHistoryJobs.type, 'transfer'),
+          // COALESCE covers both a NULL payload (the common case for a plain
+          // agent transfer) and a payload that carries no remap.
+          sql`EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(
+              COALESCE(${agentHistoryJobs.payload} -> 'agentIdRemap', '[]'::jsonb)
+            ) AS remap
+            WHERE remap ->> 'sourceAgentId' IN (${sql.join(
+              agentIds.map((id) => sql`${id}`),
+              sql`, `,
+            )})
+          )`,
+        ),
+      )
+      .limit(1);
+
     return !!row;
   };
 
@@ -520,6 +657,11 @@ export class AgentTransferJobModel {
       if (!job || job.type !== 'transfer' || job.status === 'completed') return { done: true };
 
       const target = { userId: job.targetUserId, workspaceId: job.targetWorkspaceId };
+      // A group transfer that left referenced members behind also has to move
+      // their lines of the transcript onto the clones it took. Same fast/slow
+      // contract as the scope rewrite itself: the synchronous branch does this
+      // inline, so the drain must do it on exactly the same rows.
+      const agentIdRemap = job.payload?.agentIdRemap;
 
       const [next] = await trx
         .select({ topicId: agentHistoryJobTopics.topicId })
@@ -534,6 +676,7 @@ export class AgentTransferJobModel {
           { agentIds: job.agentIds, groupIds: job.groupIds, sessionIds: job.sessionIds },
           target,
         );
+        if (agentIdRemap) await remapResidualMessageAgentIds(trx, job.groupIds, agentIdRemap);
         await trx
           .update(agentHistoryJobs)
           .set({ completedAt: new Date(), status: 'completed' })
@@ -548,6 +691,7 @@ export class AgentTransferJobModel {
       }
 
       await rewriteMessageScopeForTopics(trx, [next.topicId], target);
+      if (agentIdRemap) await remapMessageAgentIdsForTopics(trx, [next.topicId], agentIdRemap);
       await trx
         .delete(agentHistoryJobTopics)
         .where(

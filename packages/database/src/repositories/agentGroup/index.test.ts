@@ -20,7 +20,7 @@ import { topicCommentMentions, topicComments } from '../../schemas/topicComment'
 import { users } from '../../schemas/user';
 import { workspaces } from '../../schemas/workspace';
 import type { LobeChatDatabase } from '../../type';
-import { AgentGroupRepository } from './index';
+import { AgentGroupRepository, GROUP_HAS_INACCESSIBLE_MEMBER } from './index';
 
 const userId = 'agent-group-test-user';
 const otherUserId = 'other-agent-group-user';
@@ -1633,15 +1633,35 @@ describe('AgentGroupRepository', () => {
       });
       expect(group!.workspaceId).toBe(targetWorkspaceId);
 
-      const memberAgents = await serverDB.query.agents.findMany({
-        where: (a, { inArray }) => inArray(a.id, ['transfer-supervisor', 'transfer-member']),
+      // The supervisor is group-owned and travels; `transfer-member` is a
+      // standalone agent this group merely referenced, so it stays put and the
+      // group takes a copy of it instead.
+      const supervisor = await serverDB.query.agents.findFirst({
+        where: (a, { eq }) => eq(a.id, 'transfer-supervisor'),
       });
-      expect(memberAgents.every((agent) => agent.workspaceId === targetWorkspaceId)).toBe(true);
+      expect(supervisor!.workspaceId).toBe(targetWorkspaceId);
+
+      const referencedMember = await serverDB.query.agents.findFirst({
+        where: (a, { eq }) => eq(a.id, 'transfer-member'),
+      });
+      expect(referencedMember!.workspaceId).toBe(workspaceId);
 
       const junctions = await serverDB.query.chatGroupsAgents.findMany({
         where: (cga, { eq }) => eq(cga.chatGroupId, 'transfer-group'),
       });
       expect(junctions.every((junction) => junction.workspaceId === targetWorkspaceId)).toBe(true);
+      expect(junctions.some((junction) => junction.agentId === 'transfer-member')).toBe(false);
+
+      const clonedRow = junctions.find((junction) => junction.agentId !== 'transfer-supervisor')!;
+      const clone = await serverDB.query.agents.findFirst({
+        where: (a, { eq }) => eq(a.id, clonedRow.agentId),
+      });
+      // Hidden from the target's agent list — it exists for this group only.
+      expect(clone).toMatchObject({
+        title: 'Member',
+        virtual: true,
+        workspaceId: targetWorkspaceId,
+      });
 
       const topic = await serverDB.query.topics.findFirst({
         where: (t, { eq }) => eq(t.id, 'transfer-topic'),
@@ -1655,6 +1675,11 @@ describe('AgentGroupRepository', () => {
       expect(topic!.workspaceId).toBe(targetWorkspaceId);
       expect(thread!.workspaceId).toBe(targetWorkspaceId);
       expect(message!.workspaceId).toBe(targetWorkspaceId);
+
+      // `threads.agent_id` is ON DELETE CASCADE: left pointing at the member
+      // that stayed behind, this moved thread would disappear the day its
+      // owner deleted that agent.
+      expect(thread!.agentId).toBe(clonedRow.agentId);
 
       // Comments denormalize the topic's workspaceId — they must follow the move
       const [comment] = await serverDB
@@ -2329,6 +2354,187 @@ describe('AgentGroupRepository', () => {
           workspaceId: targetWorkspaceId,
         }),
       );
+    });
+  });
+
+  describe('transfer builtin backstop', () => {
+    it('never rehomes a builtin agent that ended up on a roster', async () => {
+      // The owned path REHOMES (userId/workspaceId), so a builtin classified
+      // as owned would have someone's Inbox moved into another scope.
+      const wsId = 'tb-ws';
+      await serverDB.insert(workspaces).values({
+        id: wsId,
+        name: 'TB',
+        primaryOwnerId: userId,
+        slug: 'tb-ws',
+      });
+      await serverDB.insert(chatGroups).values({ id: 'tb-group', title: 'TB', userId });
+      await serverDB.insert(agents).values({
+        id: 'tb-inbox',
+        slug: 'inbox',
+        title: 'Inbox',
+        userId,
+        virtual: true,
+      });
+      await serverDB
+        .insert(chatGroupsAgents)
+        .values({ agentId: 'tb-inbox', chatGroupId: 'tb-group', userId });
+
+      await new AgentGroupRepository(serverDB, userId).transferToWorkspace(
+        'tb-group',
+        wsId,
+        userId,
+      );
+
+      const inbox = await serverDB.query.agents.findFirst({
+        where: (a, { eq }) => eq(a.id, 'tb-inbox'),
+      });
+      // Stayed put: still personal scope, still the caller's.
+      expect(inbox).toMatchObject({ userId, workspaceId: null });
+    });
+  });
+
+  describe('removeAgentsFromGroup builtin backstop', () => {
+    it('never deletes a builtin agent that ended up on a roster', async () => {
+      // `addAgentsToGroup` refuses builtins at the door; this is the belt to
+      // that brace, for a row that got there some other way. The blast radius
+      // is somebody's Inbox.
+      await serverDB.insert(chatGroups).values({ id: 'bb-group', title: 'BB', userId });
+      await serverDB.insert(agents).values({
+        id: 'bb-inbox',
+        slug: 'inbox',
+        title: 'Inbox',
+        userId,
+        virtual: true,
+      });
+      await serverDB
+        .insert(chatGroupsAgents)
+        .values({ agentId: 'bb-inbox', chatGroupId: 'bb-group', userId });
+
+      await agentGroupRepo.removeAgentsFromGroup('bb-group', ['bb-inbox'], true);
+
+      const survivors = await serverDB.query.agents.findMany({
+        where: (a, { eq }) => eq(a.id, 'bb-inbox'),
+      });
+      expect(survivors).toHaveLength(1);
+    });
+  });
+
+  describe('listReferencedMembers', () => {
+    const workspaceId = 'lrm-ws';
+
+    beforeEach(async () => {
+      await serverDB.insert(workspaces).values({
+        id: workspaceId,
+        name: 'Referenced Member WS',
+        primaryOwnerId: userId,
+        slug: 'lrm-ws',
+      });
+
+      await serverDB.insert(chatGroups).values({
+        id: 'lrm-group',
+        title: 'Roster',
+        userId,
+        visibility: 'public',
+        workspaceId,
+      });
+
+      await serverDB.insert(agents).values([
+        // Another member's agent, still shared with the workspace.
+        {
+          id: 'lrm-public',
+          title: 'Shared Member',
+          userId: otherUserId,
+          virtual: false,
+          visibility: 'public',
+          workspaceId,
+        },
+        // Same, but its owner has since taken it private again.
+        {
+          id: 'lrm-private',
+          title: 'Secret Member',
+          userId: otherUserId,
+          virtual: false,
+          visibility: 'private',
+          workspaceId,
+        },
+        // Group-owned: travels with the group, so never "referenced".
+        {
+          id: 'lrm-owned',
+          title: 'Owned Member',
+          userId,
+          virtual: true,
+          workspaceId,
+        },
+      ]);
+
+      await serverDB.insert(chatGroupsAgents).values([
+        { agentId: 'lrm-public', chatGroupId: 'lrm-group', order: 0, userId, workspaceId },
+        { agentId: 'lrm-private', chatGroupId: 'lrm-group', order: 1, userId, workspaceId },
+        { agentId: 'lrm-owned', chatGroupId: 'lrm-group', order: 2, userId, workspaceId },
+      ]);
+    });
+
+    it('reports a builtin row the transfer would clone', async () => {
+      // The transfer passes `slug` and so treats a builtin on a roster as
+      // referenced (cloning it); this warning must classify it the same way,
+      // or it omits the exact row the move is about to act on.
+      await serverDB.insert(agents).values({
+        id: 'lrm-builtin',
+        slug: 'inbox',
+        title: 'Inbox',
+        userId,
+        virtual: true,
+        visibility: 'public',
+        workspaceId,
+      });
+      await serverDB.insert(chatGroupsAgents).values({
+        agentId: 'lrm-builtin',
+        chatGroupId: 'lrm-group',
+        order: 3,
+        userId,
+        workspaceId,
+      });
+
+      const wsRepo = new AgentGroupRepository(serverDB, userId, workspaceId);
+      const rows = await wsRepo.listReferencedMembers(['lrm-group']);
+
+      expect(rows.map((row) => row.agentId)).toEqual(['lrm-public', 'lrm-builtin']);
+    });
+
+    it('omits a member the caller cannot see on the roster', async () => {
+      // Seeing the GROUP is not enough. The roster itself hides a member whose
+      // owner flipped it back to private, so this pre-transfer warning must not
+      // become the one surface that hands out its title and avatar.
+      const wsRepo = new AgentGroupRepository(serverDB, userId, workspaceId);
+
+      const rows = await wsRepo.listReferencedMembers(['lrm-group']);
+
+      expect(rows.map((row) => row.agentId)).toEqual(['lrm-public']);
+    });
+
+    it('refuses to transfer a group holding a member the caller cannot see', async () => {
+      // The clone path would otherwise copy that member's title, systemRole and
+      // config into a scope the caller can read — the roster hides it, and so
+      // does `listReferencedMembers`, so the transfer must not be the way
+      // around that.
+      const wsRepo = new AgentGroupRepository(serverDB, userId, workspaceId);
+
+      await expect(wsRepo.transferToWorkspace('lrm-group', null, userId)).rejects.toThrow(
+        GROUP_HAS_INACCESSIBLE_MEMBER,
+      );
+
+      // Nothing moved.
+      const group = await serverDB.query.chatGroups.findFirst({
+        where: (g, { eq }) => eq(g.id, 'lrm-group'),
+      });
+      expect(group!.workspaceId).toBe(workspaceId);
+    });
+
+    it('returns nothing for a group the caller cannot see', async () => {
+      const strangerRepo = new AgentGroupRepository(serverDB, otherUserId);
+
+      await expect(strangerRepo.listReferencedMembers(['lrm-group'])).resolves.toEqual([]);
     });
   });
 });
