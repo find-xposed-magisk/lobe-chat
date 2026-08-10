@@ -9,7 +9,11 @@ import {
   GeneralChatAgent,
   GraphAgent,
 } from '@lobechat/agent-runtime';
-import { BUILTIN_AGENT_SLUGS, getAgentRuntimeConfig } from '@lobechat/builtin-agents';
+import {
+  BUILTIN_AGENT_SLUGS,
+  getAgentRuntimeConfig,
+  isCollaborativeBuiltinAgentRow,
+} from '@lobechat/builtin-agents';
 import { builtinSkills } from '@lobechat/builtin-skills';
 import { CloudSandboxManifest } from '@lobechat/builtin-tool-cloud-sandbox';
 import { GoalIdentifier, isGoalPrompt } from '@lobechat/builtin-tool-goal';
@@ -1471,7 +1475,19 @@ export class AiAgentService {
     // The callSubAgent spawn site resolves the sub-agent default and passes it
     // explicitly, so this path never has to special-case sub-agents.
     const effectiveModel = resolveAgentModelConfig(
-      { ...agentConfig, canManage: canManageAgent, workspaceId: agentWorkspaceId },
+      {
+        ...agentConfig,
+        canManage: canManageAgent,
+        // A collaborative builtin is Workspace infrastructure with no author and
+        // no config page, so its model is personal for every caller — being its
+        // creator or an admin must not pin the whole Workspace to one model.
+        // Device / mode overrides keep the ordinary author rule above.
+        personalModelSelection: isCollaborativeBuiltinAgentRow({
+          ...agentConfig,
+          workspaceId: agentWorkspaceId,
+        }),
+        workspaceId: agentWorkspaceId,
+      },
       memberModelOverride,
       {
         ...(modelOverride ? { model: modelOverride } : {}),
@@ -1899,12 +1915,27 @@ export class AiAgentService {
       // Prepare metadata with cronJobId, taskId, botContext, bound device, and any
       // client-supplied initial metadata (e.g. repos selected before first message).
       const initialTopicMeta = appContext?.initialTopicMetadata;
+      // Builder conversations are owned by a builtin builder agent and get no
+      // `groupId` / `sessionId` (those columns mark the target's own chat), so
+      // without this the row keeps no trace of what it was configuring. The
+      // association exists only at run time: a topic written without it can
+      // never be attributed afterwards, which is why it is stamped even though
+      // nothing filters on it yet.
+      const { editingAgentId, editingGroupId } = appContext ?? {};
       const metadata =
-        cronJobId || operationTaskId || botContext || topicBoundDeviceId || initialTopicMeta
+        cronJobId ||
+        operationTaskId ||
+        botContext ||
+        topicBoundDeviceId ||
+        initialTopicMeta ||
+        editingGroupId ||
+        editingAgentId
           ? {
               bot: botContext,
               boundDeviceId: topicBoundDeviceId,
               cronJobId: cronJobId || undefined,
+              ...(editingAgentId && { editingAgentId }),
+              ...(editingGroupId && { editingGroupId }),
               taskId: operationTaskId,
               ...(initialTopicMeta?.repos && { repos: initialTopicMeta.repos }),
               ...(initialTopicMeta?.workingDirectory && {
@@ -4473,6 +4504,13 @@ export class AiAgentService {
           // runtime reads it, keeping the rest of the pipeline unaffected.
           ...(appContext?.scope === 'agent_builder' && appContext?.editingAgentId
             ? { editingAgentId: appContext.editingAgentId }
+            : {}),
+          // Mirror of the above for the Group Agent Builder panel: the run is
+          // owned by the builtin builder agent, so the edited group only rides
+          // here. Read by the group-agent-builder server runtime and by the
+          // `<current_group_context>` injector.
+          ...(appContext?.scope === 'group_agent_builder' && appContext?.editingGroupId
+            ? { editingGroupId: appContext.editingGroupId }
             : {}),
           // Run-scoped Agent Signal marker for background self-iteration / memory
           // runs — lands in state.metadata.agentSignal so the completion path can
