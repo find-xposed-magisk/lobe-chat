@@ -285,6 +285,36 @@ no session, so it ends in the same error for a different reason. See also the tw
 neighbouring entries on this proxy (loading-shell in an isolated context; no seeded
 agent-browser session).
 
+### The composer's slash menu needs real key events — `keyboard type` never opens it
+
+**Situation:** driving the chat composer's `/` slash menu (or anything else gated on
+a Lexical `KEY_DOWN_COMMAND`) through agent-browser.
+
+**Doesn't work:** `agent-browser keyboard type "/"`. It inserts through CDP
+`Input.insertText`, which produces no `keydown` at all — verified by installing a
+capturing `document.addEventListener("keydown", …)` and watching it stay empty while
+the character lands in the composer. The editor's SlashPlugin keeps `suppressOpen`
+true until a keydown with `key.length === 1` resets it, so the text appears and the
+menu never does. Reads exactly like "the slash menu is broken", which is worse than
+a visible failure because the composer clearly received the input.
+
+**Works:** use `agent-browser press '/'` for the trigger (and `press Backspace` to
+clear). `press` goes through `Input.dispatchKeyEvent`, so the keydown reaches
+Lexical. `keyboard type` remains fine for bulk text that no plugin is gated on —
+type the prose with it, but fire any menu trigger with `press`.
+
+```bash
+agent-browser --session "$RS" click '[data-probe=composer]'
+agent-browser --session "$RS" press '/'   # menu opens
+agent-browser --session "$RS" press Enter # selects the highlighted item
+```
+
+Confirm the mechanism rather than assuming a menu is missing:
+
+```bash
+agent-browser --session "$RS" eval '(() => { window.__KD=[]; document.addEventListener("keydown", e => window.__KD.push(e.key), true); return "installed"; })()'
+```
+
 ### Reading a transitioned CSS property immediately after focus/hover
 
 **Situation:** asserting that a `:focus-within` / `:hover` rule reveals a
@@ -1164,7 +1194,7 @@ Cause not established; re-seeding and restarting the same pool id does not help.
 
 **Works:** fall back to the legacy single instance (`electron-dev.sh start`, no id),
 which runs on the golden profile in place and decrypts normally. It boots on the
-loading shell once, so reload once before probing (see L-S0b). Gate on
+loading shell once, so reload once before probing (see L-S8). Gate on
 `app-probe.sh auth` AND `server-auth`, never on the helper's "Ready" line.
 
 ## Detailed references
