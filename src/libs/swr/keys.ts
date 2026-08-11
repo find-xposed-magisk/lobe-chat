@@ -280,8 +280,23 @@ export const taskKeys = {
   homeGoals: def('task:homeGoals', (scope: string) => ['task:homeGoals', scope]),
   list: def(
     'task:list',
+    (
+      agentKey: string | undefined,
+      visibility: 'all' | 'private' | 'workspace' = 'all',
+      // Part of the key, not a detail: Home orders by activity while the Tasks
+      // page orders by creation, and they read the same store field.
+      orderBy: 'createdAt' | 'updatedAt' = 'createdAt',
+    ) => ['task:list', agentKey, visibility, orderBy],
+  ),
+  /**
+   * Home's automated-task roll-up: the tasks that fire on a schedule or a
+   * heartbeat. Kept off `list` because it is a different result set entirely —
+   * sharing the key would let one section's fetch overwrite the other's.
+   */
+  scheduledList: def(
+    'task:scheduledList',
     (agentKey: string | undefined, visibility: 'all' | 'private' | 'workspace' = 'all') => [
-      'task:list',
+      'task:scheduledList',
       agentKey,
       visibility,
     ],
