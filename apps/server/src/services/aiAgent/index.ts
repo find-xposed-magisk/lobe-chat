@@ -503,6 +503,13 @@ interface InternalExecAgentParams extends ExecAgentParams {
    */
   title?: string;
   /**
+   * Force the effective `chatConfig.toolMode` for this run. Set by IM bot
+   * conversations where the user explicitly switched mode via `/mode` —
+   * an explicit per-conversation choice, so it wins over the agent's own
+   * chatConfig AND workspace member-mode overrides.
+   */
+  toolModeOverride?: 'agent' | 'chat';
+  /**
    * Re-enter a topic-start reservation already acquired by an upstream caller,
    * such as TaskResultBridgeService.
    */
@@ -1288,6 +1295,7 @@ export class AiAgentService {
       hooks,
       instructions,
       chatConfigOverride,
+      toolModeOverride,
       model: modelOverride,
       provider: providerOverride,
       stream,
@@ -1457,6 +1465,27 @@ export class AiAgentService {
       // the merged chatConfig alone can't distinguish them from stale agent
       // values, which the reasoning-config migration ignores.
       agentConfig.subAgentChatConfigOverride = chatConfigOverride;
+    }
+
+    // Explicit per-conversation mode switch (IM `/mode` command). Applied last
+    // so it wins over the agent's own chatConfig, workspace member-mode
+    // overrides, and sub-agent chatConfig patches alike. `enableAgentMode` is
+    // kept in sync because the context engine gates agentic-only injectors
+    // (skill discovery, agent documents, agent-management context) on it, not
+    // on `toolMode` — otherwise `/mode chat` would keep agentic context while
+    // `/mode agent` on a chat-default agent would run tools without it.
+    if (toolModeOverride) {
+      // `custom` is agent-side (the `/mode` picker reports it as Agent Mode)
+      // but means "exactly the agent's declared plugins". Returning to Agent
+      // Mode must restore that hand-picked set, not widen it to the full
+      // default toolset by overwriting `custom` with `agent`.
+      const storedToolMode = agentConfig.chatConfig?.toolMode;
+      agentConfig.chatConfig = {
+        ...agentConfig.chatConfig,
+        enableAgentMode: toolModeOverride === 'agent',
+        toolMode:
+          toolModeOverride === 'agent' && storedToolMode === 'custom' ? 'custom' : toolModeOverride,
+      };
     }
 
     // Persistence-attribution agent id. Background Agent Signal runs (memory /
