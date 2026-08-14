@@ -926,6 +926,7 @@ export class TaskService {
               timezone: task.scheduleTimezone,
             }
           : undefined,
+      startedAt: task.startedAt ? new Date(task.startedAt).toISOString() : undefined,
       status: task.status,
       userId: task.assigneeUserId,
       verify: this.taskModel.getVerifyConfig(task),
