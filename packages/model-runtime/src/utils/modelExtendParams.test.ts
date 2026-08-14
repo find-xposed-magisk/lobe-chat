@@ -208,6 +208,28 @@ describe('applyModelExtendParams', () => {
     expect(result.reasoning_effort).toBe('max');
   });
 
+  it('forces thinking enabled and resolves GLM-5.3 reasoning effort', () => {
+    const result = applyModelExtendParams({
+      chatConfig: chatConfig({ enableReasoning: false, glm5_3ReasoningEffort: 'low' }),
+      extendParams: ['glm5_3ReasoningEffort'],
+      model: 'glm-5.3',
+    });
+
+    expect(result.thinking).toEqual({ type: 'enabled' });
+    expect(result.reasoning_effort).toBe('low');
+  });
+
+  it('keeps GLM-5.3 thinking enabled when a custom card also lists thinking=disabled', () => {
+    const result = applyModelExtendParams({
+      chatConfig: chatConfig({ glm5_3ReasoningEffort: 'max', thinking: 'disabled' }),
+      extendParams: ['glm5_3ReasoningEffort', 'thinking'],
+      model: 'glm-5.3',
+    });
+
+    expect(result.thinking).toEqual({ type: 'enabled' });
+    expect(result.reasoning_effort).toBe('max');
+  });
+
   it('preserves thinking budget when deepseekV4ReasoningEffort is set', () => {
     const result = applyModelExtendParams({
       chatConfig: chatConfig({

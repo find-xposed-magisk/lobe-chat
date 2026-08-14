@@ -322,6 +322,10 @@ export const applyModelExtendParams = (ctx: ApplyModelExtendParamsContext): Mode
     extendParams.reasoning_effort = chatConfig.glm5_2ReasoningEffort;
   }
 
+  if (modelExtendParams.includes('glm5_3ReasoningEffort') && chatConfig.glm5_3ReasoningEffort) {
+    extendParams.reasoning_effort = chatConfig.glm5_3ReasoningEffort;
+  }
+
   if (modelExtendParams.includes('grok4_20ReasoningEffort') && chatConfig.grok4_20ReasoningEffort) {
     extendParams.reasoning_effort = chatConfig.grok4_20ReasoningEffort;
   }
@@ -395,6 +399,13 @@ export const applyModelExtendParams = (ctx: ApplyModelExtendParamsContext): Mode
   // Thinking configuration
   if (modelExtendParams.includes('thinking') && chatConfig.thinking) {
     extendParams.thinking = { type: chatConfig.thinking };
+  }
+
+  if (modelExtendParams.includes('glm5_3ReasoningEffort')) {
+    // GLM-5.3 rejects thinking.type=disabled. Keep this after the generic
+    // `thinking` block so a custom card that also lists `thinking` cannot
+    // emit the forbidden payload.
+    extendParams.thinking = { type: 'enabled' };
   }
 
   if (modelExtendParams.includes('thinkingBudget') && chatConfig.thinkingBudget !== undefined) {
