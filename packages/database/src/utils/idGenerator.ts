@@ -21,6 +21,7 @@ const prefixes = {
   evalExperiments: 'exp',
   evalRuns: 'run',
   evalTestCases: 'case',
+  expertiseDomains: 'epd',
   files: 'file',
   generationBatches: 'gb',
   generationTopics: 'gt',

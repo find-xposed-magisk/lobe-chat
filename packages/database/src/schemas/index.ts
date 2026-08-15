@@ -18,6 +18,7 @@ export * from './connector';
 export * from './device';
 export * from './documentHistory';
 export * from './documentShare';
+export * from './expertise';
 export * from './file';
 export * from './generation';
 export * from './goal';
