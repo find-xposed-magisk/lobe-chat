@@ -33,6 +33,7 @@ export default {
   'agentDefaultMessageWithoutEdit':
     "Hi, I’m **{{name}}**. One sentence is enough—you're in control.",
   'agentDocument.backToChat': 'Back to chat',
+  'agentDocument.backToAgent': 'Back to {{name}}',
   'agentDocument.emptyDescription':
     'Pick a document from the panel on the right, or create a new one to get started.',
   'agentDocument.emptyTitle': 'No document open',
@@ -2190,6 +2191,7 @@ export default {
   'workingPanel.resources.tree.deleteSelected': 'Delete selected ({{count}})',
   'workingPanel.resources.tree.moveError': 'Failed to move',
   'workingPanel.resources.tree.parentMissing': 'Parent folder is unavailable',
+  'workingPanel.resources.tree.create': 'Create',
   'workingPanel.resources.tree.newDocument': 'New document',
   'workingPanel.resources.tree.newFolder': 'New folder',
   'workingPanel.resources.tree.rename': 'Rename',
