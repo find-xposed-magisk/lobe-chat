@@ -35,13 +35,13 @@ import { useVerifyStore, verifySelectors } from '@/store/verify';
 
 import GoalDetailActions from './GoalDetailActions';
 import { getGoalPresentation } from './goalPresentation';
+import GoalStatusGlyph from './GoalStatusGlyph';
 import {
   formatGoalCost,
   formatGoalDuration,
   getGoalRunMetrics,
   getGoalRuns,
   getRecentGoalRuns,
-  goalStatusToTaskStatus,
 } from './goalViewModel';
 
 const styles = createStaticStyles(({ css }) => ({
@@ -150,7 +150,6 @@ const GoalDetailPage = memo<GoalDetailPageProps>(({ agentId, goalId }) => {
   const bundle = useVerifyStore(verifySelectors.acceptanceBundle(acceptance?.id));
   const acceptanceQuery = useFetchAcceptanceBySubject('task', task?.id);
   const bundleQuery = useFetchAcceptanceBundle(acceptance?.id);
-  const config = task?.config as { goal?: { maxIterations?: number | null } } | undefined;
   const runs = useMemo(() => getGoalRuns(task?.activities), [task?.activities]);
   const recentRuns = useMemo(() => getRecentGoalRuns(task?.activities), [task?.activities]);
   const runMetrics = useMemo(() => getGoalRunMetrics(task?.activities), [task?.activities]);
@@ -158,11 +157,11 @@ const GoalDetailPage = memo<GoalDetailPageProps>(({ agentId, goalId }) => {
   const presentation = getGoalPresentation({
     acceptanceStatus: bundle?.acceptance.status,
     checks: bundle?.checks,
-    maxRounds: config?.goal?.maxIterations,
+    goalStatus: task?.goal?.status,
+    maxRounds: task?.goal?.maxRounds,
     rounds: task?.topicCount ?? 0,
     taskStatus: task?.status ?? 'backlog',
   });
-  const visual = statusVisual(goalStatusToTaskStatus(presentation.statusKey));
   const title = task?.name?.trim() || task?.instruction.trim() || goalId;
 
   if (error) return <AsyncError error={error} variant={'page'} onRetry={onRetry} />;
@@ -342,7 +341,7 @@ const GoalDetailPage = memo<GoalDetailPageProps>(({ agentId, goalId }) => {
                   </Flexbox>
                   <Flexbox gap={4}>
                     <Flexbox horizontal align={'center'} className={styles.treeRow} gap={8}>
-                      <Icon color={visual.color} icon={visual.icon} size={14} />
+                      <GoalStatusGlyph size={14} statusKey={presentation.statusKey} />
                       <Text fontSize={12} type={'secondary'}>
                         {task.identifier}
                       </Text>
