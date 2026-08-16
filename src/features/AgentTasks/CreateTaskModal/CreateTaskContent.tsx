@@ -2,14 +2,13 @@
 
 import { useEditor } from '@lobehub/editor/react';
 import { ActionIcon, Block, Flexbox, Icon, Text } from '@lobehub/ui';
-import { Button, useModalContext } from '@lobehub/ui/base-ui';
+import { Button, toast, useModalContext } from '@lobehub/ui/base-ui';
 import { cssVar } from 'antd-style';
 import { Minimize2, Paperclip, UserCircle2, X } from 'lucide-react';
 import { type KeyboardEvent, memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useActiveWorkspaceId } from '@/business/client/hooks/useActiveWorkspaceId';
-import { message } from '@/components/AntdStaticMethods';
 import { EditorCanvas } from '@/features/EditorCanvas';
 import {
   getAttachmentFileIdsFromEditor,
@@ -35,6 +34,7 @@ export interface CreateTaskContentProps {
    */
   lockAssignee?: boolean;
   onCreated?: (task: { agentId?: string; identifier: string }) => void;
+  projectId?: string;
   /**
    * Whether to show the "minimize to inline entry" button. Only the list view has an
    * inline entry target, so contexts like the Kanban board pass `false` to hide it.
@@ -43,7 +43,7 @@ export interface CreateTaskContentProps {
 }
 
 const CreateTaskContent = memo<CreateTaskContentProps>(
-  ({ agentId, lockAssignee, onCreated, showInlineToggle = true }) => {
+  ({ agentId, lockAssignee, onCreated, projectId, showInlineToggle = true }) => {
     const { t } = useTranslation('chat');
     const { close } = useModalContext();
     const { allowed: canCreateTask, reason } = usePermission('create_content');
@@ -107,6 +107,7 @@ const CreateTaskContent = memo<CreateTaskContentProps>(
           instruction: instruction || title.trim(),
           name: title.trim() || undefined,
           priority: priority || undefined,
+          projectId,
           // Only send visibility in workspace mode; personal mode ignores it.
           visibility: activeWorkspaceId ? visibility : undefined,
         });
@@ -119,7 +120,7 @@ const CreateTaskContent = memo<CreateTaskContentProps>(
           });
         }
       } catch {
-        message.error(t('createTask.createFailed'));
+        toast.error(t('createTask.createFailed'));
       }
     }, [
       activeWorkspaceId,
@@ -130,6 +131,7 @@ const CreateTaskContent = memo<CreateTaskContentProps>(
       editor,
       onCreated,
       priority,
+      projectId,
       t,
       title,
       visibility,

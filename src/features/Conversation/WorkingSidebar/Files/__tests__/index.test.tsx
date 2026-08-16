@@ -191,31 +191,25 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('@lobehub/ui', () => ({
+  ActionIcon: ({ onClick }: { onClick?: () => void }) => (
+    <button type={'button'} onClick={onClick} />
+  ),
   Center: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   copyToClipboard: vi.fn(),
   Empty: ({ description }: { description?: ReactNode }) => <div>{description}</div>,
   Flexbox: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  SearchBar: ({
-    onChange,
-    placeholder,
-    value,
-  }: {
-    onChange?: (e: { target: { value: string } }) => void;
-    placeholder?: string;
-    value?: string;
-  }) => (
-    <input
-      placeholder={placeholder}
-      value={value}
-      onChange={(e) => onChange?.({ target: { value: e.target.value } })}
-    />
-  ),
+  Icon: () => <span />,
   stopPropagation: vi.fn(),
 }));
 
-vi.mock('antd-style', () => ({
-  createStaticStyles: () => () => ({}),
-}));
+vi.mock('antd-style', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+
+  return {
+    ...actual,
+    createStaticStyles: () => () => ({}),
+  };
+});
 
 vi.mock('@/components/NeuralNetworkLoading', () => ({
   default: () => <div />,

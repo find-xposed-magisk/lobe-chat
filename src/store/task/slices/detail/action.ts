@@ -1,8 +1,8 @@
 import type { TaskDetailData, TaskDetailSubtask } from '@lobechat/types';
+import { toast } from '@lobehub/ui/base-ui';
 import isEqual from 'fast-deep-equal';
 import { t } from 'i18next';
 
-import { message } from '@/components/AntdStaticMethods';
 import { mutate, useClientDataSWR } from '@/libs/swr';
 import { taskKeys } from '@/libs/swr/keys';
 import { taskService } from '@/services/task';
@@ -183,6 +183,7 @@ export class TaskDetailSliceActionImpl {
   createTask = async (params: {
     assigneeAgentId?: string;
     automationMode?: 'heartbeat' | 'schedule';
+    config?: Record<string, unknown>;
     createdByAgentId?: string;
     description?: string;
     editorData?: unknown;
@@ -190,6 +191,7 @@ export class TaskDetailSliceActionImpl {
     name?: string;
     parentTaskId?: string;
     priority?: number;
+    projectId?: string;
     schedulePattern?: string;
     scheduleTimezone?: string;
     visibility?: 'private' | 'public';
@@ -326,7 +328,7 @@ export class TaskDetailSliceActionImpl {
       // or publish the agent first.
       const raw = (error as { message?: string })?.message ?? '';
       const isPrivateAgentBlock = /public task cannot be assigned to a private agent/i.test(raw);
-      message.error(
+      toast.error(
         isPrivateAgentBlock
           ? t('taskDetail.publishToWorkspace.errorPrivateAgent', {
               defaultValue:

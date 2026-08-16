@@ -176,6 +176,215 @@ describe('tabPages actions', () => {
     });
   });
 
+  describe('split view', () => {
+    const seed = () => {
+      const { result } = renderHook(() => useElectronStore());
+      const tabs = [buildTab('/left'), buildTab('/right'), buildTab('/third')];
+
+      act(() => {
+        useElectronStore.setState({ activeTabId: '/left', splitView: null, tabs });
+      });
+      return result;
+    };
+
+    it('opens another tab in the secondary pane and focuses it', () => {
+      const result = seed();
+
+      act(() => {
+        result.current.openTabInSplitView('/right');
+      });
+
+      expect(result.current.activeTabId).toBe('/right');
+      expect(result.current.splitView).toEqual({
+        primaryTabId: '/left',
+        ratio: 0.5,
+        secondaryTabId: '/right',
+      });
+    });
+
+    it('duplicates the active tab so each pane owns an independent router', () => {
+      const result = seed();
+      let secondaryTabId: string | null = null;
+
+      act(() => {
+        secondaryTabId = result.current.openTabInSplitView('/left');
+      });
+
+      expect(secondaryTabId).not.toBe('/left');
+      expect(result.current.tabs).toHaveLength(4);
+      expect(result.current.tabs.at(-1)?.url).toBe('/left');
+      expect(result.current.splitView?.secondaryTabId).toBe(secondaryTabId);
+    });
+
+    it('replaces the focused pane when a third tab is activated', () => {
+      const result = seed();
+      act(() => result.current.openTabInSplitView('/right'));
+      act(() => result.current.focusTabPane('/left'));
+      act(() => result.current.activateTab('/third'));
+
+      expect(result.current.splitView).toMatchObject({
+        primaryTabId: '/third',
+        secondaryTabId: '/right',
+      });
+      expect(result.current.activeTabId).toBe('/third');
+    });
+
+    it('collapses split view when switching from the titlebar tab strip', () => {
+      const result = seed();
+      act(() => result.current.openTabInSplitView('/right'));
+
+      act(() => result.current.switchTab('/left'));
+
+      expect(result.current.activeTabId).toBe('/left');
+      expect(result.current.splitView).toBeNull();
+    });
+
+    it('collapses to the remaining pane when one visible tab closes', () => {
+      const result = seed();
+      act(() => result.current.openTabInSplitView('/right'));
+      act(() => result.current.removeTab('/right'));
+
+      expect(result.current.splitView).toBeNull();
+      expect(result.current.activeTabId).toBe('/left');
+    });
+
+    it('removes the duplicated pane and refocuses the source when the split closes', () => {
+      const result = seed();
+      let duplicateId: string | null = null;
+      act(() => {
+        duplicateId = result.current.openTabInSplitView('/left');
+      });
+
+      act(() => result.current.closeSplitView());
+
+      expect(result.current.splitView).toBeNull();
+      expect(result.current.activeTabId).toBe('/left');
+      expect(result.current.tabs.some((t) => t.id === duplicateId)).toBe(false);
+    });
+
+    it('redirects a titlebar switch on the duplicate back to its source tab', () => {
+      const result = seed();
+      let duplicateId: string | null = null;
+      act(() => {
+        duplicateId = result.current.openTabInSplitView('/left');
+      });
+
+      act(() => result.current.switchTab(duplicateId!));
+
+      expect(result.current.splitView).toBeNull();
+      expect(result.current.activeTabId).toBe('/left');
+      expect(result.current.tabs).toHaveLength(3);
+    });
+
+    it('keeps the duplicate as the only remaining tab when its source closes', () => {
+      const result = seed();
+      let duplicateId: string | null = null;
+      act(() => {
+        duplicateId = result.current.openTabInSplitView('/left');
+      });
+
+      act(() => result.current.removeTab('/left'));
+
+      expect(result.current.splitView).toBeNull();
+      expect(result.current.activeTabId).toBe(duplicateId);
+      expect(result.current.tabs.some((t) => t.id === duplicateId)).toBe(true);
+    });
+
+    it('drops the duplicate when another tab takes its pane', () => {
+      const result = seed();
+      let duplicateId: string | null = null;
+      act(() => {
+        duplicateId = result.current.openTabInSplitView('/left');
+      });
+      // the duplicate pane holds focus, so activating a third tab replaces that pane
+      act(() => result.current.activateTab('/third'));
+
+      expect(result.current.splitView).toMatchObject({
+        primaryTabId: '/left',
+        secondaryTabId: '/third',
+      });
+      expect(result.current.tabs.some((t) => t.id === duplicateId)).toBe(false);
+    });
+
+    it('drops the duplicate when a newly created tab takes its pane', () => {
+      const result = seed();
+      let duplicateId: string | null = null;
+      act(() => {
+        duplicateId = result.current.openTabInSplitView('/left');
+      });
+      // the duplicate pane holds focus, so the new tab replaces that pane
+      let newTabId = '';
+      act(() => {
+        newTabId = result.current.addNewTab('/');
+      });
+
+      expect(result.current.splitView).toMatchObject({
+        primaryTabId: '/left',
+        secondaryTabId: newTabId,
+      });
+      expect(result.current.splitView?.duplicatedTabId).toBeUndefined();
+      expect(result.current.tabs.some((t) => t.id === duplicateId)).toBe(false);
+      expect(result.current.activeTabId).toBe(newTabId);
+    });
+
+    it('keeps the copy when its real source closed after being displaced from the split', () => {
+      const result = seed();
+      let duplicateId: string | null = null;
+      act(() => {
+        duplicateId = result.current.openTabInSplitView('/left');
+      });
+      // replace the source pane with a third tab, then close the real source tab
+      act(() => result.current.focusTabPane('/left'));
+      act(() => result.current.activateTab('/third'));
+      act(() => result.current.removeTab('/left'));
+
+      act(() => result.current.closeSplitView());
+
+      // the copy is the page's only remaining tab — it must survive the close
+      expect(result.current.splitView).toBeNull();
+      expect(result.current.tabs.some((t) => t.id === duplicateId)).toBe(true);
+    });
+
+    it('removes the copy and refocuses its real source when the replaced pane closes', () => {
+      const result = seed();
+      let duplicateId: string | null = null;
+      act(() => {
+        duplicateId = result.current.openTabInSplitView('/left');
+      });
+      act(() => result.current.focusTabPane('/left'));
+      act(() => result.current.activateTab('/third'));
+
+      act(() => result.current.removeTab('/third'));
+
+      expect(result.current.splitView).toBeNull();
+      expect(result.current.tabs.some((t) => t.id === duplicateId)).toBe(false);
+      expect(result.current.activeTabId).toBe('/left');
+    });
+
+    it('refreshes the promoted source tab recency when the split closes', () => {
+      const result = seed();
+      act(() => {
+        result.current.openTabInSplitView('/left');
+      });
+
+      act(() => result.current.closeSplitView());
+
+      // seed tabs start at lastVisited=1; the promoted source must be re-touched
+      // or the limited live-router set can evict the tab that just became active
+      const source = result.current.tabs.find((t) => t.id === '/left');
+      expect(source!.lastVisited).toBeGreaterThan(1);
+    });
+
+    it('clamps the divider ratio to usable pane widths', () => {
+      const result = seed();
+      act(() => result.current.openTabInSplitView('/right'));
+      act(() => result.current.setSplitRatio(0.9));
+      expect(result.current.splitView?.ratio).toBe(0.75);
+      act(() => result.current.setSplitRatio(0.1));
+      expect(result.current.splitView?.ratio).toBe(0.25);
+    });
+  });
+
   describe('updateTab', () => {
     it('drops cached data when the tab navigates to a different page but keeps the id stable', () => {
       const { result } = renderHook(() => useElectronStore());
@@ -430,6 +639,204 @@ describe('tabPages actions', () => {
         avatar: 'a.png',
         title: 'New Title',
       });
+    });
+  });
+
+  describe('pinning keeps array order equal to render order', () => {
+    const urls = (tabs: TabItem[]) => tabs.map((tab) => tab.url);
+
+    const seed = () => {
+      const { result } = renderHook(() => useElectronStore());
+      const tabs = [buildTab('/a'), buildTab('/b'), buildTab('/c')];
+
+      act(() => {
+        useElectronStore.setState({ activeTabId: '/a', tabs });
+      });
+
+      return result;
+    };
+
+    it('moves a pinned tab to the head so Mod+1 still means the leftmost tab', () => {
+      const result = seed();
+
+      act(() => {
+        result.current.pinTab('/c');
+      });
+
+      expect(urls(result.current.tabs)).toEqual(['/c', '/a', '/b']);
+      expect(result.current.tabs[0].pinned).toBe(true);
+    });
+
+    it('appends to the pinned run rather than jumping ahead of earlier pins', () => {
+      const result = seed();
+
+      act(() => {
+        result.current.pinTab('/c');
+      });
+      act(() => {
+        result.current.pinTab('/b');
+      });
+
+      expect(urls(result.current.tabs)).toEqual(['/c', '/b', '/a']);
+    });
+
+    it('returns an unpinned tab to the first slot after the pinned run', () => {
+      const result = seed();
+
+      act(() => {
+        result.current.pinTab('/c');
+      });
+      act(() => {
+        result.current.pinTab('/b');
+      });
+      act(() => {
+        result.current.unpinTab('/c');
+      });
+
+      expect(urls(result.current.tabs)).toEqual(['/b', '/c', '/a']);
+      expect(result.current.tabs[1].pinned).toBe(false);
+    });
+
+    it('ignores a repeated pin', () => {
+      const result = seed();
+
+      act(() => {
+        result.current.pinTab('/b');
+      });
+      act(() => {
+        result.current.pinTab('/b');
+      });
+
+      expect(urls(result.current.tabs)).toEqual(['/b', '/a', '/c']);
+    });
+
+    it('refuses a drag that would interleave pinned and unpinned tabs', () => {
+      const result = seed();
+
+      act(() => {
+        result.current.pinTab('/c');
+      });
+      act(() => {
+        result.current.reorderTabs(2, 0);
+      });
+
+      expect(urls(result.current.tabs)).toEqual(['/c', '/a', '/b']);
+    });
+
+    it('still reorders within the unpinned run', () => {
+      const result = seed();
+
+      act(() => {
+        result.current.pinTab('/c');
+      });
+      act(() => {
+        result.current.reorderTabs(2, 1);
+      });
+
+      expect(urls(result.current.tabs)).toEqual(['/c', '/b', '/a']);
+    });
+
+    it('survives a storage round-trip written before the field existed', () => {
+      const legacy = [{ id: '/a', lastVisited: 1, url: '/a' }] as TabItem[];
+      saveTabPages(PERSONAL_TAB_SCOPE, legacy, '/a');
+
+      const restored = getTabPages(PERSONAL_TAB_SCOPE);
+
+      expect(restored.tabs).toHaveLength(1);
+      expect(restored.tabs[0].pinned).toBeUndefined();
+    });
+  });
+
+  describe('bulk closes spare the pinned run', () => {
+    const urls = (tabs: TabItem[]) => tabs.map((tab) => tab.url);
+
+    const seed = (pins: string[], activeTabId = '/c') => {
+      const { result } = renderHook(() => useElectronStore());
+
+      act(() => {
+        useElectronStore.setState({
+          activeTabId,
+          tabs: [buildTab('/a'), buildTab('/b'), buildTab('/c'), buildTab('/d')],
+        });
+      });
+      for (const url of pins) {
+        act(() => {
+          result.current.pinTab(url);
+        });
+      }
+
+      return result;
+    };
+
+    it('keeps pinned tabs when closing the others', () => {
+      const result = seed(['/a', '/b']);
+
+      act(() => {
+        result.current.closeOtherTabs('/c');
+      });
+
+      expect(urls(result.current.tabs)).toEqual(['/a', '/b', '/c']);
+    });
+
+    it('keeps pinned tabs when closing to the left', () => {
+      const result = seed(['/a']);
+
+      act(() => {
+        result.current.closeLeftTabs('/c');
+      });
+
+      expect(urls(result.current.tabs)).toEqual(['/a', '/c', '/d']);
+    });
+
+    it('keeps the rest of the pinned run when closing to the right of a pinned tab', () => {
+      const result = seed(['/a', '/b']);
+
+      act(() => {
+        result.current.closeRightTabs('/a');
+      });
+
+      expect(urls(result.current.tabs)).toEqual(['/a', '/b']);
+    });
+
+    it('still closes a pinned tab that was targeted on its own', () => {
+      const result = seed(['/a']);
+
+      act(() => {
+        result.current.removeTab('/a');
+      });
+
+      expect(urls(result.current.tabs)).toEqual(['/b', '/c', '/d']);
+    });
+
+    it('does nothing when every tab the bulk close would reach is pinned', () => {
+      const result = seed(['/a', '/b']);
+      const before = result.current.tabs;
+
+      act(() => {
+        result.current.closeLeftTabs('/c');
+      });
+
+      expect(result.current.tabs).toBe(before);
+    });
+
+    it('leaves focus on a pinned tab that survived the close', () => {
+      const result = seed(['/a'], '/a');
+
+      act(() => {
+        result.current.closeOtherTabs('/c');
+      });
+
+      expect(result.current.activeTabId).toBe('/a');
+    });
+
+    it('moves focus to the target when the active tab was closed', () => {
+      const result = seed(['/a'], '/d');
+
+      act(() => {
+        result.current.closeOtherTabs('/c');
+      });
+
+      expect(result.current.activeTabId).toBe('/c');
     });
   });
 });

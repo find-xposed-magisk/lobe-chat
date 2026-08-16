@@ -31,6 +31,7 @@ import { AgentDocumentVfsError } from '../agentDocumentVfs/errors';
 import { isManagedSkillDocument } from '../agentDocumentVfs/mounts/skills/providers/providerSkillsAgentDocumentUtils';
 import { DocumentService } from '../document';
 import { TOOL_RESULTS_DIR_NAME } from '../toolExecution/constants';
+import { isRawTextAgentDocument } from './contentFormat';
 import {
   type AgentDocumentLiteXMLOperation,
   applyLiteXMLOperations,
@@ -200,6 +201,8 @@ export class AgentDocumentsService {
   }
 
   private async attachLiteXML(doc: AgentDocument): Promise<AgentDocumentWithLiteXML> {
+    if (isRawTextAgentDocument(doc)) return doc;
+
     const snapshot = await exportEditorDataSnapshot({
       editorData: doc.editorData,
       fallbackContent: doc.content,
@@ -422,6 +425,13 @@ export class AgentDocumentsService {
    */
   async findRowByDocumentId(agentId: string, documentId: string) {
     return this.agentDocumentModel.findByDocumentId(agentId, documentId);
+  }
+
+  /** Read-only page projection addressed by the public `(agentId, documentId)` route. */
+  async getReaderDocument(agentId: string, documentId: string) {
+    const doc = await this.agentDocumentModel.findByDocumentId(agentId, documentId);
+
+    return this.projectDocumentContent(doc);
   }
 
   async getDocumentSnapshotById(id: string, expectedAgentId?: string) {

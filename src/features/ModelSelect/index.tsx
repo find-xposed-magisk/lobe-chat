@@ -1,12 +1,12 @@
 import { ModelIcon } from '@lobehub/icons';
 import { Flexbox, Tag, Text, Tooltip, TooltipGroup } from '@lobehub/ui';
 import { Button, Select, type SelectProps, Switch } from '@lobehub/ui/base-ui';
+import { toast } from '@lobehub/ui/base-ui';
 import { createStaticStyles } from 'antd-style';
 import { type ReactNode } from 'react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { message } from '@/components/AntdStaticMethods';
 import { ModelItemRender, ProviderItemRender, TAG_CLASSNAME } from '@/components/ModelSelect';
 import { aiProviderSelectors, useAiInfraStore } from '@/store/aiInfra';
 import { type EnabledProviderWithModels } from '@/types/aiProvider';
@@ -79,15 +79,18 @@ interface ModelOption {
 
 interface ModelSelectProps extends Pick<
   SelectProps,
-  'disabled' | 'loading' | 'size' | 'style' | 'variant'
+  'allowClear' | 'disabled' | 'loading' | 'placeholder' | 'size' | 'style' | 'variant'
 > {
   defaultValue?: { model: string; provider?: string };
   initialWidth?: boolean;
   modelType?: 'chat' | 'embedding';
   onChange?: (props: { model: string; provider: string }) => void;
+  /** Fired when the selection is cleared via `allowClear`. */
+  onClear?: () => void;
   popupWidth?: number;
   requiredAbilities?: (keyof EnabledProviderWithModels['children'][number]['abilities'])[];
   showAbility?: boolean;
+  /** `undefined` renders the empty state (`placeholder`) instead of a selection. */
   value?: { model: string; provider?: string };
 }
 
@@ -95,6 +98,9 @@ const ModelSelect = memo<ModelSelectProps>(
   ({
     value,
     onChange,
+    onClear,
+    allowClear,
+    placeholder,
     showAbility: _showAbility = true,
     requiredAbilities,
     loading,
@@ -214,7 +220,7 @@ const ModelSelect = memo<ModelSelectProps>(
         // enabled model resolves as a valid option instead of staying stale.
         if (providerId !== value.provider) onChange?.({ model: value.model, provider: providerId });
       } catch {
-        message.error(t('ModelSelect.staleModel.notEnabled.actionFailed'));
+        toast.error(t('ModelSelect.staleModel.notEnabled.actionFailed'));
       } finally {
         setEnabling(false);
       }
@@ -330,15 +336,17 @@ const ModelSelect = memo<ModelSelectProps>(
     return (
       <TooltipGroup>
         <Select
+          allowClear={allowClear}
           className={styles.select}
-          defaultValue={`${value?.provider}/${value?.model}`}
+          defaultValue={value ? `${value.provider}/${value.model}` : null}
           disabled={disabled}
           loading={loading || enabling}
           options={finalOptions}
+          placeholder={placeholder}
           popupClassName={styles.popup}
           popupMatchSelectWidth={popupWidth === undefined ? false : popupWidth}
           size={size}
-          value={`${value?.provider}/${value?.model}`}
+          value={value ? `${value.provider}/${value.model}` : null}
           variant={variant}
           optionRender={(option) => {
             if ((option as unknown as { __stale?: boolean }).__stale) return option.label;
@@ -357,6 +365,10 @@ const ModelSelect = memo<ModelSelectProps>(
             ...style,
           }}
           onChange={(next, option) => {
+            if (next == null) {
+              onClear?.();
+              return;
+            }
             if (next === STALE_ACTION_VALUE) {
               if (
                 staleState?.status === 'redirected' &&

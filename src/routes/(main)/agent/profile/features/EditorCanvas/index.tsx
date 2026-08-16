@@ -4,13 +4,13 @@ import type { IEditor } from '@lobehub/editor';
 import { ReactMentionPlugin, ReactTablePlugin, ReactToolbarPlugin } from '@lobehub/editor';
 import { Editor } from '@lobehub/editor/react';
 import { ActionIcon, Flexbox } from '@lobehub/ui';
+import { toast } from '@lobehub/ui/base-ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import isEqual from 'fast-deep-equal';
 import { CodeXmlIcon, LetterTextIcon } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { message } from '@/components/AntdStaticMethods';
 import CodeEditorPane from '@/components/CodeEditorPane';
 import AutoSaveHint from '@/components/Editor/AutoSaveHint';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -452,7 +452,6 @@ const AgentEditorCanvas = memo<AgentEditorCanvasProps>(({ agentId }) => {
               // bubbled click, and Lexical's focus() moves the caret to the
               // document end when there is no selection — scrolling the page to
               // the bottom. Toggling the view mode must not move the caret.
-              // See LOBE-12593.
               onClick={(e) => e.stopPropagation()}
             >
               <ActionIcon
@@ -547,7 +546,7 @@ const EditorCanvas = memo(() => {
       if (!agentId) return;
       void flushSave(agentId).then(() => {
         if (storeApi.getState().promptSaveStatus === 'failed') {
-          message.error(t('saveAgentConfigFail', { ns: 'common' }));
+          toast.error(t('saveAgentConfigFail', { ns: 'common' }));
         }
       });
     },

@@ -3,18 +3,18 @@
 import type { GitFileDiffStatus } from '@lobechat/electron-client-ipc';
 import { nanoid } from '@lobechat/utils';
 import { ActionIcon, copyToClipboard, Flexbox, PatchDiff } from '@lobehub/ui';
-import { confirmModal } from '@lobehub/ui/base-ui';
+import { confirmModal, toast } from '@lobehub/ui/base-ui';
 import { createStaticStyles, cssVar as themeCssVar } from 'antd-style';
 import { CopyIcon, LocateFixedIcon, Undo2Icon } from 'lucide-react';
 import path from 'path-browserify-esm';
 import { memo, type MouseEvent, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { message } from '@/components/AntdStaticMethods';
 import { gitService } from '@/services/git';
 import { useFileStore } from '@/store/file';
 import { useGlobalStore } from '@/store/global';
 
+import type { ComposerTarget } from '../../types';
 import type { DiffSelectedLineRange } from './selection';
 import { buildCodeContextSelection } from './selection';
 
@@ -202,7 +202,7 @@ export const FileItemHeader = memo<FileItemHeaderProps>(
         // Stop propagation so the row doesn't toggle expand on copy click.
         event.stopPropagation();
         await copyToClipboard(filePath);
-        message.success(t('workingPanel.review.copied'));
+        toast.success(t('workingPanel.review.copied'));
       },
       [filePath, t],
     );
@@ -232,17 +232,17 @@ export const FileItemHeader = memo<FileItemHeaderProps>(
                 path: revertContext.workingDirectory,
               });
               if (result.success) {
-                message.success(t('workingPanel.review.revert.success', { fileName }));
+                toast.success(t('workingPanel.review.revert.success', { fileName }));
                 onReverted?.();
               } else {
-                message.error(
+                toast.error(
                   t('workingPanel.review.revert.failed', {
                     error: result.error || 'unknown error',
                   }),
                 );
               }
             } catch (error: any) {
-              message.error(
+              toast.error(
                 t('workingPanel.review.revert.failed', {
                   error: error?.message || String(error),
                 }),
@@ -306,6 +306,7 @@ export const FileItemHeader = memo<FileItemHeaderProps>(
 FileItemHeader.displayName = 'ReviewFileItemHeader';
 
 interface FileItemBodyProps {
+  composerTarget: ComposerTarget;
   /** Whether the Collapse panel is expanded — gates the heavy PatchDiff render. */
   expanded: boolean;
   filePath: string;
@@ -321,6 +322,7 @@ interface FileItemBodyProps {
 
 const FileItemBody = memo<FileItemBodyProps>(
   ({
+    composerTarget,
     filePath,
     patch,
     isBinary,
@@ -339,10 +341,12 @@ const FileItemBody = memo<FileItemBodyProps>(
 
     const diffOptions = useMemo(
       () => ({
-        enableGutterUtility: true,
+        enableGutterUtility: composerTarget.writable,
         enableLineSelection: true,
         lineDiffType: textDiff ? ('word-alt' as const) : ('none' as const),
         onGutterUtilityClick: (range: DiffSelectedLineRange) => {
+          if (!composerTarget.writable) return;
+
           const selection = buildCodeContextSelection({
             filePath,
             language,
@@ -354,16 +358,29 @@ const FileItemBody = memo<FileItemBodyProps>(
           if (!selection) return;
 
           addChatContextSelection({
-            ...selection,
-            id: `code-selection-${nanoid(6)}`,
-            type: 'text',
+            contextKey: composerTarget.contextKey,
+            selection: {
+              ...selection,
+              id: `code-selection-${nanoid(6)}`,
+              type: 'text',
+            },
           });
-          message.success(t('workingPanel.review.addSelectionToContext.success'));
+          toast.success(t('workingPanel.review.addSelectionToContext.success'));
         },
         overflow: wordWrap ? ('wrap' as const) : ('scroll' as const),
         unsafeCSS: reviewDiffUnsafeCSS,
       }),
-      [addChatContextSelection, filePath, language, patch, t, textDiff, wordWrap, workingDirectory],
+      [
+        addChatContextSelection,
+        composerTarget,
+        filePath,
+        language,
+        patch,
+        t,
+        textDiff,
+        wordWrap,
+        workingDirectory,
+      ],
     );
 
     if (!expanded) return null;

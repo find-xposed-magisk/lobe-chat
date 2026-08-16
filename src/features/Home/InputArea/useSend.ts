@@ -1,10 +1,10 @@
 import { AGENT_CHAT_TOPIC_URL, AGENT_CHAT_URL } from '@lobechat/const';
+import { toast } from '@lobehub/ui/base-ui';
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useActiveWorkspaceId } from '@/business/client/hooks/useActiveWorkspaceId';
 import { useActiveWorkspaceSlug } from '@/business/client/hooks/useActiveWorkspaceSlug';
-import { message as antdMessage } from '@/components/AntdStaticMethods';
 import { buildTaskHandoffPath } from '@/features/AgentTaskManager/taskHandoff';
 import type { SendButtonHandler } from '@/features/ChatInput/store/initialState';
 import { buildMessageContextSelections } from '@/features/ChatInput/utils/contextSelections';
@@ -62,6 +62,7 @@ export const useSend = (mode: HomeMode = 'chat') => {
   const sendMessage = useChatStore((s) => s.sendMessage);
   const clearChatUploadFileList = useFileStore((s) => s.clearChatUploadFileList);
   const clearChatContextSelections = useFileStore((s) => s.clearChatContextSelections);
+  const restoreChatContextSelections = useFileStore((s) => s.restoreChatContextSelections);
 
   const homeInputLoading = useHomeStore((s) => s.homeInputLoading);
   const createTask = useTaskStore((s) => s.createTask);
@@ -73,6 +74,7 @@ export const useSend = (mode: HomeMode = 'chat') => {
   const inboxAgentId = useAgentStore(builtinAgentSelectors.inboxAgentId);
   const { agentId: selectedAgentId } = useResolvedHomeAgentId();
   const agentId = selectedAgentId;
+  const contextSelectionKey = `home:${mode}:${selectedAgentId ?? 'unresolved'}`;
   const { allowed: canCreateContent } = usePermission('create_content');
   const agentVisibility = useAgentStore((s) =>
     selectedAgentId ? s.agentMap[selectedAgentId]?.visibility : undefined,
@@ -96,7 +98,9 @@ export const useSend = (mode: HomeMode = 'chat') => {
       // cache catches up and the empty-message guard would bail incorrectly.
       const typed = (getMarkdownContent?.() ?? inputMessage ?? '').trim();
       const fileList = fileChatSelectors.chatUploadFileList(useFileStore.getState());
-      const contextList = fileChatSelectors.chatContextSelections(useFileStore.getState());
+      const contextList = fileChatSelectors.chatContextSelections(contextSelectionKey)(
+        useFileStore.getState(),
+      );
       const { sendAsAgent, sendAsGroup, sendAsWrite, sendAsResearch, inputActiveMode } =
         useHomeStore.getState();
 
@@ -127,7 +131,7 @@ export const useSend = (mode: HomeMode = 'chat') => {
       // this before the empty-message guard so an attachment-only submission
       // explains why it cannot proceed instead of appearing inert.
       if (mode === 'task' && (fileList.length > 0 || contextList.length > 0)) {
-        antdMessage.error(t('dashboard.task.unsupportedContext'));
+        toast.error(t('dashboard.task.unsupportedContext'));
         return;
       }
 
@@ -238,6 +242,9 @@ export const useSend = (mode: HomeMode = 'chat') => {
               editorData,
               files: fileList,
               message,
+              onPreflightFailure: () => {
+                restoreChatContextSelections(contextSelectionKey, contextList);
+              },
               onTopicCreated: (topicId) => {
                 router.replace(AGENT_CHAT_TOPIC_URL(selectedAgentId, topicId, false));
               },
@@ -250,13 +257,13 @@ export const useSend = (mode: HomeMode = 'chat') => {
         }
       } catch (error) {
         console.error('[home:send]', error);
-        antdMessage.error(t('dashboard.submitFailed'));
+        toast.error(t('dashboard.submitFailed'));
       } finally {
         // Preserve the complete draft when creation or execution fails. The
         // editor, files and context are one unit from the user's perspective.
         if (submitted) {
           clearChatUploadFileList();
-          clearChatContextSelections();
+          clearChatContextSelections(contextSelectionKey);
           mainInputEditor?.clearContent();
         }
         setIsSubmitting(false);
@@ -267,7 +274,9 @@ export const useSend = (mode: HomeMode = 'chat') => {
       activeWorkspaceId,
       sendMessage,
       clearChatContextSelections,
+      restoreChatContextSelections,
       clearChatUploadFileList,
+      contextSelectionKey,
       router,
       currentPair,
       mode,
@@ -284,6 +293,7 @@ export const useSend = (mode: HomeMode = 'chat') => {
 
   return {
     agentId,
+    contextSelectionKey,
     loading: homeInputLoading || isSubmitting,
     send,
   };

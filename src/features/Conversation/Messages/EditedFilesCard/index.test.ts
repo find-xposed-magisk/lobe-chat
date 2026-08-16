@@ -4,6 +4,7 @@ import { createElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import EditedFilesCard, {
+  AGGREGATE_EDITED_FILE_ICON_SIZE,
   getEditedFileIconName,
   getEditedFilesCardMode,
   SINGLE_EDITED_FILE_ICON_SIZE,
@@ -24,6 +25,7 @@ const singleEntry = {
   linesAdded: 7,
   linesDeleted: 2,
   path: '/workspace/Acceptance/index.tsx',
+  sandboxBacked: false,
   sourceToolCallIds: ['tool-1'],
 };
 
@@ -55,6 +57,12 @@ describe('getFilePathDisplayInfo', () => {
 describe('SINGLE_EDITED_FILE_ICON_SIZE', () => {
   it('keeps the single-file icon container compact', () => {
     expect(SINGLE_EDITED_FILE_ICON_SIZE).toBe(40);
+  });
+});
+
+describe('AGGREGATE_EDITED_FILE_ICON_SIZE', () => {
+  it('keeps the multi-file summary as compact as the single-file card', () => {
+    expect(AGGREGATE_EDITED_FILE_ICON_SIZE).toBe(40);
   });
 });
 

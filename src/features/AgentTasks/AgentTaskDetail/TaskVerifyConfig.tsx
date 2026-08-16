@@ -1,25 +1,22 @@
 'use client';
 
+import { AgentRuntimeErrorType } from '@lobechat/model-runtime';
+import { ActionIcon, Block, Flexbox, Icon, SortableList, Tag, Text, TextArea } from '@lobehub/ui';
 import {
-  ActionIcon,
-  Block,
+  Button,
+  confirmModal,
   Drawer,
   type DropdownItem,
   DropdownMenu,
-  Flexbox,
-  Icon,
-  SortableList,
-  Tag,
-  Text,
-  TextArea,
-} from '@lobehub/ui';
-import { Button, Checkbox, Select } from '@lobehub/ui/base-ui';
-import { App } from 'antd';
+  Select,
+  toast,
+} from '@lobehub/ui/base-ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import {
   ChevronRight,
   ChevronUp,
   MoreHorizontal,
+  Pencil,
   Plus,
   RotateCcw,
   ShieldCheck,
@@ -34,6 +31,7 @@ import { openVerifyCriterionModal } from '@/features/AgentTasks/AgentTaskDetail/
 import { VerifyCriterionEditor } from '@/features/AgentTasks/AgentTaskDetail/VerifyCriterionModal/VerifyCriterionForm';
 import { useRubrics } from '@/features/Verify/hooks';
 import { usePermission } from '@/hooks/usePermission';
+import { useSingleton } from '@/hooks/useSingleton';
 import { type VerifyCriterionDraft, verifyService } from '@/services/verify';
 import { useAgentStore } from '@/store/agent';
 import { agentByIdSelectors, agentSelectors } from '@/store/agent/selectors';
@@ -97,6 +95,23 @@ const toDraftItem = (draft: VerifyCriterionDraft, criterionId?: string): DraftIt
   id: nextUid(),
 });
 
+export const isInvalidProviderApiKeyError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') return false;
+
+  const errorRecord = error as {
+    data?: { errorData?: { errorType?: unknown }; errorType?: unknown };
+    errorType?: unknown;
+    message?: unknown;
+  };
+
+  return [
+    errorRecord.errorType,
+    errorRecord.message,
+    errorRecord.data?.errorType,
+    errorRecord.data?.errorData?.errorType,
+  ].includes(AgentRuntimeErrorType.InvalidProviderAPIKey);
+};
+
 /** Snapshot task-owned criteria into independent rows before mounting them on a reusable rubric. */
 export const toTemplateCriterionDrafts = (drafts: DraftItem[]): VerifyCriterionDraft[] =>
   drafts
@@ -108,7 +123,7 @@ export const toTemplateCriterionDrafts = (drafts: DraftItem[]): VerifyCriterionD
 
 const TaskVerifyConfig = memo(() => {
   const { t } = useTranslation(['chat', 'verify']);
-  const { message } = App.useApp();
+
   const { allowed: canEditTask } = usePermission('create_content');
 
   const taskId = useTaskStore(taskDetailSelectors.activeTaskId);
@@ -160,7 +175,7 @@ const TaskVerifyConfig = memo(() => {
 
   // Hydrate the working list once per task from the persisted criterion ids.
   const hydratedTaskRef = useRef<string | null>(null);
-  const criterionIdsRef = useRef(new Map<string, string>());
+  const criterionIds = useSingleton(() => new Map<string, string>());
   useEffect(() => {
     if (!taskId) return;
     if (hydratedTaskRef.current === taskId) return;
@@ -168,7 +183,7 @@ const TaskVerifyConfig = memo(() => {
     setRequirement(verify?.requirement ?? '');
     setEnabled(verify?.enabled !== false);
     setShowTemplatePicker(false);
-    criterionIdsRef.current.clear();
+    criterionIds.clear();
 
     const ids = verify?.verifyCriteriaIds ?? [];
     if (ids.length === 0) {
@@ -197,13 +212,14 @@ const TaskVerifyConfig = memo(() => {
               c.id,
             ),
           );
-        criterionIdsRef.current = new Map(
-          ordered.flatMap((draft) => (draft.criterionId ? [[draft.id, draft.criterionId]] : [])),
-        );
+        criterionIds.clear();
+        for (const draft of ordered) {
+          if (draft.criterionId) criterionIds.set(draft.id, draft.criterionId);
+        }
         setDrafts(ordered);
       })
       .finally(() => setHydrated(true));
-  }, [taskId, verify?.verifyCriteriaIds, verify?.requirement, verify?.enabled]);
+  }, [criterionIds, taskId, verify?.verifyCriteriaIds, verify?.requirement, verify?.enabled]);
 
   // ---- debounced persistence ----
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -226,7 +242,7 @@ const TaskVerifyConfig = memo(() => {
           .filter((d) => d.title.trim().length > 0)
           .map((draft) => ({
             ...draft,
-            criterionId: criterionIdsRef.current.get(draft.id) ?? draft.criterionId,
+            criterionId: criterionIds.get(draft.id) ?? draft.criterionId,
           }));
         const requirement = payload.requirement.trim() || null;
         if (cleaned.length === 0) {
@@ -246,7 +262,7 @@ const TaskVerifyConfig = memo(() => {
         );
         existing.forEach((draft, index) => {
           draft.criterionId = localIds[index];
-          criterionIdsRef.current.set(draft.id, localIds[index]);
+          criterionIds.set(draft.id, localIds[index]);
         });
         await Promise.all(
           existing.map(
@@ -282,7 +298,7 @@ const TaskVerifyConfig = memo(() => {
               );
         additions.forEach((draft, index) => {
           draft.criterionId = createdIds[index];
-          criterionIdsRef.current.set(draft.id, createdIds[index]);
+          criterionIds.set(draft.id, createdIds[index]);
         });
         const ids = cleaned.map(({ criterionId }) => criterionId!);
         await useTaskStore.getState().updateVerifyConfig(taskId, {
@@ -293,7 +309,7 @@ const TaskVerifyConfig = memo(() => {
         setDrafts((current) =>
           current.map((draft) => ({
             ...draft,
-            criterionId: criterionIdsRef.current.get(draft.id) ?? draft.criterionId,
+            criterionId: criterionIds.get(draft.id) ?? draft.criterionId,
           })),
         );
       }
@@ -302,7 +318,7 @@ const TaskVerifyConfig = memo(() => {
     } finally {
       savingRef.current = false;
     }
-  }, [taskId]);
+  }, [criterionIds, taskId]);
 
   const persist = useCallback(
     (nextDrafts: DraftItem[], nextEnabled: boolean, nextRequirement: string) => {
@@ -359,12 +375,16 @@ const TaskVerifyConfig = memo(() => {
         commit(items, { enabled: true, requirement: goal });
       } catch (error) {
         console.error('[TaskVerifyConfig] generate failed:', error);
-        message.error(t('verifyConfig.generateFailed'));
+        toast.error(
+          isInvalidProviderApiKeyError(error)
+            ? t('verifyConfig.generateInvalidProviderAPIKey', { model, provider })
+            : t('verifyConfig.generateFailed'),
+        );
       } finally {
         setGenerating(false);
       }
     },
-    [commit, generating, message, model, provider, t, taskName],
+    [commit, generating, model, provider, t, taskName],
   );
 
   const handleGenerate = useCallback(async () => {
@@ -387,6 +407,22 @@ const TaskVerifyConfig = memo(() => {
     },
     [drafts, commit],
   );
+
+  // One-click teardown of the whole acceptance config; collapses back to the
+  // "+" trigger instead of leaving an empty editor open.
+  const handleRemoveAll = useCallback(() => {
+    confirmModal({
+      content: t('taskDetail.acceptance.removeConfirm.content'),
+      okButtonProps: { danger: true },
+      okText: t('taskDetail.acceptance.removeConfirm.ok'),
+      onOk: () => {
+        setEditing(false);
+        setExpanded(false);
+        commit([], { enabled: false, requirement: '' });
+      },
+      title: t('taskDetail.acceptance.removeConfirm.title'),
+    });
+  }, [commit, t]);
 
   // New criteria are authored in the detail modal, not via an inline empty row —
   // so a half-typed criterion never leaks into the read-only preview.
@@ -460,11 +496,11 @@ const TaskVerifyConfig = memo(() => {
         rubric.id,
         templateCriterionIds.map((criterionId) => ({ criterionId })),
       );
-      message.success(t('verifyConfig.saveAsTemplateSuccess'));
+      toast.success(t('verifyConfig.saveAsTemplateSuccess'));
     } catch (e) {
       console.error('[TaskVerifyConfig] save as template failed:', e);
     }
-  }, [drafts, verify?.verifyCriteriaIds, requirement, t, message]);
+  }, [drafts, verify?.verifyCriteriaIds, requirement, t]);
 
   const rubricOptions = useMemo(
     () => (rubrics ?? []).map((r) => ({ label: r.title, value: r.id })),
@@ -623,6 +659,32 @@ const TaskVerifyConfig = memo(() => {
   // ---- C. configured ----
   const requirementText = requirement.trim();
 
+  // Reviewer contract: the configured header exposes ONE overflow trigger; enable,
+  // edit, and remove all live inside it so the title row stays a single affordance.
+  const headerMenuItems: DropdownItem[] = [
+    {
+      checked: enabled,
+      key: 'enabled',
+      label: t('verifyConfig.enable'),
+      onCheckedChange: handleToggleEnabled,
+      type: 'checkbox',
+    },
+    {
+      icon: <Icon icon={Pencil} />,
+      key: 'edit',
+      label: t('verifyConfig.edit'),
+      onClick: () => setEditing(true),
+    },
+    { type: 'divider' },
+    {
+      danger: true,
+      icon: <Icon icon={Trash} />,
+      key: 'remove',
+      label: t('taskDetail.acceptance.remove'),
+      onClick: handleRemoveAll,
+    },
+  ];
+
   // Title + verifier/required tags — the shared meta shown in both preview and edit rows.
   const renderCriterionMeta = (item: DraftItem) => (
     <>
@@ -643,17 +705,21 @@ const TaskVerifyConfig = memo(() => {
             controls stay on the right without changing the information hierarchy. */}
         <Flexbox horizontal align={'center'} justify={'space-between'}>
           <TaskAcceptanceHeader isOpen count={drafts.length} onToggle={() => setExpanded(false)} />
-          <Flexbox horizontal align={'center'} gap={4}>
-            <Checkbox
-              aria-label={t('verifyConfig.enable')}
-              checked={enabled}
-              size={16}
-              onChange={handleToggleEnabled}
-            />
-            <Button size={'small'} type={'text'} onClick={() => setEditing((v) => !v)}>
-              {editing ? t('verifyConfig.done') : t('verifyConfig.edit')}
+          {editing ? (
+            // Editing is a mode, not a menu action — finishing it stays a visible
+            // button instead of hiding the only exit inside the overflow.
+            <Button size={'small'} type={'text'} onClick={() => setEditing(false)}>
+              {t('verifyConfig.done')}
             </Button>
-          </Flexbox>
+          ) : (
+            <DropdownMenu items={headerMenuItems} placement={'bottomRight'}>
+              <ActionIcon
+                icon={MoreHorizontal}
+                size={'small'}
+                title={t('verifyConfig.moreActions')}
+              />
+            </DropdownMenu>
+          )}
         </Flexbox>
 
         {/* requirement: read-only sentence by default; TextArea + regenerate in edit mode */}
@@ -752,10 +818,9 @@ const TaskVerifyConfig = memo(() => {
         ) : null}
       </Flexbox>
       <Drawer
-        destroyOnHidden
         open={Boolean(selectedCriterionId)}
         placement={'right'}
-        styles={{ body: { padding: 0 } }}
+        styles={{ bodyContent: { padding: 0 } }}
         title={t('verifyConfig.detail.title')}
         width={'min(92vw, 440px)'}
         onClose={() => setSelectedCriterionId(null)}

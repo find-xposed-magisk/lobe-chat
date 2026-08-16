@@ -1,21 +1,21 @@
-import { MessageSquarePlus } from 'lucide-react';
+import { HomeIcon, ImageIcon } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 
 import { matchRouteMeta } from '@/features/Electron/titlebar/TabBar/resolveRouteMeta';
 
 import { mainAreaMetaRoutes } from './desktopRouter.config.desktop';
 
-// vitest does not apply the platformResolve vite plugin, so the electron twin
+// vitest does not apply the platformResolve Vite plugin, so the Electron adapter
 // must be imported by its explicit `.desktop` path. This guards Critical 1: the
 // electron root router's `/` children are slim null stubs with zero meta, so a
 // meta tree that aliased those stubs would silently degrade every tab title to
 // brand and every icon to the Circle fallback on the packaged app.
-describe('mainAreaMetaRoutes (electron twin)', () => {
-  it('uses New Chat for the personal Home tab without changing its document title', () => {
+describe('mainAreaMetaRoutes (Electron adapter)', () => {
+  it('uses Home for the personal Home tab and document title', () => {
     const { static: staticMeta } = matchRouteMeta(mainAreaMetaRoutes, '/');
 
-    expect(staticMeta.icon).toBe(MessageSquarePlus);
-    expect(staticMeta.tabTitleKey).toBe('navigation.newChat');
+    expect(staticMeta.icon).toBe(HomeIcon);
+    expect(staticMeta.tabTitleKey).toBe('navigation.home');
     expect(staticMeta.titleKey).toBe('navigation.home');
   });
 
@@ -24,6 +24,13 @@ describe('mainAreaMetaRoutes (electron twin)', () => {
 
     expect(staticMeta.titleKey).toBeDefined();
     expect(staticMeta.icon).toBeDefined();
+  });
+
+  it('uses the active resource category for the tab title and icon', () => {
+    const { static: staticMeta } = matchRouteMeta(mainAreaMetaRoutes, '/resource/images');
+
+    expect(staticMeta.titleKey).toBe('navigation.resourceImages');
+    expect(staticMeta.icon).toBe(ImageIcon);
   });
 
   it('resolves a static agent meta and its DynamicMeta runner', () => {

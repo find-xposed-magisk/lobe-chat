@@ -1,7 +1,7 @@
 import { isDesktop } from '@lobechat/const';
 import { nanoid } from '@lobechat/utils';
 import { ActionIcon, Center, Empty, Flexbox, Icon, Input, Text } from '@lobehub/ui';
-import { Button } from '@lobehub/ui/base-ui';
+import { Button, toast } from '@lobehub/ui/base-ui';
 import { createStaticStyles } from 'antd-style';
 import {
   Camera,
@@ -17,7 +17,6 @@ import {
 import { memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { message } from '@/components/AntdStaticMethods';
 import { BrowserIcon } from '@/components/BrowserIcon';
 import { DESKTOP_HEADER_ICON_SMALL_SIZE } from '@/const/layoutTokens';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
@@ -27,6 +26,7 @@ import { useChatStore } from '@/store/chat';
 import { useFileStore } from '@/store/file';
 import { useGlobalStore } from '@/store/global';
 
+import type { ComposerTarget } from '../../types';
 import { BROWSER_IMPORT_BANNER_DISMISSED_STORAGE_KEY } from './const';
 import { useBrowserSidebarState } from './useBrowserSidebarState';
 import {
@@ -152,11 +152,13 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
 interface BrowserPaneProps {
   /** The conversation the chat input belongs to — screenshots are attached there. */
   agentId?: string;
+  composerTarget: ComposerTarget;
   onMetadataChange?: (metadata: { faviconUrl?: string; title: string; url: string }) => void;
   sessionId: string;
 }
 
-const BrowserPane = memo<BrowserPaneProps>(({ agentId, onMetadataChange, sessionId }) => {
+const BrowserPane = memo<BrowserPaneProps>((props) => {
+  const { agentId, composerTarget, onMetadataChange, sessionId } = props;
   const { t } = useTranslation('chat');
   const state = useBrowserSidebarState(sessionId);
   const [address, setAddress] = useState('');
@@ -212,11 +214,11 @@ const BrowserPane = memo<BrowserPaneProps>(({ agentId, onMetadataChange, session
     try {
       const result = await action();
       if (!result.success) {
-        message.error(result.error || t('workingPanel.browser.actions.failed'));
+        toast.error(result.error || t('workingPanel.browser.actions.failed'));
       }
     } catch (error) {
       console.error('[BrowserSidebar] Browser action failed:', error);
-      message.error(t('workingPanel.browser.actions.failed'));
+      toast.error(t('workingPanel.browser.actions.failed'));
     }
   };
 
@@ -236,7 +238,7 @@ const BrowserPane = memo<BrowserPaneProps>(({ agentId, onMetadataChange, session
     try {
       const result = await electronBrowserSidebarService.captureScreenshot({ sessionId });
       if (!result.success || !result.dataUrl) {
-        message.error(result.error || t('workingPanel.browser.actions.failed'));
+        toast.error(result.error || t('workingPanel.browser.actions.failed'));
         return;
       }
 
@@ -244,17 +246,19 @@ const BrowserPane = memo<BrowserPaneProps>(({ agentId, onMetadataChange, session
       // The attachment appears in the input immediately (pending state); the
       // upload itself reports its own progress and errors.
       void useFileStore.getState().uploadChatFiles([file], agentId);
-      message.success(t('workingPanel.browser.actions.captured'));
+      toast.success(t('workingPanel.browser.actions.captured'));
       focusChatInput();
     } catch (error) {
       console.error('[BrowserSidebar] Failed to capture screenshot:', error);
-      message.error(t('workingPanel.browser.actions.failed'));
+      toast.error(t('workingPanel.browser.actions.failed'));
     } finally {
       setIsCapturing(false);
     }
   };
 
   const pickElementContext = async () => {
+    if (!composerTarget.writable) return;
+
     setIsPicking(true);
     try {
       const result = await electronBrowserSidebarService.pickElement({
@@ -262,23 +266,24 @@ const BrowserPane = memo<BrowserPaneProps>(({ agentId, onMetadataChange, session
         sessionId,
       });
       if (!result.success) {
-        message.error(result.error || t('workingPanel.browser.context.failed'));
+        toast.error(result.error || t('workingPanel.browser.context.failed'));
         return;
       }
       if (result.cancelled || !result.element) return;
 
-      useFileStore.getState().addChatContextSelection(
-        createElementContext({
+      useFileStore.getState().addChatContextSelection({
+        contextKey: composerTarget.contextKey,
+        selection: createElementContext({
           element: result.element,
           elementTitle: t('workingPanel.browser.context.elementTitle'),
           id: `browser-element-${nanoid(6)}`,
         }),
-      );
-      message.success(t('workingPanel.browser.context.elementAdded'));
+      });
+      toast.success(t('workingPanel.browser.context.elementAdded'));
       focusChatInput();
     } catch (error) {
       console.error('[BrowserSidebar] Failed to pick element:', error);
-      message.error(t('workingPanel.browser.context.failed'));
+      toast.error(t('workingPanel.browser.context.failed'));
     } finally {
       setIsPicking(false);
     }
@@ -298,18 +303,18 @@ const BrowserPane = memo<BrowserPaneProps>(({ agentId, onMetadataChange, session
     try {
       const result = await electronBrowserSidebarService.importChromeLoginData();
       if (!result.success) {
-        message.error(t('workingPanel.browser.import.failed'));
+        toast.error(t('workingPanel.browser.import.failed'));
         return;
       }
 
-      message.success(t('workingPanel.browser.import.success', { count: result.importedCount }));
+      toast.success(t('workingPanel.browser.import.success', { count: result.importedCount }));
       setIsImportBannerDismissed(true);
       if (state.attached) {
         void runAction(() => electronBrowserSidebarService.reload({ sessionId }));
       }
     } catch (error) {
       console.error('[BrowserSidebar] Failed to import Chrome login information:', error);
-      message.error(t('workingPanel.browser.import.failed'));
+      toast.error(t('workingPanel.browser.import.failed'));
     } finally {
       setIsImporting(false);
     }
@@ -404,7 +409,7 @@ const BrowserPane = memo<BrowserPaneProps>(({ agentId, onMetadataChange, session
             />
           ) : (
             <ActionIcon
-              disabled={!state.attached || state.isLoading}
+              disabled={!state.attached || state.isLoading || !composerTarget.writable}
               icon={SquareDashedMousePointer}
               size={DESKTOP_HEADER_ICON_SMALL_SIZE}
               title={t('workingPanel.browser.context.pickElement')}

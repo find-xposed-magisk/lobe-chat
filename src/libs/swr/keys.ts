@@ -40,6 +40,8 @@ interface LocalFilePreviewKeyParams {
   deviceId?: string;
   filePath: string;
   resourceScope?: 'workspace';
+  /** Topic scope when the previewed file lives in the topic's cloud sandbox. */
+  sandboxTopicId?: string;
   workingDirectory: string;
 }
 
@@ -175,19 +177,37 @@ export const agentKeys = {
   list: def('agent:list', (isLogin: boolean) => ['agent:list', isLogin]),
 };
 
+// ---- agent labels -------------------------------------------------------
+export const agentLabelKeys = {
+  /**
+   * Agent label registry (workspace-shared, or personal). Keyed by workspace:
+   * the registries are disjoint per scope, so a shared key would serve the
+   * previous workspace's labels across a switch.
+   */
+  list: def('agentLabel:list', (isLogin: boolean, workspaceId: string | null | undefined) => [
+    'agentLabel:list',
+    isLogin,
+    workspaceId ?? null,
+  ]),
+};
+
 // ---- agent builder (opening-suggestion chips) ---------------------------
-// Kept off `CACHE_TIERS` on purpose — these are ephemeral LLM-generated chips.
-// `contextSummary` is intentionally NOT part of the key so config autosaves for
-// the same target don't refetch; `nonce` bumps on manual refresh.
+// Persisted to the localStorage tier (see `CACHE_TIERS.local`) so revisits skip
+// the LLM generation instead of paying a skeleton + a generateJSON call every
+// page load. `contextSummary` is intentionally NOT part of the key so config
+// autosaves for the same target don't refetch; manual refresh revalidates the
+// same key in place (see `useBuilderSuggestions`). `locale` IS part of the key:
+// chips are generated in the UI language, so a persisted entry must not be
+// served after a language switch.
 export const agentBuilderKeys = {
   suggestions: def(
     'agentBuilder:suggestions',
-    (mode: string, builderAgentId: string, targetId: string | undefined, nonce: number) => [
+    (mode: string, builderAgentId: string, targetId: string | undefined, locale?: string) => [
       'agentBuilder:suggestions',
       mode,
       builderAgentId,
       targetId,
-      nonce,
+      locale ?? null,
     ],
   ),
 };
@@ -233,10 +253,11 @@ export const recentKeys = {
     scope,
   ]),
   /** Home chat-only list; filtering happens before the server-side limit. */
-  topicList: def('recent:topicList', (limit: number, scope: string) => [
+  topicList: def('recent:topicList', (limit: number, scope: string, view: 'mine' | 'team') => [
     'recent:topicList',
     limit,
     scope,
+    view,
   ]),
 };
 
@@ -245,16 +266,44 @@ export const taskKeys = {
   detail: def('task:detail', (taskId: string) => ['task:detail', taskId]),
   groupList: def(
     'task:groupList',
-    (agentKey: string | undefined, visibility: 'all' | 'private' | 'workspace' = 'all') => [
-      'task:groupList',
-      agentKey,
-      visibility,
-    ],
+    (
+      agentKey: string | undefined,
+      visibility: 'all' | 'private' | 'workspace' = 'all',
+      projectId?: string,
+    ) =>
+      projectId
+        ? ['task:groupList', agentKey, visibility, projectId]
+        : ['task:groupList', agentKey, visibility],
   ),
+  /**
+   * The home rail's cross-agent goal roll-up. Scoped by cache scope like the
+   * other home feeds — goals are workspace rows, so a list left over from the
+   * previous workspace holds ids this one cannot open.
+   */
+  homeGoals: def('task:homeGoals', (scope: string) => ['task:homeGoals', scope]),
   list: def(
     'task:list',
+    (
+      agentKey: string | undefined,
+      visibility: 'all' | 'private' | 'workspace' = 'all',
+      // Part of the key, not a detail: Home orders by activity while the Tasks
+      // page orders by creation, and they read the same store field.
+      orderBy: 'createdAt' | 'updatedAt' = 'createdAt',
+      projectId?: string,
+    ) =>
+      projectId
+        ? ['task:list', agentKey, visibility, orderBy, projectId]
+        : ['task:list', agentKey, visibility, orderBy],
+  ),
+  /**
+   * Home's automated-task roll-up: the tasks that fire on a schedule or a
+   * heartbeat. Kept off `list` because it is a different result set entirely —
+   * sharing the key would let one section's fetch overwrite the other's.
+   */
+  scheduledList: def(
+    'task:scheduledList',
     (agentKey: string | undefined, visibility: 'all' | 'private' | 'workspace' = 'all') => [
-      'task:list',
+      'task:scheduledList',
       agentKey,
       visibility,
     ],
@@ -293,7 +342,22 @@ export const workKeys = {
 
 // ---- brief --------------------------------------------------------------
 export const briefKeys = {
-  list: def('brief:list', (isLogin: boolean) => ['brief:list', isLogin]),
+  /**
+   * Unresolved brief feed, keyed by login + identity scope. Briefs are per-user
+   * AND per-workspace rows, so an entry fetched in one scope must never be
+   * served in another — its ids are unreachable there.
+   */
+  list: def('brief:list', (isLogin: boolean, scope: string) => ['brief:list', isLogin, scope]),
+  /**
+   * Day-scoped news digest (`insight` + `result`, resolved included), keyed by
+   * the viewer's local day (`YYYY-MM-DD`) on top of the identity scope.
+   */
+  news: def('brief:news', (isLogin: boolean, scope: string, day: string) => [
+    'brief:news',
+    isLogin,
+    scope,
+    day,
+  ]),
 };
 
 // ---- home inbox ---------------------------------------------------------
@@ -318,6 +382,11 @@ export const aiModelKeys = {
     offset,
   ]),
   list: def('aiModel:list', (provider: string | undefined) => ['aiModel:list', provider]),
+  reasoningConfig: def('aiModel:reasoningConfig', (provider: string, model: string) => [
+    'aiModel:reasoningConfig',
+    provider,
+    model,
+  ]),
 };
 
 // ---- image generation ---------------------------------------------------
@@ -836,6 +905,15 @@ export const verifyKeys = {
       subjectId,
     ],
   ),
+  /** Statuses for a known subject set. Ids are sorted+joined so the key is order-free. */
+  acceptanceStatuses: def(
+    'verify:acceptanceStatuses',
+    (subjectType: string, subjectIds: string[]) => [
+      'verify:acceptanceStatuses',
+      subjectType,
+      [...subjectIds].sort().join(','),
+    ],
+  ),
   acceptances: def('verify:acceptances', () => ['verify:acceptances']),
   criteria: def('verify:criteria', () => ['verify:criteria']),
   instruction: def('verify:instruction', (documentId: string) => [
@@ -927,10 +1005,11 @@ export const localFileKeys = {
       deviceId,
       filePath,
       resourceScope,
+      sandboxTopicId,
       workingDirectory,
     }: LocalFilePreviewKeyParams) => [
       'localFile:preview',
-      deviceId ?? 'local',
+      sandboxTopicId ? `sandbox:${sandboxTopicId}` : (deviceId ?? 'local'),
       filePath,
       workingDirectory,
       accept ?? 'any',
@@ -1107,6 +1186,7 @@ export const swrKeys = {
   agentDocument: agentDocumentSWRKeys,
   agentHome: agentHomeKeys,
   agentKnowledge: agentKnowledgeKeys,
+  agentLabel: agentLabelKeys,
   agentProfile: agentProfileKeys,
   agentSignal: agentSignalKeys,
   aiModel: aiModelKeys,

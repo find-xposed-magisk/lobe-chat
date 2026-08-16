@@ -1,4 +1,4 @@
-import { app as electronApp } from 'electron';
+import { app as electronApp, ipcMain } from 'electron';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Import after mocks are set up
@@ -68,7 +68,7 @@ vi.mock('~common/routes', () => ({
 }));
 
 // Mock other dependencies
-vi.mock('electron-is', () => ({
+vi.mock('@/utils/platform', () => ({
   macOS: vi.fn(() => false),
   windows: vi.fn(() => false),
 }));
@@ -143,6 +143,7 @@ vi.mock('../browser/BrowserManager', () => ({
   BrowserManager: vi.fn().mockImplementation(() => ({
     initializeBrowsers: vi.fn(),
     getIdentifierByWebContents: vi.fn(),
+    waitForMainWindowFirstFrame: vi.fn(() => new Promise(() => {})),
   })),
 }));
 
@@ -206,6 +207,39 @@ describe('App', () => {
       beforeQuitHandler();
 
       expect(destroy).toHaveBeenCalledOnce();
+    });
+
+    it('prewarms the local database after browser initialization yields to the event loop', async () => {
+      appInstance = new App();
+      const databaseService = appInstance.getService(LocalDatabaseService);
+      const initialize = vi.spyOn(databaseService, 'initialize').mockImplementation(() => {});
+
+      await appInstance.bootstrap();
+
+      expect(appInstance.browserManager.initializeBrowsers).toHaveBeenCalledOnce();
+      expect(initialize).not.toHaveBeenCalled();
+
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(initialize).toHaveBeenCalledOnce();
+      expect(
+        vi.mocked(appInstance.browserManager.initializeBrowsers).mock.invocationCallOrder[0],
+      ).toBeLessThan(initialize.mock.invocationCallOrder[0]);
+    });
+  });
+
+  describe('desktop bootstrap identity', () => {
+    it('responds through the registered controller without an elided runtime symbol', () => {
+      appInstance = new App();
+      const listener = vi
+        .mocked(ipcMain.on)
+        .mock.calls.findLast(
+          ([channel]) => channel === 'desktop:get-bootstrap-identity',
+        )?.[1] as (event: { returnValue?: unknown }) => void;
+      const event: { returnValue?: unknown } = {};
+
+      expect(() => listener(event)).not.toThrow();
+      expect(event.returnValue).toEqual({ isIdentityResolved: true });
     });
   });
 });

@@ -5,7 +5,10 @@ import { AiAgentService } from '../index';
 const {
   mockDeviceFindByDeviceId,
   mockDeviceFindWorkspaceDeviceById,
+  mockBuildRemoteDeviceHeteroContext,
   mockDispatchAgentRun,
+  mockExecuteToolCall,
+  mockGetHeterogeneousResumeSessionId,
   mockMessageCreate,
   mockResolveAttachmentsByFileIds,
   mockSpawnHeteroSandbox,
@@ -13,9 +16,12 @@ const {
   mockPublishAgentRuntimeInit,
   mockPublishAgentRuntimeEnd,
 } = vi.hoisted(() => ({
+  mockBuildRemoteDeviceHeteroContext: vi.fn().mockReturnValue('device context'),
   mockDeviceFindByDeviceId: vi.fn(),
   mockDeviceFindWorkspaceDeviceById: vi.fn(),
   mockDispatchAgentRun: vi.fn().mockResolvedValue({ success: true }),
+  mockExecuteToolCall: vi.fn().mockResolvedValue({ success: true }),
+  mockGetHeterogeneousResumeSessionId: vi.fn().mockResolvedValue(undefined),
   mockIngestAttachment: vi.fn(),
   mockMessageCreate: vi.fn(),
   mockPublishAgentRuntimeEnd: vi.fn().mockResolvedValue('end-event-id'),
@@ -24,8 +30,8 @@ const {
   mockSpawnHeteroSandbox: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Local hetero (claude-code / codex / opencode) seeds publishAgentRuntimeInit so the
-// agent-gateway DO reports `running` on a later reconnect. Stub the factory so
+// Local hetero (claude-code / codebuddy / codex / cursor / opencode / pi / qoder) seeds
+// publishAgentRuntimeInit so the agent-gateway DO reports `running` on a later reconnect. Stub the factory so
 // the assertion below can verify the init, and so the real one (which probes
 // Redis synchronously) doesn't throw a server-env error in the test env.
 vi.mock('@/server/modules/AgentRuntime/factory', () => ({
@@ -143,7 +149,7 @@ vi.mock('@/server/services/market', () => ({
 
 vi.mock('@/server/services/heterogeneousAgent', () => ({
   HeterogeneousAgentService: vi.fn().mockImplementation(() => ({
-    getHeterogeneousResumeSessionId: vi.fn().mockResolvedValue(undefined),
+    getHeterogeneousResumeSessionId: mockGetHeterogeneousResumeSessionId,
   })),
 }));
 
@@ -169,6 +175,7 @@ vi.mock('@/server/services/agentRuntime', () => ({
       operationId: 'op-123',
       success: true,
     }),
+    interruptOperation: vi.fn().mockResolvedValue(true),
   })),
 }));
 
@@ -183,6 +190,7 @@ vi.mock('@/server/modules/Mecha', () => ({
 vi.mock('@/server/services/deviceGateway', () => ({
   deviceGateway: {
     dispatchAgentRun: mockDispatchAgentRun,
+    executeToolCall: mockExecuteToolCall,
     isConfigured: false,
     queryDeviceList: vi.fn().mockResolvedValue([]),
     resolveDeviceWorkspaceId: vi.fn().mockResolvedValue(undefined),
@@ -190,7 +198,7 @@ vi.mock('@/server/services/deviceGateway', () => ({
 }));
 
 vi.mock('@/server/services/heterogeneousAgent/remoteDeviceHeteroContext', () => ({
-  buildRemoteDeviceHeteroContext: vi.fn().mockReturnValue('device context'),
+  buildRemoteDeviceHeteroContext: mockBuildRemoteDeviceHeteroContext,
 }));
 
 describe('AiAgentService.execAgent - hetero early-exit file attachments', () => {
@@ -207,12 +215,17 @@ describe('AiAgentService.execAgent - hetero early-exit file attachments', () => 
     mockResolveAttachmentsByFileIds.mockResolvedValue({ ...emptyResolvedAttachments });
     mockSpawnHeteroSandbox.mockResolvedValue(undefined);
     mockDispatchAgentRun.mockResolvedValue({ success: true });
+    mockExecuteToolCall.mockResolvedValue({ success: true });
+    mockGetHeterogeneousResumeSessionId.mockResolvedValue(undefined);
     mockDeviceFindByDeviceId.mockResolvedValue({ defaultCwd: '/Users/alice/repo' });
     mockDeviceFindWorkspaceDeviceById.mockResolvedValue(undefined);
     mockIngestAttachment.mockReset();
     heteroAgentConfig.agencyConfig = { heterogeneousProvider: { type: 'claude-code' } } as any;
     heteroAgentConfig.model = 'claude-code';
     heteroAgentConfig.provider = 'anthropic';
+    delete (heteroAgentConfig as any).userId;
+    delete (heteroAgentConfig as any).visibility;
+    delete (heteroAgentConfig as any).workspaceId;
 
     service = new AiAgentService(mockDb, userId);
   });
@@ -266,6 +279,30 @@ describe('AiAgentService.execAgent - hetero early-exit file attachments', () => 
     expect(userCall![0].files).toEqual(['file-1', 'file-2']);
   });
 
+  it('should pin the runtime type — not the agent chat model — on a server-created topic', async () => {
+    // regression: the topic-scoped model snapshot pinned the agent's chat
+    // model/provider, so a Gateway-created hetero topic came back from the
+    // server tagged with the default chat provider instead of the CLI runtime.
+    await service.execAgent({ agentId: 'agent-1', prompt: 'Run the build' });
+
+    expect(topicMock.create).toHaveBeenCalledWith(
+      expect.objectContaining({ model: undefined, provider: 'claude-code' }),
+      undefined,
+    );
+  });
+
+  it('should pin the runtime type of a remote platform agent on a server-created topic', async () => {
+    heteroAgentConfig.agencyConfig = { heterogeneousProvider: { type: 'openclaw' } } as any;
+    heteroAgentConfig.provider = 'lobehub';
+
+    await service.execAgent({ agentId: 'agent-1', prompt: 'Run the build' });
+
+    expect(topicMock.create).toHaveBeenCalledWith(
+      expect.objectContaining({ model: undefined, provider: 'openclaw' }),
+      undefined,
+    );
+  });
+
   it('should leave files undefined when no fileIds are provided', async () => {
     await service.execAgent({
       agentId: 'agent-1',
@@ -286,6 +323,33 @@ describe('AiAgentService.execAgent - hetero early-exit file attachments', () => 
 
     const userCall = findUserMessageCreate();
     expect(userCall![0].files).toBeUndefined();
+  });
+
+  it('should pass the resolved Amp mode to device dispatch', async () => {
+    heteroAgentConfig.model = 'amp';
+    heteroAgentConfig.provider = 'amp';
+    heteroAgentConfig.agencyConfig = {
+      boundDeviceId: 'device-1',
+      executionTarget: 'device',
+      heterogeneousProvider: {
+        mode: 'high',
+        type: 'amp',
+      },
+    } as any;
+
+    await service.execAgent({
+      agentId: 'agent-1',
+      prompt: 'Use Amp high mode',
+    });
+
+    expect(mockDispatchAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentType: 'amp',
+        args: ['--agent-arg=--mode', '--agent-arg=high'],
+        deviceId: 'device-1',
+      }),
+    );
+    expect(mockSpawnHeteroSandbox).not.toHaveBeenCalled();
   });
 
   it('should pass resolved Claude Code model and effort args to sandbox dispatch', async () => {
@@ -367,8 +431,91 @@ describe('AiAgentService.execAgent - hetero early-exit file attachments', () => 
     });
 
     const dispatchParams = mockDispatchAgentRun.mock.calls[0][0];
-    expect(dispatchParams).toEqual(expect.objectContaining({ deviceId: 'device-1' }));
+    expect(dispatchParams).toEqual(
+      expect.objectContaining({ assistantMessageId: 'msg-1', deviceId: 'device-1' }),
+    );
     expect(dispatchParams.args).toEqual(['--model', 'opus', '--effort', 'high']);
+  });
+
+  it('dispatches CodeBuddy to a bound device with its model and effort args', async () => {
+    heteroAgentConfig.model = 'codebuddy';
+    heteroAgentConfig.provider = 'codebuddy';
+    heteroAgentConfig.agencyConfig = {
+      boundDeviceId: 'device-1',
+      executionTarget: 'device',
+      heterogeneousProvider: {
+        effort: 'high',
+        model: 'gpt-5.4',
+        type: 'codebuddy',
+      },
+    } as any;
+
+    await service.execAgent({
+      agentId: 'agent-1',
+      prompt: 'Use CodeBuddy on my device',
+    });
+
+    expect(mockDispatchAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentType: 'codebuddy',
+        args: ['--model', 'gpt-5.4', '--effort', 'high'],
+        deviceId: 'device-1',
+      }),
+    );
+    expect(mockSpawnHeteroSandbox).not.toHaveBeenCalled();
+  });
+
+  it('dispatches TRAE to a bound device with encoded native args and its ACP model', async () => {
+    heteroAgentConfig.model = 'trae';
+    heteroAgentConfig.provider = 'trae';
+    heteroAgentConfig.agencyConfig = {
+      boundDeviceId: 'device-1',
+      executionTarget: 'device',
+      heterogeneousProvider: {
+        args: ['--feature', 'test'],
+        effort: 'high',
+        model: 'gpt-5.4',
+        type: 'trae',
+      },
+    } as any;
+
+    await service.execAgent({
+      agentId: 'agent-1',
+      prompt: 'Use TRAE on my device',
+    });
+
+    expect(mockDispatchAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentType: 'trae',
+        args: ['--agent-arg=--feature', '--agent-arg=test', '--model', 'gpt-5.4'],
+        deviceId: 'device-1',
+      }),
+    );
+    expect(mockSpawnHeteroSandbox).not.toHaveBeenCalled();
+  });
+
+  it('does not reinject the device workspace note when resuming a native session', async () => {
+    mockGetHeterogeneousResumeSessionId.mockResolvedValue('native-session-existing');
+    heteroAgentConfig.agencyConfig = {
+      boundDeviceId: 'device-1',
+      executionTarget: 'device',
+      heterogeneousProvider: { type: 'codex' },
+    } as any;
+
+    await service.execAgent({
+      agentId: 'agent-1',
+      prompt: 'Continue on my device',
+    });
+
+    expect(mockBuildRemoteDeviceHeteroContext).toHaveBeenCalledWith(
+      expect.objectContaining({ cwd: undefined }),
+    );
+    expect(mockDispatchAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resumeSessionId: 'native-session-existing',
+        systemContext: 'device context',
+      }),
+    );
   });
 
   it('dispatches OpenCode to a bound device with its model args', async () => {
@@ -398,6 +545,60 @@ describe('AiAgentService.execAgent - hetero early-exit file attachments', () => 
     expect(mockSpawnHeteroSandbox).not.toHaveBeenCalled();
   });
 
+  it('dispatches Kimi Code to a bound device with its model args', async () => {
+    heteroAgentConfig.model = 'kimi-code';
+    heteroAgentConfig.provider = 'kimi-code';
+    heteroAgentConfig.agencyConfig = {
+      boundDeviceId: 'device-1',
+      executionTarget: 'device',
+      heterogeneousProvider: {
+        model: 'kimi-for-coding',
+        type: 'kimi-code',
+      },
+    } as any;
+
+    await service.execAgent({
+      agentId: 'agent-1',
+      prompt: 'Use Kimi Code on my device',
+    });
+
+    expect(mockDispatchAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentType: 'kimi-code',
+        args: ['--model', 'kimi-for-coding'],
+        deviceId: 'device-1',
+      }),
+    );
+    expect(mockSpawnHeteroSandbox).not.toHaveBeenCalled();
+  });
+
+  it('dispatches Cursor to a bound device with its model args', async () => {
+    heteroAgentConfig.model = 'cursor';
+    heteroAgentConfig.provider = 'cursor';
+    heteroAgentConfig.agencyConfig = {
+      boundDeviceId: 'device-1',
+      executionTarget: 'device',
+      heterogeneousProvider: {
+        model: 'sonnet-4-thinking',
+        type: 'cursor',
+      },
+    } as any;
+
+    await service.execAgent({
+      agentId: 'agent-1',
+      prompt: 'Use Cursor on my device',
+    });
+
+    expect(mockDispatchAgentRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentType: 'cursor',
+        args: ['--model', 'sonnet-4-thinking'],
+        deviceId: 'device-1',
+      }),
+    );
+    expect(mockSpawnHeteroSandbox).not.toHaveBeenCalled();
+  });
+
   it('never falls back to a cloud sandbox for unbound OpenCode', async () => {
     heteroAgentConfig.model = 'opencode';
     heteroAgentConfig.provider = 'opencode';
@@ -409,6 +610,60 @@ describe('AiAgentService.execAgent - hetero early-exit file attachments', () => 
     const result = await service.execAgent({
       agentId: 'agent-1',
       prompt: 'Do not run OpenCode in cloud',
+    });
+
+    expect(result).toEqual(expect.objectContaining({ status: 'error', success: false }));
+    expect(mockDispatchAgentRun).not.toHaveBeenCalled();
+    expect(mockSpawnHeteroSandbox).not.toHaveBeenCalled();
+  });
+
+  it('never falls back to a cloud sandbox for unbound Cursor', async () => {
+    heteroAgentConfig.model = 'cursor';
+    heteroAgentConfig.provider = 'cursor';
+    heteroAgentConfig.agencyConfig = {
+      executionTarget: 'sandbox',
+      heterogeneousProvider: { type: 'cursor' },
+    } as any;
+
+    const result = await service.execAgent({
+      agentId: 'agent-1',
+      prompt: 'Do not run Cursor in cloud',
+    });
+
+    expect(result).toEqual(expect.objectContaining({ status: 'error', success: false }));
+    expect(mockDispatchAgentRun).not.toHaveBeenCalled();
+    expect(mockSpawnHeteroSandbox).not.toHaveBeenCalled();
+  });
+
+  it('never falls back to a cloud sandbox for unbound CodeBuddy', async () => {
+    heteroAgentConfig.model = 'codebuddy';
+    heteroAgentConfig.provider = 'codebuddy';
+    heteroAgentConfig.agencyConfig = {
+      executionTarget: 'sandbox',
+      heterogeneousProvider: { type: 'codebuddy' },
+    } as any;
+
+    const result = await service.execAgent({
+      agentId: 'agent-1',
+      prompt: 'Do not run CodeBuddy in cloud',
+    });
+
+    expect(result).toEqual(expect.objectContaining({ status: 'error', success: false }));
+    expect(mockDispatchAgentRun).not.toHaveBeenCalled();
+    expect(mockSpawnHeteroSandbox).not.toHaveBeenCalled();
+  });
+
+  it('never falls back to a cloud sandbox for unbound TRAE', async () => {
+    heteroAgentConfig.model = 'trae';
+    heteroAgentConfig.provider = 'trae';
+    heteroAgentConfig.agencyConfig = {
+      executionTarget: 'sandbox',
+      heterogeneousProvider: { type: 'trae' },
+    } as any;
+
+    const result = await service.execAgent({
+      agentId: 'agent-1',
+      prompt: 'Do not run TRAE in cloud',
     });
 
     expect(result).toEqual(expect.objectContaining({ status: 'error', success: false }));
@@ -703,6 +958,157 @@ describe('AiAgentService.execAgent - hetero early-exit file attachments', () => 
         expect.any(String),
         expect.objectContaining({ heteroType: 'claude-code' }),
       );
+    });
+
+    it('keeps the conversation workspace separate from a personal platform device scope', async () => {
+      heteroAgentConfig.agencyConfig = {
+        executionTarget: 'local',
+        heterogeneousProvider: { platformAgentId: 'researcher', type: 'openclaw' },
+      } as any;
+      (heteroAgentConfig as any).userId = userId;
+      (heteroAgentConfig as any).visibility = 'public';
+      (heteroAgentConfig as any).workspaceId = 'workspace-a';
+      service = new AiAgentService(mockDb, userId, { workspaceId: 'workspace-a' });
+
+      await service.execAgent({
+        agentId: 'agent-1',
+        localDeviceId: 'personal-desktop',
+        prompt: 'do the task on this computer',
+      } as any);
+
+      expect(mockExecuteToolCall).toHaveBeenCalledWith(
+        {
+          deviceId: 'personal-desktop',
+          userId,
+          workspaceId: undefined,
+        },
+        expect.objectContaining({
+          apiName: 'runHeteroTask',
+          arguments: expect.any(String),
+        }),
+        120_000,
+      );
+      const toolCall = mockExecuteToolCall.mock.calls.at(-1)?.[1];
+      expect(JSON.parse(toolCall.arguments)).toEqual(
+        expect.objectContaining({
+          agentType: 'openclaw',
+          platformAgentId: 'researcher',
+          workspaceId: 'workspace-a',
+        }),
+      );
+      const seed = findRunningOpSeed();
+      expect(seed.runningOperation).toEqual(
+        expect.objectContaining({
+          deviceId: 'personal-desktop',
+          deviceUserId: userId,
+          heteroType: 'openclaw',
+        }),
+      );
+    });
+
+    it("routes a legacy author binding through the author's personal principal", async () => {
+      heteroAgentConfig.agencyConfig = {
+        boundDeviceId: 'author-desktop',
+        heterogeneousProvider: { type: 'openclaw' },
+      } as any;
+      (heteroAgentConfig as any).userId = 'author-user';
+      (heteroAgentConfig as any).visibility = 'public';
+      (heteroAgentConfig as any).workspaceId = 'workspace-a';
+      service = new AiAgentService(mockDb, 'member-user', { workspaceId: 'workspace-a' });
+
+      await service.execAgent({
+        agentId: 'agent-1',
+        localDeviceId: 'member-desktop',
+        prompt: 'run the legacy-bound task',
+      } as any);
+
+      expect(mockExecuteToolCall).toHaveBeenCalledWith(
+        {
+          deviceId: 'author-desktop',
+          userId: 'author-user',
+          workspaceId: undefined,
+        },
+        expect.objectContaining({ apiName: 'runHeteroTask' }),
+        120_000,
+      );
+      const seed = findRunningOpSeed();
+      expect(seed.runningOperation).toEqual(
+        expect.objectContaining({
+          deviceId: 'author-desktop',
+          deviceUserId: 'author-user',
+          heteroType: 'openclaw',
+        }),
+      );
+    });
+
+    it('cancels a platform task through the principal persisted at dispatch', async () => {
+      topicMock.findById.mockResolvedValue({
+        metadata: {
+          runningOperation: {
+            assistantMessageId: 'assistant-1',
+            deviceId: 'author-desktop',
+            deviceUserId: 'author-user',
+            heteroType: 'openclaw',
+            operationId: 'operation-1',
+          },
+        },
+      });
+
+      await service.interruptTask({ operationId: 'operation-1', topicId: 'topic-1' });
+
+      expect(mockExecuteToolCall).toHaveBeenCalledWith(
+        {
+          deviceId: 'author-desktop',
+          userId: 'author-user',
+          workspaceId: undefined,
+        },
+        expect.objectContaining({ apiName: 'cancelHeteroTask' }),
+        5_000,
+      );
+    });
+
+    it('recovers the topic from the operation when the cancellation caller omits it', async () => {
+      (service as any).agentOperationModel.findById = vi
+        .fn()
+        .mockResolvedValue({ topicId: 'topic-from-operation' });
+      topicMock.findById.mockResolvedValue({
+        metadata: {
+          runningOperation: {
+            assistantMessageId: 'assistant-1',
+            deviceId: 'member-desktop',
+            deviceUserId: userId,
+            heteroType: 'hermes',
+            operationId: 'operation-1',
+          },
+        },
+      });
+
+      await service.interruptTask({ operationId: 'operation-1' });
+
+      expect(topicMock.findById).toHaveBeenCalledWith('topic-from-operation');
+      expect(mockExecuteToolCall).toHaveBeenCalledWith(
+        expect.objectContaining({ deviceId: 'member-desktop', userId }),
+        expect.objectContaining({ apiName: 'cancelHeteroTask' }),
+        5_000,
+      );
+    });
+
+    it('does not cancel a newer operation currently running on the same topic', async () => {
+      topicMock.findById.mockResolvedValue({
+        metadata: {
+          runningOperation: {
+            assistantMessageId: 'assistant-2',
+            deviceId: 'member-desktop',
+            deviceUserId: userId,
+            heteroType: 'openclaw',
+            operationId: 'operation-2',
+          },
+        },
+      });
+
+      await service.interruptTask({ operationId: 'operation-1', topicId: 'topic-1' });
+
+      expect(mockExecuteToolCall).not.toHaveBeenCalled();
     });
   });
 });

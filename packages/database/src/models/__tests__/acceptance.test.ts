@@ -67,6 +67,24 @@ describe('AcceptanceModel', () => {
     expect(third.requirement).toBe('Review UX polish ships end to end');
   });
 
+  it('keeps the first standalone display title and backfills one when initially absent', async () => {
+    const model = new AcceptanceModel(serverDB, userId);
+    const subjectId = 'standalone-external-delivery';
+
+    const first = await model.ensureForSubject('standalone', subjectId);
+    expect(first.metadata?.title).toBeUndefined();
+
+    const titled = await model.ensureForSubject('standalone', subjectId, {
+      metadata: { title: 'External delivery' },
+    });
+    expect(titled.metadata?.title).toBe('External delivery');
+
+    const unchanged = await model.ensureForSubject('standalone', subjectId, {
+      metadata: { title: 'Replacement title' },
+    });
+    expect(unchanged.metadata?.title).toBe('External delivery');
+  });
+
   it('defaults visibility by scope: personal public, workspace private', async () => {
     const personal = new AcceptanceModel(serverDB, userId);
     const personalRow = await personal.ensureForSubject('topic', topicId);
@@ -91,6 +109,40 @@ describe('AcceptanceModel', () => {
 
     const otherModel = new AcceptanceModel(serverDB, otherUserId);
     expect(await otherModel.findBySubject('topic', topicId)).toBeUndefined();
+  });
+
+  it('reads many subjects statuses in one call, however old they are', async () => {
+    const model = new AcceptanceModel(serverDB, userId);
+    const olderTopicId = 'acceptance-test-topic-older';
+    await serverDB.insert(topics).values([{ id: olderTopicId, userId }]);
+
+    const older = await model.ensureForSubject('topic', olderTopicId);
+    await model.updateStatus(older.id, 'accepted');
+    const newer = await model.ensureForSubject('topic', topicId);
+    await model.updateStatus(newer.id, 'delivered');
+
+    // The recency-capped feed is what this exists to replace: asked about a
+    // subject, it answers about that subject, not about the newest N rows.
+    const statuses = await model.listStatusesBySubjects('topic', [olderTopicId, topicId]);
+
+    expect(Object.fromEntries(statuses.map((row) => [row.subjectId, row.status]))).toEqual({
+      [olderTopicId]: 'accepted',
+      [topicId]: 'delivered',
+    });
+  });
+
+  it('omits subjects with no acceptance, and never crosses owners', async () => {
+    const model = new AcceptanceModel(serverDB, userId);
+    await model.ensureForSubject('topic', topicId);
+
+    await expect(model.listStatusesBySubjects('topic', ['no-such-subject'])).resolves.toEqual([]);
+    await expect(model.listStatusesBySubjects('topic', [])).resolves.toEqual([]);
+    // Same subject id, different owner — must not leak.
+    await expect(
+      new AcceptanceModel(serverDB, otherUserId).listStatusesBySubjects('topic', [topicId]),
+    ).resolves.toEqual([]);
+    // Right id, wrong subject type.
+    await expect(model.listStatusesBySubjects('task', [topicId])).resolves.toEqual([]);
   });
 
   it('updateStatus stamps completedAt only on user-terminal statuses', async () => {

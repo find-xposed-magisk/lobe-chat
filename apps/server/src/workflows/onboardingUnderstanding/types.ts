@@ -12,7 +12,15 @@ export interface ProcessUnderstandingProvidersPayload {
   /** Language required for the eventual user-visible proposal. */
   responseLanguage: string;
   sessionId: string;
+  /** API start timestamp used only for end-to-end latency telemetry. */
+  startedAt?: number;
   topicId: string;
+  /**
+   * Whether completed sources should also start task recommendation generation.
+   *
+   * @default true
+   */
+  triggerTaskRecommendations?: boolean;
   userId: string;
 }
 
@@ -28,6 +36,8 @@ export interface ProcessCollectedUnderstandingPayload {
   responseLanguage: string;
   sessionId: string;
   sourceFingerprint: string;
+  /** API start timestamp propagated across asynchronous workflow boundaries. */
+  startedAt?: number;
   topicId: string;
   userId: string;
 }
@@ -53,6 +63,8 @@ export const ProcessUnderstandingProvidersPayloadSchema = z
       .max(64)
       .regex(/^[A-Z]{2,3}(?:-[A-Z0-9]{2,8})*$/i),
     sessionId: identifierSchema,
+    startedAt: z.number().int().nonnegative().optional(),
+    triggerTaskRecommendations: z.boolean().optional(),
     topicId: identifierSchema,
     userId: identifierSchema,
   })
@@ -72,6 +84,7 @@ export const ProcessCollectedUnderstandingPayloadSchema = z
       .min(1)
       .max(2048)
       .regex(/^[\w-]+@\d+(,[\w-]+@\d+)*$/),
+    startedAt: z.number().int().nonnegative().optional(),
     topicId: identifierSchema,
     userId: identifierSchema,
   })
