@@ -129,7 +129,10 @@ import { shouldEnableBuiltinSkill } from '@/helpers/skillFilters';
 import { buildConnectorManifests } from '@/libs/mcp/buildConnectorManifests';
 import { patchManifestWithPermissions } from '@/libs/mcp/connectorPermissionCheck';
 import { signOperationJwt, signUserJWT } from '@/libs/trpc/utils/internalJwt';
-import { createStreamEventManager } from '@/server/modules/AgentRuntime/factory';
+import {
+  createAgentStateManager,
+  createStreamEventManager,
+} from '@/server/modules/AgentRuntime/factory';
 import { KeyVaultsGateKeeper } from '@/server/modules/KeyVaultsEncrypt';
 import type { EvalContext, ServerAgentToolsContext } from '@/server/modules/Mecha';
 import { createServerAgentToolsEngine } from '@/server/modules/Mecha';
@@ -530,6 +533,8 @@ interface InternalExecAgentParams extends ExecAgentParams {
    * chatConfig AND workspace member-mode overrides.
    */
   toolModeOverride?: 'agent' | 'chat';
+  /** Running operation that owns the topic for an internally spawned child run. */
+  topicStartOwnerOperationId?: string;
   /**
    * Re-enter a topic-start reservation already acquired by an upstream caller,
    * such as TaskResultBridgeService.
@@ -814,7 +819,7 @@ export class AiAgentService {
     // 3. The operation never started — drop the running marker so reconnect /
     //    heteroIngest validation and the next turn don't see a stale operation.
     try {
-      await this.topicModel.updateMetadata(topicId, { runningOperation: null });
+      await this.topicModel.takeRunningOperation(topicId, operationId);
     } catch (err) {
       log('finalizeHeteroDispatchError: clear runningOperation failed (non-fatal): %O', err);
     }
@@ -1272,11 +1277,14 @@ export class AiAgentService {
     // advance the topic's main spine. They may start while their parent
     // operation owns `runningOperation` (for example callAgent/callSubAgent),
     // so making them wait for the topic-start claim deadlocks the child start.
-    if (!topicId || params.appContext?.threadId) return this.execAgentWithReservation(params);
+    if (!topicId || params.appContext?.threadId) {
+      return this.execAgentWithReservation(params);
+    }
 
     const reservationId = params.topicStartReservationId ?? `agent-start-${nanoid()}`;
     const reserved = await acquireTopicStartReservation({
       replacesOperationId: params.replacesOperationId,
+      allowRunningOperationId: params.topicStartOwnerOperationId,
       reservationId,
       topicId,
       topicModel: this.topicModel,
@@ -2468,24 +2476,74 @@ export class AiAgentService {
       // operation, and so every terminal site (heteroFinish, agentNotify done,
       // dispatch failure) can re-fire the serialized hooks across a process
       // boundary in queue mode.
-      await this.topicModel.updateMetadata(topicId, {
-        runningOperation: {
-          assistantMessageId: assistantMessageRecord.id,
-          hooks: serializedHooks,
-          // Store deviceId + heteroType so interruptTask can cancel remote processes
-          ...(isRemoteHetero && remoteDeviceId
-            ? {
-                deviceId: remoteDeviceId,
-                deviceUserId: remoteDeviceUserId,
-                deviceWorkspaceId: remoteDeviceWorkspaceId,
-                heteroType,
-              }
-            : undefined),
-          operationId,
-          scope: appContext?.scope ?? undefined,
-          threadId: appContext?.threadId ?? undefined,
-        },
-      });
+      const childOperation = {
+        assistantMessageId: assistantMessageRecord.id,
+        hooks: serializedHooks,
+        ...(isRemoteHetero && remoteDeviceId
+          ? {
+              deviceId: remoteDeviceId,
+              deviceUserId: remoteDeviceUserId,
+              deviceWorkspaceId: remoteDeviceWorkspaceId,
+              heteroType,
+            }
+          : {}),
+        operationId,
+        orchestrationRole: appContext?.orchestrationRole,
+        scope: appContext?.scope ?? undefined,
+        threadId: appContext?.threadId ?? undefined,
+      };
+      if (params.topicStartOwnerOperationId) {
+        const attached = await this.topicModel.appendRunningOperationChild(
+          topicId,
+          params.topicStartOwnerOperationId,
+          childOperation,
+        );
+        if (!attached) {
+          const message = 'Group supervisor finished before this member could start.';
+          await new CompletionLifecycle(this.db, this.userId, this.workspaceId).completeOperation(
+            {
+              agentId: persistAgentId,
+              assistantMessageId: assistantMessageRecord.id,
+              error: { message, type: 'AgentRuntimeError' },
+              operationId,
+              orchestrationRole: appContext?.orchestrationRole,
+              serializedHooks,
+              topicId,
+              userId: this.userId,
+            },
+            'error',
+          );
+          return {
+            agentId: resolvedAgentId,
+            assistantMessageId: assistantMessageRecord.id,
+            autoStarted: false,
+            createdAt: new Date().toISOString(),
+            error: message,
+            message,
+            operationId,
+            status: 'error',
+            success: false,
+            timestamp: new Date().toISOString(),
+            topicId,
+            userMessageId: userMessageRecord?.id ?? parentMessageId ?? '',
+          };
+        }
+      } else {
+        await this.topicModel.updateMetadata(topicId, { runningOperation: childOperation });
+      }
+
+      const persistMirrorTarget = async () => {
+        if (!params.topicStartOwnerOperationId) return;
+        try {
+          await createAgentStateManager().createOperationMetadata(operationId, {
+            mirrorToOperationId: params.topicStartOwnerOperationId,
+            userId: this.userId,
+            workspaceId: this.workspaceId,
+          });
+        } catch (err) {
+          log('execAgent: failed to persist hetero mirror target: %O', err);
+        }
+      };
 
       if (
         agentConfig.agencyConfig?.heterogeneousProvider?.type === 'claude-code' &&
@@ -2580,12 +2638,14 @@ export class AiAgentService {
 
         // Open the stream channel so the gateway WS subscription can receive
         // notify_update events published by agentNotify.notify.
+        await persistMirrorTarget();
         const streamManager = createStreamEventManager();
         await streamManager
           .publishAgentRuntimeInit(operationId, {
             agentId: resolvedAgentId,
             assistantMessageId: assistantMessageRecord.id,
             heteroType,
+            mirrorToOperationId: params.topicStartOwnerOperationId,
             topicId,
             userId: this.userId,
           })
@@ -2606,6 +2666,7 @@ export class AiAgentService {
               agentType: heteroType,
               cwd: undefined,
               operationId,
+              parentOperationId: params.topicStartOwnerOperationId,
               platformAgentId: agentConfig.agencyConfig?.heterogeneousProvider?.platformAgentId,
               prompt,
               taskId: operationId,
@@ -2680,10 +2741,12 @@ export class AiAgentService {
         // the init only powers reconnect, not the run. `createStreamEventManager`
         // probes Redis synchronously, so guard construction too, not just publish.
         try {
+          await persistMirrorTarget();
           await createStreamEventManager().publishAgentRuntimeInit(operationId, {
             agentId: resolvedAgentId,
             assistantMessageId: assistantMessageRecord.id,
             heteroType,
+            mirrorToOperationId: params.topicStartOwnerOperationId,
             topicId,
             userId: this.userId,
           });
@@ -4186,6 +4249,38 @@ export class AiAgentService {
     const timestamp = Date.now();
     const operationId = `op_${timestamp}_${resolvedAgentId}_${topicId}_${nanoid(8)}`;
 
+    if (params.topicStartOwnerOperationId) {
+      const attached = await this.topicModel.appendRunningOperationChild(
+        topicId,
+        params.topicStartOwnerOperationId,
+        {
+          assistantMessageId: assistantMessageRecord.id,
+          operationId,
+          orchestrationRole: appContext?.orchestrationRole,
+          scope: appContext?.scope ?? undefined,
+          threadId: appContext?.threadId ?? undefined,
+        },
+      );
+      if (!attached) {
+        const errorMessage = 'Group supervisor finished before this member could start.';
+        await updateAbortedAssistantMessage(errorMessage);
+        return {
+          agentId: resolvedAgentId,
+          assistantMessageId: assistantMessageRecord.id,
+          autoStarted: false,
+          createdAt: new Date().toISOString(),
+          error: errorMessage,
+          message: errorMessage,
+          operationId,
+          status: 'error',
+          success: false,
+          timestamp: new Date().toISOString(),
+          topicId,
+          userMessageId: userMessageRecord?.id ?? parentMessageId ?? '',
+        };
+      }
+    }
+
     // 16. Create initial context
     let initialContext: AgentRuntimeContext = {
       payload: {
@@ -4698,7 +4793,9 @@ export class AiAgentService {
       // WebSocket for the rest of the run. The parent's mark stays authoritative;
       // a child's live progress already rides down the parent channel via
       // `appContext.subAgentProgress`.
-      if (!appContext?.isolationThread) {
+      // `orchestrationRole` is public rendering metadata. Only the internally
+      // propagated parent operation id proves child ownership of this topic.
+      if (!appContext?.isolationThread && !params.topicStartOwnerOperationId) {
         await this.topicModel.updateMetadata(topicId, {
           runningOperation: {
             assistantMessageId: assistantMessageRecord.id,
@@ -4735,6 +4832,9 @@ export class AiAgentService {
         userMessageId: userMessageRecord?.id ?? parentMessageId ?? '',
       };
     } catch (error) {
+      if (params.topicStartOwnerOperationId) {
+        await this.topicModel.removeRunningOperationChild(topicId, operationId).catch(() => false);
+      }
       if (isAbortError(error)) {
         await updateAbortedAssistantMessage(error.message);
         log('execAgent: createOperation aborted for %s: %s', operationId, error.message);
@@ -5058,6 +5158,7 @@ export class AiAgentService {
       parentOperationId,
       prompt: speakerInstruction,
       suppressUserMessage: true,
+      topicStartOwnerOperationId: parentOperationId,
       trigger: inheritedTrigger,
       userInterventionConfig: { approvalMode: 'headless' },
     });
@@ -5739,29 +5840,40 @@ export class AiAgentService {
             deviceWorkspaceId?: string;
             heteroType?: string;
             operationId?: string;
+            childOperations?: Array<{
+              deviceId?: string;
+              deviceUserId?: string;
+              deviceWorkspaceId?: string;
+              heteroType?: string;
+              operationId?: string;
+            }>;
           }
         | undefined;
+      const targetOperation =
+        runningOp?.operationId === resolvedOperationId
+          ? runningOp
+          : runningOp?.childOperations?.find((child) => child.operationId === resolvedOperationId);
 
       if (
-        runningOp?.deviceId &&
-        runningOp.heteroType &&
-        runningOp.operationId === resolvedOperationId &&
-        isRemoteHeterogeneousType(runningOp.heteroType)
+        targetOperation?.deviceId &&
+        targetOperation.heteroType &&
+        isRemoteHeterogeneousType(targetOperation.heteroType)
       ) {
-        const taskId = runningOp.operationId ?? resolvedOperationId;
+        const taskId = targetOperation.operationId ?? resolvedOperationId;
         log(
           'interruptTask: cancelling remote hetero process heteroType=%s deviceId=%s taskId=%s',
-          runningOp.heteroType,
-          runningOp.deviceId,
+          targetOperation.heteroType,
+          targetOperation.deviceId,
           taskId,
         );
         const cancelWorkspaceId =
-          runningOp.deviceWorkspaceId ?? (await this.resolveDeviceWorkspaceId(runningOp.deviceId));
+          targetOperation.deviceWorkspaceId ??
+          (await this.resolveDeviceWorkspaceId(targetOperation.deviceId));
         await deviceGateway
           .executeToolCall(
             {
-              deviceId: runningOp.deviceId,
-              userId: runningOp.deviceUserId ?? this.userId,
+              deviceId: targetOperation.deviceId,
+              userId: targetOperation.deviceUserId ?? this.userId,
               workspaceId: cancelWorkspaceId,
             },
             {
