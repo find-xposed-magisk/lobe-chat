@@ -18,6 +18,7 @@ import { DropdownMenu } from '@lobehub/ui/base-ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import isEqual from 'fast-deep-equal';
 import {
+  ArrowLeft,
   Check,
   FolderClosed,
   ListFilter,
@@ -29,7 +30,7 @@ import {
 import type { ReactNode } from 'react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 
 import { SkeletonList } from '@/features/NavPanel/components/SkeletonList';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
@@ -38,6 +39,7 @@ import { systemStatusSelectors } from '@/store/global/selectors';
 
 import { useAcceptanceList } from '../../hooks';
 import type { ReportPanelExpand } from '../../Workspace/useReportPanelExpand';
+import { acceptanceHomePath } from '../routes';
 import {
   type AcceptanceListFilter,
   DEFAULT_ACCEPTANCE_LIST_FILTER,
@@ -236,6 +238,7 @@ interface AcceptanceListPanelProps extends ReportPanelExpand {
 const AcceptanceListPanel = memo<AcceptanceListPanelProps>(
   ({ expand, headerLeading, isNarrow, renderProjectActions, setExpand }) => {
     const { t } = useTranslation('verify');
+    const navigate = useNavigate();
     const { acceptanceId } = useParams<{ acceptanceId: string }>();
 
     const { data, error, isLoading, mutate } = useAcceptanceList(true);
@@ -294,8 +297,21 @@ const AcceptanceListPanel = memo<AcceptanceListPanelProps>(
         <DraggablePanelContainer style={{ flex: 'none', height: '100%', minWidth: PANEL_MIN }}>
           <div className={headerLeading ? styles.headWithBrand : styles.head}>
             <div className={headerLeading ? styles.titleRowWithBrand : styles.titleRow}>
-              <Flexbox horizontal align={'center'} flex={1} gap={8} style={{ minWidth: 0 }}>
-                {headerLeading}
+              <Flexbox
+                horizontal
+                align={'center'}
+                flex={1}
+                gap={headerLeading ? 8 : 4}
+                style={{ minWidth: 0 }}
+              >
+                {headerLeading ?? (
+                  <ActionIcon
+                    icon={ArrowLeft}
+                    size={'small'}
+                    title={t('back', { ns: 'common' })}
+                    onClick={() => navigate(acceptanceHomePath())}
+                  />
+                )}
                 <Text ellipsis strong style={{ fontSize: 15, minWidth: 0 }}>
                   {t('acceptance.workspace.title')}
                 </Text>
