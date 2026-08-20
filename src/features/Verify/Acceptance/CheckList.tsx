@@ -1,6 +1,5 @@
 'use client';
 
-import { acceptanceRejectIntents } from '@lobechat/const/verify';
 import type {
   AcceptanceGroupFeedback,
   AcceptanceRejectIntent,
@@ -963,11 +962,6 @@ const CheckRow = memo<{
     const [ignoring, setIgnoring] = useState(false);
     const [rejecting, setRejecting] = useState(false);
     const [reviewComment, setReviewComment] = useState('');
-    // The focused surface rejects straight from its text area, bypassing the
-    // annotation modal — so it needs its own intent selector. Without one, every
-    // reject typed here landed unclassified, which is exactly the conflation
-    // this feature exists to undo.
-    const [rejectIntent, setRejectIntent] = useState<AcceptanceRejectIntent>('unmet');
     // The proposal starts folded: it is a suggestion, and an open panel on every
     // unreviewed check would push the evidence the reviewer came for below the fold.
     const [proposalOpen, setProposalOpen] = useState(false);
@@ -1020,7 +1014,7 @@ const CheckRow = memo<{
           .map((item) => ({ fileUrl: item.fileUrl!, id: item.id })),
         initialAnnotations: fromProposal?.annotations ?? undefined,
         initialComment: fromProposal?.comment ?? reviewComment,
-        onConfirm: async ({ annotations, comment, fileIds, rejectIntent }) => {
+        onConfirm: async ({ annotations, comment, fileIds }) => {
           const ok = await onReview({
             action: 'reject',
             annotations: annotations.length > 0 ? annotations : undefined,
@@ -1036,7 +1030,6 @@ const CheckRow = memo<{
                   },
                 }
               : {}),
-            rejectIntent,
           });
           if (ok) {
             setReviewComment('');
@@ -1086,7 +1079,6 @@ const CheckRow = memo<{
         action: 'reject',
         checkItemIds: [check.id],
         comment,
-        rejectIntent,
       });
       setRejecting(false);
       if (ok) setReviewComment('');
@@ -1527,29 +1519,6 @@ const CheckRow = memo<{
                     value={reviewComment}
                     onChange={(event) => setReviewComment(event.target.value)}
                   />
-                  {/* Only meaningful once there is something to reject with —
-                      an intent picker above an empty box is noise. */}
-                  {Boolean(reviewComment.trim()) && (
-                    <Flexbox horizontal align={'center'} gap={8} wrap={'wrap'}>
-                      <Text fontSize={12} type={'secondary'}>
-                        {t('acceptance.review.intentLabel')}
-                      </Text>
-                      {acceptanceRejectIntents.map((value) => (
-                        <Button
-                          disabled={reviewPending}
-                          key={value}
-                          size={'small'}
-                          type={rejectIntent === value ? 'primary' : 'default'}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setRejectIntent(value);
-                          }}
-                        >
-                          {t(`acceptance.review.intent.${value}` as never)}
-                        </Button>
-                      ))}
-                    </Flexbox>
-                  )}
                   <Flexbox horizontal gap={8}>
                     <Button
                       block
