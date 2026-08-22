@@ -2,6 +2,8 @@ import type { MessengerAttachmentBudget } from '@lobechat/const';
 import { MESSENGER_ATTACHMENT_BUDGETS } from '@lobechat/const';
 import debug from 'debug';
 
+import { loadAttachmentBuffer } from './loadAttachmentBuffer';
+import { fetchPublicUrl } from './publicUrlFetch';
 import type { BotMessageAttachment } from './types';
 
 const log = debug('bot-platform:attachment-budget');
@@ -92,33 +94,15 @@ const toJpegFilename = (name: string | undefined): string | undefined => {
   return `${trimmed.replace(/\.[^./\\]*$/, '')}.jpg`;
 };
 
-/** Refuse to buffer arbitrarily large remote files into memory for compression. */
+/**
+ * Refuse to buffer arbitrarily large remote files into memory for compression.
+ * Enforced as the response streams in, so an image with an absent or lying
+ * `content-length` cannot be fully allocated before it is rejected.
+ */
 const MAX_COMPRESSION_SOURCE_BYTES = 100 * MB;
 
-const loadSourceBuffer = async (attachment: BotMessageAttachment): Promise<Buffer | undefined> => {
-  if (attachment.data) {
-    try {
-      return Buffer.from(attachment.data, 'base64');
-    } catch (error) {
-      log('loadSourceBuffer: failed to decode base64: %O', error);
-    }
-  }
-  if (attachment.fetchUrl) {
-    try {
-      const response = await fetch(attachment.fetchUrl, { signal: AbortSignal.timeout(15_000) });
-      if (response.ok) {
-        const buffer = Buffer.from(await response.arrayBuffer());
-        if (buffer.length <= MAX_COMPRESSION_SOURCE_BYTES) return buffer;
-        log('loadSourceBuffer: %d bytes exceeds compression source cap', buffer.length);
-      } else {
-        log('loadSourceBuffer: HTTP %d for %s', response.status, attachment.fetchUrl);
-      }
-    } catch (error) {
-      log('loadSourceBuffer: fetch failed for %s: %O', attachment.fetchUrl, error);
-    }
-  }
-  return undefined;
-};
+const loadSourceBuffer = async (attachment: BotMessageAttachment): Promise<Buffer | undefined> =>
+  loadAttachmentBuffer(attachment, { limit: MAX_COMPRESSION_SOURCE_BYTES });
 
 /**
  * Ladder of (max dimension, JPEG quality) attempts, largest/best first. The
@@ -207,6 +191,47 @@ const knownSize = (attachment: BotMessageAttachment): number | undefined => {
  *    `fallbackLines` when a `fetchUrl` exists. Without a URL the original
  *    attachment is kept as a last resort (old behavior) rather than dropped.
  */
+/** How long to wait for a size probe before giving up on it. */
+const SIZE_PROBE_TIMEOUT_MS = 5000;
+
+/**
+ * The attachment's byte size, established without downloading it.
+ *
+ * `attachmentsInputSchema` carries no `size`, so raw `botMessage` attachments
+ * arrive unmeasured — and an unmeasured attachment used to skip every budget
+ * rule, only to be refused later by the loader's in-memory cap and dropped
+ * without a trace. Inline base64 is measured directly; a remote URL is probed
+ * with a HEAD request through the same SSRF guard the download uses.
+ */
+const resolveSize = async (attachment: BotMessageAttachment): Promise<number | undefined> => {
+  const declared = knownSize(attachment);
+  if (declared !== undefined) return declared;
+
+  if (attachment.data) return Buffer.byteLength(attachment.data, 'base64');
+  if (!attachment.fetchUrl) return undefined;
+
+  const probed = await fetchPublicUrl(attachment.fetchUrl, SIZE_PROBE_TIMEOUT_MS, {
+    allowConfiguredOrigins: attachment.trustedUrl === true,
+    method: 'HEAD',
+  }).catch(() => undefined);
+  if (!probed) return undefined;
+
+  try {
+    // A 404's `content-length` describes the error page, not the file.
+    if (!probed.response.ok) return undefined;
+
+    // Absent header must stay "unknown": `Number(null)` is 0, which would read
+    // as a zero-byte file that fits every budget.
+    const header = probed.response.headers.get('content-length');
+    if (header === null) return undefined;
+
+    const length = Number(header);
+    return Number.isFinite(length) && length >= 0 ? length : undefined;
+  } finally {
+    await probed.dispose();
+  }
+};
+
 export const prepareAttachmentsForBudget = async (
   attachments: BotMessageAttachment[],
   budget: PlatformAttachmentBudget,
@@ -216,13 +241,35 @@ export const prepareAttachmentsForBudget = async (
   const degraded: BotMessageAttachment[] = [];
   const fallbackLines: string[] = [];
 
-  for (const attachment of attachments) {
-    const limit = attachment.type === 'image' ? budget.imageMaxBytes : budget.fileMaxBytes;
-    const size = knownSize(attachment);
+  // Probe every unmeasured attachment at once rather than once per loop turn:
+  // serially, N slow URLs cost N x the probe timeout before the first send.
+  const sizes = await Promise.all(attachments.map((attachment) => resolveSize(attachment)));
 
-    if (size === undefined || size <= limit) {
+  for (const [index, attachment] of attachments.entries()) {
+    const limit = attachment.type === 'image' ? budget.imageMaxBytes : budget.fileMaxBytes;
+    const size = sizes[index];
+
+    if (size !== undefined && size <= limit) {
       kept.push(attachment);
       keptOriginals.push(attachment);
+      continue;
+    }
+
+    // Size still unknown after the probe: the server declared no length, so we
+    // cannot promise the bytes fit. Uploading anyway is the silent-loss case —
+    // the loader's in-memory cap would refuse it during materialization and the
+    // sender would skip it, delivering neither file nor link. Degrade instead;
+    // an attachment with no link to fall back to is kept as a last resort
+    // below.
+    if (size === undefined) {
+      if (!attachment.fetchUrl) {
+        kept.push(attachment);
+        keptOriginals.push(attachment);
+        continue;
+      }
+      log('prepareAttachmentsForBudget: unverifiable size for %s, degrading', attachment.name);
+      degraded.push(attachment);
+      fallbackLines.push(buildAttachmentFallbackLine(attachment, attachment.fetchUrl));
       continue;
     }
 

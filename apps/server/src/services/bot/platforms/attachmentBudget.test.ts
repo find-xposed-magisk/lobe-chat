@@ -1,6 +1,16 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// These tests stub `fetch` directly; the SSRF guard in front of it resolves DNS
+// for real, which has nothing to do with what they assert. Its own behaviour is
+// covered in publicUrlFetch.test.ts.
+vi.mock('./publicUrlFetch', () => ({
+  fetchPublicUrl: async (url: string, timeoutMs: number) => ({
+    dispose: async () => undefined,
+    response: await fetch(url, { signal: AbortSignal.timeout(timeoutMs) }),
+  }),
+}));
+
 const sharpMocks = vi.hoisted(() => ({
   metadata: vi.fn(),
   toBuffer: vi.fn(),
@@ -91,12 +101,100 @@ describe('prepareAttachmentsForBudget', () => {
     expect(result.fallbackLines).toEqual([]);
   });
 
-  it('passes attachments with unknown size through untouched', async () => {
+  it('probes an unmeasured attachment and keeps it when it fits', async () => {
+    // `attachmentsInputSchema` carries no `size`, so raw botMessage attachments
+    // arrive unmeasured — the budget has to establish the size itself.
     const attachment = {
-      fetchUrl: 'https://example.com/f/unknown.mp4',
-      name: 'unknown.mp4',
+      fetchUrl: 'https://example.com/f/small.mp4',
+      name: 'small.mp4',
       type: 'video' as const,
     };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        headers: new Headers({ 'content-length': String(1 * MB) }),
+        ok: true,
+        status: 200,
+      }),
+    );
+
+    const result = await prepareAttachmentsForBudget([attachment], budget);
+
+    expect(result.attachments).toEqual([attachment]);
+    expect(result.fallbackLines).toEqual([]);
+  });
+
+  it('degrades an unmeasured attachment the probe reports as over budget', async () => {
+    const attachment = {
+      fetchUrl: 'https://example.com/f/huge.mp4',
+      name: 'huge.mp4',
+      type: 'video' as const,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        headers: new Headers({ 'content-length': String(500 * MB) }),
+        ok: true,
+        status: 200,
+      }),
+    );
+
+    const result = await prepareAttachmentsForBudget([attachment], budget);
+
+    expect(result.attachments).toEqual([]);
+    expect(result.fallbackLines[0]).toContain('https://example.com/f/huge.mp4');
+  });
+
+  it('degrades rather than silently dropping when the size cannot be established', async () => {
+    // Regression: an unmeasurable attachment used to skip every budget rule and
+    // then be refused by the loader's in-memory cap during materialization —
+    // the sender skipped it, still posted the text, and reported success, so it
+    // vanished with neither file nor link.
+    const attachment = {
+      fetchUrl: 'https://example.com/f/chunked.mp4',
+      name: 'chunked.mp4',
+      type: 'video' as const,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ headers: new Headers(), ok: true, status: 200 }),
+    );
+
+    const result = await prepareAttachmentsForBudget([attachment], budget);
+
+    expect(result.attachments).toEqual([]);
+    expect(result.fallbackLines[0]).toContain('https://example.com/f/chunked.mp4');
+  });
+
+  it('probes unmeasured attachments concurrently, not one after another', async () => {
+    // Regression: serial probing meant N slow URLs cost N x the timeout before
+    // the first platform send even began.
+    let inFlight = 0;
+    let peak = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => {
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        inFlight -= 1;
+        return { headers: new Headers({ 'content-length': String(1024) }), ok: true, status: 200 };
+      }),
+    );
+
+    const attachments = Array.from({ length: 5 }, (_, i) => ({
+      fetchUrl: `https://example.com/f/file-${i}.mp4`,
+      name: `file-${i}.mp4`,
+      type: 'video' as const,
+    }));
+
+    await prepareAttachmentsForBudget(attachments, budget);
+
+    expect(peak).toBeGreaterThan(1);
+  });
+
+  it('keeps an unmeasurable attachment that has no link to fall back to', async () => {
+    const attachment = { data: 'AAAA', name: 'inline.bin', type: 'file' as const };
 
     const result = await prepareAttachmentsForBudget([attachment], budget);
 
@@ -204,6 +302,30 @@ describe('prepareAttachmentsForBudget', () => {
     expect(result.fallbackLines[0]).toContain('movie.mp4');
     expect(result.fallbackLines[0]).toContain('100.0MB');
     expect(result.fallbackLines[0]).toContain('https://example.com/f/movie.mp4');
+  });
+
+  it('degrades a Slack file above the in-memory ceiling instead of dropping it', async () => {
+    // Regression: Slack's budget used to be the API's 1GB cap, so a 60MB file
+    // passed the budget pass as an upload and was then refused during
+    // materialization — the attachment vanished with neither file nor link.
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await prepareAttachmentsForBudget(
+      [
+        {
+          fetchUrl: 'https://example.com/f/big.zip',
+          name: 'big.zip',
+          size: 60 * MB,
+          type: 'file' as const,
+        },
+      ],
+      PLATFORM_ATTACHMENT_BUDGETS.slack,
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.attachments).toEqual([]);
+    expect(result.fallbackLines[0]).toContain('https://example.com/f/big.zip');
   });
 
   it('keeps an over-budget attachment without a fetchUrl as a last resort', async () => {
