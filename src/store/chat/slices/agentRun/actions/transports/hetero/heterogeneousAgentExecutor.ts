@@ -490,7 +490,11 @@ export const executeHeterogeneousAgent = async (
     model?: string;
     usage: unknown;
   }) => {
-    if (adapterType !== 'claude-code' || heterogeneousProvider.authMode === 'api') return;
+    if (
+      adapterType !== 'claude-code' ||
+      (heterogeneousProvider.authMode ?? 'subscription') !== 'subscription'
+    )
+      return;
     const u = intent.usage as ModelUsage;
     agentQuotaService
       .recordUsage({
@@ -1817,29 +1821,68 @@ export const executeHeterogeneousAgent = async (
   await rehydrateClientSubagentRuns();
 
   const providerBindingActive = heterogeneousProvider.authMode === 'api';
-  if (providerBindingActive) {
-    if (!labPreferSelectors.enableAgentProviderBinding(useUserStore.getState())) {
-      await persistTerminalError(
-        toHeterogeneousAgentMessageError(
-          new Error(t('heteroAgent.apiMode.labDisabled.title', { ns: 'chat' })),
-          adapterType,
-        ),
-      );
-      return;
-    }
+  const serverDefaultApiConfig =
+    providerBindingActive && heterogeneousProvider.apiConfig?.source === 'server-default'
+      ? heterogeneousProvider.apiConfig
+      : undefined;
+  const providerApiConfig =
+    providerBindingActive &&
+    heterogeneousProvider.apiConfig &&
+    heterogeneousProvider.apiConfig.source !== 'server-default'
+      ? heterogeneousProvider.apiConfig
+      : undefined;
+  const serverDefaultBindingActive = !!serverDefaultApiConfig;
+  const userProviderBindingActive = !!providerApiConfig;
+  // The Labs flag gates every API-mode path, including the server-default
+  // binding: with the flag off, an api-auth agent must behave exactly as it
+  // did before the feature existed — blocked with a pointer to Labs.
+  if (
+    providerBindingActive &&
+    !labPreferSelectors.enableAgentProviderBinding(useUserStore.getState())
+  ) {
+    await persistTerminalError(
+      toHeterogeneousAgentMessageError(
+        new Error(t('heteroAgent.apiMode.labDisabled.title', { ns: 'chat' })),
+        adapterType,
+      ),
+    );
+    return;
+  }
+  if (providerBindingActive && !serverDefaultBindingActive && !userProviderBindingActive) {
+    await persistTerminalError(
+      toHeterogeneousAgentMessageError(
+        new Error(t('heteroAgent.apiMode.configMissing', { ns: 'chat' })),
+        adapterType,
+      ),
+    );
+    return;
+  }
 
-    const { apiConfig } = heterogeneousProvider;
-    if (
-      !isHeterogeneousProviderBindingSupported(adapterType) ||
-      !apiConfig?.providerId ||
-      !apiConfig.model?.trim()
-    ) {
-      const message = !isHeterogeneousProviderBindingSupported(adapterType)
-        ? t('heteroAgent.apiMode.agentUnsupported', { name: adapterType, ns: 'chat' })
-        : t('heteroAgent.apiMode.configMissing', { ns: 'chat' });
-      await persistTerminalError(toHeterogeneousAgentMessageError(new Error(message), adapterType));
-      return;
-    }
+  if (
+    userProviderBindingActive &&
+    (!isHeterogeneousProviderBindingSupported(adapterType) ||
+      !providerApiConfig.providerId ||
+      !providerApiConfig.model.trim())
+  ) {
+    const message = !isHeterogeneousProviderBindingSupported(adapterType)
+      ? t('heteroAgent.apiMode.agentUnsupported', { name: adapterType, ns: 'chat' })
+      : t('heteroAgent.apiMode.configMissing', { ns: 'chat' });
+    await persistTerminalError(toHeterogeneousAgentMessageError(new Error(message), adapterType));
+    return;
+  }
+
+  if (
+    serverDefaultBindingActive &&
+    (!serverDefaultApiConfig.model.trim() ||
+      (adapterType !== 'claude-code' && adapterType !== 'codex'))
+  ) {
+    await persistTerminalError(
+      toHeterogeneousAgentMessageError(
+        new Error(t('heteroAgent.apiMode.defaultProviderConfigMissing', { ns: 'chat' })),
+        adapterType,
+      ),
+    );
+    return;
   }
 
   try {
@@ -1868,12 +1911,19 @@ export const executeHeterogeneousAgent = async (
     };
 
     const spawnArgs = buildHeteroSpawnArgs(heterogeneousProvider);
-    const providerBinding = providerBindingActive
+    const providerBinding = serverDefaultBindingActive
       ? {
-          apiConfig: heterogeneousProvider.apiConfig!,
+          apiConfig: serverDefaultApiConfig,
+          kind: 'server-default' as const,
           resumeBindingKey,
         }
-      : undefined;
+      : userProviderBindingActive
+        ? {
+            apiConfig: providerApiConfig,
+            kind: 'provider' as const,
+            resumeBindingKey,
+          }
+        : undefined;
 
     // Start session (pass resumeSessionId for multi-turn --resume)
     const result = await heterogeneousAgentService.startSession({

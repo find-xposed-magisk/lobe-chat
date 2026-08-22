@@ -694,6 +694,10 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       model: 'stale-config-model',
       type: 'claude-code' as const,
     };
+    const serverDefaultApiProvider = {
+      ...apiProvider,
+      apiConfig: { model: 'claude-server', source: 'server-default' as const },
+    };
 
     const configureDirectProvider = () => {
       useAiInfraStore.setState({
@@ -730,6 +734,7 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
           }),
           providerBinding: {
             apiConfig: { model: 'api-primary', providerId: 'anthropic-direct' },
+            kind: 'provider',
             resumeBindingKey: undefined,
           },
         }),
@@ -739,6 +744,44 @@ describe('heterogeneousAgentExecutor DB persistence', () => {
       expect(serializedParams).not.toContain('https://direct.example.com');
       expect(mockSelectAccountForAgent).not.toHaveBeenCalled();
       expect(mockGetClaudeCodeIdentity).not.toHaveBeenCalled();
+    });
+
+    it('uses the deployment provider inside API mode when the Labs experiment is enabled', async () => {
+      await runWithEvents([ccResult()], {
+        params: { heterogeneousProvider: serverDefaultApiProvider },
+      });
+
+      expect(mockStartSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerBinding: {
+            apiConfig: { model: 'claude-server', source: 'server-default' },
+            kind: 'server-default',
+            resumeBindingKey: undefined,
+          },
+        }),
+      );
+      expect(mockSelectAccountForAgent).not.toHaveBeenCalled();
+      expect(mockGetClaudeCodeIdentity).not.toHaveBeenCalled();
+    });
+
+    it('blocks the deployment provider before spawn when the Labs experiment is disabled', async () => {
+      setClaudeCodeApiModeLab(false);
+      const store = createMockStore();
+
+      await executeHeterogeneousAgent(
+        vi.fn(() => store),
+        {
+          ...defaultParams,
+          heterogeneousProvider: serverDefaultApiProvider,
+        },
+      );
+
+      expect(mockStartSession).not.toHaveBeenCalled();
+      expect(mockUpdateMessageError).toHaveBeenCalledWith(
+        'ast-initial',
+        expect.objectContaining({ message: expect.stringMatching(/labDisabled|Labs experiment/) }),
+        expect.anything(),
+      );
     });
 
     it('fails before spawn when the Labs experiment is disabled', async () => {
