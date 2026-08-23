@@ -8,7 +8,8 @@ import { memo, useMemo } from 'react';
 import { useProviderBindingCompatibleProviders } from '@/features/HeterogeneousAgent/hooks/useProviderBinding';
 import {
   buildServerDefaultModelOptions,
-  MODEL_PICKER_STYLE,
+  COMPACT_MODEL_PICKER_STYLE,
+  compactModelTriggerText,
   modelPickerStyles,
 } from '@/features/HeterogeneousAgent/modelPicker';
 import ModelSelect from '@/features/ModelSelect';
@@ -19,6 +20,10 @@ import { useAiInfraStore } from '@/store/aiInfra';
 interface ApiModeModelBarProps {
   agentId: string;
 }
+
+const compactTriggerLabel = (option: { title?: string; value?: unknown }) => (
+  <span className={modelPickerStyles.compactLabel}>{compactModelTriggerText(option)}</span>
+);
 
 const ApiModeModelBar = memo<ApiModeModelBarProps>(({ agentId }) => {
   const agencyConfig = useAgentStore(agentByIdSelectors.getAgencyConfigById(agentId));
@@ -69,12 +74,13 @@ const ApiModeModelBar = memo<ApiModeModelBarProps>(({ agentId }) => {
     return (
       <TooltipGroup>
         <Select
-          popupMatchSelectWidth
           className={modelPickerStyles.picker}
+          labelRender={compactTriggerLabel}
           loading={serverCapability.isLoading}
           options={serverDefaultModelOptions}
+          popupMatchSelectWidth={false}
           size="small"
-          style={MODEL_PICKER_STYLE}
+          style={COMPACT_MODEL_PICKER_STYLE}
           value={serverDefaultApiConfig.model}
           variant="borderless"
           onChange={(model) => {
@@ -87,10 +93,11 @@ const ApiModeModelBar = memo<ApiModeModelBarProps>(({ agentId }) => {
 
   return (
     <ModelSelect
-      initialWidth
+      labelRender={compactTriggerLabel}
       popupWidth={360}
       providerIds={providerIds}
       size="small"
+      style={COMPACT_MODEL_PICKER_STYLE}
       variant="borderless"
       value={
         providerApiConfig
