@@ -1081,6 +1081,52 @@ describe('HeterogeneousAgentCtr', () => {
       expect(send).toHaveBeenCalledWith('heteroAgentSessionComplete', { sessionId });
     });
 
+    it('does not start the Claude SDK when server-default execution is cancelled during preparation', async () => {
+      process.env.LOBE_CLAUDE_CODE_SDK = '1';
+      const ctr = new HeterogeneousAgentCtr({
+        appStoragePath,
+        storeManager: { get: vi.fn() },
+      } as any);
+      const { sessionId } = await ctr.startSession({
+        agentType: 'claude-code',
+        command: 'claude',
+        providerBinding: {
+          apiConfig: { model: 'claude-sonnet-4-6', source: 'server-default' },
+          kind: 'server-default',
+        },
+      });
+      let completePreparation!: () => void;
+      const createTraceSession = vi
+        .spyOn(ctr as any, 'createCliTraceSession')
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((resolve) => {
+              completePreparation = resolve;
+            }),
+        );
+
+      const sendPrompt = ctr.sendPrompt({
+        agentId: 'agent-1',
+        operationId: 'op-cancel-sdk-preparation',
+        prompt: 'watch ci',
+        sessionId,
+        topicId: 'topic-1',
+      });
+      await vi.waitFor(() => expect(createTraceSession).toHaveBeenCalledOnce());
+
+      await ctr.cancelSession({ sessionId });
+      completePreparation();
+      await sendPrompt;
+
+      expect(claudeSdkSessionConstructMock).not.toHaveBeenCalled();
+      expect(spawnCalls).toHaveLength(0);
+      expect(settleServerDefaultOperationMock).toHaveBeenCalledWith(expect.any(Object), {
+        cancelled: true,
+        operationId: 'op-cancel-sdk-preparation',
+        result: 'error',
+      });
+    });
+
     it.each([
       '-flag-looking-prompt',
       '--help please',
@@ -1701,6 +1747,102 @@ describe('HeterogeneousAgentCtr', () => {
         cancelled: false,
         operationId: 'op-server-default',
         result: 'done',
+      });
+    });
+
+    it('does not launch server-default Codex when cancelled while authorization is pending', async () => {
+      let resolveBegin!: (value: {
+        endpoint: string;
+        model: 'lobehub-default';
+        token: string;
+      }) => void;
+      beginServerDefaultOperationMock.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveBegin = resolve;
+          }),
+      );
+      nextFakeProc = createFakeProc().proc;
+      const ctr = new HeterogeneousAgentCtr({
+        appStoragePath,
+        storeManager: { get: vi.fn() },
+      } as any);
+      const { sessionId } = await ctr.startSession({
+        agentType: 'codex',
+        command: 'codex',
+        providerBinding: {
+          apiConfig: { model: 'gpt-5.4', source: 'server-default' },
+          kind: 'server-default',
+        },
+      });
+
+      const sendPrompt = ctr.sendPrompt({
+        agentId: 'agent-1',
+        operationId: 'op-cancel-authorization',
+        prompt: 'hello',
+        sessionId,
+        topicId: 'topic-1',
+      });
+      await vi.waitFor(() => expect(beginServerDefaultOperationMock).toHaveBeenCalledOnce());
+
+      await ctr.cancelSession({ sessionId });
+      resolveBegin({
+        endpoint: 'https://app.example.com',
+        model: 'lobehub-default',
+        token: 'operation-token',
+      });
+      await sendPrompt;
+
+      expect(spawnCalls).toHaveLength(0);
+      expect(settleServerDefaultOperationMock).toHaveBeenCalledWith(expect.any(Object), {
+        cancelled: true,
+        operationId: 'op-cancel-authorization',
+        result: 'error',
+      });
+    });
+
+    it('does not launch server-default Codex when cancelled during spawn preparation', async () => {
+      nextFakeProc = createFakeProc().proc;
+      const ctr = new HeterogeneousAgentCtr({
+        appStoragePath,
+        storeManager: { get: vi.fn() },
+      } as any);
+      const { sessionId } = await ctr.startSession({
+        agentType: 'codex',
+        command: 'codex',
+        providerBinding: {
+          apiConfig: { model: 'gpt-5.4', source: 'server-default' },
+          kind: 'server-default',
+        },
+      });
+      let completePreparation!: () => void;
+      const createTraceSession = vi
+        .spyOn(ctr as any, 'createCliTraceSession')
+        .mockImplementationOnce(
+          () =>
+            new Promise<void>((resolve) => {
+              completePreparation = resolve;
+            }),
+        );
+
+      const sendPrompt = ctr.sendPrompt({
+        agentId: 'agent-1',
+        operationId: 'op-cancel-preflight',
+        prompt: 'hello',
+        sessionId,
+        topicId: 'topic-1',
+      });
+      await vi.waitFor(() => expect(createTraceSession).toHaveBeenCalledOnce());
+
+      await ctr.cancelSession({ sessionId });
+      completePreparation();
+      await sendPrompt;
+
+      expect(spawnCalls).toHaveLength(0);
+      expect(settleServerDefaultOperationMock).toHaveBeenCalledWith(expect.any(Object), {
+        cancelled: true,
+        operationId: 'op-cancel-preflight',
+        result: 'error',
       });
     });
 
@@ -2947,6 +3089,93 @@ describe('HeterogeneousAgentCtr', () => {
         sessionId,
       });
     });
+  });
+
+  describe('pre-launch cancellation for local transports', () => {
+    beforeEach(() => {
+      spawnCalls.length = 0;
+      execFileMock.mockReset();
+    });
+
+    it.each([
+      {
+        agentType: 'codex',
+        command: 'codex',
+        constructMock: codexAppServerConstructMock,
+        label: 'Codex app-server',
+        runMock: codexAppServerRunMock,
+        useCodexAppServer: true,
+      },
+      {
+        agentType: 'grok-build',
+        command: 'grok',
+        constructMock: grokAcpSessionConstructMock,
+        label: 'Grok ACP',
+        runMock: grokAcpSessionRunMock,
+        useCodexAppServer: false,
+      },
+      {
+        agentType: 'cursor',
+        command: 'agent',
+        constructMock: cursorAcpSessionConstructMock,
+        label: 'Cursor ACP',
+        runMock: cursorAcpSessionRunMock,
+        useCodexAppServer: false,
+      },
+      {
+        agentType: 'trae',
+        command: 'traecli',
+        constructMock: traeAcpSessionConstructMock,
+        label: 'TRAE ACP',
+        runMock: traeAcpSessionRunMock,
+        useCodexAppServer: false,
+      },
+    ] as const)(
+      'does not start $label when cancelled during transport preparation',
+      async ({ agentType, command, constructMock, runMock, useCodexAppServer }) => {
+        const send = vi.fn();
+        mockGetAllWindows.mockReturnValue([
+          {
+            isDestroyed: () => false,
+            webContents: { send },
+          },
+        ]);
+        const ctr = new HeterogeneousAgentCtr({
+          appStoragePath,
+          storeManager: { get: vi.fn() },
+        } as any);
+        const { sessionId } = await ctr.startSession({
+          agentType,
+          command,
+          useCodexAppServer,
+        });
+        let completePreparation!: () => void;
+        const createTraceSession = vi
+          .spyOn(ctr as any, 'createCliTraceSession')
+          .mockImplementationOnce(
+            () =>
+              new Promise<void>((resolve) => {
+                completePreparation = resolve;
+              }),
+          );
+
+        const sendPrompt = ctr.sendPrompt({
+          operationId: `op-cancel-${agentType}`,
+          prompt: 'work',
+          sessionId,
+        });
+        await vi.waitFor(() => expect(createTraceSession).toHaveBeenCalledOnce());
+
+        await ctr.cancelSession({ sessionId });
+        completePreparation();
+        await sendPrompt;
+
+        expect(constructMock).not.toHaveBeenCalled();
+        expect(runMock).not.toHaveBeenCalled();
+        expect(spawnCalls).toHaveLength(0);
+        expect(send).toHaveBeenCalledWith('heteroAgentSessionComplete', { sessionId });
+      },
+    );
   });
 
   describe('spawnLhHeteroExec', () => {
