@@ -11,6 +11,7 @@ import {
   sessions,
   topics,
   users,
+  workspaces,
 } from '../../schemas';
 import type { LobeChatDatabase } from '../../type';
 import { TopicModel } from '../topic';
@@ -1004,6 +1005,112 @@ describe('TopicModel', () => {
       ]);
 
       expect(await topicModel.countTopicsForMemoryExtractor()).toBe(1);
+    });
+  });
+
+  describe('resetMemoryExtractStatus', () => {
+    it('resets completed topics back to pending and clears the run state', async () => {
+      await serverDB.insert(topics).values([
+        {
+          id: 'mem-reset-done',
+          metadata: {
+            userMemoryExtractRunState: {
+              lastRunAt: '2026-08-19T01:00:00.000Z',
+              messageCount: 3,
+              processedMemoryCount: 2,
+            },
+            userMemoryExtractStatus: 'completed',
+          },
+          title: 'done',
+          userId,
+        },
+        { id: 'mem-reset-pending', title: 'pending', userId },
+      ]);
+
+      await topicModel.resetMemoryExtractStatus();
+
+      const done = await serverDB.query.topics.findFirst({
+        where: eq(topics.id, 'mem-reset-done'),
+      });
+      expect(done?.metadata?.userMemoryExtractStatus).toBe('pending');
+      expect(done?.metadata?.userMemoryExtractRunState).toEqual({});
+
+      const pending = await serverDB.query.topics.findFirst({
+        where: eq(topics.id, 'mem-reset-pending'),
+      });
+      expect(pending?.metadata?.userMemoryExtractStatus).toBeUndefined();
+    });
+
+    it('does not touch topics owned by other users', async () => {
+      await serverDB.insert(topics).values([
+        {
+          id: 'mem-reset-mine',
+          metadata: { userMemoryExtractStatus: 'completed' },
+          title: 'mine',
+          userId,
+        },
+        {
+          id: 'mem-reset-other',
+          metadata: { userMemoryExtractStatus: 'completed' },
+          title: 'other',
+          userId: otherUserId,
+        },
+      ]);
+
+      await topicModel.resetMemoryExtractStatus();
+
+      const [mine, other] = await Promise.all([
+        serverDB.query.topics.findFirst({ where: eq(topics.id, 'mem-reset-mine') }),
+        serverDB.query.topics.findFirst({ where: eq(topics.id, 'mem-reset-other') }),
+      ]);
+      expect(mine?.metadata?.userMemoryExtractStatus).toBe('pending');
+      expect(other?.metadata?.userMemoryExtractStatus).toBe('completed');
+    });
+
+    it('resets topics across personal and workspace scopes for the same user', async () => {
+      const workspaceId = 'topic-model-test-ws-reset';
+      await serverDB.insert(workspaces).values({
+        id: workspaceId,
+        name: 'topic-model-test-ws-reset',
+        primaryOwnerId: userId,
+        slug: workspaceId,
+      });
+
+      await serverDB.insert(topics).values([
+        {
+          id: 'mem-reset-personal',
+          metadata: { userMemoryExtractStatus: 'completed' },
+          title: 'personal scope',
+          userId,
+          workspaceId: null,
+        },
+        {
+          id: 'mem-reset-ws',
+          metadata: { userMemoryExtractStatus: 'completed' },
+          title: 'workspace scope',
+          userId,
+          workspaceId,
+        },
+        // Another user's workspace topic must stay untouched.
+        {
+          id: 'mem-reset-ws-other-user',
+          metadata: { userMemoryExtractStatus: 'completed' },
+          title: 'workspace scope other user',
+          userId: otherUserId,
+          workspaceId,
+        },
+      ]);
+
+      await topicModel.resetMemoryExtractStatus();
+
+      const [personal, ws, wsOther] = await Promise.all([
+        serverDB.query.topics.findFirst({ where: eq(topics.id, 'mem-reset-personal') }),
+        serverDB.query.topics.findFirst({ where: eq(topics.id, 'mem-reset-ws') }),
+        serverDB.query.topics.findFirst({ where: eq(topics.id, 'mem-reset-ws-other-user') }),
+      ]);
+      expect(personal?.metadata?.userMemoryExtractStatus).toBe('pending');
+      expect(ws?.metadata?.userMemoryExtractStatus).toBe('pending');
+      expect(wsOther?.metadata?.userMemoryExtractStatus).toBe('completed');
     });
   });
 
