@@ -6,6 +6,7 @@ import {
 } from '@/server/modules/ModelRuntime';
 
 import {
+  describeRelayFailure,
   encodeAnthropicStream,
   encodeResponsesStream,
   invokeServerDefaultModel,
@@ -60,7 +61,7 @@ describe('heterogeneous direct invocation protocol', () => {
     vi.clearAllMocks();
   });
 
-  it('invokes Claude Code through an Anthropic-compatible LobeHub relay model', async () => {
+  it('preserves adaptive thinking through the Anthropic relay for a compatible model', async () => {
     const chat = vi.fn().mockResolvedValue(new Response('stream'));
     vi.mocked(resolveServerDefaultHeterogeneousModel).mockResolvedValue({
       model: 'claude-sonnet-4-6',
@@ -74,12 +75,15 @@ describe('heterogeneous direct invocation protocol', () => {
     const result = await invokeServerDefaultModel({
       agentType: 'claude-code',
       model: 'claude-sonnet-4-6',
-      payload: {
-        messages: [],
-        model: 'lobehub-default',
-        stream: true,
-        thinking: { type: 'adaptive' },
-      },
+      payload: normalizeAnthropicRequest(
+        {
+          messages: [],
+          model: 'lobehub-default',
+          stream: true,
+          thinking: { type: 'adaptive' },
+        },
+        'lobehub-default',
+      ),
       signal: new AbortController().signal,
       userId: 'user-1',
     });
@@ -90,12 +94,12 @@ describe('heterogeneous direct invocation protocol', () => {
       'claude-sonnet-4-6',
     );
     expect(chat).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         messages: [],
         model: 'claude-sonnet-4-6',
         stream: true,
         thinking: { type: 'adaptive' },
-      },
+      }),
       expect.any(Object),
     );
   });
@@ -350,6 +354,38 @@ describe('heterogeneous direct invocation protocol', () => {
     expect(payload.messages[1].reasoning?.responseItems).toEqual([firstReasoning]);
     expect(payload.messages[2].tool_call_id).toBe('call-1');
     expect(payload.messages[3].reasoning?.responseItems).toEqual([secondReasoning]);
+  });
+
+  it('groups parallel Responses function calls before their contiguous outputs', () => {
+    const reasoning = {
+      encrypted_content: 'encrypted-parallel',
+      id: 'reasoning-parallel',
+      status: 'completed',
+      summary: [{ text: 'parallel thought', type: 'summary_text' }],
+      type: 'reasoning',
+    };
+    const payload = normalizeResponsesRequest(
+      {
+        input: [
+          reasoning,
+          { arguments: '{"q":"x"}', call_id: 'call-1', name: 'search', type: 'function_call' },
+          { arguments: '{"path":"/tmp"}', call_id: 'call-2', name: 'read', type: 'function_call' },
+          { call_id: 'call-1', output: 'search result', type: 'function_call_output' },
+          { call_id: 'call-2', output: 'file result', type: 'function_call_output' },
+        ],
+      },
+      'lobehub-default',
+    );
+
+    expect(payload.messages.map(({ role }) => role)).toEqual(['assistant', 'tool', 'tool']);
+    expect(payload.messages[0]).toMatchObject({
+      reasoning: { responseItems: [reasoning] },
+      tool_calls: [{ id: 'call-1' }, { id: 'call-2' }],
+    });
+    expect(payload.messages.slice(1).map(({ tool_call_id }) => tool_call_id)).toEqual([
+      'call-1',
+      'call-2',
+    ]);
   });
 
   it('parses the final protocol event without a trailing newline', async () => {
@@ -624,5 +660,54 @@ describe('heterogeneous direct invocation protocol', () => {
     expect(reasoningAdded[0].data.item.id).toBe('reasoning-current');
     expect(reasoningDone[0].data.item).toEqual(reasoningItem);
     expect(completed?.data.response.output).toEqual([reasoningItem]);
+  });
+});
+
+/**
+ * `runtime.chat` rejects with a plain `{ error, errorType, provider }` object
+ * rather than an `Error`. Hono cannot serialise that, so before this helper an
+ * uncaught rejection reached the client as a 500 with an EMPTY body — which is
+ * how a Volcengine `invalid value adaptive` looked to Claude Code:
+ * `API Error: 500 status code (no body)`, retried for 98 seconds.
+ */
+describe('describeRelayFailure', () => {
+  it('carries the provider’s own words out of a runtime rejection', () => {
+    expect(
+      describeRelayFailure({
+        error: {
+          message:
+            'The parameter `type` specified in the request are not valid: invalid value adaptive.',
+        },
+        errorType: 'ProviderBizError',
+        provider: 'volcengine',
+      }),
+    ).toEqual({
+      message:
+        '[volcengine] ProviderBizError: The parameter `type` specified in the request are not valid: invalid value adaptive.',
+      status: 502,
+    });
+  });
+
+  it('falls back to the serialized body when the provider names no message', () => {
+    const { message } = describeRelayFailure({
+      error: { code: 'InvalidParameter' },
+      errorType: 'ProviderBizError',
+      provider: 'volcengine',
+    });
+
+    expect(message).toContain('InvalidParameter');
+  });
+
+  it('still says something for a plain Error', () => {
+    expect(describeRelayFailure(new Error('socket hang up'))).toEqual({
+      message: 'socket hang up',
+      status: 502,
+    });
+  });
+
+  it('never returns an empty message, whatever it was handed', () => {
+    for (const thrown of [undefined, null, '', 0, {}]) {
+      expect(describeRelayFailure(thrown).message).not.toBe('');
+    }
   });
 });
