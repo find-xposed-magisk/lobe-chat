@@ -144,6 +144,7 @@ import type {
   AgentExecutionParams,
   AgentExecutionResult,
   AgentRuntimeServiceOptions,
+  EvalRuntimeContext,
   SubAgentBridgeParams,
 } from '@/server/services/agentRuntime';
 import { AgentRuntimeService } from '@/server/services/agentRuntime';
@@ -413,6 +414,8 @@ interface InternalExecAgentParams extends ExecAgentParams {
   ephemeralUserMessage?: string;
   /** Eval context for injecting environment prompts into system message */
   evalContext?: EvalContext;
+  /** Eval execution controls, such as fixture tool forwarding. */
+  evalRuntime?: EvalRuntimeContext;
   /**
    * Restrict this orchestration turn to exactly these plugins. Unlike
    * `additionalPluginIds`, this excludes the agent's pinned and default tools
@@ -1401,6 +1404,7 @@ export class AiAgentService {
       cronJobId,
       taskId,
       evalContext,
+      evalRuntime,
       maxSteps,
       disableLocalSystem,
       initialStepCount,
@@ -4824,6 +4828,7 @@ export class AiAgentService {
         deviceAccessPolicy: { canUseDevice, reason: deviceAccessReason },
         discordContext,
         evalContext,
+        evalRuntime,
         enableExpertise,
         expertise,
         initialContext,

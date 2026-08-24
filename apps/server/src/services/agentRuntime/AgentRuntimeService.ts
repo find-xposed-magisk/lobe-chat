@@ -563,6 +563,7 @@ export class AgentRuntimeService {
       deviceAccessPolicy,
       discordContext,
       evalContext,
+      evalRuntime,
       enableExpertise,
       expertise,
       executionPlan,
@@ -664,6 +665,7 @@ export class AgentRuntimeService {
           deviceSystemInfo,
           discordContext,
           evalContext,
+          evalRuntime,
           executionPlan,
           // need be removed
           modelRuntimeConfig,
@@ -3033,13 +3035,13 @@ export class AgentRuntimeService {
 
     if (
       metadata?.trigger === RequestTrigger.Eval &&
-      metadata.evalContext?.toolForwarding &&
+      metadata.evalRuntime?.toolForwarding &&
       !hookDispatcher.hasHook(operationId, EVAL_TOOL_FORWARDING_HOOK_ID)
     ) {
       hookDispatcher.register(operationId, [
         createEvalToolForwardingHook(
-          metadata.evalContext.toolForwarding,
-          metadata.evalContext.caseId,
+          metadata.evalRuntime.toolForwarding,
+          metadata.evalRuntime.caseId,
         ),
       ]);
     }

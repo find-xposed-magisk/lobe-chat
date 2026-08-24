@@ -118,6 +118,8 @@ export interface ChatTopicMetadata {
     summarizedAt: string;
     version: number;
   };
+  /** Restored-history tail used as the source message for eval attempt threads. */
+  evalHistoryTailMessageId?: string;
   bot?: ChatTopicBotContext;
   boundDeviceId?: string;
   cronJobId?: string;
