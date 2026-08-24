@@ -3,6 +3,7 @@ import type {
   GoalGraphSnapshot,
   GoalNodeKind,
   GoalNodeStatus,
+  GoalRecoveryPolicy,
   GoalTickResult,
   TaskItem,
   TaskTopicHandoff,
@@ -21,12 +22,16 @@ import { assertAgentUsableBy } from '@/database/utils/agent-access';
 import { TaskService } from '../task';
 import { TaskRunnerService } from '../taskRunner';
 import { AcceptanceService } from '../verify/acceptanceService';
+import { resolveWorkMaxSteps } from './recoveryPolicy';
+import { WorkRecoveryCoordinator } from './workRecoveryCoordinator';
 
 const WORK_NODE_CLAIM_TTL_MS = 5 * 60 * 1000;
 const TASK_DESCRIPTION_MAX_LENGTH = 255;
+const GOAL_ACCEPTANCE_WORK_TITLE = 'Complete full Goal acceptance';
 
 export interface CreateGoalGraphInput {
   agentId?: string;
+  config?: { recovery?: GoalRecoveryPolicy };
   maxRounds?: number;
   maxTotalCost?: number;
   projectId?: string;
@@ -84,6 +89,7 @@ export class GoalService {
     }
     const goal = await this.goalModel.create({
       agentId: input.agentId,
+      config: input.config,
       maxRounds: input.maxRounds,
       maxTotalCost: input.maxTotalCost,
       projectId: input.projectId,
@@ -180,11 +186,17 @@ export class GoalService {
       if (optionId === 'retry' && source.taskId) {
         await this.taskModel.updateStatus(source.taskId, 'backlog', { error: null });
         await this.graphModel.updateNodeStatus(goalId, source.id, 'active', resolution);
-      } else if (optionId === 'retire') {
+      } else if (
+        optionId === 'retire' ||
+        (optionId === 'fail' && source.title === GOAL_ACCEPTANCE_WORK_TITLE)
+      ) {
         await this.graphModel.updateNodeStatus(goalId, source.id, 'retired', resolution);
       }
     }
-    await this.goalModel.updateStatus(goalId, 'running');
+    const terminalAcceptanceFailed =
+      source?.title === GOAL_ACCEPTANCE_WORK_TITLE &&
+      (optionId === 'retire' || optionId === 'fail');
+    await this.goalModel.updateStatus(goalId, terminalAcceptanceFailed ? 'failed' : 'running');
     return resolved;
   };
 
@@ -233,8 +245,52 @@ export class GoalService {
         workNodes.length > 0 &&
         workNodes.every((node) => ['resolved', 'rejected', 'retired'].includes(node.status));
       if (allWorkTerminal) {
+        const goalAcceptanceWork = workNodes.find(
+          (node) => node.title === GOAL_ACCEPTANCE_WORK_TITLE,
+        );
+        if (graph.goal.requirement && !goalAcceptanceWork) {
+          const result = await this.graphModel.createNodeOnce(goalId, {
+            description: [
+              `Complete and prove the overall Goal acceptance requirement: ${graph.goal.requirement}`,
+              'Use the existing Goal findings as prior evidence. Explicitly close every remaining acceptance gap instead of treating completed upstream Work as proof that the whole Goal is achieved.',
+              'Return one auditable final delivery with evidence for every requirement. If a requirement cannot be satisfied, state the exact gap and the minimum next action; do not claim the Goal is complete.',
+            ].join('\n\n'),
+            kind: 'work',
+            priority: -1,
+            title: GOAL_ACCEPTANCE_WORK_TITLE,
+          });
+          if (!result) {
+            return {
+              goalId,
+              message: 'Could not create the Goal-level acceptance Work',
+              outcome: 'no_progress',
+            };
+          }
+          if (result.created) {
+            const problem = graph.nodes.find((node) => node.kind === 'problem');
+            if (problem) {
+              await this.graphModel.createEdge(goalId, problem.id, result.node.id, 'decomposes');
+            }
+          }
+          return {
+            goalId,
+            message: result.created
+              ? 'Created Goal-level acceptance Work for the remaining contract'
+              : 'Goal-level acceptance Work was created by another coordinator',
+            nodeId: result.node.id,
+            outcome: 'advanced',
+          };
+        }
+        if (graph.goal.requirement && goalAcceptanceWork?.status !== 'resolved') {
+          return {
+            goalId,
+            message: 'Goal-level acceptance did not pass',
+            nodeId: goalAcceptanceWork?.id,
+            outcome: 'no_progress',
+          };
+        }
         await this.goalModel.updateStatus(goalId, 'achieved');
-        return { goalId, message: 'All work nodes reached a terminal state', outcome: 'achieved' };
+        return { goalId, message: 'Goal-level acceptance passed', outcome: 'achieved' };
       }
       return {
         goalId,
@@ -358,6 +414,39 @@ export class GoalService {
       task.status === 'canceled' ||
       (task.status === 'paused' && task.error)
     ) {
+      if (task.status === 'paused' && task.error === 'Delivery did not pass verification.') {
+        const taskIds = graph.nodes.flatMap((node) => (node.taskId ? [node.taskId] : []));
+        const runs = await this.taskTopicModel.findWithHandoffByTaskIds(taskIds, 10_000);
+        const totalCost = runs.reduce((sum, run) => sum + Number(run.totalCost ?? 0), 0);
+        const recovery = await new WorkRecoveryCoordinator(
+          this.db,
+          this.userId,
+          this.workspaceId,
+        ).recover({ goal: graph.goal, spentCost: totalCost, task, taskCarried: false });
+        if (recovery === 'continued') {
+          await this.graphModel.updateNodeStatus(
+            goalId,
+            frontier.id,
+            'active',
+            'Automatically started the next Work attempt after verification feedback',
+          );
+          await this.goalModel.updateStatus(goalId, 'running');
+          return {
+            goalId,
+            message: `Automatically retried task ${task.identifier}`,
+            nodeId: frontier.id,
+            outcome: 'waiting_external',
+            taskId: task.id,
+          };
+        }
+        const exhaustedReason =
+          recovery === 'exhausted-cost'
+            ? 'Goal cost budget was exhausted'
+            : recovery === 'exhausted-rounds'
+              ? 'Work attempt budget was exhausted'
+              : 'Automatic recovery could not start the next attempt';
+        return this.openFailureDecision(graph, frontier.id, task.id, exhaustedReason);
+      }
       return this.openFailureDecision(
         graph,
         frontier.id,
@@ -404,6 +493,7 @@ export class GoalService {
     }
 
     const run = await new TaskRunnerService(this.db, this.userId, this.workspaceId).runTask({
+      maxSteps: resolveWorkMaxSteps(graph.goal),
       taskId: task.id,
       trigger: 'goal',
     });
@@ -460,8 +550,20 @@ export class GoalService {
     graph: GoalGraphSnapshot,
     title: string,
     description: string | null,
-  ) =>
-    [
+  ) => {
+    if (title === GOAL_ACCEPTANCE_WORK_TITLE) {
+      return [
+        `Terminal Goal acceptance requirement (authoritative): ${graph.goal.requirement ?? graph.goal.title}`,
+        description ? `Required delivery: ${description}` : undefined,
+        'PASS only when concrete evidence proves that every clause of the terminal Goal acceptance requirement is satisfied.',
+        'An accurate gap analysis, a report that the Goal is not accepted, a suggested next action, or partial progress is NOT a passing delivery. Reject it so automatic recovery can continue or open a Gate.',
+        'If any required count, field, evidence quality, or other explicit threshold is missing, the verdict MUST be failed even when the builder correctly identified and documented the gap.',
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+    }
+
+    return [
       `Verify only this Work: ${title}.`,
       description ? `Required Work outcome: ${description}` : undefined,
       graph.goal.requirement
@@ -471,6 +573,7 @@ export class GoalService {
     ]
       .filter(Boolean)
       .join('\n\n');
+  };
 
   private consumeCompletedWork = async (
     graph: GoalGraphSnapshot,
@@ -545,13 +648,23 @@ export class GoalService {
       });
       if (node) {
         await this.graphModel.createEdge(graph.goal.id, nodeId, node.id, 'leads_to');
+        const terminalAcceptance =
+          graph.nodes.find((candidate) => candidate.id === nodeId)?.title ===
+          GOAL_ACCEPTANCE_WORK_TITLE;
         await this.graphModel.createDecision(graph.goal.id, node.id, {
           authority: 'user',
-          options: [
-            { id: 'retry', label: 'Retry work' },
-            { id: 'retire', label: 'Retire work' },
-          ],
-          question: `${reason}. Retry or retire this work node?`,
+          options: terminalAcceptance
+            ? [
+                { id: 'retry', label: 'Retry goal acceptance' },
+                { id: 'fail', label: 'Fail goal' },
+              ]
+            : [
+                { id: 'retry', label: 'Retry work' },
+                { id: 'retire', label: 'Retire work' },
+              ],
+          question: terminalAcceptance
+            ? `${reason}. Retry Goal acceptance or fail this Goal?`
+            : `${reason}. Retry or retire this work node?`,
           recommendedOptionId: 'retry',
           requestedUserId: this.userId,
         });
