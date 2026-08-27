@@ -8,7 +8,12 @@ import type {
   ResolveHeterogeneousProviderBindingResult,
 } from './types';
 
-export const HETEROGENEOUS_PROVIDER_BINDING_AGENT_TYPES = ['claude-code', 'codex', 'pi'] as const;
+export const HETEROGENEOUS_PROVIDER_BINDING_AGENT_TYPES = [
+  'claude-code',
+  'codex',
+  'kimi-code',
+  'pi',
+] as const;
 
 const CAPABILITIES: Partial<
   Record<LocalHeterogeneousAgentType, HeterogeneousProviderBindingCapability>
@@ -20,6 +25,10 @@ const CAPABILITIES: Partial<
   'codex': {
     agentType: 'codex',
     protocols: ['openai-responses'],
+  },
+  'kimi-code': {
+    agentType: 'kimi-code',
+    protocols: ['anthropic-messages', 'openai-chat-completions'],
   },
   'pi': {
     agentType: 'pi',
@@ -183,6 +192,20 @@ export const resolveHeterogeneousProviderBinding = ({
     protocol,
   );
   if (endpointResult.error) return { error: endpointResult.error };
+  if (
+    capability.agentType === 'kimi-code' &&
+    !endpointResult.endpoint &&
+    !(
+      (protocol === 'anthropic-messages' && apiConfig.providerId === 'anthropic') ||
+      (protocol === 'openai-chat-completions' && apiConfig.providerId === 'openai')
+    )
+  ) {
+    // Kimi only knows the selected wire protocol, not LobeHub's provider id.
+    // Without an explicit endpoint, its SDK would silently use OpenAI or
+    // Anthropic instead of a third-party provider whose URL LobeHub normally
+    // supplies inside that provider's own model runtime.
+    return { error: { code: 'endpointMissing', providerId: apiConfig.providerId } };
+  }
 
   let modelMetadata: HeterogeneousProviderBindingResolution['modelMetadata'];
   if (enabledModels) {
