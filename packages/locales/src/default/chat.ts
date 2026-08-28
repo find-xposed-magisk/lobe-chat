@@ -2451,6 +2451,7 @@ export default {
   'workingPanel.localFile.preview.raw': 'Raw',
   'workingPanel.localFile.sandboxUnavailable':
     'This file is no longer available — its sandbox environment has been recycled',
+  'workingPanel.localFile.preview.openExternal': 'Open in browser',
   'workingPanel.localFile.preview.reload': 'Reload preview',
   'workingPanel.localFile.preview.render': 'Preview',
   'workingPanel.localFile.preview.source': 'Source',
