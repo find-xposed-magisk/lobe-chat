@@ -1,7 +1,7 @@
 'use client';
 
-import { ActionIcon, Flexbox } from '@lobehub/ui';
-import { confirmModal, toast } from '@lobehub/ui/base-ui';
+import { Flexbox } from '@lobehub/ui';
+import { ActionIcon, confirmModal, toast } from '@lobehub/ui/base-ui';
 import { cssVar } from 'antd-style';
 import { BookMinusIcon, FileBoxIcon, Trash2Icon } from 'lucide-react';
 import { memo } from 'react';
@@ -183,7 +183,7 @@ const Header = memo(() => {
         : t(`tab.${category as FilesTabs}` as any, { ns: 'file' })}
     </Flexbox>
   ) : (
-    <Flexbox style={{ marginLeft: 8 }}>
+    <Flexbox horizontal align={'center'} gap={4} style={{ marginLeft: 8 }}>
       <Breadcrumb category={category} knowledgeBaseId={libraryId} />
     </Flexbox>
   );

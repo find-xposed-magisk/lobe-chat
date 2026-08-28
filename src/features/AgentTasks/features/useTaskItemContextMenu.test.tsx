@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   refreshTaskList: vi.fn(),
   runTask: vi.fn(),
   transferItems: [
-    { key: 'transfer-task', label: 'Transfer to...' },
+    { key: 'transfer-task', label: 'Move to…' },
     { key: 'copy-task', label: 'Copy to...' },
   ],
   updateTask: vi.fn(),
@@ -137,6 +137,28 @@ describe('useTaskItemContextMenu', () => {
     });
 
     expect(mocks.copyToClipboard).toHaveBeenCalledWith('https://example.com/task/T-1');
+  });
+
+  it('runs a member-assigned task without replacing its assignee with the inbox agent', async () => {
+    const { result } = renderHook(() =>
+      useTaskItemContextMenu({
+        assigneeUserId: 'user-1',
+        identifier: 'T-1',
+        priority: 0,
+        status: 'backlog',
+      }),
+    );
+
+    const runNowItem = result.current.items.find(
+      (item) => item && typeof item === 'object' && 'key' in item && item.key === 'runNow',
+    );
+
+    await (runNowItem as { onClick: (info: unknown) => Promise<void> }).onClick({
+      domEvent: { stopPropagation: vi.fn() },
+    });
+
+    expect(mocks.updateTask).not.toHaveBeenCalled();
+    expect(mocks.runTask).toHaveBeenCalledWith('T-1');
   });
 
   it('routes the keyboard-shortcut submenu selection through @/libs/contextMenu', () => {

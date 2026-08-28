@@ -59,11 +59,18 @@ vi.mock('@lobehub/ui', () => ({
 }));
 
 vi.mock('@lobehub/ui/base-ui', () => ({
+  ActionIcon: ({ onClick, title }: { onClick?: () => void; title?: string }) => (
+    <button type="button" onClick={onClick}>
+      {title}
+    </button>
+  ),
   Button: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => (
     <button type="button" onClick={onClick}>
       {children}
     </button>
   ),
+  Tag: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  Text: ({ children }: { children: ReactNode }) => <span>{children}</span>,
   confirmModal: (opts: unknown) => mocks.confirmModal(opts),
 }));
 
@@ -76,6 +83,7 @@ vi.mock('antd', () => ({
 }));
 
 vi.mock('antd-style', () => ({
+  cx: (...classNames: unknown[]) => classNames.filter(Boolean).join(' '),
   createStaticStyles: () => ({
     body: 'body',
     drawerBody: 'drawerBody',
@@ -99,7 +107,9 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@/components/NeuralNetworkLoading', () => ({ default: () => <div>loading</div> }));
 
-vi.mock('@/features/Verify', () => ({
+vi.mock('@/features/Acceptance', async () => ({
+  // The real row/list primitives: the assertions cover the shared grammar.
+  ...(await vi.importActual('@/features/Acceptance/CriterionList')),
   CheckRow: ({ check }: { check: { title: string } }) => (
     <div data-testid="acceptance-check-detail">detail: {check.title}</div>
   ),

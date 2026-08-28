@@ -15,6 +15,7 @@ const leftActions: ActionKeys[] = [
   'memory',
   'fileUpload',
   'tools',
+  'voiceDictation',
   '---',
   ['typo', 'params', 'clear'],
 ];

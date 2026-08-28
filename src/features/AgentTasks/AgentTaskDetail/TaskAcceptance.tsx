@@ -1,7 +1,7 @@
 'use client';
 
-import { ActionIcon, Block, Flexbox, Icon, Text } from '@lobehub/ui';
-import { Button, confirmModal } from '@lobehub/ui/base-ui';
+import { Flexbox, Icon } from '@lobehub/ui';
+import { ActionIcon, Button, confirmModal, Text } from '@lobehub/ui/base-ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import {
   ChevronRight,
@@ -18,11 +18,13 @@ import NeuralNetworkLoading from '@/components/NeuralNetworkLoading';
 import {
   type AcceptanceCheck,
   checkHeadMeta,
+  CriterionList,
+  CriterionRow,
   groupChecks,
   shouldGroupChecks,
   useAcceptanceBundle,
   useAcceptanceBySubject,
-} from '@/features/Verify';
+} from '@/features/Acceptance';
 import { usePermission } from '@/hooks/usePermission';
 import { verifyService } from '@/services/verify';
 import { useChatStore } from '@/store/chat';
@@ -54,28 +56,6 @@ const styles = createStaticStyles(({ css }) => ({
     cursor: pointer;
     padding-block: 9px;
     padding-inline: 12px;
-  `,
-  list: css`
-    overflow: hidden;
-    padding: 0;
-  `,
-  row: css`
-    cursor: pointer;
-    padding-block: 10px;
-    padding-inline: 12px;
-
-    & + & {
-      border-block-start: 1px solid ${cssVar.colorBorderSecondary};
-    }
-
-    &:hover {
-      background: ${cssVar.colorFillQuaternary};
-    }
-  `,
-  seq: css`
-    flex: none;
-    font-size: 12px;
-    color: ${cssVar.colorTextTertiary};
   `,
 }));
 
@@ -109,25 +89,13 @@ const CompactCheckRow = memo<CompactCheckRowProps>(({ check, onOpen }) => {
   const meta = checkHeadMeta(check);
 
   return (
-    <Flexbox
-      horizontal
-      align={'center'}
-      className={styles.row}
+    <CriterionRow
       data-task-acceptance-check={check.id}
-      gap={10}
-      role={'button'}
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') onOpen();
-      }}
-    >
-      <Icon color={meta.color} icon={meta.icon} size={16} style={{ flex: 'none' }} />
-      <span className={styles.seq}>C{check.seq}</span>
-      <Text ellipsis style={{ flex: 1, minWidth: 0 }}>
-        {check.title}
-      </Text>
-    </Flexbox>
+      icon={<Icon color={meta.color} icon={meta.icon} size={16} style={{ flex: 'none' }} />}
+      seq={check.seq}
+      title={check.title}
+      onOpen={onOpen}
+    />
   );
 });
 
@@ -306,7 +274,7 @@ const TaskAcceptance = memo(() => {
                     />
                   )}
                 </Flexbox>
-                <Block className={styles.list} variant={'outlined'}>
+                <CriterionList>
                   {grouped
                     ? groups.map((group) => {
                         const collapsed = collapsedGroups.has(group.key);
@@ -360,7 +328,7 @@ const TaskAcceptance = memo(() => {
                           onOpen={() => openCheck(bundle.acceptance.id, check.id)}
                         />
                       ))}
-                </Block>
+                </CriterionList>
               </Flexbox>
             </>
           )}

@@ -1,4 +1,5 @@
-import { Avatar, Block, Icon, Text } from '@lobehub/ui';
+import { Block, Icon } from '@lobehub/ui';
+import { Avatar, Text } from '@lobehub/ui/base-ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { CheckIcon } from 'lucide-react';
 import { memo } from 'react';
@@ -51,6 +52,9 @@ const SwitcherRow = memo<SwitcherRowProps>(({ active, item, onSelect, privateLab
       weight={active ? 500 : undefined}
     >
       {item.title}
+      {item.subtitle && (
+        <span style={{ fontSize: 12, marginInlineStart: 6, opacity: 0.6 }}>{item.subtitle}</span>
+      )}
     </Text>
     {item.private && privateLabel && (
       <Text color={cssVar.colorTextTertiary} fontSize={12}>

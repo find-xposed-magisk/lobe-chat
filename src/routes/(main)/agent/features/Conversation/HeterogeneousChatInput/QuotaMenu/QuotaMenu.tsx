@@ -1,7 +1,8 @@
 'use client';
 
 import type { HeteroQuotaWindow } from '@lobechat/electron-client-ipc';
-import { ActionIcon, Flexbox, Icon, Popover, Skeleton, Text, Tooltip } from '@lobehub/ui';
+import { Flexbox, Icon, Popover, Skeleton, Tooltip } from '@lobehub/ui';
+import { ActionIcon, Text } from '@lobehub/ui/base-ui';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
 import { ChevronDownIcon, GaugeIcon, RefreshCwIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -106,7 +107,7 @@ const styles = createStaticStyles(({ css }) => ({
 
     &:hover {
       color: ${cssVar.colorTextSecondary};
-      background: ${cssVar.colorFillSecondary};
+      background: ${cssVar.colorFillTertiary};
     }
 
     &[data-quota-level='low'] {

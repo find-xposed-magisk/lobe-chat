@@ -45,7 +45,7 @@ const MainChatInput = memo(() => {
 
   // Reasoning effort lives inside the "+" menu (Plus → 推理强度) rather than as
   // a standalone action — per the effort parameter refactoring.
-  const leftActions: ActionKeys[] = useMemo(() => ['model', 'plus'], []);
+  const leftActions: ActionKeys[] = useMemo(() => ['model', 'plus', 'voiceDictation'], []);
 
   return (
     <>

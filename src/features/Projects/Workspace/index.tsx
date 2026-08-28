@@ -1,7 +1,7 @@
 'use client';
 
-import { Center, Flexbox, Tag, Text, TextArea } from '@lobehub/ui';
-import { Button } from '@lobehub/ui/base-ui';
+import { Center, Flexbox, TextArea } from '@lobehub/ui';
+import { Button, Tag, Text } from '@lobehub/ui/base-ui';
 import { createStaticStyles, cssVar } from 'antd-style';
 import { SendHorizontalIcon, SparklesIcon } from 'lucide-react';
 import { memo, useState } from 'react';
@@ -107,7 +107,7 @@ const ProjectWorkspace = memo(() => {
   const startConversation = () => {
     const content = message.trim();
     if (!content || !projectId) return;
-    navigate(getProjectConversationStartPath(projectId, content));
+    navigate(getProjectConversationStartPath(detail.project.slug ?? projectId, content));
   };
   const prompts = [
     t('overview.prompts.summarizeProgress'),
@@ -174,7 +174,7 @@ const ProjectWorkspace = memo(() => {
               </Flexbox>
             </Flexbox>
           </Flexbox>
-          <ProjectDashboard detail={detail} projectId={projectId!} />
+          <ProjectDashboard detail={detail} projectId={detail.project.id} />
         </Flexbox>
       </div>
     </Flexbox>

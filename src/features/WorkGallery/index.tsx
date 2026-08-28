@@ -1,8 +1,8 @@
 'use client';
 
 import type { WorkSummaryItem } from '@lobechat/types';
-import { Avatar, Center, Empty, Flexbox, Skeleton } from '@lobehub/ui';
-import { Button } from '@lobehub/ui/base-ui';
+import { Center, Empty, Flexbox, Skeleton } from '@lobehub/ui';
+import { Avatar, Button } from '@lobehub/ui/base-ui';
 import { createStaticStyles, cssVar, cx } from 'antd-style';
 import { PackageOpenIcon, TriangleAlertIcon } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
@@ -37,6 +37,10 @@ const styles = createStaticStyles(({ css }) => ({
     grid-template-columns: repeat(3, minmax(280px, 1fr));
     gap: 16px;
     width: 100%;
+
+    @media (width >= 1600px) {
+      grid-template-columns: repeat(4, minmax(280px, 1fr));
+    }
 
     @media (width <= 920px) {
       grid-template-columns: repeat(2, minmax(280px, 1fr));
