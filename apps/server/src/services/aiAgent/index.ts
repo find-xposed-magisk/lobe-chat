@@ -132,6 +132,7 @@ import { WorkspaceUserSettingsModel } from '@/database/models/workspaceUserSetti
 import { toolsEnv } from '@/envs/tools';
 import {
   type ExecutionPlan,
+  executionPlanToManifestExecutionEnv,
   executionTargetToRuntimeMode,
   isDeviceCapablePlan,
   isDeviceLockedPlan,
@@ -3962,6 +3963,7 @@ export class AiAgentService {
         canUseDevice,
         chatConfig: agentConfig.chatConfig ?? undefined,
         clientExecutionAvailable: gatewayConfigured,
+        localDeviceId,
         onlineDeviceIds: onlineDevices.map((device) => device.deviceId),
         requestedDeviceId,
         trigger: requestTriggerMetadata?.trigger,
@@ -4116,10 +4118,11 @@ export class AiAgentService {
         // lobe-agent drops `callSubAgent` so the model can't recurse into nested
         // sub-agents (which the runtime rejects, looping until the inactivity
         // watchdog kills the op). Mirrors the frontend `createAgentToolsEngine`.
-        // `executionEnv` mirrors the resolved plan so exec-capable tools
-        // (lobe-skills) can state where their commands actually run — most
-        // importantly the `device-unrouted` degradation, where the user picked
-        // a local device that is offline and exec silently lands in the sandbox.
+        // `executionEnv` mirrors the resolved plan, while preserving the local
+        // target for a routed desktop because its readFile implementation can
+        // return images. It also keeps the `device-unrouted` degradation, where
+        // the user picked a local device that is offline and exec silently lands
+        // in the sandbox.
         // For bot conversations we also pass the IM platform so `lobe-message`
         // can drop APIs the platform can't fulfil (e.g. WeChat has no
         // `readMessages`).
@@ -4131,7 +4134,7 @@ export class AiAgentService {
                 ?.unsupportedMessageApis,
             },
           }),
-          executionEnv: executionPlan.kind,
+          executionEnv: executionPlanToManifestExecutionEnv(executionPlan, localDeviceId),
           executionEnvUnroutedReason:
             executionPlan.kind === 'device-unrouted' ? executionPlan.reason : undefined,
           isSubAgent: appContext?.isSubAgent,
