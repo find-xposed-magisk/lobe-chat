@@ -4204,7 +4204,7 @@ export class AiAgentService {
 
       // Also include discoverable builtin tools that are not yet in the map,
       // so the activator can find their manifests when dynamically enabling them
-      // (e.g., lobe-creds, lobe-cron). Exclude discoverable:false tools to prevent
+      // (e.g., lobe-creds, lobe-task). Exclude discoverable:false tools to prevent
       // internal infrastructure tools from being surfaced to the activator.
       const allowedBuiltinTools = buildAllowedBuiltinTools({
         canUseDevice,
