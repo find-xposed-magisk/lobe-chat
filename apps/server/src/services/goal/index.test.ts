@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { GOAL_COORDINATOR_ACTOR_ID } from '@lobechat/const/goal';
 import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -226,6 +227,67 @@ describe('GoalService', () => {
     expect(
       await GoalModel.listStalled(serverDB, { staleBefore: new Date(Date.now() - 60_000) }),
     ).not.toContainEqual(expect.objectContaining({ id: graph.goal.id }));
+  });
+
+  it('files a goal the agent created under that agent, not its owner', async () => {
+    // `/goal` is an agent making the call. `agentId` alone cannot say so — the
+    // creation modal sets it too, and there the author is the person.
+    await serverDB
+      .insert(agents)
+      .values({ id: 'agt_goal_author', slug: 'agt-goal-author', userId });
+    const service = new GoalService(serverDB, userId);
+
+    const graph = await service.create({
+      agentId: 'agt_goal_author',
+      createdByAgentId: 'agt_goal_author',
+      title: 'Agent-authored goal',
+      work: ['Do the thing'],
+    });
+
+    const seeded = graph.events.filter((event) => ['created', 'linked'].includes(event.eventType));
+    expect(seeded.length).toBeGreaterThan(0);
+    expect(seeded.every((event) => event.actorType === 'agent')).toBe(true);
+    expect(seeded.every((event) => event.actorId === 'agt_goal_author')).toBe(true);
+    expect(graph.nodes.every((node) => node.createdByAgentId === 'agt_goal_author')).toBe(true);
+  });
+
+  it('still files a goal the user created under the user, even on an agent page', async () => {
+    // The modal passes `agentId` for assignment; the author is the person.
+    await serverDB.insert(agents).values({ id: 'agt_assignee', slug: 'agt-assignee', userId });
+    const service = new GoalService(serverDB, userId);
+
+    const graph = await service.create({
+      agentId: 'agt_assignee',
+      title: 'User-authored goal',
+      work: ['Do the thing'],
+    });
+
+    const seeded = graph.events.filter((event) => ['created', 'linked'].includes(event.eventType));
+    expect(seeded.every((event) => event.actorType === 'user')).toBe(true);
+    expect(seeded.every((event) => event.actorId === userId)).toBe(true);
+  });
+
+  it('separates what the coordinator decided from what the user asked for', async () => {
+    // The audit trail recorded every transition as the goal's owner, so "what did
+    // the system decide on its own" could not be answered from product data.
+    const service = new GoalService(serverDB, userId);
+    const graph = await service.create({ title: 'Attributed goal', work: ['Do the thing'] });
+
+    // Seeding is the user's ask; claiming the Work and binding its task is not.
+    await service.tick(graph.goal.id);
+
+    const { events, nodes } = await service.graph(graph.goal.id);
+    const work = nodes.find((node) => node.kind === 'work')!;
+    const actorsFor = (eventType: string, entityId: string) =>
+      events
+        .filter((event) => event.eventType === eventType && event.entityId === entityId)
+        .map((event) => ({ actorId: event.actorId, actorType: event.actorType }));
+
+    expect(actorsFor('created', work.id)).toEqual([{ actorId: userId, actorType: 'user' }]);
+    expect(actorsFor('activated', work.id)).toEqual([
+      { actorId: GOAL_COORDINATOR_ACTOR_ID, actorType: 'system' },
+    ]);
+    expect(events.some((event) => event.actorType === 'system')).toBe(true);
   });
 
   it('keeps the overall requirement as background while making the current work authoritative', async () => {
