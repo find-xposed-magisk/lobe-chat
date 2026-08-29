@@ -981,6 +981,72 @@ export class AcceptanceService {
     };
   };
 
+  /** Resolve list subjects in one query per entity type, regardless of history size. */
+  private resolveSubjects = async (
+    acceptances: AcceptanceItem[],
+  ): Promise<Map<string, AcceptanceSubjectSummary>> => {
+    const result = new Map<string, AcceptanceSubjectSummary>();
+    const idsByType = new Map<AcceptanceSubjectType, string[]>();
+    for (const acceptance of acceptances) {
+      const type = acceptance.subjectType as AcceptanceSubjectType;
+      const ids = idsByType.get(type) ?? [];
+      ids.push(acceptance.subjectId);
+      idsByType.set(type, ids);
+    }
+
+    try {
+      const [tasks, topics, documents] = await Promise.all([
+        new TaskModel(this.db, this.userId, this.workspaceId).resolveMany(
+          idsByType.get('task') ?? [],
+        ),
+        new TopicModel(this.db, this.userId, this.workspaceId).findByIds(
+          idsByType.get('topic') ?? [],
+        ),
+        new DocumentModel(this.db, this.userId, this.workspaceId).findByIds(
+          idsByType.get('document') ?? [],
+        ),
+      ]);
+      const taskTitles = new Map<string, string | null>();
+      for (const task of tasks) {
+        const title = task.name ?? task.identifier;
+        taskTitles.set(task.id, title);
+        taskTitles.set(task.identifier, title);
+      }
+      const topicTitles = new Map(topics.map((topic) => [topic.id, topic.title ?? null]));
+      const documentTitles = new Map(
+        documents.map((document) => [document.id, document.title ?? null]),
+      );
+
+      for (const acceptance of acceptances) {
+        const type = acceptance.subjectType as AcceptanceSubjectType;
+        const override = acceptance.metadata?.title;
+        const overrideTitle =
+          typeof override === 'string' && override.trim() ? override.trim() : null;
+        const title =
+          overrideTitle ??
+          (type === 'task'
+            ? taskTitles.get(acceptance.subjectId)
+            : type === 'topic'
+              ? topicTitles.get(acceptance.subjectId)
+              : type === 'document'
+                ? documentTitles.get(acceptance.subjectId)
+                : null) ??
+          null;
+        result.set(acceptance.id, { id: acceptance.subjectId, title, type });
+      }
+    } catch (error) {
+      log('resolveSubjects failed (non-fatal): %O', error);
+      for (const acceptance of acceptances) {
+        result.set(acceptance.id, {
+          id: acceptance.subjectId,
+          title: typeof acceptance.metadata?.title === 'string' ? acceptance.metadata.title : null,
+          type: acceptance.subjectType as AcceptanceSubjectType,
+        });
+      }
+    }
+    return result;
+  };
+
   /** Resolve the projects referenced directly by acceptances in one bounded read. */
   private resolveProjects = async (
     acceptances: AcceptanceItem[],
@@ -1042,24 +1108,58 @@ export class AcceptanceService {
 
   /**
    * Recent aggregates with their subject headers — the list-panel payload.
-   * Titles resolve in parallel per row (bounded by the list limit); a deleted
+   * Titles resolve in batches by subject type; a deleted
    * subject degrades to a null title instead of dropping the row. Each row also
    * carries the latest round's check count for the panel's at-a-glance line.
    */
-  listWithSubjects = async (limit = 50) => {
-    const rows = await this.acceptanceModel.query(limit);
+  listWithSubjects = async (
+    options: {
+      filter?: 'active' | 'all' | 'completed';
+      limit?: number;
+      q?: string;
+    } = {},
+  ) => {
+    const { filter = 'all', limit = 50, q } = options;
+    const statuses: AcceptanceStatus[] | undefined =
+      filter === 'active'
+        ? ['pending', 'planned', 'verifying', 'repairing', 'delivered', 'rejected', 'errored']
+        : filter === 'completed'
+          ? ['accepted', 'closed']
+          : undefined;
+    const normalizedQuery = q?.trim().toLocaleLowerCase();
+
+    // A title search must span the complete owned set. Subject titles live in
+    // their source entities (task/topic/document), so resolve them before
+    // applying the result cap instead of searching only the latest page.
+    const candidates = await this.acceptanceModel.query({
+      limit: normalizedQuery ? undefined : limit,
+      statuses,
+      unbounded: Boolean(normalizedQuery),
+    });
+    const subjects = await this.resolveSubjects(candidates);
+    const withSubjects = candidates.map((row) => ({
+      row,
+      subject: subjects.get(row.id)!,
+    }));
+    const matched = normalizedQuery
+      ? withSubjects
+          .filter(({ row, subject }) =>
+            (subject.title || row.subjectId).toLocaleLowerCase().includes(normalizedQuery),
+          )
+          .slice(0, limit)
+      : withSubjects;
+    const rows = matched.map(({ row }) => row);
     const [checkCounts, projects] = await Promise.all([
       this.latestCheckCounts(rows.map((row) => row.id)),
       this.resolveProjects(rows),
     ]);
-    return Promise.all(
-      rows.map(async (row) => ({
-        ...row,
-        checkCount: checkCounts.get(row.id) ?? null,
-        project: projects.get(row.id) ?? null,
-        subject: await this.resolveSubject(row),
-      })),
-    );
+
+    return matched.map(({ row, subject }) => ({
+      ...row,
+      checkCount: checkCounts.get(row.id) ?? null,
+      project: projects.get(row.id) ?? null,
+      subject,
+    }));
   };
 
   /**
