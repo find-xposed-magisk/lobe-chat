@@ -51,10 +51,12 @@ const styles = createStaticStyles(({ css, cssVar }) => ({
     align-items: center;
 
     max-inline-size: calc(100vw - 32px);
-    padding-block: 10px;
-    padding-inline: 16px 10px;
-    border-radius: ${cssVar.borderRadius};
+    padding-block: 8px;
+    padding-inline: 12px 8px;
+    border-radius: ${cssVar.borderRadiusLG};
 
+    font-size: 14px;
+    line-height: 1.25;
     color: ${cssVar.colorText};
 
     background: ${cssVar.colorBgElevated};
@@ -174,7 +176,7 @@ export const UpdateNotification: React.FC = () => {
         </BaseButton>
         <BaseButton
           size={'small'}
-          type={'text'}
+          type={'primary'}
           onClick={() => {
             rendererOtaService.applyNow().catch(() => {});
           }}
@@ -227,7 +229,7 @@ export const UpdateNotification: React.FC = () => {
         <BaseButton
           loading={isInstalling}
           size={'small'}
-          type={'text'}
+          type={'primary'}
           onClick={() => {
             setIsInstalling(true);
             autoUpdateService.installNow();
