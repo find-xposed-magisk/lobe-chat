@@ -14,6 +14,7 @@ import { mutate as globalMutate } from '@/libs/swr';
 import { isAcceptanceListKey } from '@/libs/swr/keys';
 import { verifyService } from '@/services/verify';
 
+import AcceptanceInteractionCost from './AcceptanceInteractionCost';
 import { useAcceptanceScope } from './AcceptanceScope';
 import CheckList, {
   type CheckFilter,
@@ -302,6 +303,9 @@ const AcceptanceCheckInventory = ({
           })
         }
       />
+      {/* After the list, never inside it: the checks are the decision surface,
+          and a row sitting among them reads as one more thing to review. */}
+      <AcceptanceInteractionCost data={data} />
     </>
   );
 };
