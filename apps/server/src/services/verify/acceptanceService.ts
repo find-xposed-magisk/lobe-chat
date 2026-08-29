@@ -531,6 +531,88 @@ export class AcceptanceService {
     return this.attachResolvedRun(runId, acceptance);
   };
 
+  /**
+   * An accepted check is settled and its verdict is sticky: a later result on
+   * the same id inherits the tick, so the round publishes green and the
+   * reviewer is never told there is anything new to look at. That is only safe
+   * while nothing writes to a settled check, which is what this enforces —
+   * refusing the whole round rather than letting the write through, because a
+   * partially attached round is harder to reason about than a rejected one.
+   *
+   * The escape hatch is a new check id: a criterion the reviewer has not ruled
+   * on gets its own row and shows up unreviewed, which is what "there is more
+   * to look at here" should look like.
+   */
+  private assertPlanLeavesAcceptedChecksAlone = async (
+    run: VerifyRunItem,
+    acceptanceId: string,
+  ): Promise<void> => {
+    // Every identity by which an incoming item could come to rest on an
+    // existing row. The union keys rows by `sourceCriterionId ?? id`, and a
+    // `supersedes` declaration folds the named row into this one — so comparing
+    // physical ids alone lets both routes write into a settled row unblocked.
+    const candidates = new Map<string, string>();
+    for (const item of run.plan ?? []) {
+      const logicalId = item.sourceCriterionId ?? item.id;
+      if (logicalId) candidates.set(logicalId, item.id);
+      if (item.id) candidates.set(item.id, item.id);
+      for (const superseded of item.supersedes ?? []) {
+        if (superseded) candidates.set(superseded, item.id);
+      }
+    }
+    if (candidates.size === 0) return;
+
+    const runs = await this.runModel.listByAcceptance(acceptanceId);
+    if (runs.length === 0) return;
+
+    const results = await this.resultModel.listByRuns(runs.map((item) => item.id));
+    const resultsById = new Map(results.map((result) => [result.id, result]));
+    const resultsByRun = new Map<string, VerifyCheckResultItem[]>();
+    for (const result of results) {
+      if (!result.verifyRunId) continue;
+      const bucket = resultsByRun.get(result.verifyRunId) ?? [];
+      bucket.push(result);
+      resultsByRun.set(result.verifyRunId, bucket);
+    }
+
+    const currentRoundIndex = runs.at(-1)?.roundIndex ?? 0;
+    const checks = buildAcceptanceCheckUnion(
+      runs.map((item) => ({ results: resultsByRun.get(item.id) ?? [], run: item })),
+    );
+
+    // Read the standing verdict exactly the way the page renders it, so the
+    // rule cannot diverge from the tick the reviewer actually sees.
+    const settled = checks.filter((check) => {
+      const { userReview } = buildCheckReviewOverlay(check, resultsById, currentRoundIndex);
+      return userReview?.action === 'accept' && !userReview.stale;
+    });
+
+    // A superseded generation's id is folded into its successor's row, so match
+    // on both — re-running `old-id` after `new-id supersedes: [old-id]` was
+    // accepted is the same write to the same settled row.
+    const blocked = new Set<string>();
+    for (const check of settled) {
+      blocked.add(check.id);
+      for (const superseded of check.supersededIds ?? []) blocked.add(superseded);
+    }
+
+    // Report the plan item the author has to change, not the internal identity
+    // it collided through — those can differ, and only the former is editable.
+    const offenders = [
+      ...new Set(
+        [...candidates]
+          .filter(([identity]) => blocked.has(identity))
+          .map(([, planItemId]) => planItemId),
+      ),
+    ];
+    if (offenders.length === 0) return;
+
+    throw new Error(
+      `Already accepted, so ${offenders.length === 1 ? 'this check' : 'these checks'} cannot take another result: ` +
+        `${offenders.join(', ')}. An accepted check is settled — publish new work under a new check id instead.`,
+    );
+  };
+
   private attachResolvedRun = async (
     runId: string,
     acceptance: AcceptanceItem,
@@ -550,6 +632,8 @@ export class AcceptanceService {
         `This acceptance has already been ${acceptance.status} — reopen it before attaching another round`,
       );
     }
+
+    await this.assertPlanLeavesAcceptedChecksAlone(existing, acceptanceId);
 
     // Rounds inherit the aggregate's visibility so a private acceptance's new
     // round never leaks through its own report URL.
