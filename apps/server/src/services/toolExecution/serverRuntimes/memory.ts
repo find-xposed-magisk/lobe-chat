@@ -51,6 +51,7 @@ import {
   resolveToolOutcomeScope,
 } from '@/server/services/agentSignal/procedure';
 import { redisPolicyStateStore } from '@/server/services/agentSignal/store/adapters/redis/policyStateStore';
+import { createFtsSearchRepo } from '@/server/services/ftsSearch';
 import type { UserMemoryEmbeddingRuntime } from '@/server/services/memory/userMemory/embedding';
 import { embedUserMemoryTexts } from '@/server/services/memory/userMemory/embedding';
 import { normalizeSearchMemoryParams } from '@/server/services/memory/userMemory/searchParams';
@@ -877,7 +878,11 @@ export const memoryRuntime: ServerRuntimeRegistration = {
       // fallback to medium
     }
 
-    const memoryModel = new UserMemoryModel(context.serverDB, context.userId);
+    const ftsSearchRepo = await createFtsSearchRepo({
+      db: context.serverDB,
+      userId: context.userId,
+    });
+    const memoryModel = new UserMemoryModel(context.serverDB, context.userId, ftsSearchRepo);
 
     const service = new MemoryServerRuntimeService({
       agentId: context.agentId,

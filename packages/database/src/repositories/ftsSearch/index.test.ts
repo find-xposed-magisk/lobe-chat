@@ -2,7 +2,7 @@
 import { eq } from 'drizzle-orm';
 import { drizzle as nodeDrizzle } from 'drizzle-orm/node-postgres';
 import { Pool as NodePool } from 'pg';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getTestDB } from '../../core/getTestDB';
 import * as schema from '../../schemas';
@@ -21,13 +21,13 @@ import type { NewTopic } from '../../schemas/topic';
 import { topics } from '../../schemas/topic';
 import { users } from '../../schemas/user';
 import type { LobeChatDatabase } from '../../type';
-import type { SearchResult } from './index';
-import { SearchRepo } from './index';
+import type { FtsSearchResult } from './index';
+import { FtsSearchCandidateError, FtsSearchRepo } from './index';
 
 const userId = 'search-test-user';
 const otherUserId = 'other-search-user';
 
-let searchRepo: SearchRepo;
+let ftsSearchRepo: FtsSearchRepo;
 
 const serverDB: LobeChatDatabase = await getTestDB();
 
@@ -39,7 +39,74 @@ beforeEach(async () => {
   await serverDB.insert(users).values([{ id: userId }, { id: otherUserId }]);
 
   // Initialize repo
-  searchRepo = new SearchRepo(serverDB, userId);
+  ftsSearchRepo = new FtsSearchRepo(serverDB, userId);
+});
+
+describe('FtsSearchRepo candidate search', () => {
+  it('forwards candidate-only requests through the selected backend without product hydration', async () => {
+    const backendFtsSearch = vi.fn().mockResolvedValue({
+      candidates: [{ id: 'memory-context-1', score: 8 }],
+      items: [],
+      total: 1,
+    });
+    const repo = new FtsSearchRepo(serverDB, userId, undefined, undefined, {
+      backend: { key: 'candidate', search: backendFtsSearch },
+      ftsSearchCandidateEnabled: true,
+    });
+
+    await expect(
+      repo.ftsSearchCandidates({
+        entity: 'memoryContexts',
+        filters: {
+          memoryCategories: ['project'],
+          memoryTags: ['typescript'],
+          memoryTypes: ['workflow'],
+        },
+        pagination: { limit: 12 },
+        query: {
+          fields: ['parent_text', 'title', 'description', 'current_status'],
+          text: 'search phrase',
+        },
+      }),
+    ).resolves.toEqual({ candidates: [{ id: 'memory-context-1', score: 8 }], total: 1 });
+    expect(backendFtsSearch).toHaveBeenCalledWith({
+      entity: 'memoryContexts',
+      filters: {
+        memoryCategories: ['project'],
+        memoryTags: ['typescript'],
+        memoryTypes: ['workflow'],
+      },
+      mode: 'candidates',
+      pagination: { limit: 12 },
+      query: {
+        fields: ['parent_text', 'title', 'description', 'current_status'],
+        text: 'search phrase',
+      },
+      scope: { callerAgentVisibility: undefined, userId, workspaceId: undefined },
+    });
+  });
+
+  it('marks provider failures so API boundaries cannot mistake them for legacy fallbacks', async () => {
+    const providerError = new Error('Elasticsearch unavailable');
+    const repo = new FtsSearchRepo(serverDB, userId, undefined, undefined, {
+      backend: { key: 'candidate', search: vi.fn().mockRejectedValue(providerError) },
+      ftsSearchCandidateEnabled: true,
+    });
+
+    await expect(
+      repo.ftsSearchCandidates({
+        entity: 'memoryContexts',
+        filters: {},
+        pagination: { limit: 12 },
+        query: { text: 'search phrase' },
+      }),
+    ).rejects.toEqual(
+      expect.objectContaining({
+        cause: providerError,
+        name: FtsSearchCandidateError.name,
+      }),
+    );
+  });
 });
 
 // BM25 search requires pg_search extension (ParadeDB), not available in PGlite
@@ -73,15 +140,15 @@ const SCAN_ALIASES = [
   'topic_hits',
 ];
 
-describe.skipIf(!isServerDB)('SearchRepo', () => {
+describe.skipIf(!isServerDB)('FtsSearchRepo', () => {
   describe('search - empty query', () => {
     it('should return empty array for empty query', async () => {
-      const results = await searchRepo.search({ query: '' });
+      const results = await ftsSearchRepo.search({ query: '' });
       expect(results).toEqual([]);
     });
 
     it('should return empty array for whitespace query', async () => {
-      const results = await searchRepo.search({ query: '   ' });
+      const results = await ftsSearchRepo.search({ query: '   ' });
       expect(results).toEqual([]);
     });
   });
@@ -143,7 +210,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should find agents by title', async () => {
-      const results = await searchRepo.search({ query: 'React Helper' });
+      const results = await ftsSearchRepo.search({ query: 'React Helper' });
 
       const agentResults = results.filter((r) => r.type === 'agent');
       expect(agentResults).toHaveLength(1);
@@ -151,7 +218,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should find topics by title', async () => {
-      const results = await searchRepo.search({ query: 'React Hooks' });
+      const results = await ftsSearchRepo.search({ query: 'React Hooks' });
 
       const topicResults = results.filter((r) => r.type === 'topic');
       expect(topicResults).toHaveLength(1);
@@ -161,7 +228,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     // Note: ICU tokenizer treats "react-component.jsx" as a single token,
     // so we search by prefix "react" which matches via BM25
     it('should find files by name', async () => {
-      const results = await searchRepo.search({ query: 'react' });
+      const results = await ftsSearchRepo.search({ query: 'react' });
 
       const fileResults = results.filter((r) => r.type === 'file');
       expect(fileResults).toHaveLength(1);
@@ -169,7 +236,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should find results across all types', async () => {
-      const results = await searchRepo.search({ query: 'react' });
+      const results = await ftsSearchRepo.search({ query: 'react' });
 
       // Should find: 1 agent, 1 topic, 1 file
       expect(results.length).toBeGreaterThanOrEqual(3);
@@ -181,7 +248,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should search in agent description', async () => {
-      const results = await searchRepo.search({ query: 'coding assistant' });
+      const results = await ftsSearchRepo.search({ query: 'coding assistant' });
 
       const agentResults = results.filter((r) => r.type === 'agent');
       expect(agentResults.length).toBeGreaterThanOrEqual(1);
@@ -189,7 +256,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should search in topic content', async () => {
-      const results = await searchRepo.search({ query: 'async programming' });
+      const results = await ftsSearchRepo.search({ query: 'async programming' });
 
       const topicResults = results.filter((r) => r.type === 'topic');
       expect(topicResults.length).toBeGreaterThanOrEqual(1);
@@ -197,7 +264,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should search in agent tags', async () => {
-      const results = await searchRepo.search({ query: 'frontend' });
+      const results = await ftsSearchRepo.search({ query: 'frontend' });
 
       const agentResults = results.filter((r) => r.type === 'agent');
       expect(agentResults.length).toBeGreaterThanOrEqual(1);
@@ -228,7 +295,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should assign relevance values in valid range', async () => {
-      const results = await searchRepo.search({ query: 'test' });
+      const results = await ftsSearchRepo.search({ query: 'test' });
 
       const agentResults = results.filter((r) => r.type === 'agent');
       expect(agentResults.length).toBe(3);
@@ -241,7 +308,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should rank results by BM25 relevance (lower = better)', async () => {
-      const results = await searchRepo.search({ query: 'test' });
+      const results = await ftsSearchRepo.search({ query: 'test' });
 
       const agentResults = results.filter((r) => r.type === 'agent');
       expect(agentResults.length).toBe(3);
@@ -300,7 +367,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should only return current user results', async () => {
-      const results = await searchRepo.search({ query: 'agent' });
+      const results = await ftsSearchRepo.search({ query: 'agent' });
 
       expect(results.length).toBeGreaterThan(0);
 
@@ -311,21 +378,21 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should not return other user agents', async () => {
-      const results = await searchRepo.search({ query: 'agent' });
+      const results = await ftsSearchRepo.search({ query: 'agent' });
 
       const otherAgent = results.find((r) => r.title === 'Other Agent');
       expect(otherAgent).toBeUndefined();
     });
 
     it('should not return other user topics', async () => {
-      const results = await searchRepo.search({ query: 'topic' });
+      const results = await ftsSearchRepo.search({ query: 'topic' });
 
       const otherTopic = results.find((r) => r.title === 'Other Topic');
       expect(otherTopic).toBeUndefined();
     });
 
     it('should not return other user files', async () => {
-      const results = await searchRepo.search({ query: 'file' });
+      const results = await ftsSearchRepo.search({ query: 'file' });
 
       const otherFile = results.find((r) => r.title === 'other-file.txt');
       expect(otherFile).toBeUndefined();
@@ -355,7 +422,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should filter by agent type', async () => {
-      const results = await searchRepo.search({ query: 'test', type: 'agent' });
+      const results = await ftsSearchRepo.search({ query: 'test', type: 'agent' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((result) => {
@@ -364,7 +431,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should filter by topic type', async () => {
-      const results = await searchRepo.search({ query: 'test', type: 'topic' });
+      const results = await ftsSearchRepo.search({ query: 'test', type: 'topic' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((result) => {
@@ -373,7 +440,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should filter by file type', async () => {
-      const results = await searchRepo.search({ query: 'test', type: 'file' });
+      const results = await ftsSearchRepo.search({ query: 'test', type: 'file' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((result) => {
@@ -394,14 +461,14 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should respect default limit of 5 per type', async () => {
-      const results = await searchRepo.search({ query: 'test' });
+      const results = await ftsSearchRepo.search({ query: 'test' });
 
       const agentResults = results.filter((r) => r.type === 'agent');
       expect(agentResults.length).toBeLessThanOrEqual(5);
     });
 
     it('should respect custom limit per type', async () => {
-      const results = await searchRepo.search({ limitPerType: 3, query: 'test' });
+      const results = await ftsSearchRepo.search({ limitPerType: 3, query: 'test' });
 
       const agentResults = results.filter((r) => r.type === 'agent');
       expect(agentResults.length).toBeLessThanOrEqual(3);
@@ -419,9 +486,9 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should search case-insensitively', async () => {
-      const upperResults = await searchRepo.search({ query: 'REACT' });
-      const lowerResults = await searchRepo.search({ query: 'react' });
-      const mixedResults = await searchRepo.search({ query: 'ReAcT' });
+      const upperResults = await ftsSearchRepo.search({ query: 'REACT' });
+      const lowerResults = await ftsSearchRepo.search({ query: 'react' });
+      const mixedResults = await ftsSearchRepo.search({ query: 'ReAcT' });
 
       expect(upperResults.length).toBeGreaterThan(0);
       expect(lowerResults.length).toBeGreaterThan(0);
@@ -462,7 +529,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should return correct agent result structure', async () => {
-      const results = await searchRepo.search({ query: 'test', type: 'agent' });
+      const results = await ftsSearchRepo.search({ query: 'test', type: 'agent' });
 
       expect(results.length).toBeGreaterThan(0);
       const agent = results[0];
@@ -481,7 +548,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should return correct topic result structure', async () => {
-      const results = await searchRepo.search({ query: 'test', type: 'topic' });
+      const results = await ftsSearchRepo.search({ query: 'test', type: 'topic' });
 
       expect(results.length).toBeGreaterThan(0);
       const topic = results[0];
@@ -499,7 +566,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should return correct file result structure', async () => {
-      const results = await searchRepo.search({ query: 'test', type: 'file' });
+      const results = await ftsSearchRepo.search({ query: 'test', type: 'file' });
 
       expect(results.length).toBeGreaterThan(0);
       const file = results[0];
@@ -578,7 +645,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should only return topics of the current agent when agentId is provided', async () => {
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         agentId: testAgentId,
         query: 'testing',
       });
@@ -594,7 +661,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should include topics from all agents when agentId is not provided', async () => {
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         query: 'testing',
       });
 
@@ -624,7 +691,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
         userId,
       });
 
-      const results = await searchRepo.search({ query: 'decorated' });
+      const results = await ftsSearchRepo.search({ query: 'decorated' });
       const topicResults = results.filter((r) => r.type === 'topic');
       const decoratedTopic = topicResults.find(
         (t) => t.type === 'topic' && t.agentId === decoratedAgent.id,
@@ -668,7 +735,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
         userId,
       });
 
-      const results = await searchRepo.search({ query: 'cross-tenant' });
+      const results = await ftsSearchRepo.search({ query: 'cross-tenant' });
       const topicResults = results.filter((r) => r.type === 'topic');
       const probeTopic = topicResults.find(
         (t) => t.type === 'topic' && t.title === 'Cross-tenant probe',
@@ -693,7 +760,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
         })),
       );
 
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         agentId: testAgentId,
         query: 'test',
       });
@@ -723,7 +790,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
         })),
       );
 
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         agentId: testAgentId,
         query: 'test',
       });
@@ -736,7 +803,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should use normal limits without agent context', async () => {
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         query: 'testing',
       });
 
@@ -747,7 +814,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should return topics with normal relevance range (1-3) when agentId is not provided', async () => {
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         query: 'testing',
       });
 
@@ -792,7 +859,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should find folders by title', async () => {
-      const results = await searchRepo.search({ query: 'Project', type: 'folder' });
+      const results = await ftsSearchRepo.search({ query: 'Project', type: 'folder' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((result) => {
@@ -801,7 +868,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should find folders by description', async () => {
-      const results = await searchRepo.search({ query: 'archive', type: 'folder' });
+      const results = await ftsSearchRepo.search({ query: 'archive', type: 'folder' });
 
       expect(results.length).toBeGreaterThan(0);
       const folder = results[0];
@@ -811,7 +878,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should return correct folder structure', async () => {
-      const results = await searchRepo.search({ query: 'project', type: 'folder' });
+      const results = await ftsSearchRepo.search({ query: 'project', type: 'folder' });
 
       expect(results.length).toBeGreaterThan(0);
       const folder = results[0];
@@ -859,7 +926,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should find pages by title', async () => {
-      const results = await searchRepo.search({ query: 'Notes', type: 'page' });
+      const results = await ftsSearchRepo.search({ query: 'Notes', type: 'page' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((result) => {
@@ -868,14 +935,14 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should find pages by filename', async () => {
-      const results = await searchRepo.search({ query: 'readme', type: 'page' });
+      const results = await ftsSearchRepo.search({ query: 'readme', type: 'page' });
 
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].type).toBe('page');
     });
 
     it('should return correct page structure', async () => {
-      const results = await searchRepo.search({ query: 'notes', type: 'page' });
+      const results = await ftsSearchRepo.search({ query: 'notes', type: 'page' });
 
       expect(results.length).toBeGreaterThan(0);
       const page = results[0];
@@ -960,17 +1027,17 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should return [] for empty query', async () => {
-      const results = await searchRepo.searchKnowledgeBaseDocuments('', [kbA]);
+      const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('', [kbA]);
       expect(results).toEqual([]);
     });
 
     it('should return [] when no knowledgeBaseIds provided', async () => {
-      const results = await searchRepo.searchKnowledgeBaseDocuments('machine learning', []);
+      const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('machine learning', []);
       expect(results).toEqual([]);
     });
 
     it('should match documents within KB scope by content', async () => {
-      const results = await searchRepo.searchKnowledgeBaseDocuments('machine learning', [kbA]);
+      const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('machine learning', [kbA]);
       expect(results.length).toBeGreaterThan(0);
       // Should hit ML overview, not cooking
       expect(results.some((r) => r.title === 'Machine Learning Overview')).toBe(true);
@@ -978,28 +1045,76 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should respect KB scope (KB-A query does not return KB-B docs)', async () => {
-      const results = await searchRepo.searchKnowledgeBaseDocuments('machine learning', [kbA]);
+      const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('machine learning', [kbA]);
       expect(results.every((r) => r.title !== 'Machine Learning in KB-B')).toBe(true);
     });
 
     it('should isolate across users', async () => {
       // Searching with otherUserId's KB should not leak to current user
-      const results = await searchRepo.searchKnowledgeBaseDocuments('machine learning', [
+      const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('machine learning', [
         'kb-other-1',
       ]);
       // Current user (`userId`) does not own kb-other-1, so query against it returns []
       expect(results).toEqual([]);
     });
 
+    it('should hide caller-private workspace documents from a public agent', async () => {
+      const workspaceId = 'kb-search-workspace';
+      const privateKbId = 'kb-search-private';
+      await serverDB.insert(workspaces).values({
+        id: workspaceId,
+        name: 'Search Workspace',
+        primaryOwnerId: userId,
+        slug: 'search-workspace',
+      });
+      await serverDB.insert(knowledgeBases).values({
+        id: privateKbId,
+        name: 'Private Knowledge Base',
+        userId,
+        visibility: 'private',
+        workspaceId,
+      });
+      await serverDB.insert(documents).values({
+        content: 'Confidential launch details for the private workspace project.',
+        fileType: 'custom/document',
+        filename: 'private-launch.md',
+        knowledgeBaseId: privateKbId,
+        source: 'internal://document/private-launch',
+        sourceType: 'api',
+        title: 'Private Launch Plan',
+        totalCharCount: 62,
+        totalLineCount: 1,
+        userId,
+        visibility: 'private',
+        workspaceId,
+      });
+
+      const privateAgentResults = await new FtsSearchRepo(
+        serverDB,
+        userId,
+        workspaceId,
+        'private',
+      ).searchKnowledgeBaseDocuments('confidential launch', [privateKbId]);
+      const publicAgentResults = await new FtsSearchRepo(
+        serverDB,
+        userId,
+        workspaceId,
+        'public',
+      ).searchKnowledgeBaseDocuments('confidential launch', [privateKbId]);
+
+      expect(privateAgentResults).toHaveLength(1);
+      expect(publicAgentResults).toEqual([]);
+    });
+
     it('should produce snippet ≤ 300 characters', async () => {
-      const results = await searchRepo.searchKnowledgeBaseDocuments('machine learning', [kbA]);
+      const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('machine learning', [kbA]);
       results.forEach((r) => {
         expect(r.snippet.length).toBeLessThanOrEqual(303); // 300 + '...' suffix
       });
     });
 
     it('should produce relevance in [1, 3] range', async () => {
-      const results = await searchRepo.searchKnowledgeBaseDocuments('machine learning', [kbA]);
+      const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('machine learning', [kbA]);
       results.forEach((r) => {
         expect(r.relevance).toBeGreaterThanOrEqual(1);
         expect(r.relevance).toBeLessThanOrEqual(3);
@@ -1085,7 +1200,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
       });
 
       it('returns a PDF-backed document hit via knowledge_base_files join', async () => {
-        const results = await searchRepo.searchKnowledgeBaseDocuments('attention transformer', [
+        const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('attention transformer', [
           kbA,
         ]);
         const pdfHit = results.find((r) => r.documentId === pdfDocId);
@@ -1109,18 +1224,22 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
           userId,
         });
 
-        const results = await searchRepo.searchKnowledgeBaseDocuments('attention', [kbA]);
+        const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('attention', [kbA]);
         expect(results.some((r) => r.title === 'Inline Attention Notes')).toBe(true);
         expect(results.some((r) => r.documentId === pdfDocId)).toBe(true);
       });
 
       it('excludes folder documents even when they match the query', async () => {
-        const results = await searchRepo.searchKnowledgeBaseDocuments('transformer folder', [kbA]);
+        const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('transformer folder', [
+          kbA,
+        ]);
         expect(results.every((r) => r.documentId !== folderDocId)).toBe(true);
       });
 
       it('does not surface another user PDF when querying their KB', async () => {
-        const results = await searchRepo.searchKnowledgeBaseDocuments('attention', ['kb-other-1']);
+        const results = await ftsSearchRepo.searchKnowledgeBaseDocuments('attention', [
+          'kb-other-1',
+        ]);
         expect(results).toEqual([]);
       });
     });
@@ -1179,7 +1298,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should expand pages to 6 in page context', async () => {
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         contextType: 'page',
         query: 'context test',
       });
@@ -1189,7 +1308,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should limit other types to 3 in page context', async () => {
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         contextType: 'page',
         query: 'context test',
       });
@@ -1206,7 +1325,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should expand files and folders to 6 in resource context', async () => {
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         contextType: 'resource',
         query: 'context-test',
       });
@@ -1219,7 +1338,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should limit other types to 3 in resource context', async () => {
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         contextType: 'resource',
         query: 'context test',
       });
@@ -1234,7 +1353,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should use agent context limits with contextType=agent', async () => {
-      const results = await searchRepo.search({
+      const results = await ftsSearchRepo.search({
         contextType: 'agent',
         query: 'context test',
       });
@@ -1275,7 +1394,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should find messages by content', async () => {
-      const results = await searchRepo.search({ query: 'React hooks', type: 'message' });
+      const results = await ftsSearchRepo.search({ query: 'React hooks', type: 'message' });
 
       expect(results.length).toBeGreaterThan(0);
       results.forEach((result) => {
@@ -1284,7 +1403,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should filter out messages with role=tool', async () => {
-      const results = await searchRepo.search({ query: 'tool', type: 'message' });
+      const results = await ftsSearchRepo.search({ query: 'tool', type: 'message' });
 
       // Should not find any tool messages even though they contain "tool" in content
       const toolMessages = results.filter((r) => r.type === 'message' && r.role === 'tool');
@@ -1292,7 +1411,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should return user and assistant messages but not tool messages', async () => {
-      const results = await searchRepo.search({ query: 'hooks' });
+      const results = await ftsSearchRepo.search({ query: 'hooks' });
 
       const messageResults = results.filter((r) => r.type === 'message');
 
@@ -1308,7 +1427,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should return correct message structure', async () => {
-      const results = await searchRepo.search({ query: 'help', type: 'message' });
+      const results = await ftsSearchRepo.search({ query: 'help', type: 'message' });
 
       expect(results.length).toBeGreaterThan(0);
       const message = results[0];
@@ -1465,7 +1584,10 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
      * which a differently-worded row could slip past. Case is normalised
      * because the fixtures are not consistently cased.
      */
-    const expectEveryHitScopedTo = (results: SearchResult[], scope: 'personal' | 'workspace') => {
+    const expectEveryHitScopedTo = (
+      results: FtsSearchResult[],
+      scope: 'personal' | 'workspace',
+    ) => {
       expect(results.length).toBeGreaterThan(0);
 
       const foreign = results.filter((r) => !r.title.toLowerCase().includes(scope));
@@ -1476,13 +1598,13 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     };
 
     it('should never surface workspace-scoped rows in personal mode', async () => {
-      const results = await new SearchRepo(serverDB, userId).search({ query: 'Kubernetes' });
+      const results = await new FtsSearchRepo(serverDB, userId).search({ query: 'Kubernetes' });
 
       expectEveryHitScopedTo(results, 'personal');
     });
 
     it('should never surface personal rows in workspace mode', async () => {
-      const results = await new SearchRepo(serverDB, userId, workspaceId).search({
+      const results = await new FtsSearchRepo(serverDB, userId, workspaceId).search({
         query: 'Kubernetes',
       });
 
@@ -1490,7 +1612,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('keeps agent-scoped search exact in workspace mode', async () => {
-      const results = await new SearchRepo(serverDB, userId, workspaceId).search({
+      const results = await new FtsSearchRepo(serverDB, userId, workspaceId).search({
         agentId: workspaceAgentId,
         query: 'Kubernetes',
       });
@@ -1503,7 +1625,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should keep joined agent metadata on topics and messages after the scan split', async () => {
-      const results = await new SearchRepo(serverDB, userId).search({ query: 'Kubernetes' });
+      const results = await new FtsSearchRepo(serverDB, userId).search({ query: 'Kubernetes' });
 
       const topic = results.find((r) => r.type === 'topic');
       expect(topic).toBeDefined();
@@ -1535,7 +1657,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
         .insert(knowledgeBaseFiles)
         .values({ fileId: file.id, knowledgeBaseId: base.id, userId });
 
-      const results = await new SearchRepo(serverDB, userId).search({
+      const results = await new FtsSearchRepo(serverDB, userId).search({
         query: 'kubernetes',
         type: 'file',
       });
@@ -1579,7 +1701,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should only surface the requested agent rows in topics and messages', async () => {
-      const results = await searchRepo.search({ agentId: agentAId, query: 'Terraform' });
+      const results = await ftsSearchRepo.search({ agentId: agentAId, query: 'Terraform' });
 
       const scoped = results.filter((r) => r.type === 'topic' || r.type === 'message');
       expect(scoped.length).toBeGreaterThan(0);
@@ -1592,11 +1714,11 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
 
     it('should not leak rows between two agent-scoped searches', async () => {
       const [forA, forB] = await Promise.all([
-        searchRepo.search({ agentId: agentAId, query: 'Terraform' }),
-        searchRepo.search({ agentId: agentBId, query: 'Terraform' }),
+        ftsSearchRepo.search({ agentId: agentAId, query: 'Terraform' }),
+        ftsSearchRepo.search({ agentId: agentBId, query: 'Terraform' }),
       ]);
 
-      const idsOf = (results: SearchResult[]) =>
+      const idsOf = (results: FtsSearchResult[]) =>
         results.filter((r) => r.type === 'topic' || r.type === 'message').map((r) => r.id);
 
       expect(idsOf(forA)).toHaveLength(2);
@@ -1605,7 +1727,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should keep agent-less rows reachable without an agent filter', async () => {
-      const results = await searchRepo.search({ query: 'Terraform' });
+      const results = await ftsSearchRepo.search({ query: 'Terraform' });
 
       const scoped = results.filter((r) => r.type === 'topic' || r.type === 'message');
       const agentIds = new Set(
@@ -1615,7 +1737,7 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
     });
 
     it('should keep joined agent metadata after the agent filter moved above the scan', async () => {
-      const results = await searchRepo.search({ agentId: agentAId, query: 'Terraform' });
+      const results = await ftsSearchRepo.search({ agentId: agentAId, query: 'Terraform' });
 
       const topic = results.find((r) => r.type === 'topic');
       expect(topic).toBeDefined();
@@ -1664,7 +1786,11 @@ describe.skipIf(!isServerDB)('SearchRepo', () => {
         schema,
       });
 
-      await new SearchRepo(db as unknown as LobeChatDatabase, userId, options?.workspaceId).search({
+      await new FtsSearchRepo(
+        db as unknown as LobeChatDatabase,
+        userId,
+        options?.workspaceId,
+      ).search({
         agentId: options?.agentId,
         query: 'kubernetes',
       });

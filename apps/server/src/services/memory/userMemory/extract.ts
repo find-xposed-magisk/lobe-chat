@@ -78,6 +78,7 @@ import { parseMemoryExtractionConfig } from '@/server/globalConfig/parseMemoryEx
 import { KeyVaultsGateKeeper } from '@/server/modules/KeyVaultsEncrypt';
 import { S3 } from '@/server/modules/S3';
 import { getUserScopedAiProviderRuntimeState } from '@/server/services/aiProviderAccess';
+import { createFtsSearchRepo } from '@/server/services/ftsSearch';
 import {
   AsyncTaskError,
   type AsyncTaskErrorBody,
@@ -1404,7 +1405,8 @@ export class MemoryExtractionExecutor {
     tokenLimit?: number,
   ): Promise<UserMemoryHybridSearchAggregatedResult> {
     const db = await this.db;
-    const userMemoryModel = new UserMemoryModel(db, userId);
+    const ftsSearchRepo = await createFtsSearchRepo({ db, userId });
+    const userMemoryModel = new UserMemoryModel(db, userId, ftsSearchRepo);
     // TODO: make topK configurable
     const topK = 10;
     const aggregatedContent = await this.trimTextToTokenLimit(
