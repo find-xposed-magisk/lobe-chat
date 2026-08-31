@@ -8,7 +8,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import HeteroControlBar from '../HeteroControlBar';
+import HeteroControlBar from '..';
 import ClaudeCodeQuotaMenu from './ClaudeCodeQuotaMenu';
 import CodexQuotaMenu from './CodexQuotaMenu';
 
@@ -29,6 +29,7 @@ const effectiveAgencyConfig = vi.hoisted(() => ({
   },
   workspaceScoped: false,
 }));
+const labPreferences = vi.hoisted(() => ({ enableAgentProviderBinding: true }));
 
 vi.mock('@lobechat/const', async (importOriginal) => ({
   ...(await importOriginal<typeof LobechatConstModule>()),
@@ -38,6 +39,10 @@ vi.mock('@lobechat/const', async (importOriginal) => ({
 vi.mock('@lobechat/electron-client-ipc', async (importOriginal) => ({
   ...(await importOriginal<typeof ElectronClientIpcModule>()),
   useWatchBroadcast: vi.fn(),
+}));
+
+vi.mock('@/business/client/features/ChatInputCredits', () => ({
+  default: () => <div data-testid="api-credits" />,
 }));
 
 vi.mock('@/features/ChatInput/ControlBar/WorkspaceControls', () => ({
@@ -80,6 +85,19 @@ vi.mock('@/store/agent/selectors', () => ({
   agentByIdSelectors: {
     isAgentConfigLoadingById: () => () => false,
     isWorkspaceAgentById: () => () => true,
+  },
+}));
+
+vi.mock('@/store/user', () => ({
+  useUserStore: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({ preference: { lab: labPreferences } }),
+}));
+
+vi.mock('@/store/user/selectors', () => ({
+  labPreferSelectors: {
+    enableAgentProviderBinding: (state: {
+      preference: { lab: { enableAgentProviderBinding: boolean } };
+    }) => state.preference.lab.enableAgentProviderBinding,
   },
 }));
 
@@ -292,6 +310,7 @@ beforeEach(() => {
     heterogeneousProvider: { command: 'codex', type: 'codex' },
   };
   effectiveAgencyConfig.workspaceScoped = false;
+  labPreferences.enableAgentProviderBinding = true;
   confirmModalMock.mockReset();
   mockService.consumeCodexRateLimitResetCredit.mockReset();
   mockService.getClaudeCodeQuota.mockReset();
@@ -315,6 +334,7 @@ describe('HeteroControlBar', () => {
     expect(
       await screen.findByRole('button', { name: 'heteroAgent.codexQuota.tooltip' }),
     ).toBeTruthy();
+    expect(screen.queryByTestId('api-credits')).toBeNull();
     expect(mockService.getCodexQuota).toHaveBeenCalledWith({ command: 'codex', env: undefined });
   });
 
@@ -332,7 +352,7 @@ describe('HeteroControlBar', () => {
     expect(mockService.getCodexQuota).not.toHaveBeenCalled();
   });
 
-  it('does not show Codex quota in API mode', () => {
+  it('shows platform credits instead of Codex quota in API mode', () => {
     effectiveAgencyConfig.current = {
       boundDeviceId: 'personal-device',
       executionTarget: 'local',
@@ -341,11 +361,12 @@ describe('HeteroControlBar', () => {
 
     render(<HeteroControlBar />);
 
+    expect(screen.getByTestId('api-credits')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'heteroAgent.codexQuota.tooltip' })).toBeNull();
     expect(mockService.getCodexQuota).not.toHaveBeenCalled();
   });
 
-  it('does not show Claude Code quota in API mode', () => {
+  it('shows platform credits instead of Claude Code quota in API mode', () => {
     effectiveAgencyConfig.current = {
       boundDeviceId: 'personal-device',
       executionTarget: 'local',
@@ -354,8 +375,24 @@ describe('HeteroControlBar', () => {
 
     render(<HeteroControlBar />);
 
+    expect(screen.getByTestId('api-credits')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'heteroAgent.claudeQuota.tooltip' })).toBeNull();
     expect(mockService.getClaudeCodeQuota).not.toHaveBeenCalled();
+  });
+
+  it('hides platform credits when API mode is disabled in Labs', () => {
+    labPreferences.enableAgentProviderBinding = false;
+    effectiveAgencyConfig.current = {
+      boundDeviceId: 'personal-device',
+      executionTarget: 'local',
+      heterogeneousProvider: { authMode: 'api', command: 'codex', type: 'codex' },
+    };
+
+    render(<HeteroControlBar />);
+
+    expect(screen.queryByTestId('api-credits')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'heteroAgent.codexQuota.tooltip' })).toBeNull();
+    expect(mockService.getCodexQuota).not.toHaveBeenCalled();
   });
 });
 
