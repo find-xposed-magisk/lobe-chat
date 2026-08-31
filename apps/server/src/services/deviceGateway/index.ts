@@ -932,7 +932,9 @@ export class DeviceGateway {
    * compact tree subset with ancestor directories.
    */
   async searchProjectFiles(params: {
+    changedOnly?: boolean;
     deviceId: string;
+    excludeIgnored?: boolean;
     limit?: number;
     query: string;
     scope: string;
@@ -940,14 +942,27 @@ export class DeviceGateway {
     userId: string;
     workspaceId?: string;
   }): Promise<DeviceProjectFileSearchResult | undefined> {
-    const { userId, deviceId, limit, query, scope, timeout = 30_000, workspaceId } = params;
+    const {
+      changedOnly,
+      userId,
+      deviceId,
+      excludeIgnored,
+      limit,
+      query,
+      scope,
+      timeout = 30_000,
+      workspaceId,
+    } = params;
     const client = this.getClient();
     if (!client) return undefined;
 
     try {
       const result = await client.invokeRpc<DeviceProjectFileSearchResult>(
         { deviceId, timeout, userId, workspaceId },
-        { method: 'searchProjectFiles', params: { limit, query, scope } },
+        {
+          method: 'searchProjectFiles',
+          params: { changedOnly, excludeIgnored, limit, query, scope },
+        },
       );
 
       if (!result.success || !result.data) {

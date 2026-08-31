@@ -1,7 +1,7 @@
 import type { ProjectFileIndexEntry } from '@lobechat/electron-client-ipc';
 import { describe, expect, it } from 'vitest';
 
-import { filterProjectFileEntries } from './fileFilter';
+import { filterProjectFileEntries, mergeMissingDeletedEntries } from './fileFilter';
 
 const entries: ProjectFileIndexEntry[] = [
   { isDirectory: true, name: 'src', path: '/repo/src', relativePath: 'src/' },
@@ -64,5 +64,27 @@ describe('filterProjectFileEntries', () => {
       'src/components/Button.tsx',
       'src/index.ts',
     ]);
+  });
+});
+
+describe('mergeMissingDeletedEntries', () => {
+  it('recreates missing staged deletions and their absent ancestor directories', () => {
+    const result = mergeMissingDeletedEntries(
+      entries,
+      ['src/components/Button.tsx', 'removed/deep/file.ts'],
+      '/repo',
+    );
+
+    expect(result.map((entry) => entry.relativePath)).toEqual([
+      ...entries.map((entry) => entry.relativePath),
+      'removed/',
+      'removed/deep/',
+      'removed/deep/file.ts',
+    ]);
+    expect(result.at(-1)).toMatchObject({
+      isDirectory: false,
+      name: 'file.ts',
+      path: '/repo/removed/deep/file.ts',
+    });
   });
 });
