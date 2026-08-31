@@ -79,7 +79,7 @@ export const goalRouter = router({
     .input(
       idInput.extend({
         description: z.string().optional(),
-        kind: z.enum(['problem', 'work', 'finding', 'decision']),
+        kind: z.enum(['problem', 'task', 'finding', 'decision']),
         priority: z.number().int().optional(),
         status: z
           .enum(['proposed', 'active', 'waiting', 'resolved', 'rejected', 'retired'])
@@ -105,7 +105,7 @@ export const goalRouter = router({
           .object({
             recovery: z
               .object({
-                maxAttemptsPerWork: z.number().int().positive().optional(),
+                maxAttemptsPerTask: z.number().int().positive().optional(),
                 maxStepsPerRun: z.number().int().positive().nullable().optional(),
                 operationLeaseTimeoutMs: z.number().int().min(60_000).optional(),
               })
@@ -134,6 +134,7 @@ export const goalRouter = router({
         // coordinator takes it from here without a client holding a loop open.
         await scheduleGoalAdvance({
           goalId: data.goal.id,
+          trigger: 'create',
           userId: ctx.userId,
           workspaceId: ctx.workspaceId ?? undefined,
         });
@@ -162,6 +163,7 @@ export const goalRouter = router({
         // Answering the gate is what unblocks the Work; carry on from here.
         await scheduleGoalAdvance({
           goalId: input.id,
+          trigger: 'decide',
           userId: ctx.userId,
           workspaceId: ctx.workspaceId ?? undefined,
         });
@@ -182,6 +184,7 @@ export const goalRouter = router({
     try {
       const { result, ticks } = await advanceGoal({
         goalId: input.id,
+        trigger: 'manual',
         userId: ctx.userId,
         workspaceId: ctx.workspaceId ?? undefined,
       });
@@ -249,6 +252,7 @@ export const goalRouter = router({
       const data = await ctx.goalService.resume(input.id);
       await scheduleGoalAdvance({
         goalId: input.id,
+        trigger: 'resume',
         userId: ctx.userId,
         workspaceId: ctx.workspaceId ?? undefined,
       });
@@ -272,6 +276,7 @@ export const goalRouter = router({
         // it should start moving again without a second gesture.
         await scheduleGoalAdvance({
           goalId: id,
+          trigger: 'budget',
           userId: ctx.userId,
           workspaceId: ctx.workspaceId ?? undefined,
         });

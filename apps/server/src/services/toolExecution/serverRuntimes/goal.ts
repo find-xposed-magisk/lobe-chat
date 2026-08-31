@@ -45,7 +45,7 @@ export const goalRuntime: ServerRuntimeRegistration = {
             agentId,
             createdByAgentId: agentId,
             config: {
-              recovery: { maxAttemptsPerWork: resolveGoalAttemptBudget(args.maxIterations) },
+              recovery: { maxAttemptsPerTask: resolveGoalAttemptBudget(args.maxIterations) },
             },
             // `maxIterations` caps attempts on one Work; it is deliberately not
             // passed as `maxRounds`, which counts runs across every Work in the
@@ -62,6 +62,7 @@ export const goalRuntime: ServerRuntimeRegistration = {
           // while the agent has been told not to create it again.
           await scheduleGoalAdvance({
             goalId: graph.goal.id,
+            trigger: 'create',
             userId,
             workspaceId: workspaceId ?? undefined,
           });
@@ -80,6 +81,7 @@ export const goalRuntime: ServerRuntimeRegistration = {
             // the goal keeps itself moving through the queued advances.
             const { result } = await advanceGoal({
               goalId: graph.goal.id,
+              trigger: 'create',
               userId,
               workspaceId: workspaceId ?? undefined,
             });
