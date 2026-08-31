@@ -1,14 +1,15 @@
+// @vitest-environment node
 import type { FtsSearchDocumentEntity } from '@lobechat/types';
 import { FTS_SEARCH_DOCUMENT_ENTITIES } from '@lobechat/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { FtsSearchReindexRunState } from '..';
+import type { FtsSearchReindexFailure, FtsSearchReindexRunState } from '../checkpointRepository';
 import type {
   FtsSearchReindexElasticsearchClient,
   FtsSearchReindexProgressEvent,
   FtsSearchReindexStateRepository,
-} from '../service';
-import { FtsSearchReindexService } from '../service';
+} from '../reindexService';
+import { FtsSearchReindexService } from '../reindexService';
 
 const createState = (): FtsSearchReindexRunState => ({
   progress: FTS_SEARCH_DOCUMENT_ENTITIES.map((entity) => ({
@@ -35,12 +36,25 @@ const createState = (): FtsSearchReindexRunState => ({
   },
 });
 
+const createFailure = (
+  entity: FtsSearchDocumentEntity,
+  documentId: string,
+): FtsSearchReindexFailure => ({
+  attempts: 1,
+  documentId,
+  entity,
+  error: 'retryable failure',
+  resolvedAt: null,
+  retryable: true,
+});
+
 const createDependencies = () => {
   const state = createState();
   const failures = new Map<FtsSearchDocumentEntity, { documentId: string }[]>();
   const builder = {
     buildBatch: vi.fn().mockResolvedValue([]),
     buildByIds: vi.fn().mockResolvedValue([]),
+    buildRangeBatch: vi.fn().mockResolvedValue([]),
   };
   const client: FtsSearchReindexElasticsearchClient = {
     bulk: vi.fn().mockResolvedValue([]),
@@ -96,6 +110,98 @@ describe('FtsSearchReindexService', () => {
     });
   });
 
+  it('uses an entity page-size override for paging and source exhaustion', async () => {
+    const { builder, client, repository } = createDependencies();
+    builder.buildBatch.mockImplementation(async (entity, { afterId }) => {
+      if (entity !== 'documents') return [];
+      if (!afterId) {
+        return [{ entity, id: 'document-1', source: { id: 'document-1' } }];
+      }
+      if (afterId === 'document-1') {
+        return [{ entity, id: 'document-2', source: { id: 'document-2' } }];
+      }
+      return [];
+    });
+    vi.mocked(client.bulk).mockResolvedValue([{ status: 201 }]);
+    vi.mocked(client.count).mockImplementation(async (index) =>
+      index.includes('-documents-') ? 2 : 0,
+    );
+    const service = new FtsSearchReindexService(builder, repository, client, {
+      batchSize: 2,
+      batchSizeByEntity: { documents: 1 },
+      entityConcurrency: 1,
+    });
+
+    await service.run('test', 1);
+
+    expect(builder.buildBatch).toHaveBeenCalledWith('documents', {
+      afterId: undefined,
+      limit: 1,
+    });
+    expect(builder.buildBatch).toHaveBeenCalledWith('documents', {
+      afterId: 'document-1',
+      limit: 1,
+    });
+    expect(builder.buildBatch).toHaveBeenCalledWith('documents', {
+      afterId: 'document-2',
+      limit: 1,
+    });
+    expect(builder.buildBatch).toHaveBeenCalledWith('messages', {
+      afterId: undefined,
+      limit: 2,
+    });
+  });
+
+  it('rejects an invalid entity page-size override', () => {
+    const { builder, client, repository } = createDependencies();
+
+    expect(
+      () =>
+        new FtsSearchReindexService(builder, repository, client, {
+          batchSizeByEntity: { documents: 0 },
+        }),
+    ).toThrow('batch size for documents must be a positive integer');
+  });
+
+  it('indexes high-volume ID ranges concurrently but checkpoints them in order', async () => {
+    const { builder, client, repository, state } = createDependencies();
+    for (const progress of state.progress) progress.status = 'completed';
+    const messageProgress = state.progress.find(({ entity }) => entity === 'messages')!;
+    messageProgress.cursor = 'msg_00AAAA';
+    messageProgress.status = 'backfilling';
+
+    builder.buildRangeBatch.mockImplementation(async (entity, { afterId, beforeId, fromId }) => {
+      if (entity !== 'messages') return [];
+      if (afterId === 'msg_00AAAA' && beforeId === 'msg_08') {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        return [{ entity, id: 'msg_01AAAA', source: { id: 'msg_01AAAA' } }];
+      }
+      if (fromId === 'msg_08' && beforeId === 'msg_0G') {
+        return [{ entity, id: 'msg_09AAAA', source: { id: 'msg_09AAAA' } }];
+      }
+      return [];
+    });
+    vi.mocked(client.bulk).mockResolvedValue([{ status: 201 }]);
+    vi.mocked(client.count).mockImplementation(async (index) =>
+      index.includes('-messages-') ? 2 : 0,
+    );
+    const service = new FtsSearchReindexService(builder, repository, client, {
+      batchSize: 10,
+      entityConcurrency: 1,
+      rangeConcurrencyByEntity: { messages: 2 },
+    });
+
+    await service.run('test', 1);
+
+    const messageCheckpoints = vi
+      .mocked(repository.checkpointBatch)
+      .mock.calls.map(([checkpoint]) => checkpoint)
+      .filter(({ entity }) => entity === 'messages');
+    expect(messageCheckpoints.map(({ cursor }) => cursor)).toEqual(['msg_01AAAA', 'msg_09AAAA']);
+    expect(messageProgress).toMatchObject({ indexedCount: 2, processedCount: 2 });
+    expect(builder.buildBatch).not.toHaveBeenCalledWith('messages', expect.anything());
+  });
+
   it('creates aliases only after all 14 entities complete', async () => {
     const { builder, client, repository, state } = createDependencies();
     const events: unknown[] = [];
@@ -142,6 +248,20 @@ describe('FtsSearchReindexService', () => {
       'validate-incremental-sync-source',
       ...Array.from({ length: 14 }, () => 'create-alias'),
     ]);
+  });
+
+  it('keeps a selected-entity run backfilling until every entity is complete', async () => {
+    const { builder, client, repository, state } = createDependencies();
+    const service = new FtsSearchReindexService(builder, repository, client, {
+      entities: ['messages'],
+    });
+
+    await expect(service.run('test', 1)).resolves.toMatchObject({ status: 'backfilling' });
+
+    expect(state.progress.find(({ entity }) => entity === 'messages')?.status).toBe('completed');
+    expect(state.progress.find(({ entity }) => entity === 'documents')?.status).toBe('pending');
+    expect(client.ensureAlias).not.toHaveBeenCalled();
+    expect(repository.markReadyForIncrementalSync).not.toHaveBeenCalled();
   });
 
   it('does not create aliases or mark a run ready when incremental source validation fails', async () => {
@@ -469,6 +589,81 @@ describe('FtsSearchReindexService', () => {
     expect(client.bulk).toHaveBeenCalledTimes(4);
   });
 
+  it('retries large document failures in bounded projection batches', async () => {
+    const { builder, client, repository, state } = createDependencies();
+    for (const progress of state.progress) progress.status = 'completed';
+    const documentProgress = state.progress.find(({ entity }) => entity === 'documents')!;
+    documentProgress.failedCount = 21;
+    documentProgress.status = 'backfilling';
+    const failures = Array.from({ length: 21 }, (_, index) =>
+      createFailure('documents', `document-${index}`),
+    );
+    vi.mocked(repository.listUnresolvedFailures)
+      .mockResolvedValueOnce(failures)
+      .mockResolvedValueOnce([]);
+    vi.mocked(repository.resolveFailures).mockImplementation(async (_runId, _entity, ids) => {
+      documentProgress.failedCount -= ids.length;
+      documentProgress.indexedCount += ids.length;
+      return ids.length;
+    });
+    builder.buildByIds.mockImplementation(async (entity, ids) =>
+      ids.map((id: string) => ({ entity, id, source: { id } })),
+    );
+    vi.mocked(client.bulk).mockImplementation(async (body) =>
+      Array.from({ length: body.trim().split('\n').length / 2 }, () => ({ status: 201 })),
+    );
+    vi.mocked(client.count).mockImplementation(async (index) =>
+      index.includes('-documents-') ? 21 : 0,
+    );
+    const service = new FtsSearchReindexService(builder, repository, client, {
+      entities: ['documents'],
+      entityConcurrency: 1,
+    });
+
+    await service.run('test', 1);
+
+    expect(builder.buildByIds).toHaveBeenCalledTimes(2);
+    expect(builder.buildByIds.mock.calls.map(([, ids]) => ids.length)).toEqual([20, 1]);
+    expect(documentProgress).toMatchObject({ failedCount: 0, indexedCount: 21 });
+  });
+
+  it('retries retryable bulk items before persisting them again', async () => {
+    const { builder, client, repository, state } = createDependencies();
+    for (const progress of state.progress) progress.status = 'completed';
+    const documentProgress = state.progress.find(({ entity }) => entity === 'documents')!;
+    documentProgress.failedCount = 1;
+    documentProgress.status = 'backfilling';
+    vi.mocked(repository.listUnresolvedFailures)
+      .mockResolvedValueOnce([createFailure('documents', 'document-1')])
+      .mockResolvedValueOnce([]);
+    vi.mocked(repository.resolveFailures).mockImplementation(async (_runId, _entity, ids) => {
+      documentProgress.failedCount -= ids.length;
+      documentProgress.indexedCount += ids.length;
+      return ids.length;
+    });
+    builder.buildByIds.mockResolvedValue([
+      { entity: 'documents', id: 'document-1', source: { id: 'document-1' } },
+    ]);
+    vi.mocked(client.bulk)
+      .mockResolvedValueOnce([{ status: 429 }])
+      .mockResolvedValueOnce([{ status: 201 }]);
+    vi.mocked(client.count).mockImplementation(async (index) =>
+      index.includes('-documents-') ? 1 : 0,
+    );
+    const service = new FtsSearchReindexService(builder, repository, client, {
+      entities: ['documents'],
+      entityConcurrency: 1,
+      maxRequestRetries: 1,
+      retryBaseDelayMs: 0,
+    });
+
+    await service.run('test', 1);
+
+    expect(client.bulk).toHaveBeenCalledTimes(2);
+    expect(repository.checkpointBatch).not.toHaveBeenCalled();
+    expect(documentProgress).toMatchObject({ failedCount: 0, indexedCount: 1 });
+  });
+
   it('persists an oversized item and blocks alias creation', async () => {
     const { builder, client, repository } = createDependencies();
     builder.buildBatch
@@ -515,7 +710,11 @@ describe('FtsSearchReindexService', () => {
       index.includes('-agents-') ? 1 : 0,
     );
     const service = new FtsSearchReindexService(
-      { buildBatch: vi.fn().mockResolvedValue([]), buildByIds: vi.fn().mockResolvedValue([]) },
+      {
+        buildBatch: vi.fn().mockResolvedValue([]),
+        buildByIds: vi.fn().mockResolvedValue([]),
+        buildRangeBatch: vi.fn().mockResolvedValue([]),
+      },
       repository,
       client,
       {

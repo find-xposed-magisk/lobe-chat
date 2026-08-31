@@ -101,6 +101,10 @@ supported by this initial migration tool.
 
 ## Run from source
 
+The package command bundles the worker and executes it on Node.js. Use this documented command
+instead of invoking the TypeScript entrypoint directly so runtime preparation and temporary-file
+cleanup remain consistent.
+
 Inspect the current state without writing to Elasticsearch:
 
 ```bash
@@ -149,7 +153,7 @@ ES_REINDEX_STATE_DIR=.elasticsearch-reindex \
   bun run fts-search:reindex -- --apply --yes \
   --expected-elasticsearch-host-prefix=search-dev- \
   --entity-concurrency=4 --bulk-concurrency=2 \
-  --batch-size=5000 --bulk-max-bytes=10485760 \
+  --batch-size=5000 --entity-batch-size=documents:1000 --bulk-max-bytes=10485760 \
   --max-batches-per-entity=1
 ```
 
@@ -164,7 +168,24 @@ continue until every entity completes.
 parallel byte-bounded Elasticsearch requests inside each entity batch. Start conservatively and
 increase them only while PostgreSQL and Elasticsearch remain healthy. `--batch-size` limits rows
 per keyset page. `--bulk-max-bytes` limits each encoded `_bulk` request; an individual document
-larger than this limit is stored as an explicit failure.
+larger than this limit is stored as an explicit failure. Repeat
+`--entity-batch-size=<entity>:<rows>` to use a smaller PostgreSQL page only for source types with
+materially wider rows, without slowing narrower entities.
+
+Large installations can repeat
+`--entity-range-concurrency=<documents|messages>:<workers>` to scan either high-volume entity in
+parallel ID ranges. Range mode requires the database collation to be bytewise (`C`, `C.UTF-8`, or
+`C.utf8`); the command checks this before writing. Completed ranges advance the durable cursor in
+ID order, so an interrupted run may safely replay a later range that Elasticsearch already
+received. Start with a small worker count and increase it only after measuring sustained database
+and Elasticsearch behavior. Range concurrency cannot be combined with
+`--max-batches-per-entity`.
+
+Repeat `--entity=<entity>` to limit one invocation to selected entities, for example while tuning
+`documents` and `messages`. A selected invocation never creates aliases early and leaves the run in
+`backfilling` while any unselected entity is incomplete. Resume once without `--entity` after all
+selected work finishes so the command can perform the complete 14-entity reconciliation and create
+the stable aliases.
 
 Transient request failures are retried with exponential backoff before the batch cursor advances.
 The defaults are four retries, a 500 ms base delay, and a 30-second request timeout. Override them

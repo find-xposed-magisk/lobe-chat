@@ -10,15 +10,6 @@ import {
   FTS_SEARCH_INDEX_SCHEMA_VERSION,
   FtsSearchDocumentBuilder,
 } from '../../packages/database/src/repositories/ftsSearchDocument';
-import {
-  type FtsSearchReindexAuditValue,
-  FtsSearchReindexEntityError,
-  FtsSearchReindexFileLogger,
-  FtsSearchReindexFileRepository,
-  FtsSearchReindexHttpClient,
-  FtsSearchReindexService,
-  summarizeFtsSearchReindexError,
-} from '../../packages/database/src/repositories/ftsSearchReindex';
 import { FtsSearchSyncOutboxRepository } from '../../packages/database/src/repositories/ftsSearchSyncOutbox';
 import * as schema from '../../packages/database/src/schemas';
 import {
@@ -32,11 +23,24 @@ import { DiagLogLevel, register, shutdownSafely } from '../../packages/observabi
 import { runWithLockRetry } from '../migrateServerDB/retry';
 import {
   assertFtsSearchReindexElasticsearchHostname,
+  assertFtsSearchReindexRangeCollation,
   assertFtsSearchReindexTelemetryExportConfigured,
+  resolveFtsSearchReindexBatchSizeByEntity,
   resolveFtsSearchReindexElasticsearchEnvironment,
+  resolveFtsSearchReindexEntities,
+  resolveFtsSearchReindexRangeConcurrencyByEntity,
   resolveFtsSearchReindexTelemetryEnvironment,
 } from './options';
 import { runFtsSearchReindexCommand } from './preparation';
+import {
+  type FtsSearchReindexAuditValue,
+  FtsSearchReindexEntityError,
+  FtsSearchReindexFileLogger,
+  FtsSearchReindexFileRepository,
+  FtsSearchReindexHttpClient,
+  FtsSearchReindexService,
+  summarizeFtsSearchReindexError,
+} from './runtime';
 
 const { Pool } = pg;
 
@@ -75,6 +79,11 @@ const yes = args.has('--yes');
 const batchSize = readPositiveIntegerArgument('--batch-size');
 const bulkConcurrency = readPositiveIntegerArgument('--bulk-concurrency');
 const bulkMaxBytes = readPositiveIntegerArgument('--bulk-max-bytes');
+const batchSizeByEntity = resolveFtsSearchReindexBatchSizeByEntity(process.argv.slice(2));
+const entities = resolveFtsSearchReindexEntities(process.argv.slice(2));
+const rangeConcurrencyByEntity = resolveFtsSearchReindexRangeConcurrencyByEntity(
+  process.argv.slice(2),
+);
 const entityConcurrency = readPositiveIntegerArgument('--entity-concurrency');
 const maxBatchesPerEntity = readPositiveIntegerArgument('--max-batches-per-entity');
 const maxRequestRetries = readNonNegativeIntegerArgument('--max-request-retries');
@@ -92,7 +101,10 @@ const unknownArgument = process.argv
       !item.startsWith('--batch-size=') &&
       !item.startsWith('--bulk-concurrency=') &&
       !item.startsWith('--bulk-max-bytes=') &&
+      !item.startsWith('--entity-batch-size=') &&
+      !item.startsWith('--entity=') &&
       !item.startsWith('--entity-concurrency=') &&
+      !item.startsWith('--entity-range-concurrency=') &&
       !item.startsWith('--elasticsearch-api-key-env=') &&
       !item.startsWith('--elasticsearch-url-env=') &&
       !item.startsWith('--expected-elasticsearch-host-prefix=') &&
@@ -297,6 +309,15 @@ const run = async () => {
     return;
   }
 
+  if (Object.values(rangeConcurrencyByEntity).some((concurrency) => concurrency > 1)) {
+    const collationResult = await pool.query<{ datcollate: string }>(
+      'SELECT datcollate FROM pg_database WHERE datname = current_database()',
+    );
+    const databaseCollation = collationResult.rows[0]?.datcollate;
+    if (!databaseCollation) throw new Error('Failed to read the PostgreSQL database collation');
+    assertFtsSearchReindexRangeCollation(databaseCollation, rangeConcurrencyByEntity);
+  }
+
   const endpointHostname = new URL(elasticsearchUrl!).hostname;
   assertFtsSearchReindexElasticsearchHostname(endpointHostname, expectedHostPrefix);
   const existing = await repository.getTargetRun(namespace, FTS_SEARCH_INDEX_SCHEMA_VERSION);
@@ -340,7 +361,10 @@ const run = async () => {
     endpointHostname,
     endpointEnvName: urlEnvironmentName,
     expectedHostPrefix: expectedHostPrefix ?? null,
+    batchSizeByEntity,
+    entities: entities ?? [...FTS_SEARCH_DOCUMENT_ENTITIES],
     entityConcurrency: entityConcurrency ?? 1,
+    rangeConcurrencyByEntity,
     maxBatchesPerEntity: maxBatchesPerEntity ?? null,
     maxRequestRetries: maxRequestRetries ?? 4,
     mode: existing ? 'resume' : 'fresh',
@@ -373,7 +397,10 @@ const run = async () => {
       batchSize,
       bulkConcurrency,
       bulkMaxBytes,
+      batchSizeByEntity,
+      entities,
       entityConcurrency,
+      rangeConcurrencyByEntity,
       maxBatchesPerEntity,
       maxRequestRetries,
       onProgress: async (event) => {

@@ -74,6 +74,8 @@ tags:
 
 ## 在源码中运行
 
+包命令会先打包，再用 Node.js 运行回填任务。请使用这里记录的包命令，不要直接执行 TypeScript 入口，以确保运行前准备和临时文件清理方式一致。
+
 只查看状态，不写 Elasticsearch：
 
 ```bash
@@ -106,13 +108,18 @@ ES_REINDEX_STATE_DIR=.elasticsearch-reindex \
   bun run fts-search:reindex -- --apply --yes \
   --expected-elasticsearch-host-prefix=search-dev- \
   --entity-concurrency=4 --bulk-concurrency=2 \
-  --batch-size=5000 --bulk-max-bytes=10485760 \
+  --batch-size=5000 --entity-batch-size=documents:1000 --bulk-max-bytes=10485760 \
   --max-batches-per-entity=1
 ```
 
 这条命令会创建 14 类索引，并向其中有源数据的索引写入真实数据。只要至少一类数据超过批次上限，任务就会保持在 `backfilling` 状态且不会创建别名；如果某个小型部署的 14 类数据都能在上限内读完，本次演练仍会正常完成并创建别名，因此必须使用隔离的空 Elasticsearch 目标。使用同一命令再次执行可以验证断点续跑；移除 `--max-batches-per-entity` 后会从当前断点继续，直到所有数据类型完成。
 
-`--entity-concurrency` 控制同时读取多少类 PostgreSQL 数据，`--bulk-concurrency` 控制每个数据类型的单批数据可同时发出多少个按字节拆分的 Elasticsearch 请求。应从较小数值开始，仅在 PostgreSQL 和 Elasticsearch 运行稳定时逐步增加。`--batch-size` 限制每次按主键翻页读取的 PostgreSQL 行数；`--bulk-max-bytes` 按编码后的字节数限制单次 `_bulk` 请求。单个文档超过限制时会被明确记为失败，不会静默跳过。
+`--entity-concurrency` 控制同时读取多少类 PostgreSQL 数据，`--bulk-concurrency` 控制每个数据类型的单批数据可同时发出多少个按字节拆分的 Elasticsearch 请求。应从较小数值开始，仅在 PostgreSQL 和 Elasticsearch 运行稳定时逐步增加。`--batch-size` 限制每次按主键翻页读取的 PostgreSQL 行数；`--bulk-max-bytes` 按编码后的字节数限制单次 `_bulk` 请求。单个文档超过限制时会被明确记为失败，不会静默跳过。可以重复传入 `--entity-batch-size=<entity>:<rows>`，只缩小超宽数据类型的 PostgreSQL 单页行数，不拖慢其他数据类型。
+
+大规模部署可以重复传入
+`--entity-range-concurrency=<documents|messages>:<workers>`，按 ID 区间并行读取这两类高容量数据。区间模式要求数据库使用逐字节排序规则（`C`、`C.UTF-8` 或 `C.utf8`），命令会在写入前检查。完成的区间只会按 ID 顺序推进持久化游标，因此任务中断后可以安全重放 Elasticsearch 已收到的后续区间。应从较小的并发任务数开始，只在持续观测 PostgreSQL 和 Elasticsearch 均稳定后增加。区间并发不能与 `--max-batches-per-entity` 同时使用。
+
+可以重复传入 `--entity=<entity>`，将一次执行限制到选定的数据类型，例如单独调优 `documents` 和 `messages`。只执行部分类型时不会提前创建别名；只要还有未完成类型，任务就会保持 `backfilling`。选定类型全部完成后，必须再执行一次不带 `--entity` 的续跑，让命令对完整 14 类数据进行最终对账并创建稳定别名。
 
 临时请求失败会先按指数间隔自动重试，再决定是否推进本批游标。默认最多重试 4 次，基础间隔为 500 毫秒，单次请求超时为 30 秒；需要时可通过 `--max-request-retries`、`--retry-base-delay-ms` 和 `--request-timeout-ms` 调整。
 
