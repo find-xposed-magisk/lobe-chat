@@ -698,7 +698,12 @@ export default {
   'messageAction.continueGeneration': 'Continue Generating',
   'messageAction.continueGenerationUnsupported':
     'The current model doesn’t support continuing an assistant message. Try regenerating instead.',
+  'messageAction.advanced': 'Advanced',
+  'messageAction.copyMessageId': 'Copy Message ID',
   'messageAction.copyOperationId': 'Copy Operation ID',
+  'messageAction.saveAsEvalCase.label': 'Save as eval case',
+  'messageAction.saveAsEvalCase.notCapturable':
+    'This answer has no user turn before it, so it cannot be captured as a case.',
   'messageAction.delAndRegenerate': 'Delete and Regenerate',
   'messageAction.regenerateAlreadyRunning': 'This message is already being regenerated.',
   'messageAction.interrupted': 'Interrupted',
