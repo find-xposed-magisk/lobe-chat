@@ -832,6 +832,25 @@ export const sharedMainAreaChildren: RouteObject[] = [
             ),
             path: 'experiments/:experimentId',
           },
+          // A dataset and a case are addressable on their own — a dataset need
+          // not belong to a benchmark, so a benchmark id cannot be part of
+          // their canonical path. They live in the home group to keep the eval
+          // workspace sidebar; the bench group's sidebar is benchmark-scoped
+          // and has nothing to show for a dataset that belongs to none.
+          {
+            element: dynamicElement(
+              () => import('@/routes/(main)/eval/datasets/[datasetId]'),
+              'Desktop > Eval > Dataset Detail',
+            ),
+            path: 'datasets/:datasetId',
+          },
+          {
+            element: dynamicElement(
+              () => import('@/routes/(main)/eval/cases/[caseId]'),
+              'Desktop > Eval > Test Case Detail',
+            ),
+            path: 'cases/:caseId',
+          },
         ],
         element: dynamicElement(
           () => import('@/routes/(main)/eval/(home)/_layout'),
@@ -870,9 +889,11 @@ export const sharedMainAreaChildren: RouteObject[] = [
             path: 'runs/:runId',
           },
           {
+            // Legacy shape, kept so existing links still resolve; it redirects
+            // to the benchmark-free `/eval/datasets/:datasetId`.
             element: dynamicElement(
               () => import('@/routes/(main)/eval/bench/[benchmarkId]/datasets/[datasetId]'),
-              'Desktop > Eval > Dataset Detail',
+              'Desktop > Eval > Dataset Detail (legacy redirect)',
             ),
             path: 'datasets/:datasetId',
           },
