@@ -576,6 +576,36 @@ describe('GoalService', () => {
     );
   });
 
+  it('refuses to start a task once the goal is at its concurrency limit', async () => {
+    // The planner's cap check is a fast path over a snapshot; two overlapping
+    // advances can both read it below the limit. The count and the claim are
+    // therefore taken together under a per-goal lock, and this is the assertion
+    // that the enforcement — not the fast path — is what holds.
+    const runSpy = vi
+      .spyOn(TaskRunnerService.prototype, 'runTask')
+      .mockResolvedValue({ operationId: 'op-cap', taskId: 'placeholder' } as never);
+
+    const service = new GoalService(serverDB, userId);
+    const taskModel = new TaskModel(serverDB, userId);
+    const graph = await service.create({
+      config: { maxConcurrentTasks: 1 },
+      title: 'Capped goal',
+      work: ['First', 'Second'],
+    });
+
+    // Fill the single slot.
+    const first = await service.tick(graph.goal.id);
+    await service.tick(graph.goal.id);
+    await taskModel.updateStatus(first.taskId!, 'running');
+    runSpy.mockClear();
+
+    // The second task exists and is unblocked, but there is no room for it.
+    const capped = await service.tick(graph.goal.id);
+
+    expect(capped.outcome).toBe('waiting_external');
+    expect(runSpy).not.toHaveBeenCalled();
+  });
+
   it('automatically retries failed Work verification within policy budget', async () => {
     const runSpy = vi.spyOn(TaskRunnerService.prototype, 'runTask').mockResolvedValue({
       agentId: 'agent-recovery',
@@ -741,6 +771,27 @@ describe('GoalService', () => {
       outcome: 'waiting_external',
       taskId: created.taskId,
     });
+  });
+
+  it('starts ready sibling Work even when a running Task row is older than the operation lease', async () => {
+    const service = new GoalService(serverDB, userId);
+    const taskModel = new TaskModel(serverDB, userId);
+    const graph = await service.create({
+      config: { recovery: { operationLeaseTimeoutMs: 60_000 } },
+      title: 'Keep parallel work moving',
+      work: ['Long-running experiment', 'Independent analysis'],
+    });
+    const running = await service.tick(graph.goal.id);
+    await taskModel.updateStatus(running.taskId!, 'running');
+    await serverDB
+      .update(tasks)
+      .set({ updatedAt: new Date('2026-01-01T00:00:00.000Z') })
+      .where(eq(tasks.id, running.taskId!));
+
+    const sibling = await service.tick(graph.goal.id);
+
+    expect(sibling).toMatchObject({ outcome: 'advanced' });
+    expect(sibling.taskId).not.toBe(running.taskId);
   });
 
   it('rolls back the operation reclaim when recovery bookkeeping fails', async () => {
