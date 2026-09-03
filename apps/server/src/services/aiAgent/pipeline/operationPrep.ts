@@ -8,7 +8,11 @@ import { buildExpertiseContextSnapshot, SkillEngine } from '@lobechat/context-en
 import type { LobeChatDatabase } from '@lobechat/database';
 import { buildTaskManagerDefaultsPrompt, resourcesTreePrompt } from '@lobechat/prompts';
 import type { LobeAgentAgencyConfig, WorkingDirConfig, WorkspaceInitResult } from '@lobechat/types';
-import { getActivePluginIds, getWorkingDirEffectivePath } from '@lobechat/types';
+import {
+  buildGoalOverviewContext,
+  getActivePluginIds,
+  getWorkingDirEffectivePath,
+} from '@lobechat/types';
 import debug from 'debug';
 
 import type { AgentModel } from '@/database/models/agent';
@@ -16,6 +20,7 @@ import { AgentSkillModel } from '@/database/models/agentSkill';
 import { AiModelModel } from '@/database/models/aiModel';
 import { DeviceModel } from '@/database/models/device';
 import { ExpertiseModel } from '@/database/models/expertise';
+import { GoalGraphModel } from '@/database/models/goalGraph';
 import type { MessageModel } from '@/database/models/message';
 import type { TopicModel } from '@/database/models/topic';
 import { UserPersonaModel } from '@/database/models/userMemory/persona';
@@ -718,6 +723,27 @@ export const prepareOperation = async (
         },
       },
     };
+  }
+
+  // Goal-page side conversation: mirror the client executor's injection so
+  // server-run agents also answer progress questions from the live graph.
+  if (appContext?.viewedGoal?.goalId) {
+    try {
+      const snapshot = await new GoalGraphModel(deps.db, deps.userId, deps.workspaceId).getGraph(
+        appContext.viewedGoal.goalId,
+      );
+      if (snapshot) {
+        initialContext = {
+          ...initialContext,
+          initialContext: {
+            ...initialContext.initialContext,
+            goalOverview: buildGoalOverviewContext(snapshot),
+          },
+        };
+      }
+    } catch (error) {
+      log('execAgent: failed to build goal overview context: %O', error);
+    }
   }
 
   // Persist the @-mentioned agents into the runtime initialContext so the

@@ -1,3 +1,5 @@
+import type { InitialGoalOverviewContext } from './stepContext';
+
 // ============================================
 // Goal — independent target entity (`goals` table)
 // ============================================
@@ -45,7 +47,18 @@ export interface GoalSchedulePolicy {
   deadline?: string | null;
 }
 
+/**
+ * The goal's structured acceptance standard. The drafted criteria persist as
+ * `verify_criteria` rows (viewable and editable on the goal page); this block
+ * records their ids so the terminal Goal-acceptance Work verifies against
+ * exactly these checks instead of re-deriving them from the requirement prose.
+ */
+export interface GoalAcceptancePolicy {
+  criteriaIds?: string[];
+}
+
 export interface GoalConfig {
+  acceptance?: GoalAcceptancePolicy;
   /**
    * How many of a goal's Tasks may be in flight at once. Independent Tasks are
    * the common case — four bug fixes that share no code have no reason to run
@@ -209,8 +222,41 @@ export interface GoalGraphSnapshot {
   events: GoalGraphEvent[];
   goal: GoalItem;
   nodes: GoalGraphNode[];
+  /**
+   * Live heartbeat per active task node id: the `agent_operations.updatedAt`
+   * of the run behind it. The runtime refreshes that lease every ~90s, while
+   * `goal_nodes.updatedAt` only moves on observations / status changes —
+   * liveness judgements must use whichever of the two is newer.
+   */
+  runHeartbeats?: Record<string, Date>;
   workVersions: GoalGraphWorkVersionLink[];
 }
+
+/**
+ * Distill a graph snapshot into the structured goal overview that rides
+ * `RuntimeInitialContext.goalOverview`. Shared by every transport (client
+ * executor, gateway → server pipeline) so they ship identical data; the
+ * context-engine injector owns rendering it into prompt text.
+ */
+export const buildGoalOverviewContext = (
+  snapshot: GoalGraphSnapshot,
+): InitialGoalOverviewContext => {
+  let workSeq = 0;
+  return {
+    findings: snapshot.nodes.filter((node) => node.kind === 'finding').map((node) => node.title),
+    goal: {
+      requirement: snapshot.goal.requirement,
+      status: snapshot.goal.status,
+      title: snapshot.goal.title,
+    },
+    pendingDecisions: snapshot.decisions
+      .filter((decision) => decision.status === 'pending')
+      .map((decision) => ({ question: decision.question })),
+    work: snapshot.nodes
+      .filter((node) => node.kind === 'task')
+      .map((node) => ({ seq: ++workSeq, status: node.status, title: node.title })),
+  };
+};
 
 export type GoalTickOutcome =
   'advanced' | 'achieved' | 'waiting_human' | 'waiting_external' | 'no_progress' | 'failed';
