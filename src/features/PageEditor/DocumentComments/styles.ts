@@ -1,5 +1,17 @@
 import { createStaticStyles, cssVar } from 'antd-style';
 
+/** Max rendered height of an image inside the comment composer / edit box. */
+export const COMMENT_EDITOR_IMAGE_MAX_HEIGHT = 400;
+/** Max rendered height of an image inside a published comment. */
+export const COMMENT_CONTENT_IMAGE_MAX_HEIGHT = 480;
+
+/**
+ * Comment boxes grow with their content indefinitely (Yuque-style) — the page
+ * scrolls, the box never scrolls internally. `ChatInput` applies a 320px cap
+ * by default, so pass this effectively-unbounded value to neutralize it.
+ */
+export const COMMENT_INPUT_MAX_HEIGHT = 100_000;
+
 export const styles = createStaticStyles(({ css }) => ({
   actions: css`
     margin-inline-start: 40px;
@@ -12,7 +24,32 @@ export const styles = createStaticStyles(({ css }) => ({
     line-height: 1.7;
   `,
   card: css`
+    margin-inline: -12px;
     padding-block: 20px 12px;
+    padding-inline: 12px;
+    border-radius: ${cssVar.borderRadiusLG};
+
+    transition: background-color 600ms ${cssVar.motionEaseOut};
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  `,
+  commentContent: css`
+    /* Published comments render images as left-aligned thumbnails: the
+       renderer inlines the stored (natural) width, which would otherwise span
+       the whole column. */
+    & figure:has(> img) {
+      margin-block: 8px;
+      text-align: start;
+    }
+
+    & img {
+      width: auto !important;
+      max-width: 100% !important;
+      height: auto !important;
+      max-height: ${COMMENT_CONTENT_IMAGE_MAX_HEIGHT}px;
+    }
   `,
   commentEditor: css`
     min-width: 0;
@@ -25,6 +62,28 @@ export const styles = createStaticStyles(({ css }) => ({
 
     & [contenteditable='true'] > :last-child {
       margin-block-end: 0 !important;
+    }
+
+    /* The image plugin sizes a pasted image at its natural width with no
+       height bound. Comments keep images generous (near full column width,
+       like the document body) but aspect-preserving and height-capped, and
+       left-aligned like the text with breathing room above and below. */
+    & [contenteditable='true'] :has(> img) {
+      width: auto !important;
+      max-width: 100% !important;
+      text-align: start;
+    }
+
+    & [contenteditable='true'] > div:has(img) {
+      margin-block: 8px;
+      text-align: start;
+    }
+
+    & [contenteditable='true'] img {
+      width: auto !important;
+      max-width: 100% !important;
+      height: auto !important;
+      max-height: ${COMMENT_EDITOR_IMAGE_MAX_HEIGHT}px;
     }
   `,
   composer: css`
@@ -54,11 +113,12 @@ export const styles = createStaticStyles(({ css }) => ({
       box-shadow: 0 0 0 2px ${cssVar.colorPrimaryBg};
     }
   `,
-  empty: css`
-    min-height: 120px;
-  `,
   header: css`
     min-height: 32px;
+  `,
+  /* Applied briefly when a notification deep link lands on the card. */
+  highlighted: css`
+    background-color: ${cssVar.colorPrimaryBg};
   `,
   meta: css`
     color: ${cssVar.colorTextTertiary};

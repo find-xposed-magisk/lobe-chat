@@ -15,9 +15,6 @@ import { withSWR } from '~test-utils';
 
 import { useAgentStore } from '../../store';
 
-// Mock zustand/traditional for store testing
-vi.mock('zustand/traditional');
-
 // Mock agentService
 vi.mock('@/services/agent', () => ({
   AVAILABLE_AGENTS_CONTEXT_QUERY_LIMIT: 12,
@@ -42,8 +39,9 @@ vi.mock('@/services/agentDocument', () => ({
   resolveAgentDocumentsContext: vi.fn(),
 }));
 
-vi.mock('@lobehub/ui/base-ui', () => ({
-  toast: { error: vi.fn() },
+vi.mock('@lobehub/ui/base-ui', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  ...(await import('~base-ui-stubs')).baseUiStubs,
 }));
 
 // Mock sessionStore

@@ -1969,8 +1969,56 @@ describe('AgentRuntimeService', () => {
         metadata: { agentId: 'agt_1', topicId: 'tpc_1' },
       } as any);
 
-      expect(queryMessages).toHaveBeenCalledWith({ agentId: 'agt_1', topicId: 'tpc_1' });
+      expect(queryMessages).toHaveBeenCalledWith(
+        { agentId: 'agt_1', topicId: 'tpc_1' },
+        expect.anything(),
+      );
       expect(result).toEqual(stubMessages);
+    });
+
+    it('opts the snapshot into agent-share visitor rows', async () => {
+      // Regression: `MessageModel.query()` hides share-visitor messages by
+      // default. A visitor run executes under the creator's identity, so
+      // without the opt-in the terminal snapshot for the visitor's topic is
+      // `[]` and the client replaces the conversation it just streamed with
+      // nothing.
+      const queryMessages = vi.fn().mockResolvedValue([]);
+      stubMessageService(service, queryMessages);
+
+      await service.queryUiMessages({
+        metadata: { agentId: 'agt_1', topicId: 'tpc_1' },
+      } as any);
+
+      expect(queryMessages).toHaveBeenCalledWith(expect.anything(), { allowShareVisitor: true });
+    });
+
+    it('scopes the snapshot to the run thread when the operation is a subtopic run', async () => {
+      // Regression: without `threadId` the snapshot is the topic's MAIN
+      // conversation, and the client writes it into the thread's bucket at
+      // step_start / agent_runtime_end — wiping the turn the run just produced,
+      // so a freshly created subtopic renders the main conversation instead.
+      const queryMessages = vi.fn().mockResolvedValue([]);
+      stubMessageService(service, queryMessages);
+
+      await service.queryUiMessages({
+        metadata: { agentId: 'agt_1', threadId: 'thd_1', topicId: 'tpc_1' },
+      } as any);
+
+      expect(queryMessages).toHaveBeenCalledWith(
+        expect.objectContaining({ agentId: 'agt_1', threadId: 'thd_1', topicId: 'tpc_1' }),
+        expect.anything(),
+      );
+    });
+
+    it('leaves threadId unset for a main-conversation run', async () => {
+      const queryMessages = vi.fn().mockResolvedValue([]);
+      stubMessageService(service, queryMessages);
+
+      await service.queryUiMessages({
+        metadata: { agentId: 'agt_1', topicId: 'tpc_1' },
+      } as any);
+
+      expect(queryMessages.mock.calls[0][0].threadId).toBeUndefined();
     });
 
     it('returns undefined when agentId or topicId is missing (skips empty-array push)', async () => {
@@ -2477,7 +2525,10 @@ describe('AgentRuntimeService', () => {
         threadId: 'thread-1',
       });
 
-      expect((service as any).messageModel.query).toHaveBeenCalledWith({ threadId: 'thread-1' });
+      expect((service as any).messageModel.query).toHaveBeenCalledWith(
+        { threadId: 'thread-1' },
+        { allowShareVisitor: true },
+      );
       expect(updateToolMessage).toHaveBeenCalledWith(
         'grp-tool-1',
         expect.objectContaining({ content: 'hello from the CLI' }),
@@ -2689,7 +2740,10 @@ describe('AgentRuntimeService', () => {
 
       await service.completeSubAgentBridge(bridgeParams);
 
-      expect((service as any).messageModel.query).toHaveBeenCalledWith({ threadId: 'thread-1' });
+      expect((service as any).messageModel.query).toHaveBeenCalledWith(
+        { threadId: 'thread-1' },
+        { allowShareVisitor: true },
+      );
       expect(updateToolMessage).toHaveBeenCalledWith(
         'tool-msg-1',
         expect.objectContaining({ content: 'hello from the CLI' }),

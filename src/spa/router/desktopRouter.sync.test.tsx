@@ -14,6 +14,7 @@ import GoalSkeleton from '@/components/Skeleton/Goal';
 import GoalDetailSkeleton from '@/components/Skeleton/GoalDetail';
 import MemorySkeleton from '@/components/Skeleton/Memory';
 import ProfileSkeleton, { GroupProfileRouteSkeleton } from '@/components/Skeleton/Profile';
+import ResourceHomeSkeleton from '@/components/Skeleton/ResourceHome';
 import RouteSegmentSkeleton from '@/components/Skeleton/RouteSegment';
 import SettingsPageSkeleton from '@/components/Skeleton/Settings/Page';
 import TasksSkeleton from '@/components/Skeleton/Tasks';
@@ -31,7 +32,7 @@ import {
   createMainAreaChildren as createElectronMainAreaChildren,
   desktopRoutes as electronDesktopRoutes,
 } from './desktopRouter.config.desktop';
-import { createMainAreaRouteFactory } from './desktopRouter.shared';
+import { createMainAreaRouteFactory, ResourceCategorySkeleton } from './desktopRouter.shared';
 
 type MainAreaFactory = () => RouteObject[];
 
@@ -107,6 +108,7 @@ describe('desktop router shared definition', () => {
         '/agent/agent-1/channel',
         '/agent/agent-1/channel/slack',
         '/agent/agent-1/statistics',
+        '/agent/agent-1/share',
         '/group/group-1/profile',
       ]) {
         const matches = matchRoutes(createMainAreaRoutes(createMainAreaChildren), pathname);
@@ -184,7 +186,7 @@ describe('desktop router shared definition', () => {
   });
 
   it.each(mainAreaVariants)(
-    '%s exposes projects as task and goal containers only',
+    '%s exposes project task, goal, and acceptance workspaces',
     (_, factory) => {
       const projectRoute = factory().find((route) => route.path === 'project/:projectId');
       const projectIndexRoute = projectRoute?.children?.find((route) => route.index);
@@ -192,7 +194,7 @@ describe('desktop router shared definition', () => {
         ?.map((route) => route.path)
         .filter((routePath): routePath is string => Boolean(routePath));
 
-      expect(projectPaths).toEqual(['tasks', 'goals']);
+      expect(projectPaths).toEqual(['tasks', 'goals', 'acceptance']);
       expect(
         (projectIndexRoute?.element as ReactElement<{ to: string }> | undefined)?.props.to,
       ).toBe('tasks');
@@ -279,6 +281,11 @@ describe('desktop router shared definition', () => {
     // `/share/*` moved to the standalone Share app (apps/share).
     expect(webPaths).not.toContain('/share/t');
     expect(webPaths).not.toContain('/share/page');
+    // …and the agent-share visitor surface moved to `/agent/:aid`, so the old
+    // pattern stays registered on every platform only to redirect legacy links
+    // (Web, Electron, and the mobile router — see mobileRouter.test.tsx).
+    expect(webPaths).toContain('/share/agent/:slugOrId');
+    expect(electronPaths).toContain('/share/agent/:slugOrId');
     expect(webPaths).not.toContain('/verify');
     expect(webPaths).toContain('/acceptance');
     expect(webPaths).toContain('/onboarding');
@@ -382,6 +389,10 @@ describe('desktop router shared definition', () => {
       ['/settings/profile', SettingsPageSkeleton],
       ['/apps', AppsSkeleton],
       ['/memory', MemorySkeleton],
+      ['/resource', ResourceHomeSkeleton],
+      ['/resource/files', ResourceCategorySkeleton],
+      ['/resource/images', ResourceCategorySkeleton],
+      ['/resource/works', ResourceCategorySkeleton],
     ] as const) {
       const matches = matchRoutes(getRoutes(pathname), pathname);
       expect(
@@ -456,6 +467,24 @@ describe('desktop router shared definition', () => {
   );
 
   it.each(mainAreaVariants)(
+    '%s keeps workspace provider deep-links inside the workspace',
+    (_, factory) => {
+      const routes = createMainAreaRoutes(factory);
+      const listMatches = matchRoutes(routes, '/acme/settings/provider');
+      const detailMatches = matchRoutes(routes, '/acme/settings/provider/lobehub');
+
+      expect(listMatches?.at(-1)?.route.path).toBe('provider');
+      // Before the redirect route existed, the detail path fell through to the
+      // root catch-all (`*`) and kicked the user out of the workspace.
+      expect(detailMatches?.at(-1)?.route.path).toBe('provider/:providerId');
+      expect(detailMatches?.at(-1)?.params).toMatchObject({
+        providerId: 'lobehub',
+        workspaceSlug: 'acme',
+      });
+    },
+  );
+
+  it.each(mainAreaVariants)(
     '%s registers workspace OAuth app list and detail routes',
     (_, factory) => {
       const routes = createMainAreaRoutes(factory);
@@ -470,6 +499,29 @@ describe('desktop router shared definition', () => {
       });
     },
   );
+
+  it.each(mainAreaVariants)(
+    '%s keeps serving the creator agent surface on /agent/:aid',
+    (_, factory) => {
+      const matches = matchRoutes(createMainAreaRoutes(factory), '/agent/agt_1');
+
+      // The agent-share visitor page now shares this route; the branch is
+      // decided by `AgentRouteSwitch`, not by a second route pattern.
+      expect(matches?.some((match) => match.route.path === ':aid')).toBe(true);
+      expect(matches?.at(-1)?.params).toMatchObject({ aid: 'agt_1' });
+    },
+  );
+
+  it.each([
+    ['Web', webDesktopRoutes],
+    ['Electron', electronDesktopRoutes],
+  ])('%s redirects legacy /share/agent links to /agent', (_, routes) => {
+    const matches = matchRoutes(routes, '/share/agent/my-bot');
+    const element = matches?.at(-1)?.route.element as ReactElement;
+
+    expect(matches?.at(-1)?.params).toMatchObject({ slugOrId: 'my-bot' });
+    expect((element.type as { displayName?: string }).displayName).toBe('AgentShareLegacyRedirect');
+  });
 
   it('keeps business resource and task routes in the shared definition', async () => {
     const [sharedSource] = await readRouterSources();

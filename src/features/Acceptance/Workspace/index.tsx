@@ -9,13 +9,11 @@ import { Outlet, useParams, useSearchParams } from 'react-router';
 
 import { RouteMetaBridge } from '@/features/RouteMeta';
 
+import { useAcceptanceList } from '../hooks';
 import AcceptanceListPanel from './AcceptanceListPanel';
-import AcceptanceProjectActions from './AcceptanceProjectActions';
+import AcceptanceOnboarding from './AcceptanceOnboarding';
+import { useAcceptanceProjectActionItems } from './AcceptanceProjectActions';
 import { useReportPanelExpand } from './useReportPanelExpand';
-
-const renderProjectActions = (projectId?: string) => (
-  <AcceptanceProjectActions projectId={projectId} />
-);
 
 const styles = createStaticStyles(({ css }) => ({
   expandBtn: css`
@@ -56,18 +54,75 @@ const styles = createStaticStyles(({ css }) => ({
   `,
 }));
 
-const AcceptanceWorkspace = memo(() => {
+interface AcceptanceOnboardingState {
+  data?: unknown[];
+  enabled: boolean;
+  error?: unknown;
+  /**
+   * A deep-linked `:acceptanceId` must render even when the viewer's own list
+   * is empty — a shared link is often the very first acceptance a user opens,
+   * and the install onboarding would swallow it entirely.
+   */
+  hasDeepLink?: boolean;
+  isLoading: boolean;
+}
+
+export const shouldShowAcceptanceOnboarding = ({
+  data,
+  enabled,
+  error,
+  hasDeepLink,
+  isLoading,
+}: AcceptanceOnboardingState) =>
+  enabled && !hasDeepLink && !isLoading && !error && data?.length === 0;
+
+interface AcceptanceWorkspaceProps {
+  projectId?: string;
+}
+
+const AcceptanceWorkspace = memo<AcceptanceWorkspaceProps>(({ projectId }) => {
   const { t } = useTranslation('verify');
   const panel = useReportPanelExpand();
-  const { checkId } = useParams<{ checkId: string }>();
+  const projectActionItems = useAcceptanceProjectActionItems();
+  const { acceptanceId, checkId } = useParams<{ acceptanceId: string; checkId: string }>();
   const [searchParams] = useSearchParams();
   const hasFocusedCheck = Boolean(checkId || searchParams.get('check'));
   const showList = !hasFocusedCheck;
+  const {
+    data: allAcceptances,
+    error,
+    isLoading,
+  } = useAcceptanceList(showList, {
+    filter: 'all',
+    projectId,
+  });
+  const isFirstUse = shouldShowAcceptanceOnboarding({
+    data: allAcceptances,
+    enabled: showList && !projectId,
+    error,
+    hasDeepLink: Boolean(acceptanceId),
+    isLoading,
+  });
+
+  if (isFirstUse) {
+    return (
+      <>
+        <RouteMetaBridge />
+        <AcceptanceOnboarding />
+      </>
+    );
+  }
 
   return (
     <Flexbox horizontal height={'100dvh'} style={{ overflow: 'hidden' }} width={'100%'}>
       <RouteMetaBridge />
-      {showList && <AcceptanceListPanel {...panel} renderProjectActions={renderProjectActions} />}
+      {showList && (
+        <AcceptanceListPanel
+          {...panel}
+          projectActionItems={projectActionItems}
+          projectId={projectId}
+        />
+      )}
       <div className={styles.main}>
         {showList && !panel.expand && (
           <button
