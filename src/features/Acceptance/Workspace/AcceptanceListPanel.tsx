@@ -6,7 +6,6 @@ import {
   ActionIcon,
   Button,
   Checkbox,
-  confirmModal,
   DraggablePanel,
   DraggablePanelContainer,
   DropdownMenu,
@@ -47,6 +46,7 @@ import { useAcceptanceList, useAcceptanceListInfinite } from '../hooks';
 import { acceptanceHomePath } from '../Viewer/routes';
 import type { AcceptanceStatusAction } from '../Viewer/statusActions';
 import AcceptanceBatchBar from './AcceptanceBatchBar';
+import { openAcceptanceDeleteConfirm } from './AcceptanceDeleteConfirm';
 import {
   acceptanceListEmptyVariant,
   type AcceptanceListFilter,
@@ -535,15 +535,9 @@ const AcceptanceListPanel = memo<AcceptanceListPanelProps>(
       const targets = selectedVisible;
       if (targets.length === 0) return;
 
-      confirmModal({
-        cancelText: t('actions.cancel'),
-        content: t('acceptance.workspace.batch.deleteConfirmDescription', {
-          count: targets.length,
-        }),
-        okButtonProps: { danger: true },
-        okText: t('actions.delete'),
-        title: t('acceptance.workspace.batch.deleteConfirmTitle', { count: targets.length }),
-        onOk: async () => {
+      openAcceptanceDeleteConfirm({
+        ids: targets,
+        onDelete: async (purge) => {
           setBatchPending(true);
           try {
             // `allSettled`, never `all`: a rejected chunk must not hide the ones
@@ -552,8 +546,11 @@ const AcceptanceListPanel = memo<AcceptanceListPanelProps>(
             // chunk had just removed.
             const chunks = chunkAcceptanceBatch(targets);
             const settled = await Promise.allSettled(
-              chunks.map((chunk) => verifyService.deleteAcceptanceBatch(chunk)),
+              chunks.map((chunk) => verifyService.deleteAcceptanceBatch(chunk, purge)),
             );
+
+            if (settled.every((part): part is PromiseRejectedResult => part.status === 'rejected'))
+              throw settled[0].reason;
 
             let deleted = 0;
             const failedIds: string[] = [];
@@ -573,9 +570,6 @@ const AcceptanceListPanel = memo<AcceptanceListPanelProps>(
               navigate(acceptanceHomePath(), { replace: true });
             await settleBatch(targets, [], failedIds);
             reportBatch(deleted, targets.length, 'acceptance.workspace.batch.deleteSuccess');
-          } catch (cause) {
-            console.error('[acceptance:batchDelete]', cause);
-            toast.error(t('acceptance.workspace.batch.error'));
           } finally {
             setBatchPending(false);
           }
