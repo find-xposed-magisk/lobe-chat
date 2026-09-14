@@ -3737,6 +3737,24 @@ export const aiAgentRouter = router({
     }),
 
   /**
+   * Mint the per-USER Gateway JWT for the multiplexed v2 WebSocket (one
+   * socket per user, `GET /v2/ws`). Unlike `refreshGatewayToken` it is not
+   * bound to a running operation: the user hub authorizes every `subscribe`
+   * against the op's registered owner, so the token only has to carry the
+   * caller's identity. Short-lived (5m) like the v1 token; the client re-mints
+   * before every connect attempt.
+   *
+   * Blocked for restricted API keys (`TRPC_BLOCKED_PATH_PREFIXES`), like
+   * `refreshGatewayToken`: the JWT it returns passes `oidcAuth` as ordinary
+   * non-API-key auth, so a scoped key must never be able to mint one.
+   */
+  issueGatewayUserToken: aiAgentProcedure.query(async ({ ctx }) => {
+    const token = await signUserJWT(ctx.userId);
+
+    return { token };
+  }),
+
+  /**
    * Refresh Gateway JWT token for an existing operation.
    * Used when reconnecting after page reload (original token expired).
    */
