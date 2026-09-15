@@ -45,6 +45,7 @@ import type { ChatStore } from '@/store/chat/store';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
 import { topicMapKey } from '@/store/chat/utils/topicMapKey';
 import { getFileStoreState } from '@/store/file/store';
+import { getServerConfigStoreState } from '@/store/serverConfig';
 import type { StoreSetter } from '@/store/types';
 import { useUserStore } from '@/store/user';
 import {
@@ -64,6 +65,11 @@ import { createGatewayEventRouter } from './gatewayEventRouter';
 import { createGatewayMemberStreamHandler } from './gatewayMemberStreamHandler';
 import { type GatewayMuxIdentity, getGatewayMux } from './muxRegistry';
 import { flagQueuedMessagesOnRunStart, syncQueuedMessagesFlag } from './queuedMessagesFlag';
+
+const getGatewayServerConfig = () =>
+  (typeof window !== 'undefined'
+    ? window.global_serverConfigStore?.getState()?.serverConfig
+    : undefined) ?? getServerConfigStoreState()?.serverConfig;
 
 /**
  * Interrupts a gateway operation and rejects when its physical shutdown is unconfirmed.
@@ -575,7 +581,7 @@ export class GatewayActionImpl {
    */
   warmupGatewayMux = (): void => {
     if (!labPreferSelectors.enableGatewayMux(useUserStore.getState())) return;
-    const serverConfig = window.global_serverConfigStore?.getState()?.serverConfig;
+    const serverConfig = getGatewayServerConfig();
     if (!serverConfig?.agentGatewayUrl || !serverConfig.enableGatewayMode) return;
 
     const mux = this.resolveGatewayMux({ gatewayUrl: serverConfig.agentGatewayUrl });
@@ -587,7 +593,7 @@ export class GatewayActionImpl {
   };
 
   isGatewayModeEnabled = (agentId?: string): boolean => {
-    const serverConfig = window.global_serverConfigStore?.getState()?.serverConfig;
+    const serverConfig = getGatewayServerConfig();
     const agentState = getAgentStoreState();
     const resolvedAgentId = agentId ?? agentState.activeAgentId;
     const agentDisableGatewayMode = resolvedAgentId
@@ -606,7 +612,7 @@ export class GatewayActionImpl {
 
   /**
    * Execute agent task via Gateway WebSocket.
-   * Call isGatewayModeEnabled() first to check availability.
+   * The dispatcher can select this transport for device execution even when Gateway mode is off.
    */
   /**
    * Execute agent task via Gateway WebSocket.
@@ -730,8 +736,10 @@ export class GatewayActionImpl {
       tempMessageIds,
     } = params;
 
-    const agentGatewayUrl =
-      window.global_serverConfigStore!.getState().serverConfig.agentGatewayUrl!;
+    const agentGatewayUrl = getGatewayServerConfig()?.agentGatewayUrl;
+    if (!agentGatewayUrl) {
+      throw new Error('[Gateway] Cannot execute agent: serverConfig.agentGatewayUrl is missing');
+    }
 
     // The EXECUTION context decides whether the server creates a topic. The
     // message context can already carry the client-minted topic id (the send
@@ -1271,8 +1279,7 @@ export class GatewayActionImpl {
     const { agentShareId, assistantMessageId, heteroType, operationId, topicId, scope, threadId } =
       params;
 
-    const agentGatewayUrl =
-      window.global_serverConfigStore?.getState()?.serverConfig?.agentGatewayUrl;
+    const agentGatewayUrl = getGatewayServerConfig()?.agentGatewayUrl;
     if (!agentGatewayUrl) return;
 
     // Skip reconnect if the gateway action already established (or is establishing)
