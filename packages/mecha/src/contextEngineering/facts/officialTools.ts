@@ -20,15 +20,18 @@ const INTERNAL_TOOLS = new Set([
 
 /**
  * The official tool catalog as the agent / group builder prompt lists it:
- * every visible builtin (connectors rendered through their canonical owner),
- * then every connector this deployment offers with its connection status.
+ * every visible builtin (connectors rendered through their canonical owner)
+ * with whether the user still has it installed, then every connector this
+ * deployment offers with its connection status.
  */
 export const listOfficialTools = (params: {
   connectedConnectorIds: Set<string>;
   enabledPlugins: string[];
   features: ContextFactRequest['features'];
+  /** Builtins the user removed; listed but not installed, so the builder does not pin them. */
+  uninstalledBuiltinIds?: Set<string>;
 }): OfficialToolItem[] => {
-  const { connectedConnectorIds, enabledPlugins, features } = params;
+  const { connectedConnectorIds, enabledPlugins, features, uninstalledBuiltinIds } = params;
   const catalog = getConnectorCatalog({
     composio: features.composio,
     lobehub: features.lobehubSkill,
@@ -43,7 +46,7 @@ export const listOfficialTools = (params: {
       description: tool.manifest?.meta?.description,
       enabled: enabledPlugins.includes(tool.identifier),
       identifier: tool.identifier,
-      installed: true,
+      installed: !uninstalledBuiltinIds?.has(tool.identifier),
       name: tool.manifest?.meta?.title || tool.identifier,
       type: 'builtin',
     });

@@ -155,6 +155,8 @@ export interface ContextFactProviders {
   listTopicMessages?: (
     topic: TopicFacts,
   ) => Promise<{ content: string; role: string }[] | undefined>;
+  /** Builtin tool identifiers the user uninstalled in the current scope. */
+  listUninstalledBuiltinIds?: () => Promise<Iterable<string> | undefined>;
 }
 
 export interface GatheredContextFacts {

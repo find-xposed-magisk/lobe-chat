@@ -246,6 +246,12 @@ const gatherComposioServices = async (
   return generateComposioServicesList(connected, available);
 };
 
+/** Builtins the user removed in this scope; a builder must not pin them. */
+const gatherUninstalledBuiltinIds = async (providers: ContextFactProviders) => {
+  const ids = await attempt('uninstalledBuiltins', () => providers.listUninstalledBuiltinIds?.());
+  return ids ? new Set(ids) : undefined;
+};
+
 const gatherAgentBuilderContext = async (
   request: ContextFactRequest,
   providers: ContextFactProviders,
@@ -263,14 +269,15 @@ const gatherAgentBuilderContext = async (
     const editing = await getAgentDefinition(editingAgentId);
     if (!editing) return undefined;
     const enabledPlugins = editing.plugins ?? [];
-    const connected = new Set(
-      (await attempt('connectedConnectors', () => listConnectedConnectorIds?.(editingAgentId))) ??
-        [],
-    );
+    const [connected, uninstalled] = await Promise.all([
+      attempt('connectedConnectors', () => listConnectedConnectorIds?.(editingAgentId)),
+      gatherUninstalledBuiltinIds(providers),
+    ]);
     const officialTools = listOfficialTools({
-      connectedConnectorIds: connected,
+      connectedConnectorIds: new Set(connected ?? []),
       enabledPlugins,
       features: request.features,
+      uninstalledBuiltinIds: uninstalled,
     });
     return {
       config: {
@@ -327,11 +334,10 @@ const gatherGroupAgentBuilderContext = async (
         };
       }
     }
-    const connected = new Set(
-      (await attempt('connectedConnectors', () =>
-        listConnectedConnectorIds?.(supervisorAgentId),
-      )) ?? [],
-    );
+    const [connected, uninstalled] = await Promise.all([
+      attempt('connectedConnectors', () => listConnectedConnectorIds?.(supervisorAgentId)),
+      gatherUninstalledBuiltinIds(providers),
+    ]);
 
     return {
       config: {
@@ -348,9 +354,10 @@ const gatherGroupAgentBuilderContext = async (
         title: member.title || 'Untitled Agent',
       })),
       officialTools: listOfficialTools({
-        connectedConnectorIds: connected,
+        connectedConnectorIds: new Set(connected ?? []),
         enabledPlugins,
         features: request.features,
+        uninstalledBuiltinIds: uninstalled,
       }),
       supervisorConfig,
     };

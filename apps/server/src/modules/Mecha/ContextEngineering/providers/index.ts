@@ -1,5 +1,6 @@
 import type { AgentState } from '@lobechat/agent-runtime';
 import { formatWebOnboardingStateMessage } from '@lobechat/builtin-tool-web-onboarding/utils';
+import { defaultUninstalledBuiltinTools } from '@lobechat/builtin-tools';
 import { AGENT_PLAN_FILE_TYPE } from '@lobechat/const';
 import type { ContextFactProviders, ContextFactRequest } from '@lobechat/mecha';
 import { getActivePluginIds } from '@lobechat/types';
@@ -287,6 +288,26 @@ export const createServerContextFactProviders = ({
         id: a.id,
         title: a.title,
       })),
+
+    // The uninstalled list lives on the user's tool settings, one slot per
+    // workspace plus the personal one — the same slot the tool store reads.
+    listUninstalledBuiltinIds: async () => {
+      const settings = await new UserModel(db, userId).getUserSettings();
+      const tool = settings?.tool as
+        | {
+            uninstalledBuiltinTools?: string[];
+            uninstalledBuiltinToolsByWorkspace?: Record<string, string[] | undefined>;
+          }
+        | null
+        | undefined;
+      const stored = workspaceId
+        ? tool?.uninstalledBuiltinToolsByWorkspace?.[workspaceId]
+        : tool?.uninstalledBuiltinTools;
+      // Never configured (new account, or a workspace without its own slot)
+      // means the default seed — non-recommended builtins start uninstalled —
+      // exactly as the browser's tool store resolves it.
+      return stored === undefined ? defaultUninstalledBuiltinTools : stored;
+    },
 
     listSandboxFiles: async (topicId) =>
       new FileModel(db, userId).findFilesToInitInSandbox(topicId),

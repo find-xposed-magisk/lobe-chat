@@ -322,6 +322,33 @@ describe('gatherContextFacts', () => {
     });
   });
 
+  it('lists an uninstalled builtin as not installed so the builder does not pin it', async () => {
+    const builtinId = listOfficialTools({
+      connectedConnectorIds: new Set(),
+      enabledPlugins: [],
+      features: { composio: false, lobehubSkill: false },
+    }).find((t) => t.type === 'builtin')!.identifier;
+
+    const tools = listOfficialTools({
+      connectedConnectorIds: new Set(),
+      enabledPlugins: [],
+      features: { composio: false, lobehubSkill: false },
+      uninstalledBuiltinIds: new Set([builtinId]),
+    });
+    expect(tools.find((t) => t.identifier === builtinId)).toMatchObject({ installed: false });
+
+    const facts = await gatherContextFacts(
+      request({ editingAgentId: 'agt_edit', enabledToolIds: ['lobe-agent-builder'] }),
+      {
+        getAgentDefinition: async () => ({ plugins: [] }),
+        listUninstalledBuiltinIds: async () => [builtinId],
+      },
+    );
+    expect(
+      facts.step.agentBuilderContext?.officialTools?.find((t) => t.identifier === builtinId),
+    ).toMatchObject({ installed: false });
+  });
+
   it('describes the workspace only when its slug resolves', async () => {
     const providers = {
       getWorkspaceContext: async (id?: string) => ({
