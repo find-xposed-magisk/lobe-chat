@@ -16,6 +16,7 @@ import { MessageModel } from '@/database/models/message';
 import { UserModel } from '@/database/models/user';
 
 import { FileService } from '../file';
+import { resolveMessageFileUrls } from './resolveMessageFileUrls';
 
 /** Apply the same error contract to single and batched message writes. */
 const normalizeMessageError = <T extends Pick<UpdateMessageParams, 'error'>>(value: T): T =>
@@ -233,6 +234,14 @@ export class MessageService {
     });
 
     return options?.skipToolProjection ? messages : this.projectToolPayloads(messages);
+  }
+
+  /** Build the UI view from an already authorized, unprocessed DB snapshot. */
+  async prepareUiMessages(messages: UIChatMessage[], skipToolProjection = false) {
+    const resolved = await resolveMessageFileUrls(messages, (file) =>
+      this.fileService.getFileAccessUrl(file),
+    );
+    return skipToolProjection ? resolved : this.projectToolPayloads(resolved);
   }
 
   /**
