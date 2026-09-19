@@ -10,6 +10,10 @@ import {
   getGitWorkingTreePatches,
   getGitWorkingTreeStatus,
   getLinkedPullRequest,
+  getPullRequestActivity,
+  getPullRequestDetail,
+  getPullRequestMergeContext,
+  type GitPullRequestAction,
   listGitBranches,
   listGitRemoteBranches,
   listGitWorktrees,
@@ -18,6 +22,7 @@ import {
   removeGitWorktree,
   renameGitBranch,
   revertGitFile,
+  runPullRequestAction,
 } from '@lobechat/local-file-shell/git';
 
 import { getClaudeCodeQuota, type GetClaudeCodeQuotaParams } from './claudeCodeQuota';
@@ -69,6 +74,10 @@ export const DEVICE_RPC_METHODS = [
   'writeLocalFile',
   'getGitBranch',
   'getLinkedPullRequest',
+  'getPullRequestDetail',
+  'getPullRequestActivity',
+  'getPullRequestMergeContext',
+  'runPullRequestAction',
   'getGitWorkingTreeStatus',
   'getGitWorkingTreeFiles',
   'getGitWorkingTreePatches',
@@ -199,6 +208,31 @@ export const executeDeviceRpc = async (
     case 'getLinkedPullRequest': {
       return getLinkedPullRequest(
         params as { branch: string; path: string; pullRequestNumber?: number },
+      );
+    }
+
+    case 'getPullRequestDetail': {
+      return getPullRequestDetail(params as { coreOnly?: boolean; number: number; path: string });
+    }
+    case 'getPullRequestActivity': {
+      return getPullRequestActivity(params as { number: number; path: string });
+    }
+
+    case 'getPullRequestMergeContext': {
+      return getPullRequestMergeContext(
+        params as {
+          baseRefName: string;
+          headRefOid: string;
+          number: number;
+          path: string;
+          repo: { name: string; owner: string };
+        },
+      );
+    }
+
+    case 'runPullRequestAction': {
+      return runPullRequestAction(
+        params as { action: GitPullRequestAction; number: number; path: string },
       );
     }
 

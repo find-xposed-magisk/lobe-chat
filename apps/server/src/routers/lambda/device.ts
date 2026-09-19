@@ -255,6 +255,62 @@ export const deviceRouter = router({
       return result ?? null;
     }),
 
+  gitPullRequestDetail: deviceProcedure
+    .input(
+      z.object({
+        coreOnly: z.boolean().optional(),
+        deviceId: z.string(),
+        number: z.number().int().positive(),
+        path: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const result = await deviceGateway.gitPullRequestDetail({
+        coreOnly: input.coreOnly,
+        deviceId: input.deviceId,
+        number: input.number,
+        path: input.path,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+      });
+      return result ?? null;
+    }),
+
+  gitPullRequestActivity: deviceProcedure
+    .input(
+      z.object({ deviceId: z.string(), number: z.number().int().positive(), path: z.string() }),
+    )
+    .query(async ({ ctx, input }) => {
+      const result = await deviceGateway.gitPullRequestActivity({
+        deviceId: input.deviceId,
+        number: input.number,
+        path: input.path,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+      });
+      return result ?? null;
+    }),
+
+  gitPullRequestMergeContext: deviceProcedure
+    .input(
+      z.object({
+        baseRefName: z.string(),
+        deviceId: z.string(),
+        headRefOid: z.string().regex(/^[a-f\d]{40}$/i),
+        number: z.number().int().positive(),
+        path: z.string(),
+        repo: z.object({ name: z.string(), owner: z.string() }),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const result = await deviceGateway.gitPullRequestMergeContext({
+        ...input,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+      });
+      return result ?? null;
+    }),
+
   gitWorkingTreeStatus: deviceProcedure
     .input(z.object({ deviceId: z.string(), path: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -526,6 +582,52 @@ export const deviceRouter = router({
         workspaceId: ctx.workspaceId,
       }),
     ),
+
+  /**
+   * Run a `gh pr` mutation (merge, auto-merge, ready, comment, close, ...) on a
+   * directory on a remote device, via the device's `runPullRequestAction` RPC.
+   */
+  runGitPullRequestAction: deviceProcedure
+    .input(
+      z.object({
+        action: z.discriminatedUnion('type', [
+          z.object({
+            admin: z.boolean().optional(),
+            deleteBranch: z.boolean().optional(),
+            headRefOid: z.string().regex(/^[a-f\d]{40}$/i),
+            method: z.enum(['squash', 'merge', 'rebase']),
+            type: z.literal('merge'),
+          }),
+          z.object({
+            headRefOid: z.string().regex(/^[a-f\d]{40}$/i),
+            method: z.enum(['squash', 'merge', 'rebase']),
+            type: z.literal('autoMerge'),
+          }),
+          z.object({ type: z.literal('disableAutoMerge') }),
+          z.object({ method: z.enum(['merge', 'rebase']), type: z.literal('updateBranch') }),
+          z.object({ type: z.literal('ready') }),
+          z.object({ body: z.string(), type: z.literal('comment') }),
+          z.object({ type: z.literal('close') }),
+          z.object({ type: z.literal('reopen') }),
+          z.object({ head: z.string(), type: z.literal('deleteBranch') }),
+          z.object({ base: z.string(), type: z.literal('changeBase') }),
+        ]),
+        deviceId: z.string(),
+        number: z.number().int().positive(),
+        path: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertWorkspaceRootApproved(ctx.deviceModel, input.deviceId, input.path);
+      return deviceGateway.runGitPullRequestAction({
+        action: input.action,
+        deviceId: input.deviceId,
+        number: input.number,
+        path: input.path,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+      });
+    }),
 
   /**
    * Working-tree (unstaged) per-file patches for a directory on a remote device,
