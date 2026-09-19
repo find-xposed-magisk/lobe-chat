@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { TRPCClientError } from '@trpc/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { getDraft, removeDraft } from '@/features/ChatInput/draftStorage';
 import { agentService } from '@/services/agent';
 import { aiAgentService } from '@/services/aiAgent';
 import { aiChatService } from '@/services/aiChat';
@@ -505,6 +506,83 @@ describe('ConversationLifecycle actions', () => {
 
         expect(setJSONState).toHaveBeenCalledWith(inputEditorState);
         expect(sendMessageOperation?.metadata.inputSendErrorMsg).toBeTruthy();
+      });
+
+      it.each(['unchanged', 'edited', 'cleared'] as const)(
+        'preserves the %s live draft when a cancelled first send rolls back asynchronously',
+        async (change) => {
+          const context = createTestContext();
+          const draftKey = messageMapKey(context);
+          const snapshot = {
+            root: { children: [{ text: 'Cancelled first message' }], type: 'root' },
+          };
+          const latestDraft = {
+            root: {
+              children:
+                change === 'cleared' ? [] : [{ text: 'Cancelled first message with edits' }],
+              type: 'root',
+            },
+          };
+          let editorState = snapshot;
+          const editor = {
+            getJSONState: vi.fn(() => editorState),
+            setJSONState: vi.fn((state) => {
+              editorState = state;
+            }),
+          };
+          removeDraft(draftKey);
+          const executeGatewayAgent = vi.fn().mockImplementation(async (params) => {
+            const store = useChatStore.getState();
+            store.cancelOperation(params.parentOperationId);
+            store.cancelSendMessageInServer(params.messageContext, editor as any);
+            expect(editorState).toEqual(snapshot);
+            // User edits after restoration, before the aborted request unwinds.
+            await Promise.resolve();
+            if (change !== 'unchanged') editorState = latestDraft;
+            throw new DOMException('Stopped before dispatch', 'AbortError');
+          });
+          useChatStore.setState({ executeGatewayAgent, isGatewayModeEnabled: () => true });
+
+          await useChatStore.getState().sendMessage({
+            context,
+            editorData: snapshot as any,
+            inputEditor: editor as any,
+            message: 'Cancelled first message',
+          });
+
+          expect(executeGatewayAgent).toHaveBeenCalledOnce();
+          expect(getDraft(draftKey)).toEqual(change === 'unchanged' ? snapshot : latestDraft);
+          removeDraft(draftKey);
+        },
+      );
+
+      it('does not restore an accepted gateway message when stopped during setup', async () => {
+        const context = { ...createTestContext(), topicId: TEST_IDS.TOPIC_ID };
+        const setJSONState = vi.fn();
+        const editor = {
+          getJSONState: vi.fn().mockReturnValue({ content: 'already sent' }),
+          setDocument: vi.fn(),
+          setJSONState,
+        };
+        const executeGatewayAgent = vi.fn().mockImplementation(async (params) => {
+          params.onMessageAccepted();
+          useChatStore.getState().cancelSendMessageInServer(context, editor as any);
+          throw new DOMException('Stopped', 'AbortError');
+        });
+        useChatStore.setState({
+          executeGatewayAgent,
+          isGatewayModeEnabled: () => true,
+          mainInputEditor: editor as any,
+        });
+
+        await useChatStore.getState().sendMessage({
+          context,
+          editorData: { content: 'already sent' } as any,
+          message: 'already sent',
+        });
+
+        expect(executeGatewayAgent).toHaveBeenCalledOnce();
+        expect(setJSONState).not.toHaveBeenCalled();
       });
 
       it('should not restore the composer when gateway setup fails after message acceptance', async () => {
