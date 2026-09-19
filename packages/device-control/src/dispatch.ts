@@ -26,6 +26,7 @@ import {
 } from '@lobechat/local-file-shell/git';
 
 import { getClaudeCodeQuota, type GetClaudeCodeQuotaParams } from './claudeCodeQuota';
+import { getCodexQuota, type GetCodexQuotaParams } from './codexQuota';
 import { defaultCopyAssetForPublish, defaultReadExternalAssetForPublish } from './filePreview';
 import { defaultListProjectDirectory } from './projectFileIndex';
 import { prepareSkillDirectory } from './skillDirectory';
@@ -59,6 +60,7 @@ export const DEVICE_RPC_METHODS = [
   'initWorkspace',
   'listHeterogeneousAgentModels',
   'getClaudeCodeQuota',
+  'getCodexQuota',
   'listProjectSkills',
   'prepareSkillDirectory',
   'browseDirectory',
@@ -143,6 +145,10 @@ export const executeDeviceRpc = async (
 
     case 'getClaudeCodeQuota': {
       return getClaudeCodeQuota(params as GetClaudeCodeQuotaParams);
+    }
+
+    case 'getCodexQuota': {
+      return getCodexQuota(params as GetCodexQuotaParams);
     }
 
     case 'listProjectSkills': {
