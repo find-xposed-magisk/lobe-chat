@@ -1,19 +1,32 @@
 import { type LobeChatDatabase } from '@lobechat/database';
+import type * as ToolViewModelModule from '@lobechat/tool-view-model';
+import { projectToolViewModels } from '@lobechat/tool-view-model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MessageModel } from '@/database/models/message';
+import { UserModel } from '@/database/models/user';
 import { FileService } from '@/server/services/file';
 
 import { MessageService } from '../index';
 
 vi.mock('@/database/models/message');
+vi.mock('@/database/models/user');
 vi.mock('@/server/services/file');
+
+// Spy on the real projector pipeline rather than stubbing it: the assertion
+// that matters is that the UI read path runs it at all, and that with an empty
+// registry it is still a pass-through.
+vi.mock('@lobechat/tool-view-model', async (importOriginal) => {
+  const actual = await importOriginal<typeof ToolViewModelModule>();
+  return { ...actual, projectToolViewModels: vi.fn(actual.projectToolViewModels) };
+});
 
 describe('MessageService', () => {
   let messageService: MessageService;
   let mockDB: LobeChatDatabase;
   let mockMessageModel: MessageModel;
   let mockFileService: FileService;
+  let mockUserModel: UserModel;
   const userId = 'test-user-id';
 
   beforeEach(() => {
@@ -37,6 +50,11 @@ describe('MessageService', () => {
       }),
     } as any;
 
+    // Mux cohort by default; the off case is asserted explicitly below.
+    mockUserModel = {
+      getUserPreference: vi.fn().mockResolvedValue({ lab: { enableGatewayMux: true } }),
+    } as any;
+
     // Mock constructors
     vi.mocked(MessageModel).mockImplementation(function () {
       return mockMessageModel;
@@ -44,8 +62,87 @@ describe('MessageService', () => {
     vi.mocked(FileService).mockImplementation(function () {
       return mockFileService;
     });
+    vi.mocked(UserModel).mockImplementation(function () {
+      return mockUserModel;
+    });
 
     messageService = new MessageService(mockDB, userId);
+  });
+
+  describe('queryMessages', () => {
+    const toolRow = {
+      content: 'RAW BODY',
+      id: 'tool-1',
+      plugin: { apiName: 'crawlSinglePage', arguments: '{}', identifier: 'lobe-web-browsing' },
+      pluginState: { results: [] },
+      role: 'tool',
+    } as any;
+
+    it('runs the UI read path through the tool view-model projector', async () => {
+      vi.mocked(mockMessageModel.query).mockResolvedValue([toolRow]);
+
+      const [projected] = await messageService.queryMessages({ topicId: 'topic-1' });
+
+      expect(projectToolViewModels).toHaveBeenCalledWith([toolRow]);
+      expect(projected.content).toBe('');
+      expect(projected.contentLength).toBe('RAW BODY'.length);
+      expect(projected.payloadOmitted).toBe('detail');
+    });
+
+    it('keeps the whole payload for a user who is not on the mux', async () => {
+      // Off the mux a run can execute in the browser against this very list, so
+      // projecting here would quietly drop tool results from the LLM context.
+      vi.mocked(mockUserModel.getUserPreference).mockResolvedValue({ lab: {} } as any);
+      vi.mocked(mockMessageModel.query).mockResolvedValue([toolRow]);
+
+      const result = await messageService.queryMessages({ topicId: 'topic-1' });
+
+      expect(result).toEqual([toolRow]);
+    });
+
+    it('keeps the whole payload when the preference read fails', async () => {
+      vi.mocked(mockUserModel.getUserPreference).mockRejectedValue(new Error('db down'));
+      vi.mocked(mockMessageModel.query).mockResolvedValue([toolRow]);
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const result = await messageService.queryMessages({ topicId: 'topic-1' });
+
+      expect(result).toEqual([toolRow]);
+      error.mockRestore();
+    });
+
+    it('reads the lab preference once, not once per step', async () => {
+      vi.mocked(mockMessageModel.query).mockResolvedValue([toolRow]);
+
+      await messageService.queryMessages({ topicId: 'topic-1' });
+      await messageService.queryMessages({ topicId: 'topic-1' });
+      await messageService.queryMessages({ topicId: 'topic-1' });
+
+      expect(mockUserModel.getUserPreference).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps a share-visitor snapshot whole, since only the creator could fetch it back', async () => {
+      vi.mocked(mockMessageModel.query).mockResolvedValue([toolRow]);
+
+      const result = await messageService.queryMessages(
+        { topicId: 'topic-1' },
+        { allowShareVisitor: true, skipToolProjection: true },
+      );
+
+      expect(result).toEqual([toolRow]);
+    });
+
+    it('leaves a tool without a projector exactly as stored', async () => {
+      const unprojected = {
+        ...toolRow,
+        plugin: { apiName: 'noSuchApi', arguments: '{}', identifier: 'some-mcp-server' },
+      };
+      vi.mocked(mockMessageModel.query).mockResolvedValue([unprojected]);
+
+      const result = await messageService.queryMessages({ topicId: 'topic-1' });
+
+      expect(result).toEqual([unprojected]);
+    });
   });
 
   describe('removeMessage', () => {
