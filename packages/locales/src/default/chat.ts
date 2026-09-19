@@ -781,6 +781,8 @@ export default {
   'messageAction.regenerate': 'Regenerate',
   'messageAction.select': 'Select',
   'messageLink.openInSideBrowser': 'Open in side browser',
+  'heteroRateLimit.cancelFailed':
+    'Could not cancel the scheduled continuation. It may already be claimed or running. Refresh the conversation to check its status.',
   'messageForward.bar.cancel': 'Cancel',
   'messageForward.bar.delete': 'Delete',
   'messageForward.bar.forward': 'Forward',
@@ -808,9 +810,13 @@ export default {
   'messageForward.successMulti': 'Forwarded to {{count}} agents',
   'messageForward.transcript.header':
     'The following {{count}} messages were forwarded from another conversation. Please use them as context and continue:',
+  'messageForward.topic.handoffFailed':
+    'Transfer did not start because the source continuation could not be cancelled. It may already be running. Refresh the conversation and check its status.',
+  'messageForward.topic.sourceSchedulePaused':
+    'Transfer could not be confirmed. The original scheduled continuation is paused. Check the target conversation before retrying or scheduling again.',
   'messageForward.topic.context': 'Topic context',
   'messageForward.topic.description':
-    'The user and assistant messages in this topic will be sent as context. Tool messages are excluded.',
+    "The selected Agent will receive this topic's context and continue the work.",
   'messageForward.topic.header':
     'The following topic was forwarded from another conversation. Please use it as context and continue:',
   'messageForward.topic.loadFailed': 'Could not load this topic for forwarding',
@@ -941,6 +947,7 @@ export default {
   'cliOverloadedGuide.title': '{{name}} is temporarily overloaded',
   'cliRateLimitGuide.actions.openSystemTools': 'Open System Tools',
   'cliRateLimitGuide.actions.retry': 'Retry message',
+  'cliRateLimitGuide.actions.transfer': 'Transfer to another Agent',
   'cliRateLimitGuide.afterReset':
     'This account has reached its current usage limit. You can continue after {{resetAt}}.',
   'cliRateLimitGuide.afterResetWithLimitType':
