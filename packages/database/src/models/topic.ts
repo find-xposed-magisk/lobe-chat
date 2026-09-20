@@ -7,6 +7,7 @@ import type {
   TopicRankItem,
   TopicScheduledRun,
 } from '@lobechat/types';
+import { parseTopicScheduledRun } from '@lobechat/types';
 import type { TimingSink } from '@lobechat/utils';
 import {
   getDurationMs,
@@ -41,6 +42,7 @@ import type { TopicItem } from '../schemas';
 import {
   agentOperations,
   agents,
+  chatGroups,
   messagePlugins,
   messages,
   threads,
@@ -54,6 +56,7 @@ import { markCopiedMessageMetadata } from '../utils/copyMessagesInDatabase';
 import { genEndDateWhere, genRangeWhere, genStartDateWhere, genWhere } from '../utils/genWhere';
 import { idGenerator } from '../utils/idGenerator';
 import { inJsonStringArray } from '../utils/inJsonStringArray';
+import { searchableMessage } from '../utils/searchableMessage';
 import { notShareVisitorTopic } from '../utils/shareVisitor';
 import { buildWorkspacePayload, buildWorkspaceWhere } from '../utils/workspace';
 import { recomputeTopicUsage } from './topicUsage';
@@ -103,6 +106,12 @@ const UNBOUNDED_OPERATION_STATUSES = new Set(['waiting_for_human', 'waiting_for_
 export interface TopicListItem extends TopicItem {
   /** The topic's last non-empty assistant reply, truncated with a trailing `…`. Only set when `queryTopics` is called with `withLastMessage`. */
   lastAssistantMessage?: string | null;
+  /**
+   * Visibility of the agent/group this topic belongs to — `'private'` marks a
+   * conversation that must stay out of shared/team listings even though the
+   * viewer may own it. Null for legacy rows with no resolvable parent.
+   */
+  parentVisibility?: 'private' | 'public' | null;
   /**
    * When the topic's current run started (`agent_operations.startedAt` of its
    * latest top-level running operation). Only computed for `running` topics;
@@ -906,13 +915,37 @@ export class TopicModel {
     statuses?: string[];
     withLastMessage?: boolean;
   } = {}): Promise<TopicListItem[]> => {
+    const scope = { userId: this.userId, workspaceId: this.workspaceId };
+
+    // Unlike the per-agent topic list, this feed is not scoped by agent at all:
+    // in a workspace `ownership()` matches every member's rows, so a topic
+    // whose owning agent/group is someone else's PRIVATE conversation would
+    // surface here — title and last assistant reply included. Gate on the
+    // parent the same way the Recent feed does. Rows with no resolvable parent
+    // (legacy session-only topics) have nothing to check and keep the previous
+    // behaviour.
+    const visibleParentWhere = or(
+      and(isNull(topics.agentId), isNull(topics.groupId)),
+      and(isNotNull(topics.groupId), buildWorkspaceWhere(scope, chatGroups)),
+      and(isNull(topics.groupId), isNotNull(topics.agentId), buildWorkspaceWhere(scope, agents)),
+    );
+
     const where = and(
       this.ownership(),
       this.notShareVisitor(),
+      visibleParentWhere,
       statuses && statuses.length > 0
         ? inArray(topics.status, statuses as ChatTopicStatus[])
         : undefined,
     );
+
+    // `buildWorkspaceWhere` keeps a member's OWN private rows visible, which is
+    // right for a "mine" list and wrong for a shared one. Ship the parent's
+    // visibility so the caller's team view can drop private conversations
+    // without a second round trip.
+    const parentVisibilityColumn = sql<
+      'private' | 'public' | null
+    >`COALESCE(${chatGroups.visibility}, ${agents.visibility})`.as('parent_visibility');
 
     // When the topic's current run started, so a list can show live elapsed
     // time instead of `updatedAt` (which moves on every message write). The
@@ -946,9 +979,12 @@ export class TopicModel {
       return this.db
         .select({
           ...getTableColumns(topics),
+          parentVisibility: parentVisibilityColumn,
           runStartedAt: runStartedAtColumn,
         })
         .from(topics)
+        .leftJoin(agents, eq(topics.agentId, agents.id))
+        .leftJoin(chatGroups, eq(topics.groupId, chatGroups.id))
         .where(where)
         .orderBy(desc(topics.updatedAt))
         .limit(pageSize);
@@ -984,9 +1020,12 @@ export class TopicModel {
         lastAssistantMessage: sql<string | null>`(${lastAssistantMessageSubquery})`.as(
           'last_assistant_message',
         ),
+        parentVisibility: parentVisibilityColumn,
         runStartedAt: runStartedAtColumn,
       })
       .from(topics)
+      .leftJoin(agents, eq(topics.agentId, agents.id))
+      .leftJoin(chatGroups, eq(topics.groupId, chatGroups.id))
       .where(where)
       .orderBy(desc(topics.updatedAt))
       .limit(pageSize);
@@ -1084,6 +1123,7 @@ export class TopicModel {
         .where(
           and(
             this.messageOwnership(),
+            searchableMessage(),
             messageCandidateIds
               ? inJsonStringArray(messages.id, messageCandidateIds)
               : sql`${messages.content} @@@ ${bm25Query}`,
@@ -2428,6 +2468,31 @@ export class TopicModel {
         })
         .where(and(eq(topics.id, id), this.ownership()));
       return 'released';
+    });
+
+  /** Atomically cancel an unclaimed rate-limit run, serialized with the dispatcher. */
+  cancelRateLimitContinuation = async (id: string) =>
+    this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ metadata: topics.metadata, status: topics.status })
+        .from(topics)
+        .where(and(eq(topics.id, id), this.ownership()))
+        .for('update');
+      if (!row) return { status: 'unchanged' as const };
+      if (row.status === 'running') return { status: 'busy' as const };
+      const scheduledRun = parseTopicScheduledRun(row.metadata?.scheduledRun);
+      if (row.status !== 'scheduled' || scheduledRun?.kind !== 'resume_after_rate_limit')
+        return { status: 'unchanged' as const };
+      // A lease expiring does not stop its dispatcher. Once claimed, a handoff
+      // must not race that worker, even if its five-minute lease has elapsed.
+      if (scheduledRun.claim) return { status: 'busy' as const };
+
+      const metadata = { ...row.metadata, scheduledRun: null };
+      await tx
+        .update(topics)
+        .set({ metadata, status: 'failed' })
+        .where(and(eq(topics.id, id), this.ownership()));
+      return { metadata, status: 'cancelled' as const };
     });
 
   /**

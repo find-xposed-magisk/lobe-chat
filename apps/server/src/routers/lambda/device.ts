@@ -28,7 +28,11 @@ import { type DeviceAttachment, deviceGateway } from '@/server/services/deviceGa
 import { filterAuthorizedDevicePresence } from '@/server/services/deviceGateway/scopedDevicePresence';
 
 import { preserveWorkspaceCache } from './deviceWorkingDirs';
-import { assertWorkspaceDeviceVisible, assertWorkspaceRootApproved } from './deviceWorkspaceGuard';
+import {
+  assertWorkspaceDeviceVisible,
+  assertWorkspaceRootApproved,
+  registerDeviceSkillRoots,
+} from './deviceWorkspaceGuard';
 
 // Derive the zod enum from the canonical config so new platforms are
 // automatically covered without touching this file.
@@ -245,6 +249,62 @@ export const deviceRouter = router({
         deviceId: input.deviceId,
         path: input.path,
         pullRequestNumber: input.pullRequestNumber,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+      });
+      return result ?? null;
+    }),
+
+  gitPullRequestDetail: deviceProcedure
+    .input(
+      z.object({
+        coreOnly: z.boolean().optional(),
+        deviceId: z.string(),
+        number: z.number().int().positive(),
+        path: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const result = await deviceGateway.gitPullRequestDetail({
+        coreOnly: input.coreOnly,
+        deviceId: input.deviceId,
+        number: input.number,
+        path: input.path,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+      });
+      return result ?? null;
+    }),
+
+  gitPullRequestActivity: deviceProcedure
+    .input(
+      z.object({ deviceId: z.string(), number: z.number().int().positive(), path: z.string() }),
+    )
+    .query(async ({ ctx, input }) => {
+      const result = await deviceGateway.gitPullRequestActivity({
+        deviceId: input.deviceId,
+        number: input.number,
+        path: input.path,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+      });
+      return result ?? null;
+    }),
+
+  gitPullRequestMergeContext: deviceProcedure
+    .input(
+      z.object({
+        baseRefName: z.string(),
+        deviceId: z.string(),
+        headRefOid: z.string().regex(/^[a-f\d]{40}$/i),
+        number: z.number().int().positive(),
+        path: z.string(),
+        repo: z.object({ name: z.string(), owner: z.string() }),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const result = await deviceGateway.gitPullRequestMergeContext({
+        ...input,
         userId: ctx.userId,
         workspaceId: ctx.workspaceId,
       });
@@ -524,6 +584,52 @@ export const deviceRouter = router({
     ),
 
   /**
+   * Run a `gh pr` mutation (merge, auto-merge, ready, comment, close, ...) on a
+   * directory on a remote device, via the device's `runPullRequestAction` RPC.
+   */
+  runGitPullRequestAction: deviceProcedure
+    .input(
+      z.object({
+        action: z.discriminatedUnion('type', [
+          z.object({
+            admin: z.boolean().optional(),
+            deleteBranch: z.boolean().optional(),
+            headRefOid: z.string().regex(/^[a-f\d]{40}$/i),
+            method: z.enum(['squash', 'merge', 'rebase']),
+            type: z.literal('merge'),
+          }),
+          z.object({
+            headRefOid: z.string().regex(/^[a-f\d]{40}$/i),
+            method: z.enum(['squash', 'merge', 'rebase']),
+            type: z.literal('autoMerge'),
+          }),
+          z.object({ type: z.literal('disableAutoMerge') }),
+          z.object({ method: z.enum(['merge', 'rebase']), type: z.literal('updateBranch') }),
+          z.object({ type: z.literal('ready') }),
+          z.object({ body: z.string(), type: z.literal('comment') }),
+          z.object({ type: z.literal('close') }),
+          z.object({ type: z.literal('reopen') }),
+          z.object({ head: z.string(), type: z.literal('deleteBranch') }),
+          z.object({ base: z.string(), type: z.literal('changeBase') }),
+        ]),
+        deviceId: z.string(),
+        number: z.number().int().positive(),
+        path: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertWorkspaceRootApproved(ctx.deviceModel, input.deviceId, input.path);
+      return deviceGateway.runGitPullRequestAction({
+        action: input.action,
+        deviceId: input.deviceId,
+        number: input.number,
+        path: input.path,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+      });
+    }),
+
+  /**
    * Working-tree (unstaged) per-file patches for a directory on a remote device,
    * via the device's `getGitWorkingTreePatches` RPC. Powers the web/remote Review
    * panel's unstaged diff. Returns `null` when offline / not a git repo.
@@ -601,6 +707,24 @@ export const deviceRouter = router({
       const result = await deviceGateway.getProjectFileIndex({
         deviceId: input.deviceId,
         scope: input.scope,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+      });
+      return result ?? null;
+    }),
+
+  /**
+   * Children of one directory inside a project on a remote device. The Files
+   * tree calls this when the user expands a directory the index collapsed
+   * (a fully git-ignored folder). Returns `null` when offline.
+   */
+  listProjectDirectory: deviceProcedure
+    .input(z.object({ deviceId: z.string(), relativePath: z.string(), root: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const result = await deviceGateway.listProjectDirectory({
+        deviceId: input.deviceId,
+        relativePath: input.relativePath,
+        root: input.root,
         userId: ctx.userId,
         workspaceId: ctx.workspaceId,
       });
@@ -698,6 +822,19 @@ export const deviceRouter = router({
       });
     }),
 
+  copyAssetForPublish: workspaceFileProcedure
+    .input(z.object({ from: z.string(), to: z.string() }))
+    .mutation(async ({ ctx, input }) =>
+      deviceGateway.copyAssetForPublish({
+        deviceId: input.deviceId,
+        from: input.from,
+        to: input.to,
+        userId: ctx.userId,
+        workspaceId: ctx.workspaceId,
+        workingDirectory: input.workingDirectory,
+      }),
+    ),
+
   readExternalAssetForPublish: workspaceFileProcedure
     .input(z.object({ path: z.string() }))
     .query(async ({ ctx, input }) =>
@@ -724,6 +861,17 @@ export const deviceRouter = router({
         userId: ctx.userId,
         workspaceId: ctx.workspaceId,
       });
+
+      // Register device-scoped skill roots (~/.agents/skills / ~/.claude/skills)
+      // in an in-memory cache so subsequent getLocalFilePreview calls pass the
+      // workspace root guard without polluting the UI's working-directory list.
+      if (result?.skills) {
+        const skillRoots = [
+          ...new Set(result.skills.filter((s) => s.scope === 'device').map((s) => s.previewRoot)),
+        ].filter(Boolean);
+        registerDeviceSkillRoots(input.deviceId, skillRoots);
+      }
+
       return result ?? null;
     }),
 
@@ -968,6 +1116,7 @@ export const deviceRouter = router({
         const channels = channelsByDevice.get(d.deviceId) ?? [];
         const live = channels[0];
         return {
+          architecture: d.architecture,
           channels,
           defaultCwd: d.defaultCwd,
           deviceId: d.deviceId,
@@ -1078,9 +1227,15 @@ export const deviceRouter = router({
     .use(serverDatabase)
     .input(
       z.object({
+        architecture: z.string().max(20).nullish(),
         deviceId: z.string().min(1).max(64),
         hostname: z.string().nullish(),
         identitySource: z.enum(['machine-id', 'fallback']),
+        /** Extensible client-reported info bag; free-form, size-capped to guard the column. */
+        metadata: z
+          .record(z.string().max(64), z.string().max(200))
+          .refine((m) => Object.keys(m).length <= 20, 'metadata supports at most 20 keys')
+          .nullish(),
         platform: z.string().max(20).nullish(),
         // 'private' enrolls the device for the calling member only (settings
         // page "Private" tab / `lh connect --workspace <id> --private`);
@@ -1402,9 +1557,15 @@ export const deviceRouter = router({
   register: deviceProcedure
     .input(
       z.object({
+        architecture: z.string().max(20).nullish(),
         deviceId: z.string().min(1).max(64),
         hostname: z.string().nullish(),
         identitySource: z.enum(['machine-id', 'fallback']),
+        /** Extensible client-reported info bag; free-form, size-capped to guard the column. */
+        metadata: z
+          .record(z.string().max(64), z.string().max(200))
+          .refine((m) => Object.keys(m).length <= 20, 'metadata supports at most 20 keys')
+          .nullish(),
         platform: z.string().max(20).nullish(),
       }),
     )
@@ -1447,6 +1608,25 @@ export const deviceRouter = router({
         : undefined;
 
       await ctx.deviceModel.update(deviceId, { ...value, workingDirs: nextWorkingDirs });
+      return { success: true };
+    }),
+  updateDeviceInfo: deviceProcedure
+    .input(
+      z.object({
+        architecture: z.string().min(1).max(20).optional(),
+        deviceId: z.string().min(1).max(64),
+        hostname: z.string().optional(),
+        metadata: z
+          .record(z.string().max(64), z.string().max(200))
+          .refine((m) => Object.keys(m).length <= 20, 'metadata supports at most 20 keys')
+          .optional(),
+        platform: z.string().max(20).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { deviceId, ...value } = input;
+      const device = await ctx.deviceModel.updateDeviceInfo(deviceId, value);
+      if (!device) throw new TRPCError({ code: 'NOT_FOUND', message: 'Device not found' });
       return { success: true };
     }),
 });

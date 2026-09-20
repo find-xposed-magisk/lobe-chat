@@ -10,6 +10,10 @@ import {
   getGitWorkingTreePatches,
   getGitWorkingTreeStatus,
   getLinkedPullRequest,
+  getPullRequestActivity,
+  getPullRequestDetail,
+  getPullRequestMergeContext,
+  type GitPullRequestAction,
   listGitBranches,
   listGitRemoteBranches,
   listGitWorktrees,
@@ -18,13 +22,17 @@ import {
   removeGitWorktree,
   renameGitBranch,
   revertGitFile,
+  runPullRequestAction,
 } from '@lobechat/local-file-shell/git';
 
 import { getClaudeCodeQuota, type GetClaudeCodeQuotaParams } from './claudeCodeQuota';
-import { defaultReadExternalAssetForPublish } from './filePreview';
+import { getCodexQuota, type GetCodexQuotaParams } from './codexQuota';
+import { defaultCopyAssetForPublish, defaultReadExternalAssetForPublish } from './filePreview';
+import { defaultListProjectDirectory } from './projectFileIndex';
 import { prepareSkillDirectory } from './skillDirectory';
 import type {
   BrowseDirectoryParams,
+  CopyAssetForPublishParams,
   DeviceControlDeps,
   EnrollWorkspaceParams,
   ExternalAssetForPublishParams,
@@ -33,6 +41,7 @@ import type {
   ListProjectSkillsParams,
   LocalFilePreviewUrlParams,
   PrepareSkillDirectoryParams,
+  ProjectDirectoryListParams,
   ProjectFileIndexParams,
   ProjectFileSearchParams,
   UnenrollWorkspaceParams,
@@ -51,19 +60,26 @@ export const DEVICE_RPC_METHODS = [
   'initWorkspace',
   'listHeterogeneousAgentModels',
   'getClaudeCodeQuota',
+  'getCodexQuota',
   'listProjectSkills',
   'prepareSkillDirectory',
   'browseDirectory',
   'statPath',
   'getProjectFileIndex',
+  'listProjectDirectory',
   'searchProjectFiles',
   'getLocalFilePreview',
   'readExternalAssetForPublish',
+  'copyAssetForPublish',
   'moveLocalFiles',
   'renameLocalFile',
   'writeLocalFile',
   'getGitBranch',
   'getLinkedPullRequest',
+  'getPullRequestDetail',
+  'getPullRequestActivity',
+  'getPullRequestMergeContext',
+  'runPullRequestAction',
   'getGitWorkingTreeStatus',
   'getGitWorkingTreeFiles',
   'getGitWorkingTreePatches',
@@ -131,6 +147,10 @@ export const executeDeviceRpc = async (
       return getClaudeCodeQuota(params as GetClaudeCodeQuotaParams);
     }
 
+    case 'getCodexQuota': {
+      return getCodexQuota(params as GetCodexQuotaParams);
+    }
+
     case 'listProjectSkills': {
       return listProjectSkills(params as ListProjectSkillsParams, deps);
     }
@@ -151,6 +171,10 @@ export const executeDeviceRpc = async (
       return deps.getProjectFileIndex(params as ProjectFileIndexParams);
     }
 
+    case 'listProjectDirectory': {
+      return defaultListProjectDirectory(params as ProjectDirectoryListParams);
+    }
+
     case 'searchProjectFiles': {
       return deps.searchProjectFiles(params as ProjectFileSearchParams);
     }
@@ -162,6 +186,12 @@ export const executeDeviceRpc = async (
     case 'readExternalAssetForPublish': {
       return (deps.readExternalAssetForPublish ?? defaultReadExternalAssetForPublish)(
         params as ExternalAssetForPublishParams,
+      );
+    }
+
+    case 'copyAssetForPublish': {
+      return (deps.copyAssetForPublish ?? defaultCopyAssetForPublish)(
+        params as CopyAssetForPublishParams,
       );
     }
 
@@ -184,6 +214,31 @@ export const executeDeviceRpc = async (
     case 'getLinkedPullRequest': {
       return getLinkedPullRequest(
         params as { branch: string; path: string; pullRequestNumber?: number },
+      );
+    }
+
+    case 'getPullRequestDetail': {
+      return getPullRequestDetail(params as { coreOnly?: boolean; number: number; path: string });
+    }
+    case 'getPullRequestActivity': {
+      return getPullRequestActivity(params as { number: number; path: string });
+    }
+
+    case 'getPullRequestMergeContext': {
+      return getPullRequestMergeContext(
+        params as {
+          baseRefName: string;
+          headRefOid: string;
+          number: number;
+          path: string;
+          repo: { name: string; owner: string };
+        },
+      );
+    }
+
+    case 'runPullRequestAction': {
+      return runPullRequestAction(
+        params as { action: GitPullRequestAction; number: number; path: string },
       );
     }
 

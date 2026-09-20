@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { GOAL_COORDINATOR_ACTOR_ID } from '@lobechat/const/goal';
+import * as goalGraphUtils from '@lobechat/utils/goalGraph';
 import { eq, sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -282,7 +283,7 @@ describe('GoalService', () => {
         .set({
           config: {
             ...originalConfig,
-            manager: managerEnabled ? { agentId: 'manager' } : undefined,
+            manager: managerEnabled ? {} : undefined,
             managerState: {
               consumed: true,
               readyForAcceptance: true,
@@ -796,6 +797,23 @@ describe('GoalService', () => {
     await expect(service.updateRequirement('goal_missing', 'x')).rejects.toThrow();
   });
 
+  it('names the agent each dispatched task node is assigned to', async () => {
+    await serverDB.insert(agents).values([{ id: 'agt_exec', slug: 'agt-exec', userId }]);
+    const service = new GoalService(serverDB, userId);
+    const graph = await service.create({
+      agentId: 'agt_exec',
+      tasks: ['Dispatched', 'Not yet'],
+      title: 'Who is on it',
+    });
+    const created = await service.tick(graph.goal.id);
+
+    const read = await service.graph(graph.goal.id);
+    const dispatched = read.nodes.find((node) => node.taskId === created.taskId)!;
+
+    // Only a node with a Task row has an assignee; the undispatched one has none.
+    expect(read.assignees).toEqual({ [dispatched.id]: 'agt_exec' });
+  });
+
   it('hands the goal and its unfinished tasks to a new agent', async () => {
     await serverDB.insert(agents).values([
       { id: 'agt_old', slug: 'agt-old', userId },
@@ -825,6 +843,103 @@ describe('GoalService', () => {
     expect((await taskModel.findById(created.taskId!))?.assigneeAgentId).toBe('agt_new');
 
     await expect(service.setAgent(graph.goal.id, 'agt_missing')).rejects.toThrow();
+  });
+
+  it('falls back to the goal agent when the dedicated executor was deleted', async () => {
+    await serverDB.insert(agents).values([
+      { id: 'agt_lead_fallback', slug: 'agt-lead-fallback', userId },
+      { id: 'agt_gone_executor', slug: 'agt-gone-executor', userId },
+    ]);
+    const service = new GoalService(serverDB, userId);
+    const taskModel = new TaskModel(serverDB, userId);
+    const graph = await service.create({
+      agentId: 'agt_lead_fallback',
+      config: { taskAgentId: 'agt_gone_executor' },
+      tasks: ['Only task'],
+      title: 'Executor deleted',
+    });
+    await serverDB.delete(agents).where(eq(agents.id, 'agt_gone_executor'));
+
+    const created = await service.tick(graph.goal.id);
+
+    expect(created.taskId).toBeTruthy();
+    expect((await taskModel.findById(created.taskId!))?.assigneeAgentId).toBe('agt_lead_fallback');
+  });
+
+  it('writes only the executor slot, so a concurrent policy edit survives', async () => {
+    await serverDB.insert(agents).values([
+      { id: 'agt_policy_lead', slug: 'agt-policy-lead', userId },
+      { id: 'agt_policy_worker', slug: 'agt-policy-worker', userId },
+    ]);
+    const service = new GoalService(serverDB, userId);
+    const model = new GoalModel(serverDB, userId);
+    const graph = await service.create({ agentId: 'agt_policy_lead', title: 'Policy race' });
+    // setTaskAgent reads the row, then a budget edit lands before it writes.
+    const stale = (await model.findById(graph.goal.id))!;
+    await model.update(graph.goal.id, { config: { ...stale.config, maxConcurrentTasks: 5 } });
+    // `findById` is an instance arrow property, so spy on the service's own model.
+    const serviceModel = (service as unknown as { goalModel: GoalModel }).goalModel;
+    vi.spyOn(serviceModel, 'findById').mockResolvedValueOnce(stale);
+
+    const result = await service.setTaskAgent(graph.goal.id, 'agt_policy_worker');
+
+    expect(result.goal.config?.taskAgentId).toBe('agt_policy_worker');
+    expect(result.goal.config?.maxConcurrentTasks).toBe(5);
+  });
+
+  it('moves supervision without moving the tasks a dedicated executor holds', async () => {
+    await serverDB.insert(agents).values([
+      { id: 'agt_supervisor', slug: 'agt-supervisor', userId },
+      { id: 'agt_executor', slug: 'agt-executor', userId },
+      { id: 'agt_next_supervisor', slug: 'agt-next-supervisor', userId },
+    ]);
+    const service = new GoalService(serverDB, userId);
+    const taskModel = new TaskModel(serverDB, userId);
+    const graph = await service.create({
+      agentId: 'agt_supervisor',
+      config: { taskAgentId: 'agt_executor' },
+      tasks: ['Only task'],
+      title: 'Split roles',
+    });
+    expect(graph.goal.agentId).toBe('agt_supervisor');
+    const created = await service.tick(graph.goal.id);
+    expect((await taskModel.findById(created.taskId!))?.assigneeAgentId).toBe('agt_executor');
+
+    const handed = await service.setAgent(graph.goal.id, 'agt_next_supervisor');
+
+    expect(handed.goal.agentId).toBe('agt_next_supervisor');
+    expect(handed.goal.config?.taskAgentId).toBe('agt_executor');
+    expect(handed.reassignedTaskIds).toEqual([]);
+    expect((await taskModel.findById(created.taskId!))?.assigneeAgentId).toBe('agt_executor');
+  });
+
+  it('routes tasks to a dedicated executor and back to the goal agent', async () => {
+    await serverDB.insert(agents).values([
+      { id: 'agt_owner', slug: 'agt-owner', userId },
+      { id: 'agt_worker', slug: 'agt-worker', userId },
+    ]);
+    const service = new GoalService(serverDB, userId);
+    const taskModel = new TaskModel(serverDB, userId);
+    const graph = await service.create({
+      agentId: 'agt_owner',
+      tasks: ['Only task'],
+      title: 'Delegated',
+    });
+    const created = await service.tick(graph.goal.id);
+    expect((await taskModel.findById(created.taskId!))?.assigneeAgentId).toBe('agt_owner');
+
+    const delegated = await service.setTaskAgent(graph.goal.id, 'agt_worker');
+    expect(delegated.goal.agentId).toBe('agt_owner');
+    expect(delegated.goal.config?.taskAgentId).toBe('agt_worker');
+    expect(delegated.reassignedTaskIds).toEqual([created.taskId]);
+    expect((await taskModel.findById(created.taskId!))?.assigneeAgentId).toBe('agt_worker');
+
+    // Naming the goal agent clears the slot rather than duplicating it.
+    const back = await service.setTaskAgent(graph.goal.id, 'agt_owner');
+    expect(back.goal.config?.taskAgentId).toBeUndefined();
+    expect((await taskModel.findById(created.taskId!))?.assigneeAgentId).toBe('agt_owner');
+
+    await expect(service.setTaskAgent(graph.goal.id, 'agt_missing')).rejects.toThrow();
   });
 
   it('restarts unfinished tasks under a new agent and cancels the stale runs they hold', async () => {
@@ -859,6 +974,30 @@ describe('GoalService', () => {
     await service.pause(graph.goal.id);
     const resumed = await service.restart(graph.goal.id);
     expect(resumed.goal.status).not.toBe('paused');
+  });
+
+  it('restarts a split-role goal under a new executor without replacing its supervisor', async () => {
+    vi.spyOn(TaskService.prototype, 'cancelTopic').mockResolvedValue();
+    await serverDB.insert(agents).values([
+      { id: 'agt_lead', slug: 'agt-lead', userId },
+      { id: 'agt_first_worker', slug: 'agt-first-worker', userId },
+      { id: 'agt_second_worker', slug: 'agt-second-worker', userId },
+    ]);
+    const service = new GoalService(serverDB, userId);
+    const taskModel = new TaskModel(serverDB, userId);
+    const graph = await service.create({
+      agentId: 'agt_lead',
+      config: { taskAgentId: 'agt_first_worker' },
+      tasks: ['Stuck task'],
+      title: 'Restart split roles',
+    });
+    const created = await service.tick(graph.goal.id);
+
+    const result = await service.restart(graph.goal.id, { agentId: 'agt_second_worker' });
+
+    expect(result.goal.agentId).toBe('agt_lead');
+    expect(result.goal.config?.taskAgentId).toBe('agt_second_worker');
+    expect((await taskModel.findById(created.taskId!))?.assigneeAgentId).toBe('agt_second_worker');
   });
 
   it('cancels the failure gate a restart supersedes so the goal starts moving again', async () => {
@@ -1610,6 +1749,100 @@ describe('GoalService', () => {
         (edge) => edge.kind === 'decomposes' && edge.targetNodeId === acceptanceWorks[0].id,
       ),
     ).toHaveLength(1);
+  });
+
+  /**
+   * Regression: the terminal acceptance hung only off the problem node, so it
+   * rendered beside the first round instead of after the work it closes.
+   */
+  it('builds the Goal-level Acceptance Task on the delivered leaf Tasks', async () => {
+    const service = new GoalService(serverDB, userId);
+    const taskModel = new TaskModel(serverDB, userId);
+    const graph = await service.create({
+      requirement: 'Return two verified supplier quotes.',
+      title: 'Find two supplier quotes',
+      tasks: ['Research supplier A', 'Research supplier B'],
+    });
+
+    let acceptance;
+    for (let i = 0; i < 12 && !acceptance; i++) {
+      await service.tick(graph.goal.id);
+      const current = await service.graph(graph.goal.id);
+      for (const node of current.nodes) {
+        if (node.taskId && node.title !== 'Complete full Goal acceptance')
+          await taskModel.updateStatus(node.taskId, 'completed');
+      }
+      acceptance = current.nodes.find((node) => node.title === 'Complete full Goal acceptance');
+    }
+
+    const current = await service.graph(graph.goal.id);
+    const leaves = current.nodes
+      .filter((node) => node.title.startsWith('Research supplier'))
+      .map((node) => node.id);
+    expect(acceptance).toBeTruthy();
+    expect(
+      current.edges
+        .filter((edge) => edge.kind === 'depends_on' && edge.sourceNodeId === acceptance!.id)
+        .map((edge) => edge.targetNodeId)
+        .sort(),
+    ).toEqual(leaves.sort());
+  });
+
+  /**
+   * Regression: the acceptance node and its dependency edges were written in
+   * separate transactions. A failure between them left the node without its
+   * links for good, because once the node exists no later tick writes them.
+   */
+  it('creates the Goal-level Acceptance Task and its dependencies atomically', async () => {
+    const service = new GoalService(serverDB, userId);
+    const taskModel = new TaskModel(serverDB, userId);
+    const graph = await service.create({
+      requirement: 'Return two verified supplier quotes.',
+      title: 'Atomic acceptance links',
+      tasks: ['Research supplier A', 'Research supplier B'],
+    });
+    const findAcceptance = async () =>
+      (await service.graph(graph.goal.id)).nodes.find(
+        (node) => node.title === 'Complete full Goal acceptance',
+      );
+
+    let interrupted = false;
+    for (let i = 0; i < 14 && !(await findAcceptance()); i++) {
+      const tasks = (await service.graph(graph.goal.id)).nodes.filter(
+        (node) => node.kind === 'task',
+      );
+      if (!interrupted && tasks.length > 0 && tasks.every((node) => node.status === 'resolved')) {
+        // Every Task is delivered, so this tick creates the acceptance. Fail it
+        // after the node insert and before its dependency edges are written.
+        const spy = vi.spyOn(goalGraphUtils, 'experimentOwner').mockImplementation(() => {
+          throw new Error('interrupted while linking the acceptance');
+        });
+        await service.tick(graph.goal.id).catch(() => undefined);
+        spy.mockRestore();
+        interrupted = true;
+        expect(await findAcceptance()).toBeUndefined();
+        continue;
+      }
+      await service.tick(graph.goal.id);
+      for (const node of (await service.graph(graph.goal.id)).nodes) {
+        if (node.taskId && node.title !== 'Complete full Goal acceptance')
+          await taskModel.updateStatus(node.taskId, 'completed');
+      }
+    }
+
+    const current = await service.graph(graph.goal.id);
+    const acceptance = current.nodes.find((node) => node.title === 'Complete full Goal acceptance');
+    const leaves = current.nodes
+      .filter((node) => node.title.startsWith('Research supplier'))
+      .map((node) => node.id);
+    expect(interrupted).toBe(true);
+    expect(acceptance).toBeTruthy();
+    expect(
+      current.edges
+        .filter((edge) => edge.kind === 'depends_on' && edge.sourceNodeId === acceptance!.id)
+        .map((edge) => edge.targetNodeId)
+        .sort(),
+    ).toEqual(leaves.sort());
   });
 
   it('parks a goal short of acceptance and reopens it when the measurement clears', async () => {

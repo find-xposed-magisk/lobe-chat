@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { getTestDB } from '../../core/getTestDB';
@@ -33,6 +33,97 @@ describe('TopicModel', () => {
 
   afterEach(async () => {
     await serverDB.delete(users);
+  });
+
+  describe('rate-limit cancellation', () => {
+    const run = {
+      createdAt: '2026-09-19T00:00:00.000Z',
+      failedAssistantMessageId: 'failed-message',
+      kind: 'resume_after_rate_limit' as const,
+      source: 'heterogeneous_agent' as const,
+      runAt: '2026-09-19T01:00:00.000Z',
+      updatedAt: '2026-09-19T00:00:00.000Z',
+      userMessageId: 'user-message',
+    };
+    const claim = { claimedAt: run.createdAt, expiresAt: run.runAt, id: 'dispatcher' };
+
+    it('cancels status and payload together and prevents a later dispatcher claim', async () => {
+      const topic = await topicModel.create({ title: 'source' });
+      await topicModel.armScheduledRun(topic.id, run);
+      const result = await topicModel.cancelRateLimitContinuation(topic.id);
+      expect(result.status).toBe('cancelled');
+      const [row] = await serverDB.select().from(topics).where(eq(topics.id, topic.id));
+      expect(row.status).toBe('failed');
+      expect(row.metadata?.scheduledRun).toBeNull();
+      expect(await TopicModel.claimScheduledTopic(serverDB, topic.id, claim)).toBe(false);
+    });
+
+    it('refuses cancellation after the dispatcher claims, even if its lease expired', async () => {
+      const topic = await topicModel.create({ title: 'source' });
+      await topicModel.armScheduledRun(topic.id, run);
+      await TopicModel.claimScheduledTopic(serverDB, topic.id, claim, new Date(run.createdAt));
+      expect(await topicModel.cancelRateLimitContinuation(topic.id)).toEqual({ status: 'busy' });
+      const [row] = await serverDB.select().from(topics).where(eq(topics.id, topic.id));
+      expect(row.status).toBe('scheduled');
+      expect(row.metadata?.scheduledRun?.claim?.id).toBe('dispatcher');
+    });
+
+    it('rolls back both fields when the database rejects cancellation', async () => {
+      const topic = await topicModel.create({ title: 'source' }, 'cancel-rejected');
+      await topicModel.armScheduledRun(topic.id, run);
+      await serverDB.execute(
+        sql`ALTER TABLE topics ADD CONSTRAINT test_cancel_failure CHECK (id != 'cancel-rejected' OR status != 'failed')`,
+      );
+      try {
+        await expect(topicModel.cancelRateLimitContinuation(topic.id)).rejects.toThrow();
+        const [row] = await serverDB.select().from(topics).where(eq(topics.id, topic.id));
+        expect(row.status).toBe('scheduled');
+        expect(row.metadata?.scheduledRun).toEqual(run);
+      } finally {
+        await serverDB.execute(sql`ALTER TABLE topics DROP CONSTRAINT test_cancel_failure`);
+      }
+    });
+
+    it('allows only one of a concurrent cancellation and dispatcher claim', async () => {
+      const topic = await topicModel.create({ title: 'source' });
+      await topicModel.armScheduledRun(topic.id, run);
+      const [cancelled, claimed] = await Promise.all([
+        topicModel.cancelRateLimitContinuation(topic.id),
+        TopicModel.claimScheduledTopic(serverDB, topic.id, claim, new Date(run.createdAt)),
+      ]);
+      expect(Number(cancelled.status === 'cancelled') + Number(claimed)).toBe(1);
+    });
+
+    it('also cancels the legacy rate-limit payload the dispatcher can run', async () => {
+      const topic = await topicModel.create({ title: 'legacy' });
+      const { kind: _kind, runAt: _runAt, ...legacy } = run;
+      await serverDB
+        .update(topics)
+        .set({
+          status: 'scheduled',
+          metadata: sql`${JSON.stringify({ scheduledRun: { ...legacy, reason: 'rate_limit' } })}::jsonb`,
+        })
+        .where(eq(topics.id, topic.id));
+      expect((await topicModel.cancelRateLimitContinuation(topic.id)).status).toBe('cancelled');
+    });
+
+    it('does not cancel another user or a delayed-start schedule', async () => {
+      const topic = await topicModel.create({ title: 'source' });
+      await topicModel.armScheduledRun(topic.id, run);
+      expect(
+        await new TopicModel(serverDB, otherUserId).cancelRateLimitContinuation(topic.id),
+      ).toEqual({ status: 'unchanged' });
+      await topicModel.armScheduledRun(topic.id, {
+        createdAt: run.createdAt,
+        kind: 'delayed_start',
+        runAt: run.runAt,
+        updatedAt: run.updatedAt,
+        userMessageId: run.userMessageId,
+      });
+      expect(await topicModel.cancelRateLimitContinuation(topic.id)).toEqual({
+        status: 'unchanged',
+      });
+    });
   });
 
   describe('create', () => {
@@ -686,6 +777,106 @@ describe('TopicModel', () => {
       });
 
       expect(topic.runStartedAt).toBeNull();
+    });
+
+    // This feed is not scoped by agent, so in a workspace `ownership()` matches
+    // every member's rows. Without a parent check a teammate's PRIVATE agent
+    // conversation — title and last assistant reply included — lands in the
+    // home inbox of everyone in the workspace.
+    describe('workspace parent scope', () => {
+      const workspaceId = 'topic-model-test-workspace';
+      const workspaceModel = new TopicModel(serverDB, userId, workspaceId);
+
+      beforeEach(async () => {
+        await serverDB
+          .insert(workspaces)
+          .values({ id: workspaceId, name: 'ws', primaryOwnerId: userId, slug: workspaceId });
+        await serverDB.insert(agents).values([
+          { id: 'agent-shared', userId, visibility: 'public', workspaceId },
+          { id: 'agent-private-mine', userId, visibility: 'private', workspaceId },
+          { id: 'agent-private-other', userId: otherUserId, visibility: 'private', workspaceId },
+          { id: 'agent-personal-other', userId: otherUserId, workspaceId: null },
+        ]);
+        await serverDB.insert(topics).values([
+          {
+            agentId: 'agent-shared',
+            id: 'ws-shared',
+            status: 'unread',
+            title: 'shared',
+            userId: otherUserId,
+            workspaceId,
+          },
+          {
+            agentId: 'agent-private-mine',
+            id: 'ws-private-mine',
+            status: 'unread',
+            title: 'my private',
+            userId,
+            workspaceId,
+          },
+          {
+            agentId: 'agent-private-other',
+            id: 'ws-private-other',
+            status: 'unread',
+            title: 'teammate private',
+            userId: otherUserId,
+            workspaceId,
+          },
+          {
+            agentId: 'agent-personal-other',
+            id: 'ws-personal-parent',
+            status: 'unread',
+            title: 'personal parent',
+            userId: otherUserId,
+            workspaceId,
+          },
+          // Legacy row with no resolvable parent — nothing to check.
+          {
+            id: 'ws-parentless',
+            status: 'unread',
+            title: 'parentless',
+            userId,
+            workspaceId,
+          },
+        ]);
+      });
+
+      it('excludes topics whose owning agent is a teammate private or out-of-scope agent', async () => {
+        const result = await workspaceModel.queryTopics({ statuses: ['unread'] });
+
+        expect(result.map((t) => t.id).sort()).toEqual([
+          'ws-parentless',
+          'ws-private-mine',
+          'ws-shared',
+        ]);
+      });
+
+      it('reports the parent visibility so a team view can drop private conversations', async () => {
+        const result = await workspaceModel.queryTopics({ statuses: ['unread'] });
+        const byId = new Map(result.map((t) => [t.id, t.parentVisibility]));
+
+        expect(byId.get('ws-shared')).toBe('public');
+        expect(byId.get('ws-private-mine')).toBe('private');
+        expect(byId.get('ws-parentless')).toBeNull();
+      });
+
+      it('keeps the preview of a teammate private conversation out of the feed', async () => {
+        await serverDB.insert(messages).values({
+          content: 'Confidential reply',
+          id: 'ws-private-other-msg',
+          role: 'assistant',
+          topicId: 'ws-private-other',
+          userId: otherUserId,
+          workspaceId,
+        });
+
+        const result = await workspaceModel.queryTopics({
+          statuses: ['unread'],
+          withLastMessage: true,
+        });
+
+        expect(result.map((t) => t.lastAssistantMessage)).not.toContain('Confidential reply');
+      });
     });
   });
 
