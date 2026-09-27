@@ -36,6 +36,7 @@ import { MISSING_TASK_NAME_ERROR } from '../../constants';
 import { normalizeListTasksParams } from '../../listTasks';
 import { selectAssignableMembers } from '../../listWorkspaceMembers';
 import { TaskIdentifier } from '../../manifest';
+import { normalizeSetTaskVerifyParams } from '../../setTaskVerify';
 import type {
   AddTaskCommentParams,
   CreateTaskParams,
@@ -677,6 +678,7 @@ class TaskExecutor extends BaseExecutor<typeof TaskApiName> {
   ): Promise<BuiltinToolResult> => {
     try {
       log('[TaskExecutor] setTaskVerify - params:', params);
+      params = normalizeSetTaskVerifyParams(params);
 
       const { identifier } = params;
 
