@@ -281,7 +281,9 @@ export class VerifyExecutorService {
         completedAt: new Date(),
         confidence: 0,
         status: 'failed',
-        suggestion: `Capture and upload the missing evidence (${missing}) via \`lh verify upload-evidence\`.`,
+        // `result submit` needs a run selector; spell out this run and item so
+        // the recovery command can be run as-is.
+        suggestion: `Capture and upload the missing evidence (${missing}) via \`lh acceptance run result submit --run ${verifyRunId} --item ${item.id} --type <type> --file <path>\`.`,
         toulmin: { limitation: `Required evidence not provided: ${missing}.` },
         verdict: 'uncertain',
       });

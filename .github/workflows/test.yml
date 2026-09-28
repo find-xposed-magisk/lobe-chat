@@ -77,8 +77,8 @@ jobs:
         run: pnpm install
         working-directory: apps/cli
 
-      - name: Test CLI build configuration and bundle
-        run: bunx vitest run --config vitest.config.mts --silent='passed-only' tsdown.config.test.ts bundle.test.ts
+      - name: Test CLI build configuration, bundle and model-facing docs
+        run: bunx vitest run --config vitest.config.mts --silent='passed-only' tsdown.config.test.ts bundle.test.ts src/modelFacingDocs.test.ts
         working-directory: apps/cli
 
       - name: Test packages with coverage
