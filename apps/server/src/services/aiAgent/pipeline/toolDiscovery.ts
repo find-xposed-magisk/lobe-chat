@@ -26,6 +26,7 @@ import {
 } from '@lobechat/mecha';
 import { FILE_INLINE_MAX_CHARS, isOversizedFileContent } from '@lobechat/prompts';
 import type {
+  BuiltinToolResolveContext,
   ChatTopicBotContext,
   FrozenCredentialFacts,
   FrozenModelFacts,
@@ -1058,6 +1059,38 @@ export const discoverTools = async (
     const activeComposioManifests = dropDisabledManifests(composioManifests);
     const activeConnectorManifests = dropDisabledManifests(connectorManifests);
 
+    // Context-aware builtin manifests: inside a sub-agent (or group) run,
+    // lobe-agent drops `callSubAgent` so the model can't recurse into nested
+    // sub-agents (which the runtime rejects, looping until the inactivity
+    // watchdog kills the op). Mirrors the frontend `createAgentToolsEngine`.
+    // `executionEnv` mirrors the resolved plan, while preserving the local
+    // target for a routed desktop because its readFile implementation can
+    // return images. It also keeps the `device-unrouted` degradation, where
+    // the user picked a local device that is offline and exec silently lands
+    // in the sandbox.
+    // For bot conversations we also pass the IM platform so `lobe-message`
+    // can drop APIs the platform can't fulfil (e.g. WeChat has no
+    // `readMessages`). Telegram Guest Mode uses a stricter overlay —
+    // the bot is not a chat member and has no regular channel tools.
+    // The discovery pool below resolves with the same context, so a tool
+    // activated mid-run carries the trimmed manifest too.
+    const manifestContext: BuiltinToolResolveContext = {
+      ...(botContext?.platform && {
+        botPlatform: {
+          id: botContext.platform,
+          unsupportedMessageApis: resolveUnsupportedMessageApis(
+            botContext.platform,
+            botContext.platformThreadId,
+          ),
+        },
+      }),
+      executionEnv: executionPlanToManifestExecutionEnv(executionPlan, localDeviceId),
+      executionEnvUnroutedReason:
+        executionPlan.kind === 'device-unrouted' ? executionPlan.reason : undefined,
+      isSubAgent: appContext?.isSubAgent,
+      scope: appContext?.scope ?? undefined,
+    };
+
     toolsEngine = createServerAgentToolsEngine(toolsContext, {
       additionalManifests: [
         ...activeLobehubSkillManifests,
@@ -1089,35 +1122,7 @@ export const discoverTools = async (
       isBotConversation,
       isGroupSupervisor,
       modelAbilities,
-      // Context-aware builtin manifests: inside a sub-agent (or group) run,
-      // lobe-agent drops `callSubAgent` so the model can't recurse into nested
-      // sub-agents (which the runtime rejects, looping until the inactivity
-      // watchdog kills the op). Mirrors the frontend `createAgentToolsEngine`.
-      // `executionEnv` mirrors the resolved plan, while preserving the local
-      // target for a routed desktop because its readFile implementation can
-      // return images. It also keeps the `device-unrouted` degradation, where
-      // the user picked a local device that is offline and exec silently lands
-      // in the sandbox.
-      // For bot conversations we also pass the IM platform so `lobe-message`
-      // can drop APIs the platform can't fulfil (e.g. WeChat has no
-      // `readMessages`). Telegram Guest Mode uses a stricter overlay —
-      // the bot is not a chat member and has no regular channel tools.
-      manifestContext: {
-        ...(botContext?.platform && {
-          botPlatform: {
-            id: botContext.platform,
-            unsupportedMessageApis: resolveUnsupportedMessageApis(
-              botContext.platform,
-              botContext.platformThreadId,
-            ),
-          },
-        }),
-        executionEnv: executionPlanToManifestExecutionEnv(executionPlan, localDeviceId),
-        executionEnvUnroutedReason:
-          executionPlan.kind === 'device-unrouted' ? executionPlan.reason : undefined,
-        isSubAgent: appContext?.isSubAgent,
-        scope: appContext?.scope ?? undefined,
-      },
+      manifestContext,
       model,
       provider,
       useApplicationBuiltinSearchTool: searchDecision.useApplicationBuiltinSearchTool,
@@ -1177,6 +1182,7 @@ export const discoverTools = async (
       exclusivePluginIds,
       executionTarget: executionPlan.target,
       lobehubSkills: activeLobehubSkillManifests,
+      manifestContext,
     });
     Object.assign(toolManifestMap, discovery.manifestMap);
     Object.assign(toolSourceMap, discovery.sourceMap);

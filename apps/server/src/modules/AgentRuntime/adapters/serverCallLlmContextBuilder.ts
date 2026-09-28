@@ -117,6 +117,7 @@ export const buildServerCallLlmContext = async ({
       enabledToolIds: resolved.enabledToolIds,
       executionTarget,
       features: resolveServerConnectorFeatures(),
+      isSubAgent: state.origin?.lineage?.isSubAgent === true,
       mentionedAgents: (state as any).initialContext?.initialContext?.mentionedAgents,
       messages: messagesForContext,
       shareVisitor: state.principal?.actor?.shareVisitor ?? ctx.agentShareVisitor,
