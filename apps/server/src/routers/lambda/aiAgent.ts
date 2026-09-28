@@ -90,6 +90,7 @@ import {
   ResolveAgentInterventionSchema,
 } from '@/server/routers/lambda/_schema/agentIntervention';
 import { AgentRuntimeService } from '@/server/services/agentRuntime';
+import { MAX_CLIENT_OPERATION_SNAPSHOT } from '@/server/services/agentRuntime/foregroundOperation';
 import { AiAgentService } from '@/server/services/aiAgent';
 import { AiChatService } from '@/server/services/aiChat';
 import { getFileProxyUrl } from '@/server/services/file';
@@ -1079,6 +1080,21 @@ const ExecAgentSchema = z
     parentMessageId: z.string().optional(),
     /** Existing gateway operation this fresh turn atomically supersedes. */
     replacesOperationId: z.string().optional(),
+    /**
+     * The server runs the composer tracked on this conversation at send time.
+     * Diagnostic only: recorded when this send has to supersede a live run.
+     */
+    clientOperations: z
+      .array(
+        z.object({
+          isAborting: z.boolean().optional(),
+          operationId: z.string(),
+          status: z.string(),
+          visibleLoadingDone: z.boolean().optional(),
+        }),
+      )
+      .max(MAX_CLIENT_OPERATION_SNAPSHOT)
+      .optional(),
     /** The user input/prompt */
     prompt: z.string(),
     /**
@@ -2399,6 +2415,10 @@ export const aiAgentRouter = router({
         appContext,
         autoStart,
         clientIds: input.clientIds,
+        clientRunSnapshot: {
+          operations: input.clientOperations ?? [],
+          replacesOperationId: input.replacesOperationId,
+        },
         includeFinalState: input.includeFinalState,
         // This procedure serves the composer (`aiAgentService.execAgentTask`).
         // The client already queues follow-ups behind a live run and shows the
@@ -2416,6 +2436,7 @@ export const aiAgentRouter = router({
         mentionedAgents,
         parentMessageId,
         prompt,
+        replacesOperationId: input.replacesOperationId,
         // When parentMessageId is provided, this is a regeneration/continue or a
         // human-approval resume — either way, skip user message creation.
         resume: !!parentMessageId,
