@@ -1,4 +1,12 @@
-import type { ContextNode, IdNode, Message, MessageNode, SignalCallbacksNode } from '../types';
+import { isInThreadScope } from '../indexing';
+import type {
+  ContextNode,
+  IdNode,
+  Message,
+  MessageNode,
+  SignalCallbacksNode,
+  ThreadScope,
+} from '../types';
 import { BranchResolver } from './BranchResolver';
 
 /**
@@ -57,7 +65,24 @@ export class MessageCollector {
     private messageMap: Map<string, Message>,
     private childrenMap: Map<string | null, string[]>,
     private branchResolver: BranchResolver = new BranchResolver(messageMap),
+    /** See `ThreadScope`. Defaults to every message in scope. */
+    private threadScope: ThreadScope = undefined,
   ) {}
+
+  /**
+   * Every message the current scope may walk.
+   *
+   * Chain classification has to see exactly what chain collection will be given: if a
+   * threaded reply counts as the continuation that makes an assistant a tool-chain head,
+   * but collection then cannot reach it, the assistant renders as an empty one-message
+   * group instead of its own bubble.
+   */
+  private scopedMessages(): Message[] {
+    const messages = [...this.messageMap.values()];
+    if (this.threadScope === undefined) return messages;
+
+    return messages.filter((message) => isInThreadScope(message, this.threadScope));
+  }
 
   /**
    * Collect all messages belonging to a message group
@@ -135,7 +160,7 @@ export class MessageCollector {
     if (parent?.role !== 'user') return false;
 
     const groupAgentId = assistant.agentId;
-    const allMessages = [...this.messageMap.values()];
+    const allMessages = this.scopedMessages();
     const visited = new Set<string>([assistant.id]);
     let current: Message = assistant;
 
