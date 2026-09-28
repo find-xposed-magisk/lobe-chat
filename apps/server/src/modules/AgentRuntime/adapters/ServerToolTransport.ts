@@ -242,6 +242,7 @@ export class ServerToolTransport implements ToolTransport {
               editingAgentId: context.state.origin?.editingAgentId,
               editingGroupId: context.state.origin?.editingGroupId,
               execSubAgent: this.ctx.execSubAgent,
+              executionPlan: context.state.plan?.execution,
               executionTimeoutMs: timeoutMs,
               groupId: context.state.origin?.groupId,
               isSubAgent: context.state.origin?.lineage?.isSubAgent === true,
