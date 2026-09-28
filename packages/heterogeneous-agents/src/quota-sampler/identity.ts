@@ -1,4 +1,4 @@
-import type { QuotaAccountIdentity } from './types';
+import type { QuotaAccountIdentity } from '../quota/types';
 
 /** Decode a JWT payload segment (base64url) without verifying the signature. */
 const decodeJwtPayload = (jwt: string): Record<string, unknown> | null => {
