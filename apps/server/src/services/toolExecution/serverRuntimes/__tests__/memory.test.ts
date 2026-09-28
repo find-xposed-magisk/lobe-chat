@@ -128,6 +128,45 @@ describe('memoryRuntime', () => {
     );
   });
 
+  describe('context layer limits (default medium effort)', () => {
+    const emptyResult = {
+      activities: [],
+      contexts: [],
+      experiences: [],
+      identities: [],
+      preferences: [],
+    };
+
+    const runSearch = async (params: Record<string, unknown>) => {
+      mocks.embeddings.mockResolvedValueOnce([[0.1, 0.2, 0.3]]);
+      mocks.initModelRuntimeWithUserPayload.mockReturnValueOnce({ embeddings: mocks.embeddings });
+      mocks.searchMemory.mockResolvedValueOnce(emptyResult);
+
+      const runtime = await memoryRuntime.factory(createContext());
+      await runtime.searchUserMemory({ queries: ['Project Atlas launch'], ...params });
+
+      return mocks.searchMemory.mock.calls[0][0].topK;
+    };
+
+    it('searches context memories when the agent asks for the context layer', async () => {
+      const topK = await runSearch({ layers: ['context'] });
+
+      expect(topK.contexts).toBeGreaterThan(0);
+    });
+
+    it('honours an explicit topK.contexts within the explicit-request cap', async () => {
+      const topK = await runSearch({ topK: { contexts: 10 } });
+
+      expect(topK).toMatchObject({ contexts: 2, experiences: 0 });
+    });
+
+    it('keeps context memories out of searches that do not ask for them', async () => {
+      const topK = await runSearch({ layers: ['preference'] });
+
+      expect(topK).toMatchObject({ activities: 3, contexts: 0, experiences: 0, preferences: 3 });
+    });
+  });
+
   it('records the lexical decision on the default Gateway memory path', async () => {
     const longQuery = 'context '.repeat(40).trimEnd();
     const embedding = [0.1, 0.2, 0.3];
