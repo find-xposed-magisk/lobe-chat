@@ -2411,6 +2411,227 @@ describe('GatewayActionImpl', () => {
       });
     });
 
+    // LOBE-14423: a follow-up on an existing topic starts with no local
+    // `runningOperation` marker (run start only rewrites a stale one), so the
+    // terminal status write must not depend on the marker naming this run.
+    describe('follow-up run on an existing topic without a local marker', () => {
+      const setupFollowUpRun = (extraState: Record<string, any> = {}) => {
+        const connectToGateway = vi.fn();
+        const internalDispatchTopic = vi.fn();
+        const internalPinTopicStatus = vi.fn();
+        const refreshTopic = vi.fn(async () => {});
+        const state: Record<string, any> = {
+          activeAgentId: 'agent-1',
+          activeTopicId: 'topic-1',
+          gatewayConnections: {},
+          topicDataMap: {
+            'agent_agent-1': {
+              items: [
+                {
+                  id: 'topic-1',
+                  metadata: { model: 'gpt-4', runningOperation: null },
+                  status: 'running',
+                },
+              ],
+            },
+          },
+          ...extraState,
+        };
+        const set = vi.fn((updater: any) => {
+          if (typeof updater === 'function') Object.assign(state, updater(state));
+          else Object.assign(state, updater);
+        });
+        const get = vi.fn(() => ({
+          ...state,
+          associateMessageWithOperation: vi.fn(),
+          completeOperation: vi.fn(),
+          connectToGateway,
+          internal_dispatchTopic: internalDispatchTopic,
+          internal_pinTopicStatus: internalPinTopicStatus,
+          moveQueuedMessages: vi.fn(),
+          moveVoiceMessages: vi.fn(),
+          onOperationCancel: vi.fn(),
+          refreshTopic,
+          startOperation: vi.fn(() => ({ operationId: 'gw-op-1' })),
+          updateTopicStatus: vi.fn(),
+        })) as any;
+
+        (globalThis as any).window = {
+          global_serverConfigStore: {
+            getState: () => ({ serverConfig: { agentGatewayUrl: 'https://gateway.test.com' } }),
+          },
+        };
+
+        const action = new GatewayActionImpl(set as any, get, undefined);
+        action.createClient = vi.fn(() => createMockClient());
+
+        vi.mocked(aiAgentService.execAgentTask).mockResolvedValue({
+          agentId: 'agent-1',
+          assistantMessageId: 'ast-1',
+          autoStarted: true,
+          createdAt: new Date().toISOString(),
+          message: 'ok',
+          operationId: 'server-op-1',
+          status: 'created',
+          success: true,
+          timestamp: new Date().toISOString(),
+          token: 'test-token',
+          topicId: 'topic-1',
+          userMessageId: 'usr-1',
+        });
+        vi.mocked(topicService.settleRunningOperation).mockResolvedValue(undefined as never);
+
+        return {
+          action,
+          connectToGateway,
+          internalDispatchTopic,
+          internalPinTopicStatus,
+          refreshTopic,
+        };
+      };
+
+      it('resets the local status to active when the watched run completes', async () => {
+        const { action, connectToGateway, internalDispatchTopic, internalPinTopicStatus } =
+          setupFollowUpRun();
+
+        await action.executeGatewayAgent({
+          context: { agentId: 'agent-1', scope: 'main', threadId: null, topicId: 'topic-1' },
+          message: 'Follow-up',
+        });
+
+        const { onSessionComplete } = connectToGateway.mock.calls[0][0];
+        internalDispatchTopic.mockClear();
+        internalPinTopicStatus.mockClear();
+
+        onSessionComplete({ succeeded: true, terminalReceived: true });
+
+        expect(internalPinTopicStatus).toHaveBeenCalledWith({
+          agentId: 'agent-1',
+          groupId: undefined,
+          status: 'active',
+          topicId: 'topic-1',
+        });
+        // Nothing to clear: there was no marker in the local row.
+        expect(internalDispatchTopic).not.toHaveBeenCalled();
+      });
+
+      // A run started from another tab or device replaces the server marker
+      // without appearing in this tab's operations; only the server can tell.
+      it('restores running when the server reports another run owns the topic', async () => {
+        const { action, connectToGateway, internalPinTopicStatus, refreshTopic } =
+          setupFollowUpRun();
+        vi.mocked(topicService.settleRunningOperation).mockResolvedValue({
+          activeOperationId: 'server-op-other-tab',
+          status: 'conflict',
+        } as never);
+
+        await action.executeGatewayAgent({
+          context: { agentId: 'agent-1', scope: 'main', threadId: null, topicId: 'topic-1' },
+          message: 'Follow-up',
+        });
+
+        const { onSessionComplete } = connectToGateway.mock.calls[0][0];
+        internalPinTopicStatus.mockClear();
+
+        onSessionComplete({ succeeded: true, terminalReceived: true });
+        await vi.waitFor(() => expect(refreshTopic).toHaveBeenCalledWith('agent_agent-1'));
+
+        expect(internalPinTopicStatus.mock.calls.map(([params]) => params.status)).toEqual([
+          'active',
+          'running',
+        ]);
+      });
+
+      it('keeps the active status when the server settle does not conflict', async () => {
+        const { action, connectToGateway, internalPinTopicStatus, refreshTopic } =
+          setupFollowUpRun();
+        vi.mocked(topicService.settleRunningOperation).mockResolvedValue({
+          status: 'missing',
+        } as never);
+
+        await action.executeGatewayAgent({
+          context: { agentId: 'agent-1', scope: 'main', threadId: null, topicId: 'topic-1' },
+          message: 'Follow-up',
+        });
+
+        const { onSessionComplete } = connectToGateway.mock.calls[0][0];
+        internalPinTopicStatus.mockClear();
+
+        onSessionComplete({ succeeded: true, terminalReceived: true });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(internalPinTopicStatus.mock.calls.map(([params]) => params.status)).toEqual([
+          'active',
+        ]);
+        expect(refreshTopic).not.toHaveBeenCalled();
+      });
+
+      it('leaves the status alone when a newer local turn already started on the topic', async () => {
+        const { action, connectToGateway, internalPinTopicStatus } = setupFollowUpRun({
+          operations: {
+            'newer-send': {
+              context: { agentId: 'agent-1', topicId: 'topic-1' },
+              id: 'newer-send',
+              metadata: {},
+              status: 'running',
+              type: 'sendMessage',
+            },
+          },
+          operationsByType: { sendMessage: ['newer-send'] },
+        });
+
+        await action.executeGatewayAgent({
+          context: { agentId: 'agent-1', scope: 'main', threadId: null, topicId: 'topic-1' },
+          message: 'Follow-up',
+        });
+
+        const { onSessionComplete } = connectToGateway.mock.calls[0][0];
+        internalPinTopicStatus.mockClear();
+
+        onSessionComplete({ succeeded: true, terminalReceived: true });
+
+        expect(internalPinTopicStatus).not.toHaveBeenCalled();
+      });
+
+      it('ignores live operations that belong to the completing run itself', async () => {
+        const { action, connectToGateway, internalPinTopicStatus } = setupFollowUpRun({
+          operations: {
+            'own-runtime': {
+              context: { agentId: 'agent-1', topicId: 'topic-1' },
+              id: 'own-runtime',
+              metadata: { serverOperationId: 'server-op-1' },
+              status: 'running',
+              type: 'execServerAgentRuntime',
+            },
+            'own-member': {
+              context: { agentId: 'agent-1', topicId: 'topic-1' },
+              id: 'own-member',
+              metadata: { serverOperationId: 'member-op-1' },
+              parentOperationId: 'own-runtime',
+              status: 'running',
+              type: 'execServerAgentRuntime',
+            },
+          },
+          operationsByType: { execServerAgentRuntime: ['own-runtime', 'own-member'] },
+        });
+
+        await action.executeGatewayAgent({
+          context: { agentId: 'agent-1', scope: 'main', threadId: null, topicId: 'topic-1' },
+          message: 'Follow-up',
+        });
+
+        const { onSessionComplete } = connectToGateway.mock.calls[0][0];
+        internalPinTopicStatus.mockClear();
+
+        onSessionComplete({ succeeded: true, terminalReceived: true });
+
+        expect(internalPinTopicStatus).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 'active', topicId: 'topic-1' }),
+        );
+      });
+    });
+
     // The clean, unwatched-completion case is owned by `markTopicUnread`
     // elsewhere — the local mirror here must NOT also write 'active' for it,
     // or the two would race over the status field.

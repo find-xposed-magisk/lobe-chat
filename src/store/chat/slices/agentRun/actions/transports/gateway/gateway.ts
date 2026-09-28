@@ -48,6 +48,7 @@ import { getAgentStoreState } from '@/store/agent';
 import { agentByIdSelectors, chatConfigByIdSelectors } from '@/store/agent/selectors';
 import { consumePendingTopicRepos, getPendingTopicRepos } from '@/store/chat/pendingTopicRepos';
 import { topicSelectors } from '@/store/chat/selectors';
+import { INPUT_LOADING_OPERATION_TYPES } from '@/store/chat/slices/operation/types';
 import type { ChatStore } from '@/store/chat/store';
 import { messageMapKey } from '@/store/chat/utils/messageMapKey';
 import { topicMapKey } from '@/store/chat/utils/topicMapKey';
@@ -1451,25 +1452,29 @@ export class GatewayActionImpl {
           const viewing = this.#get().activeTopicId === result.topicId;
           // Share visitors cannot settle the creator-owned topic row (the topic
           // router is owner-scoped) — the local clear below still runs.
-          if (!agentShareId)
-            topicService
-              .settleRunningOperation(
+          const settle = agentShareId
+            ? undefined
+            : topicService.settleRunningOperation(
                 result.topicId,
                 result.operationId,
                 viewing || !effectiveSucceeded ? 'active' : 'unread',
-              )
-              .catch(console.error);
+              );
           // Also clear the local store copy — the server settle above does NOT
           // touch the Zustand topic map that useGatewayReconnect (and the sidebar
           // spinner) read. Mirror the same 'active' decision passed to the server
           // call above; omit it for the unwatched-clean-completion case, which
           // `markTopicUnread` owns. Ownership-guarded on its own (see
           // clearLocalRunningOperation), so it is safe to call either way.
-          this.clearLocalRunningOperation({
+          const settledWithoutMarker = this.clearLocalRunningOperation({
             agentId: resolvedMessageContext.agentId,
             groupId: resolvedMessageContext.groupId,
             operationId: result.operationId,
             status: viewing || !effectiveSucceeded ? 'active' : undefined,
+            topicId: result.topicId,
+          });
+          this.#restoreRunningOnSettleConflict(settle, settledWithoutMarker, {
+            agentId: resolvedMessageContext.agentId,
+            groupId: resolvedMessageContext.groupId,
             topicId: result.topicId,
           });
         }
@@ -1755,23 +1760,26 @@ export class GatewayActionImpl {
         // Share visitors cannot settle the creator-owned topic row (the topic
         // router is owner-scoped) — the local clear below still runs. Same
         // split as executeGatewayAgent's onSessionComplete.
-        if (!superseded && !agentShareId) {
-          topicService
-            .settleRunningOperation(
-              topicId,
-              operationId,
-              viewing || !effectiveSucceeded ? 'active' : 'unread',
-            )
-            .catch(console.error);
-        }
+        const settle =
+          superseded || agentShareId
+            ? undefined
+            : topicService.settleRunningOperation(
+                topicId,
+                operationId,
+                viewing || !effectiveSucceeded ? 'active' : 'unread',
+              );
         // Mirror into the local store — the server settle does NOT touch the
         // Zustand topic map that useGatewayReconnect (and the sidebar spinner)
         // read. Status omitted for the unwatched-clean case, which
         // `markTopicUnread` owns locally; same split as the primary path.
-        this.clearLocalRunningOperation({
+        const settledWithoutMarker = this.clearLocalRunningOperation({
           agentId: context.agentId,
           operationId,
           status: viewing || !effectiveSucceeded ? 'active' : undefined,
+          topicId,
+        });
+        this.#restoreRunningOnSettleConflict(settle, settledWithoutMarker, {
+          agentId: context.agentId,
           topicId,
         });
       },
@@ -1893,6 +1901,79 @@ export class GatewayActionImpl {
     this.clearLocalRunningOperation({ ...params, status: 'active' });
   };
 
+  /**
+   * Whether this tab has a live turn on `topicId` that belongs to a run other
+   * than `serverOperationId` — e.g. a follow-up (or queued message) already sent
+   * after this run ended. Operations of this run itself (its runtime op and its
+   * descendants such as broadcast members) are excluded.
+   */
+  #hasOtherLiveRunOnTopic = (topicId: string, serverOperationId: string): boolean => {
+    const { operations, operationsByType } = this.#get();
+
+    const belongsToRun = (op: (typeof operations)[string] | undefined): boolean => {
+      let current = op;
+      while (current) {
+        if (current.metadata.serverOperationId === serverOperationId) return true;
+        current = current.parentOperationId ? operations[current.parentOperationId] : undefined;
+      }
+      return false;
+    };
+
+    return INPUT_LOADING_OPERATION_TYPES.some((type) =>
+      (operationsByType?.[type] ?? []).some((id) => {
+        const op = operations?.[id];
+        return (
+          !!op &&
+          op.status === 'running' &&
+          !op.metadata.isAborting &&
+          op.context.topicId === topicId &&
+          !belongsToRun(op)
+        );
+      }),
+    );
+  };
+
+  /**
+   * Await the server settle and undo a markerless local status write that the
+   * server proves wrong.
+   *
+   * Without a local marker, {@link clearLocalRunningOperation} can only rule out
+   * newer runs started in THIS tab. A run started from another tab or device
+   * replaces the server marker without appearing in this tab's operations, and
+   * the server reports it as a `conflict`. The local `active` pin would then hide
+   * that run's spinner, so re-pin `running` and refetch the row to pick up the
+   * newer run's marker (the pin is released once the refetch matches it).
+   */
+  #restoreRunningOnSettleConflict = (
+    settle: ReturnType<typeof topicService.settleRunningOperation> | undefined,
+    settledWithoutMarker: boolean,
+    target: { agentId?: string; groupId?: string; topicId: string },
+  ): void => {
+    if (!settle) return;
+
+    settle
+      .then((result) => {
+        if (!settledWithoutMarker || result?.status !== 'conflict') return;
+
+        const state = this.#get();
+        state.internal_pinTopicStatus?.({ ...target, status: 'running' });
+        // Revalidate the run's own bucket — the user may have switched agents
+        // since — so that row receives the newer run's reconnect marker.
+        return state.refreshTopic?.(
+          topicMapKey({
+            agentId: target.agentId ?? state.activeAgentId,
+            groupId: target.groupId ?? state.activeGroupId,
+          }),
+        );
+      })
+      .catch(console.error);
+  };
+
+  /**
+   * @returns Whether a terminal status was written without a local marker — the
+   * only case whose ownership still needs the server's confirmation (see
+   * `#restoreRunningOnSettleConflict`).
+   */
   private clearLocalRunningOperation = (params: {
     agentId?: string;
     groupId?: string;
@@ -1904,7 +1985,7 @@ export class GatewayActionImpl {
      */
     status?: ChatTopicStatus;
     topicId: string;
-  }): void => {
+  }): boolean => {
     const { topicId, operationId, agentId, groupId, status } = params;
     const state = this.#get();
     const key = topicMapKey({
@@ -1912,28 +1993,39 @@ export class GatewayActionImpl {
       groupId: groupId ?? state.activeGroupId,
     });
     const existingTopic = state.topicDataMap[key]?.items?.find((t) => t.id === topicId);
-    // Same ownership guard the removed client-side `superseded` check used to
-    // provide: if a newer run already overwrote this topic's local marker with
-    // its own operationId, this stale session's completion must not clobber it
-    // (neither the metadata clear nor, now, the status write).
-    if (existingTopic?.metadata?.runningOperation?.operationId !== operationId) return;
+    if (!existingTopic) return false;
 
-    state.internal_dispatchTopic({
-      agentId,
-      groupId,
-      id: topicId,
-      type: 'updateTopic',
-      value: { metadata: { ...existingTopic.metadata, runningOperation: null } },
-    });
+    // Ownership guard: a stale session's completion must not clobber a newer
+    // run's row (neither the metadata clear nor the status write).
+    //
+    // The local `runningOperation` marker alone cannot prove ownership: run start
+    // only rewrites it when an older marker is present (see executeGatewayAgent),
+    // so a follow-up on an existing topic runs with a `null` local marker while
+    // its optimistic `running` status is still in place. Requiring the marker to
+    // match skipped the status write for every such run and left the sidebar
+    // spinner on until a later topic-list refetch (LOBE-14423).
+    const markerOperationId = existingTopic.metadata?.runningOperation?.operationId;
+    if (markerOperationId && markerOperationId !== operationId) return false;
+    if (!markerOperationId && this.#hasOtherLiveRunOnTopic(topicId, operationId)) return false;
+
+    if (markerOperationId) {
+      state.internal_dispatchTopic({
+        agentId,
+        groupId,
+        id: topicId,
+        type: 'updateTopic',
+        value: { metadata: { ...existingTopic.metadata, runningOperation: null } },
+      });
+    }
 
     // Routed through `internal_pinTopicStatus`, not a bare dispatch: it also
     // registers the pending-write pin so a topic-list refetch racing in
     // behind this (e.g. within the 15s window of the 'running' pin set at
     // run start) reconciles to this status instead of reapplying the stale
     // 'running' one and stranding the spinner again.
-    if (status) {
-      state.internal_pinTopicStatus?.({ agentId, groupId, status, topicId });
-    }
+    if (!status) return false;
+    state.internal_pinTopicStatus?.({ agentId, groupId, status, topicId });
+    return !markerOperationId;
   };
 
   private internal_cleanupGatewayConnection = (operationId: string): void => {
