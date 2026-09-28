@@ -963,6 +963,16 @@ describe('UserMemoryModel', () => {
 
       expect(result).toHaveLength(1);
     });
+
+    it('should not return memories in the recycle bin', async () => {
+      const { memory } = await createExperiencePair({});
+      await serverDB
+        .update(userMemories)
+        .set({ deletedAt: new Date(), isDeleted: true })
+        .where(eq(userMemories.id, memory.id));
+
+      expect(await memoryModel.listMemories({ layer: LayersEnum.Experience })).toEqual([]);
+    });
   });
 
   // ========== getMemoryDetail ==========
@@ -1695,6 +1705,16 @@ describe('UserMemoryModel', () => {
       const result = await memoryModel.getAllIdentities();
       expect(result).toEqual([]);
     });
+
+    it('should not return an identity whose base memory is in the recycle bin', async () => {
+      const { memory } = await createIdentityPair({});
+      await serverDB
+        .update(userMemories)
+        .set({ deletedAt: new Date(), isDeleted: true })
+        .where(eq(userMemories.id, memory.id));
+
+      expect(await memoryModel.getAllIdentities()).toEqual([]);
+    });
   });
 
   // ========== getAllIdentitiesWithMemory ==========
@@ -1717,6 +1737,16 @@ describe('UserMemoryModel', () => {
       const result = await memoryModel.getAllIdentitiesWithMemory();
 
       expect(result).toHaveLength(1);
+    });
+
+    it('should not join an identity whose base memory is in the recycle bin', async () => {
+      const { memory } = await createIdentityPair({});
+      await serverDB
+        .update(userMemories)
+        .set({ deletedAt: new Date(), isDeleted: true })
+        .where(eq(userMemories.id, memory.id));
+
+      expect(await memoryModel.getAllIdentitiesWithMemory()).toEqual([]);
     });
   });
 
@@ -1780,7 +1810,7 @@ describe('UserMemoryModel', () => {
   // ========== removeExperienceEntry ==========
   describe('removeExperienceEntry', () => {
     it('should delete experience and associated base memory', async () => {
-      const { experience, memory } = await createExperiencePair({});
+      const { experience, memory: _memory } = await createExperiencePair({});
 
       const success = await memoryModel.removeExperienceEntry(experience.id);
 
@@ -2317,7 +2347,7 @@ describe('UserMemoryModel', () => {
   // ========== updateIdentityEntry with capturedAt ==========
   describe('updateIdentityEntry - capturedAt', () => {
     it('should update capturedAt on identity', async () => {
-      const { identity, memory } = await createIdentityPair({});
+      const { identity, memory: _memory } = await createIdentityPair({});
       const capturedDate = new Date('2025-06-15T12:00:00Z');
 
       const result = await memoryModel.updateIdentityEntry({
