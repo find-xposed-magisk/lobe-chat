@@ -97,6 +97,7 @@
   "backgroundActivity.unavailable": "暂时无法获取资源数据，已显示的数据可能已过期。",
   "beforeUnload.confirmLeave": "你有正在生成中的请求，确定要离开吗？",
   "builtinCopilot": "内置 Copilot",
+  "chatList.earlierHistoryError": "未能加载更早的消息",
   "chatList.expandMessage": "展开消息",
   "chatList.longMessageDetail": "查看详情",
   "chatList.refreshError": "未能刷新消息",
