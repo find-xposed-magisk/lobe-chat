@@ -1248,6 +1248,68 @@ describe('TopicModel', () => {
       expect(row?.status).toBe('active');
     });
 
+    // G-03: a client that heard an early / mirrored terminal event must not
+    // clear the marker of a supervisor still parked for its group members.
+    it.each(['running', 'waiting_for_async_tool'] as const)(
+      'keeps the marker when a client settles an operation still %s',
+      async (operationStatus) => {
+        const operationId = `op-sup-${operationStatus}`;
+        const topic = await topicModel.create({
+          metadata: {
+            runningOperation: { assistantMessageId: 'msg-sup', operationId },
+          },
+          title: 'supervisor parked',
+        });
+        await topicModel.update(topic.id, { status: 'running' });
+        await serverDB.insert(agentOperations).values({
+          id: operationId,
+          startedAt: new Date(),
+          status: operationStatus,
+          topicId: topic.id,
+          userId,
+        });
+
+        const result = await topicModel.settleRunningOperation(topic.id, operationId, 'active', {
+          rejectInFlightOperation: true,
+        });
+
+        expect(result).toEqual({
+          activeOperationId: operationId,
+          operationStatus,
+          status: 'in_flight',
+        });
+        const row = await topicModel.findById(topic.id);
+        expect(row?.metadata?.runningOperation?.operationId).toBe(operationId);
+        expect(row?.status).toBe('running');
+      },
+    );
+
+    it('still settles a client-reported end once the operation is terminal', async () => {
+      const topic = await topicModel.create({
+        metadata: {
+          runningOperation: { assistantMessageId: 'msg-sup', operationId: 'op-sup-done' },
+        },
+        title: 'supervisor done',
+      });
+      await topicModel.update(topic.id, { status: 'running' });
+      await serverDB.insert(agentOperations).values({
+        id: 'op-sup-done',
+        startedAt: new Date(),
+        status: 'done',
+        topicId: topic.id,
+        userId,
+      });
+
+      const result = await topicModel.settleRunningOperation(topic.id, 'op-sup-done', 'active', {
+        rejectInFlightOperation: true,
+      });
+
+      expect(result.status).toBe('settled');
+      const row = await topicModel.findById(topic.id);
+      expect(row?.metadata?.runningOperation).toBeNull();
+      expect(row?.status).toBe('active');
+    });
+
     it('atomically removes only a matching child operation', async () => {
       const childHooks = [
         {

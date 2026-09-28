@@ -81,6 +81,7 @@ import {
   assertCanUseTopicTargets,
   assertCanViewMessageTargets,
 } from '@/server/routers/lambda/_helpers/conversationResourceGuard';
+import { toClientExecAgentResult } from '@/server/routers/lambda/_helpers/groupMemberContinuationResult';
 import { assertCanUseWorkspaceAgent } from '@/server/routers/lambda/_helpers/workspaceAgentGuard';
 import {
   GetAgentInterventionReviewBySourceSchema,
@@ -2388,12 +2389,12 @@ export const aiAgentRouter = router({
             if (!dispatch.execution) {
               throw new Error('Durable intervention resume did not create an operation');
             }
-            return dispatch.execution;
+            return toClientExecAgentResult(dispatch.execution);
           }
         }
       }
 
-      return await ctx.aiAgentService.execAgent({
+      const result = await ctx.aiAgentService.execAgent({
         agentId,
         appContext,
         autoStart,
@@ -2428,6 +2429,7 @@ export const aiAgentRouter = router({
         userAgent: ctx.userAgent ?? undefined,
         userInterventionConfig,
       });
+      return toClientExecAgentResult(result);
     } catch (error: any) {
       console.error('execAgent failed: %O', error);
 
@@ -3484,7 +3486,7 @@ export const aiAgentRouter = router({
       return {
         contractVersion: 2 as const,
         ...(resolution.conversationUrl && { conversationUrl: resolution.conversationUrl }),
-        ...(dispatch.execution && { execution: dispatch.execution }),
+        ...(dispatch.execution && { execution: toClientExecAgentResult(dispatch.execution) }),
         state: resolution.state,
         status: dispatch.status,
         success: true as const,

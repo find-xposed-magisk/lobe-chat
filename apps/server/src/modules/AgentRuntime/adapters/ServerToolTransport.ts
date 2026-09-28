@@ -225,6 +225,7 @@ export class ServerToolTransport implements ToolTransport {
                 context.state,
                 chatToolPayload,
                 context.parentMessageId,
+                context.reuseExistingMessage ? context.toolMessageId : undefined,
               ),
               // Share-visitor marker: lets `BuiltinToolsExecutor.execute`
               // re-apply the share data-tool gate at the actual dispatch site.

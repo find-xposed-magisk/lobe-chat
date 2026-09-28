@@ -1114,7 +1114,12 @@ export const topicRouter = router({
       // Same visitor guard as `batchMoveTopics`/`cloneTopic` above.
       await assertCreatorTopicTargets(guardCtx(ctx), [input.id]);
 
-      return ctx.topicModel.settleRunningOperation(input.id, input.operationId, input.status);
+      // Client-reported end: never clear the marker of a run the server is still
+      // driving (an early / mirrored terminal event would otherwise drop the
+      // supervisor's topic reservation mid group turn).
+      return ctx.topicModel.settleRunningOperation(input.id, input.operationId, input.status, {
+        rejectInFlightOperation: true,
+      });
     }),
 });
 

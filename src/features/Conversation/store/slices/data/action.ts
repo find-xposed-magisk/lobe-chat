@@ -374,15 +374,29 @@ export const dataSlice: StateCreator<
           // updatedAt tie-breaker handles most cases on its own, but the
           // updatedAt comparison degenerates when server's pushed snapshot
           // carries a DB updatedAt equal to a later stale fetch's row.
-          if (operationSelectors.isAgentRuntimeRunningByContext(context)(getChatStoreState()))
-            return;
-
+          //
+          // Only rows the store already holds are protected. The first load, and
+          // rows the store has never seen, still land: a run can stay `running`
+          // for a long time (a group supervisor parked on a member's approval),
+          // and dropping them left a reloaded list on its skeleton, or on a stale
+          // cached snapshot missing the parked member's rows, for good.
           const prevDbMessages = get().dbMessages;
+          let fetchedMessages = data;
+          if (
+            get().messagesInit &&
+            operationSelectors.isAgentRuntimeRunningByContext(context)(getChatStoreState())
+          ) {
+            const knownIds = new Set(prevDbMessages.map((m) => m.id));
+            const unseen = data.filter((m) => !knownIds.has(m.id));
+            if (unseen.length === 0) return;
+            fetchedMessages = [...prevDbMessages, ...unseen];
+          }
+
           const activeVoiceMessageIds = new Set(
             Object.keys(getChatStoreState().voiceMessageUploadMap),
           );
           const mergedMessages = mergeFetchedMessagesWithLocalState(
-            data,
+            fetchedMessages,
             prevDbMessages,
             activeVoiceMessageIds,
           );

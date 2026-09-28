@@ -1,5 +1,6 @@
 import { AGENT_SHARE_VISITOR_TOPIC_LIST_LIMIT } from '@lobechat/const';
 import type {
+  AgentOperationStatus,
   ChatTopicMetadata,
   ChatTopicStatus,
   DBMessageItem,
@@ -102,6 +103,26 @@ const LIVE_OPERATION_STATUSES = new Set([
 ]);
 /** Parked states are exempt from the abandoned-age backstop — see above. */
 const UNBOUNDED_OPERATION_STATUSES = new Set(['waiting_for_human', 'waiting_for_async_tool']);
+
+/**
+ * Operation statuses in which the server is still driving the run, so a
+ * client-reported end must not clear its topic marker. `waiting_for_human` is
+ * excluded on purpose: a run parked for approval is stream-terminal for the
+ * client, which settles it to stop the spinner.
+ */
+const CLIENT_UNSETTLEABLE_OPERATION_STATUSES = new Set<AgentOperationStatus>([
+  'running',
+  'waiting_for_async_tool',
+]);
+
+export interface SettleRunningOperationOptions {
+  /**
+   * Refuse to clear a marker whose operation row is still `running` /
+   * `waiting_for_async_tool`. Set for client-reported settles, which can be
+   * triggered by an early or mirrored terminal event.
+   */
+  rejectInFlightOperation?: boolean;
+}
 
 export interface TopicListItem extends TopicItem {
   /** The topic's last non-empty assistant reply, truncated with a trailing `…`. Only set when `queryTopics` is called with `withLastMessage`. */
@@ -1853,6 +1874,7 @@ export class TopicModel {
     id: string,
     operationId: string,
     status: TopicItem['status'] = 'unread',
+    options: SettleRunningOperationOptions = {},
   ) => {
     return this.db.transaction(async (tx) => {
       const [existing] = await tx
@@ -1898,6 +1920,31 @@ export class TopicModel {
         : runningOperation.childOperations?.find((child) => child.operationId === operationId);
       if (!operation) {
         return { activeOperationId: runningOperation.operationId, status: 'conflict' as const };
+      }
+
+      // A client only learns a run ended from a stream event, and a mirrored or
+      // early event can arrive while the server is still driving the run (e.g. a
+      // supervisor parked on `waiting_for_async_tool` for its group members).
+      // Clearing the marker then drops the run's topic reservation, so the next
+      // member start fails as "Topic … remained busy". The server's own
+      // `finish` clears the marker before it publishes the terminal event, so a
+      // genuine end never reaches this check with the marker still in place.
+      if (options.rejectInFlightOperation) {
+        const [operationRow] = await tx
+          .select({ status: agentOperations.status })
+          .from(agentOperations)
+          .where(eq(agentOperations.id, operationId))
+          .limit(1);
+        if (
+          operationRow &&
+          CLIENT_UNSETTLEABLE_OPERATION_STATUSES.has(operationRow.status as AgentOperationStatus)
+        ) {
+          return {
+            activeOperationId: runningOperation.operationId,
+            operationStatus: operationRow.status as AgentOperationStatus,
+            status: 'in_flight' as const,
+          };
+        }
       }
 
       const metadata = {

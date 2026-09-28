@@ -10,6 +10,7 @@ import {
   runMessageListQuery,
 } from '@/services/message/cache';
 import { useChatStore } from '@/store/chat';
+import { operationSelectors } from '@/store/chat/selectors';
 import { LOCAL_MESSAGE_SCOPE } from '@/store/chat/utils/localMessages';
 
 import { createStore } from '../../index';
@@ -832,6 +833,97 @@ describe('DataSlice', () => {
 
       await waitFor(() => {
         expect(onMessagesChange).toHaveBeenCalledWith(mockMessages, context, { source: 'fetch' });
+      });
+    });
+
+    describe('while an agent run is in flight in this conversation', () => {
+      const context = { agentId: 'test-session', threadId: null, topicId: 'test-topic' };
+      const fetched: UIChatMessage[] = [
+        {
+          content: 'Run the script',
+          createdAt: 1000,
+          id: 'msg-user',
+          role: 'user',
+          updatedAt: 1000,
+        },
+      ];
+
+      it('still lands the first load, so a parked run does not leave a skeleton (G-05)', async () => {
+        // A group supervisor parked on a member's approval stays `running`
+        // indefinitely; dropping the first load there never initializes the list.
+        const running = vi
+          .spyOn(operationSelectors, 'isAgentRuntimeRunningByContext')
+          .mockReturnValue(() => true);
+        vi.mocked(messageService.getMessages).mockResolvedValue(fetched);
+        const store = createStore({ context });
+        store.setState({ messagesInit: false });
+
+        store.getState().useFetchMessages(context);
+
+        await waitFor(() => {
+          expect(store.getState().messagesInit).toBe(true);
+        });
+        expect(store.getState().dbMessages.map((m) => m.id)).toEqual(['msg-user']);
+        running.mockRestore();
+      });
+
+      it('keeps loaded rows but lands rows the list has never seen (G-05)', async () => {
+        // A stale cached first load can miss the parked member's rows; the fresh
+        // read that follows must still bring them in, without touching the
+        // rows the stream owns.
+        const running = vi
+          .spyOn(operationSelectors, 'isAgentRuntimeRunningByContext')
+          .mockReturnValue(() => true);
+        const streamed = {
+          content: 'streamed so far',
+          createdAt: 2000,
+          id: 'msg-supervisor',
+          role: 'assistant',
+          updatedAt: 2000,
+        } as UIChatMessage;
+        const memberTool = {
+          content: '',
+          createdAt: 3000,
+          id: 'msg-member-tool',
+          role: 'tool',
+          updatedAt: 3000,
+        } as UIChatMessage;
+        vi.mocked(messageService.getMessages).mockResolvedValue([
+          ...fetched,
+          { ...streamed, content: '' },
+          memberTool,
+        ]);
+        const store = createStore({ context });
+        store.setState({ dbMessages: [...fetched, streamed], messagesInit: true });
+
+        store.getState().useFetchMessages(context);
+
+        await waitFor(() => {
+          expect(store.getState().dbMessages.map((m) => m.id)).toContain('msg-member-tool');
+        });
+        expect(store.getState().dbMessages.find((m) => m.id === 'msg-supervisor')?.content).toBe(
+          'streamed so far',
+        );
+        running.mockRestore();
+      });
+
+      it('drops a refetch that brings nothing new', async () => {
+        const running = vi
+          .spyOn(operationSelectors, 'isAgentRuntimeRunningByContext')
+          .mockReturnValue(() => true);
+        vi.mocked(messageService.getMessages).mockResolvedValue(fetched);
+        const store = createStore({ context });
+        const loaded = [{ ...fetched[0], content: 'local' }];
+        store.setState({ dbMessages: loaded, messagesInit: true });
+
+        store.getState().useFetchMessages(context);
+
+        await waitFor(() => {
+          expect(messageService.getMessages).toHaveBeenCalled();
+        });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(store.getState().dbMessages).toBe(loaded);
+        running.mockRestore();
       });
     });
 
