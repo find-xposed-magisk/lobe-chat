@@ -378,6 +378,7 @@
     "docx-preview": "^0.4.0",
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
+    "entities": "^8.1.0",
     "epub2": "^3.0.2",
     "es-toolkit": "^1.50.0",
     "exceljs": "^4.4.0",
