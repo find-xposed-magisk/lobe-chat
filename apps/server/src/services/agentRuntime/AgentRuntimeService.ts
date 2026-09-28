@@ -43,7 +43,7 @@ import {
   type ExecVirtualSubAgentParams,
   type UIChatMessage,
 } from '@lobechat/types';
-import { RequestTrigger } from '@lobechat/types';
+import { ChatErrorType, RequestTrigger } from '@lobechat/types';
 import { isRecord } from '@lobechat/utils/object';
 import debug from 'debug';
 import urlJoin from 'url-join';
@@ -303,6 +303,60 @@ const formatErrorForMetadata = (error: unknown): Record<string, any> | undefined
   return { message: String(error) };
 };
 
+const SUB_AGENT_CREDIT_ERROR_TYPES = new Set<string>([
+  ChatErrorType.FreePlanLimit,
+  ChatErrorType.InsufficientBudgetForModel,
+  ChatErrorType.SubscriptionPlanLimit,
+]);
+
+/**
+ * A child stopped by the cost-admission gate fails with the bare message
+ * "Budget exceeded", which reads like a per-sub-agent allowance. The parent
+ * then retries or fans out more sub-agents against the same limit. Say which
+ * limit it is and who can lift it.
+ *
+ * Mirrors the bot reply copy (`bot/replyTemplate.ts`): the payer is not
+ * addressed as "you" and figures are never quoted, because a bot run is billed
+ * to its owner while the parent's reply may reach a shared channel.
+ */
+const formatSubAgentCreditErrorReason = (error: unknown): string | undefined => {
+  if (!error || typeof error !== 'object') return;
+  const { body, errorType, type } = error as {
+    body?: { budget?: { budgetTypeAtError?: unknown } };
+    errorType?: unknown;
+    type?: unknown;
+  };
+  const creditType = [type, errorType].find(
+    (value): value is string =>
+      typeof value === 'string' && SUB_AGENT_CREDIT_ERROR_TYPES.has(value),
+  );
+  if (!creditType) return;
+
+  const budgetType = body?.budget?.budgetTypeAtError;
+  // InsufficientBudgetForModel means the allowance still has credits, just not
+  // enough for this model's estimated cost — a cheaper model may still fit, so
+  // the no-retry claim only holds for the same model (bot/replyTemplate gives
+  // the same "switch to a less expensive model" advice).
+  const modelCostShortfall = creditType === ChatErrorType.InsufficientBudgetForModel;
+  const shortfall = modelCostShortfall ? "can't cover this model's estimated cost" : 'are used up';
+  const limit =
+    budgetType === 'workspace'
+      ? `the workspace's shared LobeHub credits ${shortfall}; a workspace admin has to add credits`
+      : budgetType === 'workspace_member'
+        ? `this member's workspace credit allowance ${modelCostShortfall ? shortfall : 'is used up'}; a workspace admin has to raise it`
+        : modelCostShortfall
+          ? "the account's LobeHub credits are too low for this model; the account owner has to top up or upgrade"
+          : "the account's LobeHub plan limit was reached or the plan does not cover this model; the account owner has to upgrade the plan";
+
+  const advice = modelCostShortfall
+    ? 'This limit is shared by every sub-agent and by this conversation, so retrying or dispatching more sub-agents on the same model will not get past it; a sub-agent that runs on a less expensive model may still fit. ' +
+      'Otherwise finish with what you already have and tell the user about the limit.'
+    : 'This limit is shared by every sub-agent and by this conversation, so retrying or dispatching more sub-agents will not get past it. ' +
+      'Finish with what you already have and tell the user about the limit.';
+
+  return `stopped by a LobeHub billing limit (${creditType}): ${limit}. ${advice}`;
+};
+
 /**
  * Extract a short, human-readable reason string from a failed operation's
  * `state.error`, for inlining into the tool-result `content` a parent agent
@@ -313,6 +367,9 @@ const formatErrorForMetadata = (error: unknown): Record<string, any> | undefined
  * error still rides on `pluginError`; this is just the readable summary.
  */
 const formatSubAgentErrorReason = (error: unknown): string | undefined => {
+  const creditReason = formatSubAgentCreditErrorReason(error);
+  if (creditReason) return creditReason;
+
   const message = formatErrorForMetadata(error)?.message;
   if (typeof message !== 'string') return undefined;
   const trimmed = message.trim();
