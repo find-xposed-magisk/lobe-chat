@@ -237,6 +237,13 @@ export interface GoalManagerState {
    */
   adoptedOperationId?: string;
   consumed?: boolean;
+  /**
+   * Set when the dispatch for this turn was refused its topic reservation — the
+   * one failure raised before anything of the run is written — so no run exists
+   * and none can start. Decided from the error itself, never from rows the
+   * owner can edit.
+   */
+  dispatchNeverStarted?: boolean;
   operationId?: string;
   /**
    * The problem this turn was invited to take over, when the coordinator handed
