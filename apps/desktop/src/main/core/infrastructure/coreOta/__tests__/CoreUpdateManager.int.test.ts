@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ShellGlobal } from '@/const/shell';
 
-import { canonicalJson, type CoreManifest, sha256File } from '../manifest';
+import { canonicalJson, type CoreManifestV3 as CoreManifest, sha256File } from '../manifest';
 import { readPointer, writePointer } from '../pointer';
 import { SAFE_VERSION } from '../store';
 
@@ -266,15 +266,41 @@ describe('CoreUpdateManager initialize', () => {
     expect(existsSync(coreDir('0.9.0'))).toBe(false);
   });
 
-  it('keeps store objects across an abi reset', async () => {
+  it('removes old OTA cache after a full release without touching app data', async () => {
     mkdirSync(storeDir(), { recursive: true });
     writeFileSync(path.join(storeDir(), 'f'.repeat(64)), 'blob');
-    pointerAt({ abi: 'b'.repeat(64) } as never);
+    pointerAt({
+      abi: 'b'.repeat(64),
+      current: 'old',
+      previous: 'older',
+      staged: 'pending',
+    } as never);
+    for (const dir of [
+      'core-ota/cores/old',
+      'core-ota/cores/older',
+      'core-ota/cores/pending',
+      'core-ota/staging',
+      'renderer-ota',
+      'renderer-ota-v2',
+    ]) {
+      mkdirSync(path.join(userDataDir, dir), { recursive: true });
+      writeFileSync(path.join(userDataDir, dir, 'old-file'), 'old OTA bytes');
+    }
+    writeFileSync(path.join(userDataDir, 'app-data.json'), 'keep app data');
 
     await loadManager();
     await flushGc();
 
-    expect(existsSync(path.join(storeDir(), 'f'.repeat(64)))).toBe(true);
+    expect(existsSync(path.join(storeDir(), 'f'.repeat(64)))).toBe(false);
+    expect(readdirSync(path.join(otaRoot(), 'cores'))).toEqual([]);
+    for (const dir of ['core-ota/staging', 'renderer-ota', 'renderer-ota-v2'])
+      expect(existsSync(path.join(userDataDir, dir))).toBe(false);
+    expect(readPointer(otaRoot(), ABI)).toMatchObject({
+      current: null,
+      previous: null,
+      staged: null,
+    });
+    expect(readFileSync(path.join(userDataDir, 'app-data.json'), 'utf8')).toBe('keep app data');
   });
 
   it('clears pointer.current when the shell fell back to builtin and the core dir is gone', async () => {
@@ -454,6 +480,25 @@ describe('CoreUpdateManager initialize', () => {
 });
 
 describe('CoreUpdateManager checkForUpdates', () => {
+  it.each(['1.0.0', '2.0.0-canary.1'])(
+    'isolates v4 feed by shell version %s even when an OTA core is running',
+    async (shellVersion) => {
+      const manifest = mainChanged('1.0.0-core.17', 17);
+      // A shared or another application's feed must never be used as a fallback.
+      served.set(`${SERVER}/stable/core-v4/${PLATFORM}/latest.json`, Buffer.from('{}'));
+      const { manager } = await loadManager(
+        makeApp(),
+        makeShell({ coreProtocol: 4, manifest, shellVersion, source: 'external' }),
+      );
+      await manager.checkForUpdates();
+      expect(fetchImpl).toHaveBeenCalledExactlyOnceWith(
+        `${SERVER}/stable/${shellVersion}/core-v4/${PLATFORM}/latest.json`,
+        { cache: 'no-store' },
+      );
+      expect(manager.getStatus().lastError).toBeNull();
+    },
+  );
+
   it('is up-to-date when remote seq does not increase', async () => {
     serveLatest(rendererOnly('1.0.1', 0));
     const { app, manager } = await loadManager();
@@ -556,6 +601,32 @@ describe('CoreUpdateManager checkForUpdates', () => {
     const reload =
       app.browserManager.browsers.get('main')!.browserWindow.webContents.reloadIgnoringCache;
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses the active renderer version after a reload even without its object cache', async () => {
+    serveLatest(rendererOnly('1.0.1', 1));
+    const { manager } = await loadManager();
+    await manager.checkForUpdates();
+    manager.applyStagedNow();
+    manager.handleBootPing('mounted');
+    rmSync(storeDir(), { recursive: true, force: true });
+    const reused = 'index-1.0.1';
+    serveLatest(
+      buildManifest('1.0.5', 5, {
+        ...BASE_FILES,
+        'dist/renderer/assets/index.js': reused,
+        'dist/renderer/assets/extra.js': 'new',
+      }),
+    );
+    fetchImpl.mockClear();
+    await manager.checkForUpdates();
+    expect(manager.getStatus().staged).toBe('1.0.5');
+    expect(
+      fetchImpl.mock.calls.some(([url]) => url.includes(sha256File(Buffer.from(reused)))),
+    ).toBe(false);
+    expect(readFileSync(path.join(coreDir('1.0.5'), 'dist/renderer/assets/index.js'), 'utf8')).toBe(
+      reused,
+    );
   });
 
   it('re-announces an already staged core on a manual check', async () => {

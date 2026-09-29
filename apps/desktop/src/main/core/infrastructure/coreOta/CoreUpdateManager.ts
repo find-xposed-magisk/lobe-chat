@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { UpdateChannel } from '@lobechat/electron-client-ipc';
+import { readBlobWithLimit } from '@lobechat/utils/imageToBase64';
 import { app as electronApp, BrowserWindow, net } from 'electron';
 
 import { type ShellGlobal, shellInfo } from '@/const/shell';
@@ -22,13 +24,7 @@ import {
   coreManifestSchema,
   verifyManifestSignature,
 } from './manifest';
-import {
-  type CorePointer,
-  emptyPointer,
-  readPointer,
-  readPointerAbi,
-  writePointer,
-} from './pointer';
+import { type CorePointer, emptyPointer, readPointer, writePointer } from './pointer';
 import { cleanupLegacy, CoreStore } from './store';
 
 const logger = createLogger('core:CoreUpdateManager');
@@ -101,8 +97,8 @@ export class CoreUpdateManager {
       options.fetchImpl ??
       ((url, init) => net.fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT), ...init }));
     this.otaRoot = path.join(electronApp.getPath('userData'), 'core-ota');
-    this.store = new CoreStore(this.otaRoot, (url) =>
-      this.fetchImpl(url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT) }),
+    this.store = new CoreStore(this.otaRoot, (url, init) =>
+      this.fetchImpl(url, { ...init, signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT) }),
     );
     this.builtinManifest = this.shell ? readBuiltinManifest(this.shell) : null;
     this.activeChannel = this.coreChannel(
@@ -151,12 +147,11 @@ export class CoreUpdateManager {
     cleanupLegacy(electronApp.getPath('userData')).catch((error) =>
       logger.warn('Legacy renderer OTA cleanup failed:', error),
     );
-    const abiChanged = readPointerAbi(this.otaRoot) !== this.shell!.abi;
     const stored = readPointer(this.otaRoot, this.shell!.abi);
     this.pointer = { ...this.reconcilePointer(stored), channel: this.activeChannel };
     writePointer(this.otaRoot, this.pointer);
     logger.info('Core OTA boot state', this.pointer);
-    this.gc(abiChanged);
+    this.gc();
   };
 
   private reconcilePointer(pointer: CorePointer): CorePointer {
@@ -329,13 +324,27 @@ export class CoreUpdateManager {
       if (!this.inRollout(version, remote.rollout)) throw new SkipCheck('rollout-excluded');
 
       await this.gcTask;
+      let current =
+        this.shell!.source === 'external'
+          ? { dir: this.shell!.coreDir, manifest: this.running }
+          : null;
+      if (this.pointer.current && this.pointer.current !== this.runningVersion) {
+        try {
+          const dir = this.coreDirOf(this.pointer.current);
+          current = {
+            dir,
+            manifest: coreManifestSchema.parse(
+              JSON.parse(await readFile(path.join(dir, 'manifest.json'), 'utf8')),
+            ),
+          };
+        } catch (error) {
+          logger.warn('Cannot reuse active renderer core', error);
+        }
+      }
       const staged = await this.store.stage({
         builtin: { dir: this.shell!.builtinDir, manifest: this.builtinManifest! },
-        current:
-          this.shell!.source === 'external'
-            ? { dir: this.shell!.coreDir, manifest: this.running }
-            : null,
-        objectsBaseUrl: remote.objectsBaseUrl,
+        current,
+        objectsBaseUrl: remote.schemaVersion === 3 ? remote.objectsBaseUrl : undefined,
         packsBaseUrl: feedUrl,
         remote,
       });
@@ -384,9 +393,13 @@ export class CoreUpdateManager {
     const res = await this.fetchImpl(`${feedUrl}/latest.json`, { cache: 'no-store' });
     if (res.status === 404) throw new SkipCheck('feed-not-found');
     if (!res.ok) throw new Error(`Manifest fetch failed: ${res.status}`);
-    const parsed = coreManifestSchema.safeParse(await res.json());
+    const parsed = coreManifestSchema.safeParse(
+      JSON.parse(await (await readBlobWithLimit(res, 16 * 1024 ** 2)).text()),
+    );
     if (!parsed.success) throw new Error('Manifest shape invalid');
     const remote = parsed.data;
+    if (this.shell?.coreProtocol === 4 && remote.schemaVersion !== 4)
+      throw new Error('Expected v4 manifest');
     if (!verifyManifestSignature(remote, this.shell!.publicKey)) {
       throw new Error('Manifest signature invalid');
     }
@@ -409,7 +422,11 @@ export class CoreUpdateManager {
   }
 
   private feedUrl() {
-    return `${FEED_BASE_URL}/${this.activeChannel}/core/${process.platform}`;
+    const prefix =
+      this.shell?.coreProtocol === 4
+        ? `${encodeURIComponent(this.shell.shellVersion)}/core-v4`
+        : 'core';
+    return `${FEED_BASE_URL}/${this.activeChannel}/${prefix}/${process.platform}`;
   }
 
   private coreDirOf(version: string) {
@@ -519,9 +536,9 @@ export class CoreUpdateManager {
     });
   }
 
-  private gc(keepStore = false) {
+  private gc() {
     this.gcTask = this.gcTask
-      .then(() => this.store.gc(this.keepVersions, { keepStore }))
+      .then(() => this.store.gc(this.keepVersions))
       .catch((error) => logger.warn('Core OTA gc failed:', error));
   }
 }
