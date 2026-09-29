@@ -2932,6 +2932,88 @@ describe('GoalService', () => {
     expect((await service.graph(graph.goal.id)).goal.status).toBe('failed');
   });
 
+  it('offers retry, abandon and fail on a failed terminal acceptance; abandon cancels the Goal', async () => {
+    const service = new GoalService(serverDB, userId);
+    const taskModel = new TaskModel(serverDB, userId);
+    const graph = await service.create({
+      config: { recovery: { maxAttemptsPerTask: 1 } },
+      requirement: 'Return three verified supplier quotes.',
+      title: 'Abandoned terminal acceptance',
+      tasks: ['Complete full Goal acceptance'],
+    });
+    const created = await service.tick(graph.goal.id);
+    await taskModel.update(created.taskId!, { totalTopics: 1 });
+    await taskModel.updateStatus(created.taskId!, 'paused', {
+      error: 'Delivery did not pass verification.',
+    });
+    await service.tick(graph.goal.id);
+    const gated = await service.graph(graph.goal.id);
+
+    expect(gated.decisions[0].options?.map((option) => option.id)).toEqual([
+      'retry',
+      'retire',
+      'fail',
+    ]);
+    await service.decide(graph.goal.id, gated.decisions[0].id, 'retire');
+
+    const after = await service.graph(graph.goal.id);
+    expect(after.goal.status).toBe('canceled');
+    expect(after.nodes.find((node) => node.taskId === created.taskId)?.status).toBe('retired');
+  });
+
+  it('reopens an achieved Goal when its owner requests changes, and reworks the acceptance', async () => {
+    vi.spyOn(TaskRunnerService.prototype, 'runTask').mockResolvedValue({} as never);
+    const service = new GoalService(serverDB, userId);
+    const taskModel = new TaskModel(serverDB, userId);
+    const graph = await service.create({
+      requirement: 'A one-page onboarding checklist',
+      title: 'Reworked delivery',
+      tasks: ['Draft the checklist'],
+    });
+    const work = await service.tick(graph.goal.id);
+    await taskModel.updateStatus(work.taskId!, 'completed');
+    await service.tick(graph.goal.id);
+    await service.tick(graph.goal.id);
+    const acceptance = await service.tick(graph.goal.id);
+    await taskModel.updateStatus(acceptance.taskId!, 'completed');
+    await service.tick(graph.goal.id);
+    expect((await service.tick(graph.goal.id)).outcome).toBe('achieved');
+
+    const reopened = await service.reopenForChanges(acceptance.taskId!, 'Add a day-one agenda');
+
+    expect(reopened).toBe(graph.goal.id);
+    const after = await service.graph(graph.goal.id);
+    expect(after.goal.status).toBe('running');
+    expect(after.goal.completedAt).toBeNull();
+    expect(after.goal.config?.changeRequest).toMatchObject({
+      comment: 'Add a day-one agenda',
+      taskId: acceptance.taskId,
+    });
+    expect(after.nodes.find((node) => node.taskId === acceptance.taskId)?.status).toBe('active');
+    expect((await taskModel.findById(acceptance.taskId!))?.status).toBe('backlog');
+
+    // The coordinator dispatches the rework instead of reading the Goal as done.
+    const rework = await service.tick(graph.goal.id);
+    expect(rework.message).toMatch(/^Started task /);
+    expect(TaskRunnerService.prototype.runTask).toHaveBeenLastCalledWith(
+      expect.objectContaining({ taskId: acceptance.taskId }),
+    );
+  });
+
+  it('does not reopen a Goal the owner already ended', async () => {
+    const service = new GoalService(serverDB, userId);
+    const graph = await service.create({
+      requirement: 'A one-page onboarding checklist',
+      title: 'Ended delivery',
+      tasks: ['Complete full Goal acceptance'],
+    });
+    const created = await service.tick(graph.goal.id);
+    await new GoalModel(serverDB, userId).updateStatus(graph.goal.id, 'canceled');
+
+    expect(await service.reopenForChanges(created.taskId!, 'Too late')).toBeUndefined();
+    expect((await service.graph(graph.goal.id)).goal.status).toBe('canceled');
+  });
+
   it('respects a manually paused responsible task without rerunning it', async () => {
     const service = new GoalService(serverDB, userId);
     const taskModel = new TaskModel(serverDB, userId);

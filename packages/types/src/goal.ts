@@ -1,3 +1,4 @@
+import type { GoalReportDispatch, GoalReportState } from './goalReport';
 import type { InitialGoalOverviewContext } from './stepContext';
 import type { AcceptanceStatus } from './verify';
 import type { WorkType } from './work';
@@ -263,6 +264,18 @@ export interface GoalManagerState {
 }
 
 /**
+ * The owner's 提出修改 on a delivered Goal: rejecting the Goal-level acceptance
+ * reopens the Goal, and this is what the rework answers to.
+ */
+export interface GoalChangeRequest {
+  /** The owner's feedback, which also reaches the next attempt's prompt. */
+  comment?: string;
+  requestedAt: string;
+  /** The Goal-level acceptance Task sent back for rework. */
+  taskId: string;
+}
+
+/**
  * How well the coordinator understands what the user wants, as of the last
  * decomposition. Derived from the concrete unknowns the planner reported rather
  * than a self-rated score: `low` means a question was put to the user,
@@ -280,6 +293,11 @@ export interface GoalUnderstanding {
 
 export interface GoalConfig {
   acceptance?: GoalAcceptancePolicy;
+  /**
+   * The owner's latest request for changes. Kept after the rework lands: the
+   * result page reads it as 修改中 only while the Goal is open again.
+   */
+  changeRequest?: GoalChangeRequest;
 
   exploration?: GoalExplorationConfig;
   manager?: GoalManagerPolicy;
@@ -298,6 +316,8 @@ export interface GoalConfig {
   /** Retained after release to distinguish lease-aware retries from legacy planners. */
   planningProtocol?: 'lease-v1';
   recovery?: GoalRecoveryPolicy;
+  /** Coordinator-owned receipt of the latest wrap-up report dispatch. */
+  report?: GoalReportDispatch;
   schedule?: GoalSchedulePolicy;
   supervision?: GoalSupervisionPolicy;
   /** Durable supervisor topic and bounded incident ledger. */
@@ -315,7 +335,7 @@ export interface GoalConfig {
 /** Creation accepts planning options, never a runtime receipt. */
 export type GoalCreateConfig = Omit<
   GoalConfig,
-  'managerState' | 'supervisorState' | 'understanding'
+  'managerState' | 'report' | 'supervisorState' | 'understanding'
 >;
 
 /**
@@ -493,9 +513,15 @@ export interface GoalGraphWorkVersionDisplay {
    * route resolves {@link resourceId}.
    */
   agentDocumentId?: string;
+  /** File-store identity of a `file` Work — what acceptance evidence cites it by. */
+  fileId?: string;
+  /** Size in bytes of a `file` Work, when it was persisted. */
+  fileSize?: number;
   /** Durable download target of a `file` Work, which keeps it out of `url`. */
   fileUrl?: string;
   identifier: string | null;
+  /** MIME type of a `file` Work, when it was persisted. */
+  mimeType?: string;
   /** Canonical resource identity — the document id an in-app link addresses. */
   resourceId: string | null;
   status: string | null;
@@ -538,6 +564,12 @@ export interface GoalGraphSnapshot {
   events: GoalGraphEvent[];
   goal: GoalItem;
   nodes: GoalGraphNode[];
+  /**
+   * The wrap-up report: whether it is being written, done or failed, and the
+   * newest submitted version. Absent until the Goal-level acceptance has ended
+   * and a wrap-up was dispatched.
+   */
+  report?: GoalReportState;
   /**
    * Live heartbeat per active task node id: the `agent_operations.updatedAt`
    * of the run behind it. The runtime refreshes that lease every ~90s, while
