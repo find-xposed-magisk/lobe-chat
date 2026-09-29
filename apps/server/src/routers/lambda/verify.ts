@@ -1,5 +1,6 @@
 import { fetchAcceptanceSkillBundle } from '@lobechat/builtin-skills/acceptance';
 import {
+  normalizeEvidenceMetadata,
   normalizeVerifySurface,
   verifyRunScenarios,
   verifySurfaces,
@@ -969,7 +970,7 @@ export const verifyRouter = router({
         content: input.content ?? null,
         description: input.description ?? null,
         fileId: input.fileId ?? null,
-        metadata: input.metadata ?? null,
+        metadata: normalizeEvidenceMetadata(input.metadata, input.type) ?? null,
         type: input.type,
       });
     }),

@@ -41,6 +41,7 @@ import { AiGenerationService } from '@/server/services/aiGeneration';
 import { FileService } from '@/server/services/file';
 import { resolveModelReadableFrameUrl } from '@/server/services/verify/modelFrames';
 
+import { renderAnnotationRegion } from './annotationRegion';
 import type { ConsolidationResult } from './consolidation';
 import { ExpertiseConsolidationService } from './consolidation';
 import { resolveExpertiseModelConfig } from './modelConfig';
@@ -57,9 +58,6 @@ const MAX_CONTEXT_CHARS = 24_000;
  */
 const MAX_REJECTION_FRAMES = 8;
 const VISUAL_REJECTION_EVIDENCE_TYPES = new Set(['screenshot', 'gif']);
-
-/** Normalized 0-1 region coordinates read better to a model as percentages. */
-const pct = (value: number) => `${Math.round(value * 100)}%`;
 
 const LESSON_CODE_PATTERN = /^P-\d+$/;
 const AnalysisSchema = z.object({
@@ -521,14 +519,9 @@ export class ExpertiseIngestionService {
     );
     const rendered = labelled
       .map((rejection) => {
-        const regions = (rejection.detail?.annotations ?? []).map((annotation) => {
-          const frame = frameLabelByEvidence.get(annotation.evidenceId);
-          // Regions are normalized 0-1; percentages read better to a model than raw floats.
-          const at = annotation.rect
-            ? ` at ${pct(annotation.rect.x)},${pct(annotation.rect.y)} sized ${pct(annotation.rect.width)}×${pct(annotation.rect.height)}`
-            : '';
-          return `  circled${frame ? ` on ${frame}` : ''}${at}: ${annotation.comment?.trim() || '(no note)'}`;
-        });
+        const regions = (rejection.detail?.annotations ?? []).map((annotation) =>
+          renderAnnotationRegion(annotation, frameLabelByEvidence.get(annotation.evidenceId)),
+        );
         return [
           `[${rejection.ref}] promised: ${rejection.title ?? '(untitled check)'}`,
           rejection.detail?.comment?.trim() && `  said: ${rejection.detail.comment.trim()}`,
