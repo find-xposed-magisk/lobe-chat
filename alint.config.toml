@@ -155,6 +155,37 @@ hetero = "./packages/heterogeneous-agents/alint/rules"
 [config.group.rules]
 "hetero/host-capability-placement" = "warn"
 
+# UI review rules: the product owner's recurring acceptance rejections,
+# distilled from 620 review comments over 30 days. Warn-only: they are taste
+# with a rationale, meant to be read in review, not to block a merge. The
+# broad ones (chrome, color, copy, links) are too noisy per PR and live in
+# alint.audit.toml for periodic whole-repo audits instead.
+[[config.group]]
+files = [ "src/**/*.tsx", "packages/*/src/**/*.tsx" ]
+ignores = [ "**/*.test.tsx", "**/__tests__/**", "src/app/**", "**/DevPanel/**", "**/*.stories.tsx" ]
+
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+
+[config.group.rules]
+"lobehub/ui-button-hierarchy" = "warn"
+"lobehub/ui-view-switch-tabs" = "warn"
+"lobehub/ui-edit-in-modal" = "warn"
+"lobehub/ui-lightweight-errors" = "warn"
+
+# Page width: only page bodies, where a missing width container is visible.
+# A per-file model cannot see the layout, so layouts that already cap the
+# width (community, workspace settings) are left out.
+[[config.group]]
+files = [ "src/routes/**/*.tsx", "src/features/Settings/*/index.tsx", "src/features/**/*Page.tsx" ]
+ignores = [ "**/*.test.tsx", "**/_layout/**", "src/routes/(main)/community/**", "**/workspace/settings/**", "**/features/**/components/**" ]
+
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+
+[config.group.rules]
+"lobehub/ui-content-width" = "warn"
+
 # Calibration fixtures: one group per rule so a fixture only meets its own rule.
 [[config.group]]
 files = [ "packages/alint/fixtures/pmap-over-promise-all/**" ]
@@ -211,3 +242,66 @@ files = [ "packages/heterogeneous-agents/alint/fixtures/host-capability-placemen
 hetero = "./packages/heterogeneous-agents/alint/rules"
 [config.group.rules]
 "hetero/host-capability-placement" = "warn"
+
+[[config.group]]
+files = [ "packages/alint/fixtures/ui-button-hierarchy/**" ]
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+[config.group.rules]
+"lobehub/ui-button-hierarchy" = "warn"
+
+[[config.group]]
+files = [ "packages/alint/fixtures/ui-restrained-color/**" ]
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+[config.group.rules]
+"lobehub/ui-restrained-color" = "warn"
+
+[[config.group]]
+files = [ "packages/alint/fixtures/ui-no-decorative-chrome/**" ]
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+[config.group.rules]
+"lobehub/ui-no-decorative-chrome" = "warn"
+
+[[config.group]]
+files = [ "packages/alint/fixtures/ui-view-switch-tabs/**" ]
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+[config.group.rules]
+"lobehub/ui-view-switch-tabs" = "warn"
+
+[[config.group]]
+files = [ "packages/alint/fixtures/ui-edit-in-modal/**" ]
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+[config.group.rules]
+"lobehub/ui-edit-in-modal" = "warn"
+
+[[config.group]]
+files = [ "packages/alint/fixtures/ui-lightweight-errors/**" ]
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+[config.group.rules]
+"lobehub/ui-lightweight-errors" = "warn"
+
+[[config.group]]
+files = [ "packages/alint/fixtures/ui-user-facing-copy/**" ]
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+[config.group.rules]
+"lobehub/ui-user-facing-copy" = "warn"
+
+[[config.group]]
+files = [ "packages/alint/fixtures/ui-in-app-links/**" ]
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+[config.group.rules]
+"lobehub/ui-in-app-links" = "warn"
+
+[[config.group]]
+files = [ "packages/alint/fixtures/ui-content-width/**" ]
+[config.group.plugins]
+lobehub = "./packages/alint/rules"
+[config.group.rules]
+"lobehub/ui-content-width" = "warn"

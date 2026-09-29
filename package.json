@@ -43,6 +43,7 @@
   ],
   "scripts": {
     "alint": "alint",
+    "alint:audit": "alint --config alint.audit.toml --format json --rule-concurrency 48 src packages",
     "alint:setup": "bun packages/alint/setup.ts",
     "build": "bun run build:spa && bun run build:spa:auth && bun run build:spa:workbench && bun run build:spa:share && bun run build:spa:copy && bun run build:next",
     "build:analyze": "cross-env NODE_OPTIONS=--max-old-space-size=81920 next experimental-analyze",

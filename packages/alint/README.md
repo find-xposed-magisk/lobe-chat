@@ -80,6 +80,24 @@ The `alint ·` steps at the end of the "ALint & Test Desktop App" job in `.githu
 
 About 14 input tokens per source line per rule. Two cold runs over the same files differed by one finding; a finding can appear or vanish between runs, which is why fixtures exist and why only rules measured at zero false positives are promoted to `error`.
 
+## UI review rules
+
+The `ui-*` rules encode the product owner's recurring acceptance rejections. They were distilled from 620 review comments on 92 acceptances over 30 days (2026-08-30 to 2026-09-29); each rule quotes the comments it comes from, so the standard stays the owner's words rather than a paraphrase. About half of those comments are requirement or taste calls no rule can hold; the rules cover the part that recurs and can be read off one file.
+
+| Rule                      | Where            | Sample precision | Whole repo | What it holds                                                                         |
+| ------------------------- | ---------------- | ---------------- | ---------- | ------------------------------------------------------------------------------------- |
+| `ui-button-hierarchy`     | PR check         | narrowed         | 62         | only two primaries in one group, a primary on every list row, a small empty-state CTA |
+| `ui-lightweight-errors`   | PR check         | \~70%            | 73         | one readable error line, raw details folded                                           |
+| `ui-content-width`        | PR check (pages) | \~100%           | 7          | page bodies sit in `SettingContainer` or a max-width column                           |
+| `ui-edit-in-modal`        | PR check         | ~57%             | 36         | edit / rename / add opens a modal, not an inline input or a popover input             |
+| `ui-view-switch-tabs`     | PR check         | \~50%            | 20         | whole views switch with `Tabs`, the active tab in the URL                             |
+| `ui-no-decorative-chrome` | audit            | \~56%            | 1441       | no wrapper borders, fills, restating titles, bold labels, extra dividers              |
+| `ui-restrained-color`     | audit            | \~53%            | 830        | color for state only; gray metadata and types; tokens, not literals                   |
+| `ui-user-facing-copy`     | audit            | \~53%            | 768        | no raw enums, hard-coded strings or jargon on screen                                  |
+| `ui-in-app-links`         | audit            | \~60%            | 30         | links match the router's shapes and carry no marker params                            |
+
+`ui-button-hierarchy` was narrowed after review to three patterns a single file can decide; which action deserves the primary, and whether a secondary should be `fill`, is left to review. Sample precision is measured on the same 20-finding samples the carve-outs were written from, so it is optimistic. Rules with many findings or weak precision run only in the audit (`bun run alint:audit`, `alint.audit.toml`): reported on every PR they would drown the sharper rules, as `test-the-exit-not-the-entry` once did. `ui-in-app-links` cannot see the route table from one file; a test that matches literal in-app paths against the router is its real home. `text-transform: uppercase` is a deterministic check: stylelint (`declaration-property-value-disallowed-list`) and ESLint (inline `textTransform`) report it as an error.
+
 ## Whole-repo calibration, 2026-09-29
 
 Every rule was run cold over all of canary (apps/server, packages, src: 14.7k model calls, 40M input tokens, about 10 minutes at `--rule-concurrency 32`), and each finding was read or sampled. Findings are legacy code; CI and `check --alint` only report changed lines, so they surface when someone edits that line.
@@ -100,6 +118,6 @@ Known remaining false positives: `no-transactions-in-models` still reports a sub
 
 1. Create `rules/<name>/rule.alint.toml` with `name`, `builtInAgent = "basic-structured"`, and an `instruction`. Write the rule as the reviewer would: what to report, which line to anchor on, what the message and suggestion must contain, and an explicit "do not report" list. The carve-outs are where the false positives live.
 2. Add a `[[config.group]]` for its scope in `alint.config.toml`, and a fixture group `packages/alint/fixtures/<name>/**`.
-3. Add fixtures under `fixtures/<name>/`: at least one `bad-*` file with a standalone `// alint-expect` comment on the line above the one the finding must anchor to, and one `good-*` file per carve-out. Keep them short and realistic.
+3. Add fixtures under `fixtures/<name>/`: at least one `bad-*` file with a standalone `// alint-expect` comment (`{/* alint-expect */}` inside JSX) on the line above the one the finding must anchor to, and one `good-*` file per carve-out. Keep them short and realistic.
 4. Run `bun run alint plugin install`, then `cd packages/alint && bunx vitest run fixtures.test.ts` with a provider set up. The suite skips itself when there is no setup. Delete `.alintcache` after every rule edit while calibrating: the local cache is keyed by file content, so an edited rule otherwise replays the previous rule's findings.
 5. Before enabling the rule on a scope, run it over a few dozen real files and read every finding.

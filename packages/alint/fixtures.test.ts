@@ -8,7 +8,7 @@ import { runFixtureLint } from './runFixtures';
 
 /**
  * Calibration: every `bad-*` fixture must produce a finding for its rule on
- * the line below each standalone `// alint-expect` comment (±1 line), every
+ * the line below each standalone `// alint-expect` (or its JSX-comment form inside JSX) comment (±1 line), every
  * `good-*` fixture must produce none. Runs only when a provider is set up (`bun run alint:setup`);
  * without `.alint/config.toml` the suite is skipped, not failed.
  */
@@ -52,10 +52,13 @@ const fixtures = (
 const fixtureFiles = fixtures.map(({ file }) => file);
 const ruleOf = (file: string) => fixtures.find((fixture) => fixture.file === file)!.rule;
 
+/** `{/* … *\/}` is the only comment JSX children accept. */
+const EXPECT_MARKERS = new Set(['// alint-expect', '{/* alint-expect */}']);
+
 const expectedLines = async (file: string) =>
   (await readFile(path.join(rootDir, file), 'utf8'))
     .split('\n')
-    .flatMap((line, index) => (line.trim() === '// alint-expect' ? [index + 2] : []));
+    .flatMap((line, index) => (EXPECT_MARKERS.has(line.trim()) ? [index + 2] : []));
 
 describe.skipIf(!hasSetup)('alint rule fixtures', async () => {
   const diagnostics = hasSetup ? await runFixtureLint(rootDir, fixtureFiles) : [];
