@@ -147,6 +147,15 @@ const useRefLazyInitRestrictedSyntax = [
   },
 ];
 
+// Review rule: no all-caps labels. stylelint covers stylesheets; this covers
+// inline style objects.
+const uppercaseRestrictedSyntax = [
+  {
+    message: "Do not set textTransform: 'uppercase'; write the label in the case it should read.",
+    selector: "Property[key.name='textTransform'][value.value='uppercase']",
+  },
+];
+
 const electronIpcRemoveListenerRestrictedSyntax = {
   message:
     'Do not use removeListener in renderer code. Electron contextBridge does not preserve listener identity across calls; use the disposer returned by ipcRenderer.on().',
@@ -523,7 +532,11 @@ export default eslint(
           fixStyle: 'separate-type-imports',
         },
       ],
-      'no-restricted-syntax': ['error', ...useRefLazyInitRestrictedSyntax],
+      'no-restricted-syntax': [
+        'error',
+        ...useRefLazyInitRestrictedSyntax,
+        ...uppercaseRestrictedSyntax,
+      ],
     },
   },
   {
@@ -537,6 +550,7 @@ export default eslint(
       'no-restricted-syntax': [
         'error',
         ...useRefLazyInitRestrictedSyntax,
+        ...uppercaseRestrictedSyntax,
         electronIpcRemoveListenerRestrictedSyntax,
       ],
     },
@@ -571,6 +585,7 @@ export default eslint(
       'no-restricted-syntax': [
         'error',
         ...useRefLazyInitRestrictedSyntax,
+        ...uppercaseRestrictedSyntax,
         {
           message: 'Chinese characters are not allowed in aiModels files. Use English instead.',
           selector: 'Literal[value=/[\\u4e00-\\u9fff]/]',
