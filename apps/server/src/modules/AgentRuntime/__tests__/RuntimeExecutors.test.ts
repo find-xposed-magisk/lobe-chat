@@ -6035,7 +6035,8 @@ describe('RuntimeExecutors', { timeout: 60_000 }, () => {
             async () =>
               new Response(
                 JSON.stringify({
-                  hookSpecificOutput: { hookEventName: 'beforeToolCall', permissionDecision },
+                  decision: permissionDecision,
+                  ...(permissionDecision === 'deny' && { reason: 'Denied by env hook' }),
                 }),
               ),
           );
@@ -6044,11 +6045,24 @@ describe('RuntimeExecutors', { timeout: 60_000 }, () => {
             dispatcher.register('op-123', []);
             const serialized = JSON.stringify(dispatcher.getSerializedHooks('op-123'));
             const persisted = JSON.parse(serialized);
-            await createRuntimeExecutors({ ...ctx, hookDispatcher: new HookDispatcher() })
-              .call_tool!(createToolInstruction(), createToolState({ host: { hooks: persisted } }));
+            const result = await createRuntimeExecutors({
+              ...ctx,
+              hookDispatcher: new HookDispatcher(),
+            }).call_tool!(createToolInstruction(), createToolState({ host: { hooks: persisted } }));
             expect(mockToolExecutionService.executeTool).toHaveBeenCalledTimes(
               permissionDecision === 'allow' ? 1 : 0,
             );
+            if (permissionDecision === 'deny') {
+              expect(result.events).toContainEqual(
+                expect.objectContaining({
+                  type: 'tool_result',
+                  result: expect.objectContaining({
+                    content: 'Denied by env hook',
+                    error: 'hook_denied',
+                  }),
+                }),
+              );
+            }
             expect(
               fetchSpy.mock.calls.map(([, init]) => JSON.parse(String(init?.body)).hookType),
             ).toEqual(['beforeToolCall', 'afterToolCall']);
