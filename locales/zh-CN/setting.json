@@ -986,6 +986,8 @@
   "settingAppearance.contextMenuMode.disabled": "不使用",
   "settingAppearance.contextMenuMode.title": "右键菜单方案",
   "settingAppearance.desktop.title": "桌面",
+  "settingAppearance.font.antialiasing.desc": "使用灰度抗锯齿渲染文字，字形更细更清晰。关闭后使用系统默认渲染。仅对 macOS 生效。",
+  "settingAppearance.font.antialiasing.title": "字体抗锯齿",
   "settingAppearance.font.fallback.add": "添加回退字体",
   "settingAppearance.font.fallback.desc": "界面字体缺少某些字形时，按此顺序逐个尝试。常见搭配：西文字体在前，中文字体在后。",
   "settingAppearance.font.fallback.limit": "最多 {{count}} 个回退字体",

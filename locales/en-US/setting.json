@@ -986,6 +986,8 @@
   "settingAppearance.contextMenuMode.disabled": "Disabled",
   "settingAppearance.contextMenuMode.title": "Right-Click Menu Mode",
   "settingAppearance.desktop.title": "Desktop",
+  "settingAppearance.font.antialiasing.desc": "Render text with grayscale antialiasing for a thinner, crisper look. Turn off to use the system default rendering. Only affects macOS.",
+  "settingAppearance.font.antialiasing.title": "Font Antialiasing",
   "settingAppearance.font.fallback.add": "Add fallback font",
   "settingAppearance.font.fallback.desc": "When the interface font is missing a glyph, these fonts are tried in order. A common pairing is a Latin font first and a CJK font second.",
   "settingAppearance.font.fallback.limit": "Up to {{count}} fallback fonts",

@@ -1137,6 +1137,9 @@ export default {
   'settingAppearance.contextMenuMode.disabled': 'Disabled',
   'settingAppearance.contextMenuMode.title': 'Right-Click Menu Mode',
   'settingAppearance.desktop.title': 'Desktop',
+  'settingAppearance.font.antialiasing.desc':
+    'Render text with grayscale antialiasing for a thinner, crisper look. Turn off to use the system default rendering. Only affects macOS.',
+  'settingAppearance.font.antialiasing.title': 'Font Antialiasing',
   'settingAppearance.font.fontFamily.default': 'System Default',
   'settingAppearance.font.fontFamily.desc':
     'Choose a font installed on this device for the whole interface. System Default follows the built-in font stack of your current language.',
