@@ -197,7 +197,7 @@ const expectAppliedRenderer = (app: ReturnType<typeof makeApp>, indexContent: st
   expect(readFileSync(renderer!.resolve('assets/popup.js')!, 'utf8')).toBe('popup');
 };
 
-const flushGc = () => new Promise((resolve) => setTimeout(resolve, 20));
+const flushGc = (manager: unknown) => (manager as { gcTask: Promise<void> }).gcTask;
 
 let builtinManifest: CoreManifest;
 
@@ -269,7 +269,7 @@ describe('CoreUpdateManager initialize', () => {
     });
 
     const { manager } = await loadManager();
-    await flushGc();
+    await flushGc(manager);
 
     expect(manager.getStatus().current).toBeNull();
     expect(readPointer(otaRoot(), ABI)).toMatchObject({ blacklist: [], current: null });
@@ -298,13 +298,15 @@ describe('CoreUpdateManager initialize', () => {
     }
     writeFileSync(path.join(userDataDir, 'app-data.json'), 'keep app data');
 
-    await loadManager();
-    await flushGc();
+    const { manager } = await loadManager();
+    await flushGc(manager);
 
     expect(existsSync(path.join(storeDir(), 'f'.repeat(64)))).toBe(false);
     expect(readdirSync(path.join(otaRoot(), 'cores'))).toEqual([]);
-    for (const dir of ['core-ota/staging', 'renderer-ota', 'renderer-ota-v2'])
-      expect(existsSync(path.join(userDataDir, dir))).toBe(false);
+    await vi.waitFor(() => {
+      for (const dir of ['core-ota/staging', 'renderer-ota', 'renderer-ota-v2'])
+        expect(existsSync(path.join(userDataDir, dir))).toBe(false);
+    });
     expect(readPointer(otaRoot(), ABI)).toMatchObject({
       current: null,
       previous: null,
@@ -620,7 +622,7 @@ describe('CoreUpdateManager checkForUpdates', () => {
     await manager.checkForUpdates();
     manager.applyStagedNow();
     manager.handleBootPing('mounted');
-    await flushGc();
+    await flushGc(manager);
     const reused = 'index-1.0.1';
     serveLatest(
       buildManifest('1.0.5', 5, {
@@ -753,11 +755,11 @@ describe('CoreUpdateManager checkForUpdates', () => {
       makeApp(),
       makeShell({ coreDir: coreDir('1.0.1'), manifest: v1, source: 'external' }),
     );
-    await flushGc();
+    await flushGc(manager);
     expect(readdirSync(path.join(otaRoot(), 'cores')).sort()).toEqual(['0.9.5', '1.0.1']);
 
     await manager.checkForUpdates();
-    await flushGc();
+    await flushGc(manager);
 
     expect(manager.getStatus()).toMatchObject({ applyMode: 'reload', staged: '1.0.2' });
     expect(readPointer(otaRoot(), ABI)).toMatchObject({
@@ -826,7 +828,7 @@ describe('CoreUpdateManager checkForUpdates', () => {
     expect(readPointer(otaRoot(), ABI).current).toBe('1.0.1');
 
     manager.switchChannel('canary');
-    await flushGc();
+    await flushGc(manager);
 
     expect(readPointer(otaRoot(), ABI)).toMatchObject({ current: null, previous: null });
     expect(existsSync(coreDir('1.0.1'))).toBe(false);
@@ -920,7 +922,7 @@ describe('CoreUpdateManager checkForUpdates', () => {
     expect(manager.getStatus().staged).toBe('1.0.1');
 
     manager.switchChannel('canary');
-    await flushGc();
+    await flushGc(manager);
 
     expect(manager.getStatus().staged).toBeNull();
     expect(readPointer(otaRoot(), ABI).staged).toBeNull();
