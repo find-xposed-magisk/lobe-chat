@@ -1,10 +1,11 @@
-import { PageAgentIdentifier } from '@lobechat/builtin-tool-page-agent';
+import { PageAgentIdentifier, type PageAgentToolState } from '@lobechat/builtin-tool-page-agent';
+import { runPageBash } from '@lobechat/builtin-tool-page-agent/bash';
 import {
   PageAgentExecutionRuntime,
   type PageAgentInvocationContext,
   type PageAgentRuntimeService,
 } from '@lobechat/builtin-tool-page-agent/executionRuntime';
-import { EditorRuntime, formatModifyNodesResult } from '@lobechat/editor-runtime';
+import { EditorRuntime } from '@lobechat/editor-runtime';
 import { createHeadlessEditor, type HeadlessEditor } from '@lobehub/editor/headless';
 import type { SerializedEditorState, SerializedLexicalNode } from 'lexical';
 
@@ -59,34 +60,12 @@ interface InvariantViolation {
   kind: 'silent-no-op' | 'unexpected-mutation';
 }
 
-const detectHandlerReportedChange = (apiName: string, state: Record<string, unknown>): boolean => {
-  switch (apiName) {
-    case 'modifyNodes': {
-      const successCount = state.successCount;
-      return typeof successCount === 'number' && successCount > 0;
-    }
-    case 'replaceText': {
-      const count = state.replacementCount;
-      return typeof count === 'number' && count > 0;
-    }
-    case 'initPage': {
-      const nodeCount = state.nodeCount;
-      return typeof nodeCount === 'number' && nodeCount > 0;
-    }
-    default: {
-      return false;
-    }
-  }
-};
+const detectHandlerReportedChange = (state: PageAgentToolState): boolean => state.changed === true;
 
 const detectInvariantViolation = (
   apiName: string,
   flags: InvariantFlags,
 ): InvariantViolation | undefined => {
-  // editTitle is exempt: title lives outside editorData, so editorChanged is
-  // expected to be false.
-  if (apiName === 'editTitle') return undefined;
-
   if (flags.handlerReportedChange && !flags.editorChanged && !flags.titleChanged) {
     return {
       apiName,
@@ -168,17 +147,9 @@ const buildEnv = (snapshot: DocumentSnapshot, documentId: string): InvocationEnv
   };
 };
 
-interface WithEditorOptions {
-  exportEditorData?: boolean;
-  /** Whether to enforce silent-failure invariant checks on this invocation. */
-  invariantCheck?: boolean;
-  /** Whether to persist any captured patch back to the document row. */
-  persist?: boolean;
-}
-
 interface HandlerOutput {
   content: string;
-  state: Record<string, unknown>;
+  state: PageAgentToolState;
 }
 
 const withEditor = async (
@@ -186,48 +157,30 @@ const withEditor = async (
   apiName: string,
   ctx: PageAgentInvocationContext,
   handler: (env: InvocationEnv) => Promise<HandlerOutput>,
-  options: WithEditorOptions = {},
 ): Promise<HandlerOutput> => {
   const documentId = ctx.documentId;
-  // The runtime shell already rejected missing documentId; this guard is for
-  // type-narrowing only.
   if (!documentId) {
     throw new Error('documentId is required');
   }
 
-  const exportEditorData = options.exportEditorData !== false;
-  const persist = options.persist !== false;
-  const invariantCheck = options.invariantCheck !== false;
-
-  // Acquire the collaborative edit lock around the entire read-modify-write so
-  // the agent reads, mutates and persists atomically: serialized against other
-  // workspace members and rejected (CONFLICT) when someone else is actively
-  // editing, instead of silently clobbering their work. Read-only invocations
-  // (persist: false) never write, so they skip the lock.
-  const run = async (lockOwnerId?: string): Promise<HandlerOutput> => {
+  const run = async (persist: boolean, lockOwnerId?: string): Promise<HandlerOutput> => {
     const snapshot = await loadSnapshot(documentModel, documentId);
     const env = buildEnv(snapshot, documentId);
 
     try {
-      const beforeHash = exportEditorData
-        ? hashEditorData(env.headless.export().editorData)
-        : undefined;
+      const beforeHash = hashEditorData(env.headless.export().editorData);
 
       const handlerResult = await handler(env);
 
-      const exported = exportEditorData ? env.headless.export() : undefined;
-      const afterHash = exported ? hashEditorData(exported.editorData) : undefined;
+      const exported = env.headless.export();
       const titleChanged = env.getTitle() !== snapshot.title;
-      const editorChanged =
-        exportEditorData && beforeHash !== undefined && beforeHash !== afterHash;
+      const editorChanged = beforeHash !== hashEditorData(exported.editorData);
 
-      const invariantViolation = invariantCheck
-        ? detectInvariantViolation(apiName, {
-            editorChanged,
-            handlerReportedChange: detectHandlerReportedChange(apiName, handlerResult.state),
-            titleChanged,
-          })
-        : undefined;
+      const invariantViolation = detectInvariantViolation(apiName, {
+        editorChanged,
+        handlerReportedChange: detectHandlerReportedChange(handlerResult.state),
+        titleChanged,
+      });
 
       if (invariantViolation) {
         console.warn(
@@ -237,26 +190,15 @@ const withEditor = async (
         );
       }
 
-      const patch: {
-        content?: string;
-        editorData?: Record<string, unknown>;
-        title?: string;
-      } = {};
-      if (exported) {
-        patch.content = exported.markdown;
-        patch.editorData = exported.editorData as unknown as Record<string, unknown>;
-      }
-      if (titleChanged) {
-        patch.title = env.getTitle();
-      }
-
-      if (persist && Object.keys(patch).length > 0) {
+      if (persist && (editorChanged || titleChanged)) {
         await documentService.updateDocument(documentId, {
-          content: patch.content,
-          editorData: patch.editorData,
+          ...(editorChanged && {
+            content: exported.markdown,
+            editorData: exported.editorData as unknown as Record<string, unknown>,
+          }),
           ...(lockOwnerId ? { lockOwnerId } : {}),
           saveSource: 'llm_call',
-          title: patch.title,
+          ...(titleChanged && { title: env.getTitle() }),
         });
       }
 
@@ -264,9 +206,6 @@ const withEditor = async (
         content: handlerResult.content,
         state: {
           ...handlerResult.state,
-          documentContent: patch.content,
-          documentEditorData: patch.editorData,
-          documentTitle: env.getTitle(),
           ...(invariantViolation ? { invariantViolation } : {}),
         },
       };
@@ -275,7 +214,19 @@ const withEditor = async (
     }
   };
 
-  return persist ? documentService.runWithDocumentLock(documentId, run) : run();
+  // Whether a command writes is only known after it runs, so it first runs
+  // under the collaborative edit lock. While another member holds the lock it
+  // reruns without saving: reads still answer, writes surface the CONFLICT.
+  try {
+    return await documentService.runWithDocumentLock(documentId, (lockOwnerId) =>
+      run(true, lockOwnerId),
+    );
+  } catch (error) {
+    if ((error as { code?: string }).code !== 'CONFLICT') throw error;
+    const unsaved = await run(false);
+    if (unsaved.state.changed) throw error;
+    return unsaved;
+  }
 };
 
 const buildService = (
@@ -288,109 +239,21 @@ const buildService = (
   const serviceCtx: PageAgentServiceContext = { documentModel, documentService };
 
   return {
-    editTitle: (args, ctx) =>
-      withEditor(
-        serviceCtx,
-        'editTitle',
-        ctx,
-        async ({ runtime }) => {
-          const result = await runtime.editTitle(args);
-          return {
-            content: `Title changed from "${result.previousTitle}" to "${result.newTitle}".`,
-            state: { newTitle: result.newTitle, previousTitle: result.previousTitle },
-          };
-        },
-        { exportEditorData: false },
-      ),
-
-    getPageContent: (args, ctx) =>
-      withEditor(
-        serviceCtx,
-        'getPageContent',
-        ctx,
-        async ({ runtime, getTitle }) => {
-          const result = await runtime.getPageContent(args);
-          return {
-            content: result.markdown || result.xml || '',
-            state: {
-              markdown: result.markdown,
-              metadata: {
-                fileType: 'document',
-                title: getTitle(),
-                totalCharCount: result.charCount,
-                totalLineCount: result.lineCount,
-              },
-              xml: result.xml,
-            },
-          };
-        },
-        { persist: false },
-      ),
-
+    bash: (args, ctx) =>
+      withEditor(serviceCtx, 'bash', ctx, ({ runtime }) => runPageBash(runtime, args.command)),
     initPage: (args, ctx) =>
       withEditor(serviceCtx, 'initPage', ctx, async ({ runtime }) => {
-        const result = await runtime.initPage(args);
+        const { extractedTitle, nodeCount } = await runtime.initPage(args);
         return {
-          content: result.extractedTitle
-            ? `Document initialized with ${result.nodeCount} nodes. Title "${result.extractedTitle}" extracted and set.`
-            : `Document initialized with ${result.nodeCount} nodes.`,
-          state: {
-            extractedTitle: result.extractedTitle,
-            nodeCount: result.nodeCount,
-            rootId: 'root',
-          },
-        };
-      }),
-
-    modifyNodes: (args, ctx) =>
-      withEditor(serviceCtx, 'modifyNodes', ctx, async ({ runtime }) => {
-        const result = await runtime.modifyNodes(args);
-        return {
-          content: formatModifyNodesResult(result),
-          state: {
-            results: result.results,
-            successCount: result.successCount,
-            totalCount: result.totalCount,
-          },
-        };
-      }),
-
-    replaceText: (args, ctx) =>
-      withEditor(serviceCtx, 'replaceText', ctx, async ({ runtime }) => {
-        const result = await runtime.replaceText(args);
-        const scope = args.nodeIds?.length
-          ? `within ${args.nodeIds.length} specified node(s)`
-          : 'across the document';
-        const content =
-          result.replacementCount > 0
-            ? `Successfully replaced ${result.replacementCount} occurrence(s) of "${args.searchText}" with "${args.newText}" ${scope}. Modified ${result.modifiedNodeIds.length} node(s).`
-            : `No occurrences of "${args.searchText}" found ${scope}.`;
-        return {
-          content,
-          state: {
-            modifiedNodeIds: result.modifiedNodeIds,
-            replacementCount: result.replacementCount,
-          },
+          content: extractedTitle
+            ? `Page replaced with ${nodeCount} blocks; title set to "${extractedTitle}".`
+            : `Page replaced with ${nodeCount} blocks.`,
+          state: { changed: true, nodeCount, rootId: 'root' },
         };
       }),
   };
 };
 
-/**
- * Registers the page-agent builtin server runtime.
- *
- * Each tool invocation:
- *   1. loads the `documents` row,
- *   2. hydrates a `@lobehub/editor` HeadlessEditor from `editorData`/`content`,
- *   3. runs the requested page-agent API via the shared `EditorRuntime`,
- *   4. exports the new Lexical state and writes it back via
- *      `DocumentService.updateDocument` (saveSource: 'llm_call' → also appends
- *      a `documentHistories` snapshot).
- *
- * The renderer's `PageAgentExecutor.onAfterCall` consumes the returned
- * `result.state.document*` fields to apply the new editorData to the live
- * Lexical editor and reconcile the document store.
- */
 export const pageAgentRuntime: ServerRuntimeRegistration = {
   factory: (context) => {
     if (!context.userId || !context.serverDB) {
