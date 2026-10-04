@@ -19,11 +19,11 @@ importers:
   .:
     dependencies:
       '@auv-js/cli':
-        specifier: 0.0.25
-        version: 0.0.25
+        specifier: 0.0.27
+        version: 0.0.27
       '@auv-js/sdk':
-        specifier: 0.0.25
-        version: 0.0.25
+        specifier: 0.0.27
+        version: 0.0.27
       '@lobehub/fluent-emoji':
         specifier: ^4.1.1
         version: 4.1.1(@types/react@19.3.0)(antd@6.6.5(date-fns@4.4.0)(luxon@3.7.2)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(supports-color@9.4.0)
@@ -974,47 +974,53 @@ packages:
       zod:
         optional: true
 
-  '@auv-js/api-client@0.0.25':
-    resolution: {integrity: sha512-MgsUrWYRWd64ngCA+/2aQpa8NzBcNSgAQBYs+ZhyKx227rH30qjzVwrP4kXX5zmGFcVMIX7uI2/NDkONL3p3rA==}
+  '@auv-js/api-client@0.0.27':
+    resolution: {integrity: sha512-CwTETNuAKaxZ++dgSky0YRLSiG00fV6VtlShzaD4gMLk47Xgl3UMDvUxggMAVOYsrTy3ZuTILxOucrfgk5j2Og==}
 
-  '@auv-js/cli-darwin-arm64@0.0.25':
-    resolution: {integrity: sha512-yafnlxPHmsofrm585kHQbsf837vIzICMlYI5N7JM4m3haOvEb1Voofa5JcnL5qhuSDVvFq/JmH8R8ShN5uUE/Q==}
+  '@auv-js/cli-darwin-arm64@0.0.27':
+    resolution: {integrity: sha512-EUvnv115WWZCFbBOaXFKaGPUHKO41CukoZ1B5wm/F/oDpOamAeC6ZxVgVNGXWvUG+Cxw4IjmSglWTcIhRmDT4A==}
     engines: {node: '>=20.19.0'}
     cpu: [arm64]
     os: [darwin]
 
-  '@auv-js/cli-darwin-x64@0.0.25':
-    resolution: {integrity: sha512-5zY0TOBerryKCt2zhGsa4Rzjz2iV6d7bqg2m8zZvijPcubcX2ipLihkvsHE3fnzxKpbcvjprkyr8mKvA1J+98g==}
+  '@auv-js/cli-darwin-x64@0.0.27':
+    resolution: {integrity: sha512-k45BT907lqR3OJHNpSfMUuWvub+p2h120lkAf2rBiNfRDeeNuHFwGsN/pz+zMEj6QoImuBlel9Mv24Yd2XOzFg==}
     engines: {node: '>=20.19.0'}
     cpu: [x64]
     os: [darwin]
 
-  '@auv-js/cli-linux-arm64-gnu@0.0.25':
-    resolution: {integrity: sha512-vzV4lRy9MOK3qHp4ayssyYlzYAZ2hxuRmpdcl4r5oge5huMJGDep5Nh2YoEDzfU8kgW1a2fokzK3j178uRQpTQ==}
+  '@auv-js/cli-linux-arm64-gnu@0.0.27':
+    resolution: {integrity: sha512-F06lArmBhrM0ghw25pPMj/v4hu3txDjAcW7CMXLSjPIPjgaikC7oNYENabIaUZVmeLI1Wr6YYgNwawFUa52P0Q==}
     engines: {node: '>=20.19.0'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@auv-js/cli-linux-x64-gnu@0.0.25':
-    resolution: {integrity: sha512-d8O6kNvPkysYeUC8haWtT/HE98UaxybwKLVDps4Iv4JAA/jGk2Gs8GdWBBJ+/qCnMQwn86/MeKZr0jfSLCr4Tw==}
+  '@auv-js/cli-linux-x64-gnu@0.0.27':
+    resolution: {integrity: sha512-EZnA48V00QKqdncdg0wsd772ioLy26gu9OdYxTbw3WDgRhMp4fJ3hTmyN+Sy/KmDqlQrmuTIUD6qBbb0EhaqdQ==}
     engines: {node: '>=20.19.0'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@auv-js/cli-win32-x64-msvc@0.0.25':
-    resolution: {integrity: sha512-mC11gCvLOQtdXFRf3kF658ZtZXOGnMWR3QnDjFEX7TemlRin5O5nbjZcSxBIJvWlszOaF/4me7J9FAZWhKQaow==}
+  '@auv-js/cli-win32-arm64-msvc@0.0.27':
+    resolution: {integrity: sha512-hyyX+TkUxOkqdROJMmHUICihtVk8+AhQtFTopxq2SkIrDTD4n78KmT5Zp9WrWE0u+CzrwJ40fembm1TMtC89RA==}
+    engines: {node: '>=20.19.0'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@auv-js/cli-win32-x64-msvc@0.0.27':
+    resolution: {integrity: sha512-ukGsHP4RScru5ZqIKfVgepXM/Klqdt3MlaRj+cE0evV3mUVLZWe298zWC1kDA8oZFD9sQ/ger9q7M1wTGRYDCA==}
     engines: {node: '>=20.19.0'}
     cpu: [x64]
     os: [win32]
 
-  '@auv-js/cli@0.0.25':
-    resolution: {integrity: sha512-556dT1BfaGN1bbDvaQgT+k7FLyuaiwVprFRjRlqfJ6UyfX039cj5ZAt1wC9e85PkHFbPO13mjPKINKd4xgKc+Q==}
+  '@auv-js/cli@0.0.27':
+    resolution: {integrity: sha512-lj6VFUFXsfjQxR72t7hfk6eNgbAhSKFEhpcpe3KfnAXEfGVR25UtK9pByPkdGcbqaNCgbdXqMJ9bp2qT6DstOQ==}
     hasBin: true
 
-  '@auv-js/sdk@0.0.25':
-    resolution: {integrity: sha512-XGlYoBMNHif7G9aGUwliutDR0M3RTdQd1rSFrbLDzfBx3fILuNIuPpZrPqmJHttcbegwCE9+SwLYIWAfJ2xHtg==}
+  '@auv-js/sdk@0.0.27':
+    resolution: {integrity: sha512-RdBpo7+0kSWytVE+CvUItCStzkwUAQl0B16tIiVLWc7uRFjkdA0N1Lp7eidBW+FqSHEWgZi/+i38Doyu/2aUjw==}
 
   '@babel/code-frame@7.29.7':
     resolution: {integrity: sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==}
@@ -8919,36 +8925,40 @@ snapshots:
     optionalDependencies:
       zod: 4.6.5
 
-  '@auv-js/api-client@0.0.25': {}
+  '@auv-js/api-client@0.0.27': {}
 
-  '@auv-js/cli-darwin-arm64@0.0.25':
+  '@auv-js/cli-darwin-arm64@0.0.27':
     optional: true
 
-  '@auv-js/cli-darwin-x64@0.0.25':
+  '@auv-js/cli-darwin-x64@0.0.27':
     optional: true
 
-  '@auv-js/cli-linux-arm64-gnu@0.0.25':
+  '@auv-js/cli-linux-arm64-gnu@0.0.27':
     optional: true
 
-  '@auv-js/cli-linux-x64-gnu@0.0.25':
+  '@auv-js/cli-linux-x64-gnu@0.0.27':
     optional: true
 
-  '@auv-js/cli-win32-x64-msvc@0.0.25':
+  '@auv-js/cli-win32-arm64-msvc@0.0.27':
     optional: true
 
-  '@auv-js/cli@0.0.25':
+  '@auv-js/cli-win32-x64-msvc@0.0.27':
+    optional: true
+
+  '@auv-js/cli@0.0.27':
     dependencies:
       std-env: 4.2.0
     optionalDependencies:
-      '@auv-js/cli-darwin-arm64': 0.0.25
-      '@auv-js/cli-darwin-x64': 0.0.25
-      '@auv-js/cli-linux-arm64-gnu': 0.0.25
-      '@auv-js/cli-linux-x64-gnu': 0.0.25
-      '@auv-js/cli-win32-x64-msvc': 0.0.25
+      '@auv-js/cli-darwin-arm64': 0.0.27
+      '@auv-js/cli-darwin-x64': 0.0.27
+      '@auv-js/cli-linux-arm64-gnu': 0.0.27
+      '@auv-js/cli-linux-x64-gnu': 0.0.27
+      '@auv-js/cli-win32-arm64-msvc': 0.0.27
+      '@auv-js/cli-win32-x64-msvc': 0.0.27
 
-  '@auv-js/sdk@0.0.25':
+  '@auv-js/sdk@0.0.27':
     dependencies:
-      '@auv-js/api-client': 0.0.25
+      '@auv-js/api-client': 0.0.27
       '@bufbuild/protobuf': 2.13.0
       '@grpc/grpc-js': 1.14.4
       '@moeru/std': 0.1.0-beta.20
