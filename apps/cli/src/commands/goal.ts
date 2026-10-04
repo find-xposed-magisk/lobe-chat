@@ -275,10 +275,9 @@ export function registerGoalCommand(program: Command) {
     .option('--project <id>', 'Project ID')
     .option('--explore <instruction>', 'Explore alternatives using completed experiment results')
     .option('--max-experiments <n>', 'Maximum experiment nodes (requires --explore, default 10)')
-    .option('--supervise', 'Enable bounded recovery supervision in an independent topic')
     .option(
       '--max-supervision-incidents <n>',
-      'Maximum supervised interruptions (default 10, maximum 100)',
+      'Maximum supervised interruptions (supervision is always on; default 10, maximum 100)',
     )
     .option('--max-rounds <n>', 'Maximum goal rounds')
     .option('--max-cost <usd>', 'Maximum total cost in USD')
@@ -312,50 +311,42 @@ export function registerGoalCommand(program: Command) {
       const client = await getTrpcClient();
       const buildUrl = await resolveAppUrlBuilder(client);
       const goalInput = {
-        config:
-          options.maxManagerTurns ||
-          options.explore ||
-          options.supervise ||
-          options.maxAttemptsPerTask ||
-          options.maxStepsPerRun ||
-          options.operationLeaseTimeoutMs ||
-          options.maxConcurrentTasks ||
-          options.taskAgent
+        // Supervision is stated by the client, not left to the server: this CLI
+        // ships on its own and can be pointed at a server that predates the
+        // creation invariant, where nothing else would turn supervision on now
+        // that `--supervise` is gone.
+        config: {
+          exploration: options.explore
             ? {
-                taskAgentId: options.taskAgent,
-                manager: options.maxManagerTurns
-                  ? { maxTurns: Number(options.maxManagerTurns) }
-                  : undefined,
-                exploration: options.explore
-                  ? {
-                      instruction: options.explore,
-                      maxExperiments: Number(options.maxExperiments ?? 10),
-                    }
-                  : undefined,
-                supervision: options.supervise
-                  ? {
-                      enabled: true,
-                      maxIncidents: options.maxSupervisionIncidents
-                        ? Number.parseInt(options.maxSupervisionIncidents, 10)
-                        : undefined,
-                    }
-                  : undefined,
-                maxConcurrentTasks: options.maxConcurrentTasks
-                  ? Number.parseInt(options.maxConcurrentTasks, 10)
-                  : undefined,
-                recovery: {
-                  maxAttemptsPerTask: options.maxAttemptsPerTask
-                    ? Number.parseInt(options.maxAttemptsPerTask, 10)
-                    : undefined,
-                  maxStepsPerRun: options.maxStepsPerRun
-                    ? Number.parseInt(options.maxStepsPerRun, 10)
-                    : undefined,
-                  operationLeaseTimeoutMs: options.operationLeaseTimeoutMs
-                    ? Number.parseInt(options.operationLeaseTimeoutMs, 10)
-                    : undefined,
-                },
+                instruction: options.explore,
+                maxExperiments: Number(options.maxExperiments ?? 10),
               }
             : undefined,
+          manager: options.maxManagerTurns
+            ? { maxTurns: Number(options.maxManagerTurns) }
+            : undefined,
+          maxConcurrentTasks: options.maxConcurrentTasks
+            ? Number.parseInt(options.maxConcurrentTasks, 10)
+            : undefined,
+          recovery: {
+            maxAttemptsPerTask: options.maxAttemptsPerTask
+              ? Number.parseInt(options.maxAttemptsPerTask, 10)
+              : undefined,
+            maxStepsPerRun: options.maxStepsPerRun
+              ? Number.parseInt(options.maxStepsPerRun, 10)
+              : undefined,
+            operationLeaseTimeoutMs: options.operationLeaseTimeoutMs
+              ? Number.parseInt(options.operationLeaseTimeoutMs, 10)
+              : undefined,
+          },
+          supervision: {
+            enabled: true,
+            ...(options.maxSupervisionIncidents
+              ? { maxIncidents: Number.parseInt(options.maxSupervisionIncidents, 10) }
+              : {}),
+          },
+          taskAgentId: options.taskAgent,
+        },
         criteria: (options.criterion as string[] | undefined)?.map((criterion) => ({
           title: criterion,
         })),
