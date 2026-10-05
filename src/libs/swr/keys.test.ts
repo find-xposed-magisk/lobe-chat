@@ -1,15 +1,12 @@
+import { replicaKeys } from '@lobechat/replica';
 import { unstable_serialize } from 'swr';
 import { describe, expect, it } from 'vitest';
 
 import {
   agentBuilderKeys,
-  agentConfigKeys,
-  agentKeys,
-  agentProjectionKeys,
   documentCommentKeys,
   isAcceptanceListKey,
   isDocumentCommentKeyForEvent,
-  projectKeys,
   recentKeys,
   resourceKeys,
   taskKeys,
@@ -19,27 +16,6 @@ import {
 import { CACHE_TIERS } from './localStorageProvider';
 
 describe('recentKeys', () => {
-  it('keys the Home recent list by identity cache scope', () => {
-    expect(recentKeys.list(true, 10, 'user-1:workspace-1')).toEqual([
-      'recent:list',
-      true,
-      10,
-      'user-1:workspace-1',
-    ]);
-  });
-
-  it('keeps users isolated in the same workspace', () => {
-    expect(recentKeys.list(true, 10, 'user-1:workspace-1')).not.toEqual(
-      recentKeys.list(true, 10, 'user-2:workspace-1'),
-    );
-  });
-
-  it('keeps workspaces isolated for the same user', () => {
-    expect(recentKeys.allDrawer(true, 'user-1:workspace-1')).not.toEqual(
-      recentKeys.allDrawer(true, 'user-1:workspace-2'),
-    );
-  });
-
   it('keys the Home topic-only list independently from mixed recents', () => {
     expect(recentKeys.topicList(9, 'user-1:workspace-1', 'mine')).toEqual([
       'recent:topicList',
@@ -68,45 +44,18 @@ describe('recentKeys', () => {
   });
 });
 
-describe('agent projection keys', () => {
-  it('keeps network sync and hydration isolated by identity scope', () => {
-    expect(agentKeys.list(true, 'user-1:workspace-1')).not.toEqual(
-      agentKeys.list(true, 'user-2:workspace-1'),
-    );
-    expect(agentConfigKeys.config('agent-1', 'user-1:workspace-1')).not.toEqual(
-      agentConfigKeys.config('agent-1', 'user-1:workspace-2'),
-    );
-    expect(agentProjectionKeys.configHydration('user-1:workspace-1', 'agent-1')).toEqual([
-      'agentProjection:configHydration',
-      'user-1:workspace-1',
-      'agent-1',
-    ]);
-  });
-
+describe('replica sync keys', () => {
   it('keeps SWR orchestration entries out of the persistence tiers', () => {
     for (const key of [
-      agentKeys.list(true, 'user-1:personal'),
-      agentConfigKeys.config('agent-1', 'user-1:personal'),
+      // Replicas persist through their own storage, never through the SWR tiers.
+      replicaKeys.sync('agentList', 1, 'user-1:personal', 'sidebar', {}),
+      replicaKeys.sync('agentConfig', 1, 'user-1:personal', 'agent-1', { agentId: 'agent-1' }),
     ]) {
       const serialized = unstable_serialize(key);
       expect(
         [...CACHE_TIERS.idb, ...CACHE_TIERS.local].some((pattern) => serialized.includes(pattern)),
       ).toBe(false);
     }
-  });
-});
-
-describe('projectKeys', () => {
-  it('uses the same scoped factory family for list, detail, and hydration', () => {
-    expect(projectKeys.list('user-1:workspace-1')).toEqual(['project:list', 'user-1:workspace-1']);
-    expect(projectKeys.detail('user-1:workspace-1', 'project-1')).toEqual([
-      'project:detail',
-      'user-1:workspace-1',
-      'project-1',
-    ]);
-    expect(projectKeys.listHydration('user-1:workspace-1')).not.toEqual(
-      projectKeys.listHydration('user-1:workspace-2'),
-    );
   });
 });
 

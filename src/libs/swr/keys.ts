@@ -243,31 +243,6 @@ export const isDocumentCommentKeyForEvent = (
   return false;
 };
 
-// ---- agent --------------------------------------------------------------
-export const agentKeys = {
-  /** Sidebar agent list network sync. Zustand owns the persisted UI projection. */
-  list: def('agentSync:list', (isLogin: boolean, scope: string) => [
-    'agentSync:list',
-    isLogin,
-    scope,
-  ]),
-};
-
-export const isAgentListKey = (key: unknown, scope: string): boolean =>
-  Array.isArray(key) && key[0] === agentKeys.list.root && key[2] === scope;
-
-export const agentProjectionKeys = {
-  configHydration: def('agentProjection:configHydration', (scope: string, agentId: string) => [
-    'agentProjection:configHydration',
-    scope,
-    agentId,
-  ]),
-  listHydration: def('agentProjection:listHydration', (scope: string) => [
-    'agentProjection:listHydration',
-    scope,
-  ]),
-};
-
 // ---- agent labels -------------------------------------------------------
 export const agentLabelKeys = {
   /**
@@ -330,19 +305,6 @@ export const threadKeys = {
 
 // ---- recent -------------------------------------------------------------
 export const recentKeys = {
-  /** Home "all recents" drawer list, keyed by open state and identity scope. */
-  allDrawer: def('recent:allDrawer', (open: boolean, scope: string) => [
-    'recent:allDrawer',
-    open,
-    scope,
-  ]),
-  /** Home recents list, keyed by login + limit + identity scope. */
-  list: def('recent:list', (isLogin: boolean, limit: number, scope: string) => [
-    'recent:list',
-    isLogin,
-    limit,
-    scope,
-  ]),
   /** Home chat-only list; filtering happens before the server-side limit. */
   topicList: def('recent:topicList', (limit: number, scope: string, view: 'mine' | 'team') => [
     'recent:topicList',
@@ -547,42 +509,13 @@ export const homeInboxKeys = {
 };
 
 // ---- agent config / available / search ----------------------------------
-// (agentKeys.list defined above)
 export const agentConfigKeys = {
   available: def('agent:available', () => ['agent:available']),
-  config: def('agentSync:config', (agentId: string, scope: string) => [
-    'agentSync:config',
-    agentId,
-    scope,
-  ]),
   search: def('agent:search', (keyword?: string) => ['agent:search', keyword]),
   serverDefaultHeterogeneousCapability: def('agent:serverDefaultHeterogeneousCapability', () => [
     'agent:serverDefaultHeterogeneousCapability',
   ]),
 };
-
-export const isAgentConfigKey = (key: unknown, agentId: string, scope: string): boolean =>
-  Array.isArray(key) &&
-  key[0] === agentConfigKeys.config.root &&
-  key[1] === agentId &&
-  key[2] === scope;
-
-// ---- project ------------------------------------------------------------
-export const projectKeys = {
-  detail: def('project:detail', (scope: string, id: string) => ['project:detail', scope, id]),
-  detailHydration: def('project:detailHydration', (scope: string, id: string) => [
-    'project:detailHydration',
-    scope,
-    id,
-  ]),
-  list: def('project:list', (scope: string) => ['project:list', scope]),
-  listHydration: def('project:listHydration', (scope: string) => ['project:listHydration', scope]),
-};
-
-export const isProjectDetailKey = (key: unknown, scope: string, id: string): boolean =>
-  Array.isArray(key) && key[0] === projectKeys.detail.root && key[1] === scope && key[2] === id;
-export const isProjectListKey = (key: unknown, scope: string): boolean =>
-  Array.isArray(key) && key[0] === projectKeys.list.root && key[1] === scope;
 
 // ---- aiModel ------------------------------------------------------------
 export const aiModelKeys = {
@@ -1569,7 +1502,7 @@ export const matchDomain =
  * Aggregate registry — one entry point for every domain's keys.
  */
 export const swrKeys = {
-  agent: { ...agentKeys, ...agentConfigKeys, ...agentProjectionKeys },
+  agent: agentConfigKeys,
   agentBot: agentBotKeys,
   agentBuilder: agentBuilderKeys,
   agentDocument: agentDocumentSWRKeys,
@@ -1611,7 +1544,6 @@ export const swrKeys = {
   onboarding: onboardingKeys,
   openInApp: openInAppKeys,
   portal: portalKeys,
-  project: projectKeys,
   provider: providerKeys,
   ragEval: ragEvalKeys,
   recent: recentKeys,
