@@ -2,7 +2,7 @@
 
 import { Flexbox } from '@lobehub/ui';
 import { Button, Input, Text, TextArea } from '@lobehub/ui/base-ui';
-import { Form } from 'antd';
+import { Form, useForm } from '@lobehub/ui/base-ui/form';
 import { PencilIcon } from 'lucide-react';
 import { type FC, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,8 +26,8 @@ interface BasicInfoCardProps {
 
 /**
  * Name, logo and description, read-only until the user asks to edit. The edit
- * form mounts fresh from the saved values each time, so cancelling needs no
- * reset and a half-typed change never lingers into the next edit.
+ * form is reset to the saved values each time editing starts, so cancelling
+ * needs no reset and a half-typed change never lingers into the next edit.
  */
 const BasicInfoCard: FC<BasicInfoCardProps> = ({ canEdit, detail, onSubmit }) => {
   const { t } = useTranslation('auth');
@@ -40,7 +40,10 @@ const BasicInfoCard: FC<BasicInfoCardProps> = ({ canEdit, detail, onSubmit }) =>
   const [logoChanged, setLogoChanged] = useState(false);
   const { upload: uploadLogo, uploading: logoUploading } = useLogoUpload();
 
+  const form = useForm<BasicInfoValues>({ onSubmit: (values) => handleFinish(values) });
+
   const startEditing = () => {
+    form.reset({ description: detail.description ?? '', name: detail.name });
     setLogoUri(detail.logoUri ?? null);
     setLogoChanged(false);
     setEditing(true);
@@ -72,7 +75,7 @@ const BasicInfoCard: FC<BasicInfoCardProps> = ({ canEdit, detail, onSubmit }) =>
     }
   };
 
-  const itemStyle = { marginBottom: 0 };
+  const itemStyle = { paddingBlock: 0 };
 
   return (
     <SectionCard
@@ -91,14 +94,9 @@ const BasicInfoCard: FC<BasicInfoCardProps> = ({ canEdit, detail, onSubmit }) =>
       }
     >
       {editing ? (
-        <Form
-          colon={false}
-          initialValues={{ description: detail.description ?? '', name: detail.name }}
-          layout={'vertical'}
-          onFinish={handleFinish}
-        >
+        <Form form={form} layout={'vertical'}>
           <Flexbox gap={16}>
-            <Form.Item label={t('oauthApp.form.logo.label')} style={itemStyle}>
+            <Form.Field label={t('oauthApp.form.logo.label')} style={itemStyle}>
               <AvatarUpload
                 allowDelete={!!logoUri}
                 loading={logoUploading}
@@ -107,24 +105,24 @@ const BasicInfoCard: FC<BasicInfoCardProps> = ({ canEdit, detail, onSubmit }) =>
                 onDelete={handleDeleteLogo}
                 onUpload={handleUpload}
               />
-            </Form.Item>
+            </Form.Field>
 
-            <Form.Item
+            <Form.Field
               label={t('oauthApp.form.name.label')}
               name={'name'}
-              rules={[{ message: t('oauthApp.validation.nameRequired'), required: true }]}
+              required={t('oauthApp.validation.nameRequired')}
               style={itemStyle}
             >
               <Input placeholder={t('oauthApp.form.name.placeholder')} />
-            </Form.Item>
+            </Form.Field>
 
-            <Form.Item
+            <Form.Field
               label={t('oauthApp.form.description.label')}
               name={'description'}
               style={itemStyle}
             >
               <TextArea placeholder={t('oauthApp.form.description.placeholder')} rows={3} />
-            </Form.Item>
+            </Form.Field>
 
             <Flexbox horizontal gap={8} justify={'flex-end'}>
               <Button onClick={() => setEditing(false)}>{t('oauthApp.detail.cancel')}</Button>

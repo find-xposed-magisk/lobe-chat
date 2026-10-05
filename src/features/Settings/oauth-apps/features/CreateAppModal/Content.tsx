@@ -3,7 +3,7 @@
 import { type OAuthAppType } from '@lobechat/types';
 import { Flexbox, Icon } from '@lobehub/ui';
 import { Button, Input, Text, TextArea, useModalContext } from '@lobehub/ui/base-ui';
-import { Form } from 'antd';
+import { Form, useForm, useWatch } from '@lobehub/ui/base-ui/form';
 import { createStaticStyles, cx } from 'antd-style';
 import { CheckIcon, GlobeIcon, type LucideIcon, TerminalIcon } from 'lucide-react';
 import { type FC, useState } from 'react';
@@ -134,14 +134,19 @@ export interface CreateAppModalContentProps {
 const CreateAppModalContent: FC<CreateAppModalContentProps> = ({ onSubmit }) => {
   const { t } = useTranslation('auth');
   const { close, setCanDismissByClickOutside } = useModalContext();
-  const [form] = Form.useForm<CreateAppFormValues>();
-  const type = Form.useWatch('type', form);
   const [loading, setLoading] = useState(false);
   const [logoUri, setLogoUri] = useState<string>();
 
   // Once the form is dirty, a mask click must not dismiss the modal (it would
   // silently drop the user's input); the explicit ✕/ESC close still works.
   const markDirty = () => setCanDismissByClickOutside(false);
+
+  const form = useForm<CreateAppFormValues>({
+    initialValues: { type: 'device' } as CreateAppFormValues,
+    onSubmit: (values) => handleFinish(values),
+    onValuesChange: markDirty,
+  });
+  const type = useWatch(form, 'type');
 
   const { upload: uploadLogo, uploading: logoUploading } = useLogoUpload();
 
@@ -170,19 +175,12 @@ const CreateAppModalContent: FC<CreateAppModalContentProps> = ({ onSubmit }) => 
     }
   };
 
-  const itemStyle = { marginBottom: 0 };
+  const itemStyle = { paddingBlock: 0 };
 
   return (
-    <Form
-      colon={false}
-      form={form}
-      initialValues={{ type: 'device' }}
-      layout={'vertical'}
-      onFinish={handleFinish}
-      onValuesChange={markDirty}
-    >
+    <Form form={form} layout={'vertical'}>
       <Flexbox gap={16}>
-        <Form.Item label={t('oauthApp.form.logo.label')} style={itemStyle}>
+        <Form.Field label={t('oauthApp.form.logo.label')} style={itemStyle}>
           <AvatarUpload
             allowDelete={!!logoUri}
             loading={logoUploading}
@@ -191,18 +189,18 @@ const CreateAppModalContent: FC<CreateAppModalContentProps> = ({ onSubmit }) => 
             onDelete={() => setLogoUri(undefined)}
             onUpload={handleUpload}
           />
-        </Form.Item>
+        </Form.Field>
 
-        <Form.Item
+        <Form.Field
           label={t('oauthApp.form.name.label')}
           name={'name'}
-          rules={[{ message: t('oauthApp.validation.nameRequired'), required: true }]}
+          required={t('oauthApp.validation.nameRequired')}
           style={itemStyle}
         >
           <Input placeholder={t('oauthApp.form.name.placeholder')} />
-        </Form.Item>
+        </Form.Field>
 
-        <Form.Item
+        <Form.Field
           label={t('oauthApp.form.type.label')}
           name={'type'}
           style={itemStyle}
@@ -229,15 +227,15 @@ const CreateAppModalContent: FC<CreateAppModalContentProps> = ({ onSubmit }) => 
               },
             ]}
           />
-        </Form.Item>
+        </Form.Field>
 
-        <Form.Item
+        <Form.Field
           label={t('oauthApp.form.description.label')}
           name={'description'}
           style={itemStyle}
         >
           <TextArea placeholder={t('oauthApp.form.description.placeholder')} rows={3} />
-        </Form.Item>
+        </Form.Field>
 
         <Button
           block
