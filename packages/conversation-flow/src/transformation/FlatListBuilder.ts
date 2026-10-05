@@ -627,6 +627,8 @@ export class FlatListBuilder {
       this.suppressInactiveExplicitContinuations(lastAssistant, allToolMessages, processedIds);
     }
 
+    yield this.continueGroupMemberReplies(assistantChain, flatList, processedIds, allMessages);
+
     const parentIds = [
       ...(lastAssistant ? [lastAssistant.id] : []),
       ...allToolMessages.map((toolMessage) => toolMessage.id),
@@ -661,6 +663,46 @@ export class FlatListBuilder {
       processedIds,
       allMessages,
     );
+  }
+
+  /**
+   * Server-side `speak` parents the in-group member's reply to the supervisor
+   * assistant that issued the call — a sibling of the tool result — while the
+   * supervisor resumes through the tool result. Once it resumes, the collector
+   * folds the speak turn into the group as an intermediate step, so the member
+   * reply hangs off a consumed assistant that no continuation walk visits.
+   * Render it (and the member's own follow-up steps) right after the group.
+   * Only `orchestrationRole: 'member'` children qualify: regenerated supervisor
+   * branches under the same shell stay hidden. Isolated members live in their
+   * own thread and stay out of the main transcript.
+   */
+  private *continueGroupMemberReplies(
+    assistantChain: Message[],
+    flatList: Message[],
+    processedIds: Set<string>,
+    allMessages: Message[],
+  ): FlatListWork {
+    for (const assistant of assistantChain.slice(0, -1)) {
+      const memberIds = this.childIdsInScope(assistant.id).filter((id) => {
+        const message = this.messageMap.get(id);
+        return (
+          message?.role === 'assistant' &&
+          message.metadata?.orchestrationRole === 'member' &&
+          (!message.threadId || message.threadId === this.threadScope) &&
+          !processedIds.has(id)
+        );
+      });
+
+      for (const memberId of memberIds) {
+        yield this.buildFlatListRecursiveForChild(
+          assistant.id,
+          memberId,
+          flatList,
+          processedIds,
+          allMessages,
+        );
+      }
+    }
   }
 
   /**
