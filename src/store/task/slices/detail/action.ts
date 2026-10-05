@@ -65,6 +65,12 @@ export interface TaskUpdateOptions {
    */
   optimisticAssignee?: TaskDetailActivityAuthor;
   /**
+   * Replaces the failure toast's Retry when this update is one step of a larger
+   * action (e.g. assign-then-run), so Retry repeats the whole action instead of
+   * only this write.
+   */
+  retry?: () => void;
+  /**
    * The mounted editor marks its own autosaves so they do not request an
    * external-content reload. Tool calls and refetches are authoritative by default.
    */
@@ -538,11 +544,13 @@ export class TaskDetailSliceActionImpl {
          * content. Treating Retry as another editor echo would update only the
          * Store and server, leaving the mounted editor on the rollback snapshot.
          */
-        const retry = () =>
-          void this.#get().updateTask(id, data, {
-            ...options,
-            source: 'external',
-          });
+        const retry =
+          options?.retry ??
+          (() =>
+            void this.#get().updateTask(id, data, {
+              ...options,
+              source: 'external',
+            }));
         saveToast(error, { retry });
       },
       setStatus: (status) => this.#get().internal_setTaskSaveStatus(id, status),

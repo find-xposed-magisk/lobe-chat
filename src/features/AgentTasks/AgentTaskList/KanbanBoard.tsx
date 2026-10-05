@@ -18,11 +18,14 @@ import { useTranslation } from 'react-i18next';
 import AsyncBoundary from '@/components/AsyncBoundary';
 import { useWorkspaceAwareNavigate } from '@/features/Workspace/useWorkspaceAwareNavigate';
 import { usePermission } from '@/hooks/usePermission';
+import { useAgentStore } from '@/store/agent';
+import { builtinAgentSelectors } from '@/store/agent/selectors';
 import { useGlobalStore } from '@/store/global';
 import { systemStatusSelectors } from '@/store/global/selectors';
 import { useTaskStore } from '@/store/task';
 import { taskListSelectors } from '@/store/task/selectors';
 import type { TaskListItem } from '@/store/task/slices/list/initialState';
+import { saveToast } from '@/store/utils/saveToast';
 
 import { createTaskModal } from '../CreateTaskModal';
 import type { TaskItemRouteScope } from '../features/AgentTaskItem';
@@ -34,6 +37,7 @@ import {
   buildKanbanColumns,
   buildKanbanGroupQuery,
   canDropTaskIntoKanbanColumn,
+  findKanbanTask,
   getKanbanAssigneeUpdate,
   getKanbanTaskPatch,
   moveTaskBetweenKanbanGroups,
@@ -99,6 +103,9 @@ const KanbanBoard = memo<KanbanBoardProps>((props) => {
     [isQueryScopeCurrent, taskGroups],
   );
   const updateTask = useTaskStore((s) => s.updateTask);
+  const runTask = useTaskStore((s) => s.runTask);
+  const refreshTaskList = useTaskStore((s) => s.refreshTaskList);
+  const inboxAgentId = useAgentStore(builtinAgentSelectors.inboxAgentId);
   const changeTaskStatus = useTaskStatusChange();
 
   const hiddenColumns = useGlobalStore(systemStatusSelectors.taskKanbanHiddenColumns);
@@ -123,6 +130,33 @@ const KanbanBoard = memo<KanbanBoardProps>((props) => {
       setActiveTask(task ?? null);
     },
     [canEditTask],
+  );
+
+  /**
+   * Assign-then-run as one action: a failure toast's Retry repeats both steps,
+   * so retrying a failed assignment still starts the task.
+   */
+  const startTask = useCallback(
+    (task: TaskListItem, onAssigned?: () => void): Promise<void> => {
+      const start = async (afterAssign?: () => void): Promise<void> => {
+        const retry = () => {
+          start().catch(() => {});
+        };
+        const current = findKanbanTask(useTaskStore.getState().taskGroups, task.identifier) ?? task;
+        if (!current.assigneeAgentId && !current.assigneeUserId && inboxAgentId) {
+          await updateTask(current.identifier, { assigneeAgentId: inboxAgentId }, { retry });
+          afterAssign?.();
+        }
+        try {
+          await runTask(current.identifier, undefined, { throwOnError: true });
+        } catch (error) {
+          saveToast(error, { retry, title: t('taskList.kanban.runFailed') });
+          throw error;
+        }
+      };
+      return start(onAssigned);
+    },
+    [inboxAgentId, runTask, t, updateTask],
   );
 
   const handleDragEnd = useCallback(
@@ -155,7 +189,26 @@ const KanbanBoard = memo<KanbanBoardProps>((props) => {
       useTaskStore.setState({ taskGroups: nextGroups }, false, 'kanban/optimisticMove');
 
       try {
-        if (groupBy === 'status' && column.targetStatus) {
+        if (groupBy === 'status' && column.targetStatus === 'running') {
+          // Dropping into "In progress" starts the task, same as "Run now".
+          await startTask(task, () => {
+            // The assignment refetches the groups, where the task is still in
+            // backlog until the run starts — keep the card in "In progress".
+            const refreshedGroups = useTaskStore.getState().taskGroups;
+            useTaskStore.setState(
+              {
+                taskGroups: moveTaskBetweenKanbanGroups(
+                  refreshedGroups,
+                  findKanbanTask(refreshedGroups, task.identifier) ?? task,
+                  targetColumnKey,
+                  patch,
+                ),
+              },
+              false,
+              'kanban/optimisticMove',
+            );
+          });
+        } else if (groupBy === 'status' && column.targetStatus) {
           const changed = await changeTaskStatus(task.identifier, column.targetStatus);
           if (!changed) {
             useTaskStore.setState({ taskGroups: prevGroups }, false, 'kanban/cancelMove');
@@ -167,9 +220,11 @@ const KanbanBoard = memo<KanbanBoardProps>((props) => {
         }
       } catch {
         useTaskStore.setState({ taskGroups: prevGroups }, false, 'kanban/revertMove');
+        // A failed start may already have persisted the fallback assignee.
+        if (column.targetStatus === 'running') void refreshTaskList();
       }
     },
-    [canEditTask, changeTaskStatus, columns, groupBy, updateTask],
+    [canEditTask, changeTaskStatus, columns, groupBy, refreshTaskList, startTask, updateTask],
   );
 
   const handleDragCancel = useCallback(() => {

@@ -565,6 +565,28 @@ describe('TaskDetailSliceAction', () => {
       });
     });
 
+    it('lets the caller replace the failure toast Retry with its whole action', async () => {
+      useTaskStore.setState({
+        activeTaskId: 'T-1',
+        taskDetailMap: { 'T-1': { identifier: 'T-1', instruction: 'x', status: 'backlog' } },
+      });
+      vi.mocked(taskService.update).mockRejectedValueOnce(new Error('fail'));
+      const retry = vi.fn();
+
+      await expect(
+        useTaskStore.getState().updateTask('T-1', { assigneeAgentId: 'agt_inbox' }, { retry }),
+      ).rejects.toThrow('fail');
+
+      const toastOptions = vi.mocked(toast.error).mock.calls.at(-1)?.[0];
+      if (!toastOptions || typeof toastOptions === 'string') {
+        throw new Error('Expected the failed save toast to expose a Retry action.');
+      }
+      toastOptions.actions?.[0]?.onClick?.();
+
+      expect(retry).toHaveBeenCalledTimes(1);
+      expect(taskService.update).toHaveBeenCalledTimes(1);
+    });
+
     it('should refresh the cached parent on failure when updating from a subtask detail page', async () => {
       const { mutate } = await import('@/libs/swr');
       useTaskStore.setState({

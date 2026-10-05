@@ -2131,6 +2131,7 @@
   "taskList.kanban.hiddenColumns": "Hidden columns",
   "taskList.kanban.hideColumn": "Hide column",
   "taskList.kanban.needsInput": "Pending review",
+  "taskList.kanban.runFailed": "Couldn't start the task",
   "taskList.kanban.running": "In progress",
   "taskList.kanban.showColumn": "Show column",
   "taskList.mine.assigned": "Assigned",

@@ -2131,6 +2131,7 @@
   "taskList.kanban.hiddenColumns": "隐藏的分组",
   "taskList.kanban.hideColumn": "隐藏分组",
   "taskList.kanban.needsInput": "待审阅",
+  "taskList.kanban.runFailed": "任务启动失败",
   "taskList.kanban.running": "进行中",
   "taskList.kanban.showColumn": "显示分组",
   "taskList.mine.assigned": "分配给我",
