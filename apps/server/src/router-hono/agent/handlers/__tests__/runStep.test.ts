@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AiAgentService } from '@/server/services/aiAgent';
+import { getInvocationDeadline } from '@/server/utils/invocationDeadline';
 import type * as ScheduleAfterResponseModule from '@/server/utils/scheduleAfterResponse';
 import { after } from '@/server/utils/scheduleAfterResponse';
 
@@ -330,6 +331,27 @@ describe('runStep handler', () => {
     expect(mockExecuteStep).toHaveBeenCalledWith(
       expect.objectContaining({ operationId: 'op-1', stepIndex: 2 }),
     );
+  });
+
+  it('runs its steps knowing when the invocation is killed', async () => {
+    mockGetOperationMetadata.mockResolvedValue({ userId: 'user-1' });
+    let deadlineSeen: number | undefined;
+    mockExecuteStep.mockImplementation(async () => {
+      deadlineSeen = getInvocationDeadline();
+      return {
+        nextStepScheduled: false,
+        state: { cost: { total: 0 }, status: 'done', stepCount: 1 },
+        success: true,
+      };
+    });
+    const startedAt = Date.now();
+
+    const { ctx } = buildContext({ body: validBody });
+    await runStep(ctx);
+
+    // The route's 600s maxDuration, counted from the request.
+    expect(deadlineSeen).toBeGreaterThanOrEqual(startedAt + 600_000);
+    expect(deadlineSeen).toBeLessThanOrEqual(Date.now() + 600_000);
   });
 
   it('opts the AiAgentService into visitor rows when metadata carries streamOwnerUserId', async () => {

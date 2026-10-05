@@ -48,6 +48,8 @@ export interface StartOperationInput {
   /** Final runtime context — base prep context with 16b/16c overrides applied. */
   initialContext: OperationPrepResult['initialContext'];
   initialStepCount?: number;
+  /** Relay executor the calling client declared; lands on `state.host.llmExecutor`. */
+  llmExecutor?: InternalExecAgentParams['llmExecutor'];
   maxSteps?: number;
   onOperationCreated?: InternalExecAgentParams['onOperationCreated'];
   operationId: string;
@@ -159,10 +161,18 @@ export const startOperation = async (
       (approvalSourceOperationId
         ? await deps.agentRuntimeService.acceptsMemberRuntimeEnd(approvalSourceOperationId)
         : undefined);
+    // Same client, same device: the continuation also keeps the parked
+    // operation's relay executor, or its next device-only call has none.
+    const llmExecutor =
+      input.llmExecutor ??
+      (approvalSourceOperationId
+        ? await deps.agentRuntimeService.getLlmExecutor(approvalSourceOperationId)
+        : undefined);
     const result = await deps.agentRuntimeService.createOperation({
       acceptsMemberRuntimeEnd: memberRuntimeEndAccepted,
       clientProtocol: input.clientProtocol,
       includeFinalState: input.includeFinalState,
+      llmExecutor,
       activeDeviceId: discovery.activeDeviceId,
       activeDeviceScope: discovery.activeDeviceScope,
       agentConfig,

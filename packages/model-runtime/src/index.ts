@@ -5,6 +5,7 @@ export type { ModelRuntimeHooks } from './core/ModelRuntime';
 export { ModelRuntime } from './core/ModelRuntime';
 export { createOpenAICompatibleRuntime } from './core/openaiCompatibleFactory';
 export * from './core/RouterRuntime';
+export { createCallbacksTransformer } from './core/streams/protocol';
 export * from './core/usageConverters';
 export {
   CATEGORY_NUMERIC_PREFIX,

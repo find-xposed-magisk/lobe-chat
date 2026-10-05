@@ -1,4 +1,8 @@
-import { type AgentRuntimeContext, type AgentState } from '@lobechat/agent-runtime';
+import {
+  type AgentRunLlmExecutor,
+  type AgentRuntimeContext,
+  type AgentState,
+} from '@lobechat/agent-runtime';
 import type {
   AgentGroupConfig,
   BotPlatformContext,
@@ -559,6 +563,12 @@ export interface OperationCreationParams {
     sourceOperationId: string;
     sourceToolMessageIds: string[];
   };
+  /**
+   * The client that started this run can execute relayed LLM attempts
+   * (`llm_execute`). Stored on `state.host.llmExecutor`; a sub-agent run
+   * inherits its parent's when it declares none.
+   */
+  llmExecutor?: AgentRunLlmExecutor;
   maxSteps?: number;
   modelRuntimeConfig?: any;
   /** Marks the source claim non-rollbackable once deterministic runtime state is durable. */

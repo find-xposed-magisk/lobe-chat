@@ -35,6 +35,12 @@ export type IFeatureFlagsState = {
    */
   enableGatewayMux: boolean | undefined;
   enableKnowledgeBase: boolean | undefined;
+  /**
+   * Rollout gate for relaying LLM calls of device-only model providers to the
+   * client that started the run (`agent_llm_relay`). The client declares itself
+   * as an executor only when this is on; the server checks it again.
+   */
+  enableLlmRelay: boolean | undefined;
   enableOnboardingV2: boolean | undefined;
   enableRAGEval: boolean | undefined;
   enableSTT: boolean | undefined;

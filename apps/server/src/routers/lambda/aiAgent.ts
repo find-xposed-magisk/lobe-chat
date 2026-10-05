@@ -1047,6 +1047,18 @@ const ExecAgentSchema = z
      * server-initiated run), which keeps the pushed snapshots.
      */
     clientProtocol: z.union([z.literal(1), z.literal(2)]).optional(),
+    /**
+     * The calling client can execute single LLM attempts the server relays to
+     * it (`llm_execute`) for providers only this device can reach. Sent only
+     * when the client is inside the `agent_llm_relay` rollout.
+     */
+    llmExecutor: z
+      .object({
+        capabilities: z.array(z.string()).max(16),
+        clientId: z.string().min(1).max(128),
+        providers: z.array(z.string()).max(256),
+      })
+      .optional(),
     /** The agent ID to run (either agentId or slug is required) */
     agentId: z.string().optional(),
     /** Application context for message storage */
@@ -1514,6 +1526,8 @@ const AgentStreamEventSchema = z.object({
     'tool_start',
     'tool_end',
     'tool_execute',
+    'llm_execute',
+    'llm_cancel',
     'tool_result',
     'agent_intervention_request',
     'agent_intervention_response',
@@ -2459,6 +2473,7 @@ export const aiAgentRouter = router({
         },
         clientProtocol: input.clientProtocol,
         includeFinalState: input.includeFinalState,
+        llmExecutor: input.llmExecutor,
         // This procedure serves the composer (`aiAgentService.execAgentTask`).
         // The client already queues follow-ups behind a live run and shows the
         // user a tray; refusing here would only make the message disappear.
@@ -2618,6 +2633,7 @@ export const aiAgentRouter = router({
           acceptsMemberRuntimeEnd: acceptsMemberRuntimeEndOf(task.streamFeatures),
           clientProtocol: task.clientProtocol,
           includeFinalState: task.includeFinalState,
+          llmExecutor: task.llmExecutor,
           agentId,
           appContext,
           autoStart,

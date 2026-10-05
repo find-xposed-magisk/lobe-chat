@@ -186,8 +186,26 @@ export interface AgentRunHostEnvelope {
   hooks?: SerializedAgentHook[];
   /** Opt into runtime state snapshots on step_complete events. Defaults to false. */
   includeFinalState?: boolean;
+  /**
+   * The client that started this run can execute single LLM attempts the
+   * server relays to it (`llm_execute`), for model providers only the user's
+   * device can reach (a local Ollama, a private-network endpoint). Declared by
+   * the client, like `clientProtocol`; absent means no client will pick up a
+   * relayed call, so such a provider fails fast instead of waiting.
+   */
+  llmExecutor?: AgentRunLlmExecutor;
   /** Queue retry policy for step scheduling. */
   queue?: { retries?: number; retryDelay?: string };
+}
+
+/** A client's declaration that it can run relayed LLM attempts. */
+export interface AgentRunLlmExecutor {
+  /** Relay protocol versions the client speaks, e.g. `llm_relay@1`. */
+  capabilities: string[];
+  /** Stable id of the declaring client (tab / desktop window), preferred as the executor. */
+  clientId: string;
+  /** Provider ids this client confirmed it can reach directly. */
+  providers: string[];
 }
 
 /**

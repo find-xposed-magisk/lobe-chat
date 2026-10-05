@@ -73,7 +73,7 @@ type ProviderKeyVaults = OpenAICompatibleKeyVault &
  * @param sdkType - The sdkType from provider settings
  * @returns The resolved runtime provider
  */
-const resolveRuntimeProvider = (provider: string, sdkType?: string): string => {
+export const resolveRuntimeProvider = (provider: string, sdkType?: string): string => {
   const isBuiltin = Object.values(ModelProvider).includes(provider as ModelProvider);
   if (isBuiltin) return provider;
 

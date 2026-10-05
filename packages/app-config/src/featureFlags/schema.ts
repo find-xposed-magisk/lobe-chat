@@ -50,6 +50,15 @@ export const FeatureFlagsSchema = z.object({
    */
   agent_gateway_mux: FeatureFlagValue.optional(),
 
+  /**
+   * Rollout gate for relaying LLM calls to the user's device: a model provider
+   * only that device can reach (a local Ollama / LM Studio, a private-network
+   * endpoint) runs one attempt at a time on the client that started the run,
+   * while the agent loop stays on the server. Off: such providers keep being
+   * dialed by the server. Array values are user ids.
+   */
+  agent_llm_relay: FeatureFlagValue.optional(),
+
   // internal flag
   agent_self_iteration: FeatureFlagValue.optional(),
   agent_onboarding: FeatureFlagValue.optional(),
@@ -117,6 +126,9 @@ export const DEFAULT_FEATURE_FLAGS: IFeatureFlags = {
   // v1 socket stays the default everywhere until then.
   agent_gateway_mux: false,
 
+  // Off until the client executor ships everywhere; allowlist first.
+  agent_llm_relay: false,
+
   agent_self_iteration: isDev,
   agent_onboarding: isDev,
   dev_dock: isDev,
@@ -150,6 +162,7 @@ export const mapFeatureFlagsEnvToState = (
 
     enableAgentShare: evaluateFeatureFlag(config.agent_share, userId),
     enableGatewayMux: evaluateFeatureFlag(config.agent_gateway_mux, userId),
+    enableLlmRelay: evaluateFeatureFlag(config.agent_llm_relay, userId),
     showProvider: evaluateFeatureFlag(config.provider_settings, userId),
 
     showOpenAIApiKey: evaluateFeatureFlag(config.openai_api_key, userId),

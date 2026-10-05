@@ -1546,6 +1546,7 @@ export class AiAgentService {
         stream,
         clientProtocol: params.clientProtocol,
         includeFinalState: params.includeFinalState,
+        llmExecutor: params.llmExecutor,
         topicStartOwnerOperationId: params.topicStartOwnerOperationId,
         updateAbortedAssistantMessage,
         userAgent,

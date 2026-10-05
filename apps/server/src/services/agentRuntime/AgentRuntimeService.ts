@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type {
   Agent,
+  AgentRunLlmExecutor,
   AgentRuntimeContext,
   AgentState,
   GeneralAgentConfig,
@@ -748,6 +749,41 @@ export class AgentRuntimeService {
   }
 
   /**
+   * The relay executor a new run carries: the one its client declared, else —
+   * for a group member, whose stream is mirrored onto its parent's channel —
+   * its parent's, so a member on the same local model reaches the same device.
+   * A genuine sub-agent publishes `llm_execute` on its own channel, which no
+   * client subscribes to, so it inherits nothing and fails fast as
+   * `no_executor` instead of waiting out the claim. Best-effort: an expired
+   * parent leaves the member without one.
+   */
+  private async resolveLlmExecutor(
+    declared: AgentRunLlmExecutor | undefined,
+    parentOperationId: string | undefined,
+    streamsOnParentChannel: boolean,
+  ): Promise<AgentRunLlmExecutor | undefined> {
+    if (declared) return declared;
+    if (!parentOperationId || !streamsOnParentChannel) return;
+
+    return this.getLlmExecutor(parentOperationId);
+  }
+
+  /**
+   * The relay executor an operation carries, e.g. for an approval continuation
+   * that the parked operation's client resumes. Best-effort: an unknown or
+   * expired operation reads as none.
+   */
+  async getLlmExecutor(operationId: string): Promise<AgentRunLlmExecutor | undefined> {
+    try {
+      const state = await this.coordinator.loadAgentState(operationId);
+      return state?.host?.llmExecutor;
+    } catch (error) {
+      log('[%s] Failed to read the relay executor: %O', operationId, error);
+      return;
+    }
+  }
+
+  /**
    * Whether the client that started this operation declared it handles
    * `member_runtime_end`. An unknown or expired operation reads as `false`, so
    * a continuation then keeps the verbatim terminal every client understands.
@@ -1222,6 +1258,12 @@ export class AgentRuntimeService {
           }))
         : undefined;
 
+      const llmExecutor = await this.resolveLlmExecutor(
+        params.llmExecutor,
+        parentOperationId,
+        appContext?.orchestrationRole === 'member',
+      );
+
       const initialState = {
         activatedStepTools,
         createdAt: new Date().toISOString(),
@@ -1245,6 +1287,7 @@ export class AgentRuntimeService {
         host: {
           ...(params.clientProtocol === 2 && { clientProtocol: 2 as const }),
           ...(params.includeFinalState === true && { includeFinalState: true }),
+          ...(llmExecutor && { llmExecutor }),
           queue: { retries: queueRetries, retryDelay: queueRetryDelay },
         },
         // Run ledger — everything fixed at creation lives in the typed slots.

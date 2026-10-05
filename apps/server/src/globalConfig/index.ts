@@ -23,6 +23,7 @@ import {
 import { parseAgentConfig } from './parseDefaultAgent';
 import { parseFilesConfig } from './parseFilesConfig';
 import { getPublicMemoryExtractionConfig } from './parseMemoryExtractionConfig';
+import { getServerFetchOnClientOverride } from './serverFetchOnClient';
 
 /**
  * Get Better-Auth SSO providers list
@@ -76,11 +77,11 @@ export const getServerGlobalConfig = async () => {
       withDeploymentName: true,
     },
     lmstudio: {
-      fetchOnClient: isDesktop ? false : undefined,
+      fetchOnClient: getServerFetchOnClientOverride('lmstudio'),
     },
     ollama: {
       enabled: isDesktop ? true : undefined,
-      fetchOnClient: isDesktop ? false : !process.env.OLLAMA_PROXY_URL,
+      fetchOnClient: getServerFetchOnClientOverride('ollama'),
     },
     ollamacloud: {
       enabledKey: 'ENABLED_OLLAMA_CLOUD',
@@ -96,7 +97,7 @@ export const getServerGlobalConfig = async () => {
       modelListKey: 'TENCENT_CLOUD_MODEL_LIST',
     },
     unsloth: {
-      fetchOnClient: isDesktop ? false : undefined,
+      fetchOnClient: getServerFetchOnClientOverride('unsloth'),
     },
     volcengine: {
       withDeploymentName: true,
