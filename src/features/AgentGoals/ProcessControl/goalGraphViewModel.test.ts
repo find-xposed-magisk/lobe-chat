@@ -304,6 +304,25 @@ describe('buildGoalGraphView', () => {
     expect(view.byId.w1.startedAt).toEqual(at(115));
   });
 
+  it.each(['canceled', 'achieved', 'failed'] as const)(
+    'stops calling a task running once its goal is %s',
+    (status) => {
+      const view = buildGoalGraphView(
+        snapshot({
+          events: [event('w1', 'activated', 115)],
+          goal: goal({ status, updatedAt: at(118) }),
+          nodes: [node('w1', { status: 'active', taskId: 'task-1', updatedAt: at(115) })],
+        }),
+        NOW,
+      );
+
+      expect(view.frontier).toHaveLength(0);
+      expect(isRunningNode(view.byId.w1)).toBe(false);
+      expect(view.byId.w1.startedAt).toBeUndefined();
+      expect(view.byId.w1.attempts.at(-1)).toMatchObject({ endedAt: at(118), outcome: 'retired' });
+    },
+  );
+
   it('closes the parked attempt of a Task waiting at a gate', () => {
     // The gate is written as an `updated` event, which is not an attempt
     // boundary — without the node-state fallback the parked Task kept
@@ -365,6 +384,48 @@ describe('buildGoalGraphView', () => {
     // The gate's case is the failed Task's ledger, not the decision node's own.
     expect(view.byId.d1.gateSubjectId).toBe('w1');
   });
+
+  it.each(['canceled', 'achieved'] as const)(
+    'offers no gate to answer once the goal is %s',
+    (status) => {
+      // The server refuses every answer on an ended goal until it is reopened.
+      const view = buildGoalGraphView(
+        snapshot({
+          decisions: [
+            {
+              authority: 'user',
+              canceledAt: null,
+              createdAt: at(50),
+              id: 'dec-1',
+              nodeId: 'd1',
+              options: [{ id: 'retry', label: 'Retry task' }],
+              question: 'Retry?',
+              recommendedOptionId: 'retry',
+              requestedProjectRole: null,
+              requestedUserId: 'user-1',
+              resolution: null,
+              resolvedAt: null,
+              resolvedByAgentId: null,
+              resolvedByUserId: null,
+              resolvedOptionId: null,
+              status: 'pending',
+              updatedAt: at(50),
+            },
+          ],
+          edges: [edge('w1', 'd1', 'leads_to')],
+          goal: goal({ status }),
+          nodes: [
+            node('w1', { status: 'waiting' }),
+            node('d1', { kind: 'decision', status: 'waiting' }),
+          ],
+        }),
+        NOW,
+      );
+
+      expect(view.frontier).toHaveLength(0);
+      expect(view.needsYou).toBe(0);
+    },
+  );
 
   it('links a finding to the task that produced it and the problem it answers', () => {
     const view = buildGoalGraphView(

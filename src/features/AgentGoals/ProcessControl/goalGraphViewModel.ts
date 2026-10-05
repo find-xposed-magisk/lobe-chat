@@ -109,6 +109,12 @@ export interface GoalNodeView {
   findings: GoalGraphNode[];
   /** Decision only: the Task this gate was opened for — its ledger is the case. */
   gateSubjectId?: string;
+  /**
+   * Still `active` on a goal that has ended (achieved / canceled / failed).
+   * Closing a goal interrupts its runs but leaves the node where it was so a
+   * reopen can pick it up, so the row must not keep claiming it is running.
+   */
+  halted?: boolean;
   /** Latest liveness signal: node row update or the run operation's lease heartbeat. */
   heartbeatAt: Date;
   /** Decisions on this node a human already resolved. */
@@ -178,8 +184,13 @@ export const opensOnResultSurface = (view: GoalNodeView): boolean => {
  */
 export const isRunningNode = (view: GoalNodeView): boolean => {
   if (view.node.kind === 'problem') return false;
-  return view.node.status === 'active' && !view.isStale;
+  return view.node.status === 'active' && !view.isStale && !view.halted;
 };
+
+/** A goal in one of these states runs nothing, whatever its nodes still say. */
+const CLOSED_GOAL_STATUSES = new Set<string>(['achieved', 'canceled', 'failed']);
+/** Ended by a person or by success: `GoalService.decide` refuses gates until a reopen. */
+const GOAL_ENDED_STATUSES = new Set<string>(['achieved', 'canceled']);
 
 export type FrontierItemKind = 'gate' | 'stale' | 'verifying' | 'running' | 'ready' | 'done';
 
@@ -327,6 +338,7 @@ export const buildGoalGraphView = (
   } = snapshot;
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const lease = leaseTimeoutMs(goal);
+  const goalClosed = CLOSED_GOAL_STATUSES.has(goal.status);
 
   const dependsOn = new Map<string, string[]>();
   const producesByTask = new Map<string, GoalGraphNode[]>();
@@ -396,7 +408,14 @@ export const buildGoalGraphView = (
     const attempts = buildAttempts(node, events);
     const closedReason = closedReasonOf(node, events);
     const open = attempts.at(-1);
-    const isRunningAttempt = node.status === 'active' && open?.outcome === 'running';
+    const halted = goalClosed && node.kind === 'task' && node.status === 'active';
+    const live = node.status === 'active' && !goalClosed;
+    // The goal ended under this attempt: it was interrupted, not still going.
+    if (halted && open?.outcome === 'running') {
+      open.endedAt = goal.updatedAt;
+      open.outcome = 'retired';
+    }
+    const isRunningAttempt = live && open?.outcome === 'running';
     // Liveness = the newer of the node row (moves on observations / status
     // changes) and the run operation's lease heartbeat (refreshed ~90s while
     // the agent works). Judging from the node row alone flags any long quiet
@@ -420,7 +439,7 @@ export const buildGoalGraphView = (
       acceptances?.[node.id]?.status === 'repairing';
     const isVerifying =
       node.kind === 'task' &&
-      node.status === 'active' &&
+      live &&
       (acceptanceVerifying || (!!delivered && now - delivered.getTime() <= VERIFY_SETTLE_GRACE_MS));
 
     return {
@@ -445,12 +464,9 @@ export const buildGoalGraphView = (
       gateSubjectId: gateSubject.get(node.id),
       heartbeatAt,
       humanTouches: nodeDecisions.filter((d) => d.status === 'resolved' && !!d.resolvedByUserId),
-      isStale:
-        node.kind === 'task' &&
-        node.status === 'active' &&
-        !isVerifying &&
-        now - heartbeatAt.getTime() > lease,
+      isStale: node.kind === 'task' && live && !isVerifying && now - heartbeatAt.getTime() > lease,
       isVerifying,
+      ...(halted ? { halted } : {}),
       node,
       producedBy: producedByFinding.get(node.id),
       seq: node.kind === 'experiment' ? ++experimentSeq : node.kind === 'task' ? ++seq : undefined,
@@ -466,11 +482,16 @@ export const buildGoalGraphView = (
   for (const view of views) {
     const { node } = view;
     if (node.kind === 'decision' && node.status === 'waiting' && view.decision) {
-      frontier.push({ key: node.id, kind: 'gate', rank: 0, view });
+      // An ended goal refuses answers until it is reopened, so its gates are
+      // not something the reader can act on.
+      if (!GOAL_ENDED_STATUSES.has(goal.status))
+        frontier.push({ key: node.id, kind: 'gate', rank: 0, view });
       continue;
     }
     if (node.kind !== 'task') continue;
     if (node.status === 'active') {
+      // Stopped by the goal ending: nothing can advance it until a reopen.
+      if (goalClosed) continue;
       frontier.push({
         key: node.id,
         kind: view.isStale ? 'stale' : view.isVerifying ? 'verifying' : 'running',
