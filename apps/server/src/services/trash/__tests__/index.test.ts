@@ -5,18 +5,22 @@ import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentModel } from '@/database/models/agent';
+import { DashboardModel } from '@/database/models/dashboard';
 import { MessageModel } from '@/database/models/message';
 import { SessionModel } from '@/database/models/session';
 import { TopicModel } from '@/database/models/topic';
 import { TrashModel } from '@/database/models/trash';
+import { WidgetModel } from '@/database/models/widget';
 import { HomeRepository } from '@/database/repositories/home';
 import {
   agents,
+  dashboards,
   messages,
   sessions,
   topics,
   trashItems,
   users,
+  widgets,
   workspaces,
 } from '@/database/schemas';
 import type { LobeChatDatabase } from '@/database/type';
@@ -587,6 +591,66 @@ describe('TrashService', () => {
       const [u2After] = await serverDB.select().from(messages).where(eq(messages.id, u2.id));
       expect(u2After.deletedAt).toBeNull();
       expect(u2After.parentId).toBe(a1.id);
+    });
+  });
+
+  describe('widgets', () => {
+    it('restores a trashed widget from the bin', async () => {
+      const widgetModel = new WidgetModel(serverDB, userId);
+      const widget = await widgetModel.create({ title: 'Open PRs' });
+      await widgetModel.trash(widget.id);
+
+      const { items } = await service.list();
+      expect(items.map((i) => [i.resourceType, i.resourceId])).toEqual([['widget', widget.id]]);
+
+      const outcome = await service.restore(items.map((i) => i.id));
+      expect(outcome.failed).toEqual([]);
+      expect(outcome.restored).toHaveLength(1);
+      expect(await widgetModel.findById(widget.id)).toMatchObject({
+        id: widget.id,
+        isDeleted: null,
+      });
+      expect(await serverDB.select().from(trashItems)).toHaveLength(0);
+    });
+
+    it('purges a trashed widget when the bin is emptied', async () => {
+      const widgetModel = new WidgetModel(serverDB, userId);
+      const widget = await widgetModel.create({ title: 'Open PRs' });
+      await widgetModel.trash(widget.id);
+
+      expect(await service.emptyTrash()).toEqual({ hasMore: false, purged: 1 });
+      expect(await serverDB.select().from(widgets)).toHaveLength(0);
+      expect(await serverDB.select().from(trashItems)).toHaveLength(0);
+    });
+  });
+
+  describe('dashboards', () => {
+    it('restores a trashed dashboard from the bin', async () => {
+      const dashboardModel = new DashboardModel(serverDB, userId);
+      const board = await dashboardModel.create({ title: 'Ops' });
+      await dashboardModel.trash(board.id);
+
+      const { items } = await service.list();
+      expect(items.map((i) => [i.resourceType, i.resourceId])).toEqual([['dashboard', board.id]]);
+
+      const outcome = await service.restore(items.map((i) => i.id));
+      expect(outcome.failed).toEqual([]);
+      expect(outcome.restored).toHaveLength(1);
+      expect(await dashboardModel.findById(board.id)).toMatchObject({
+        id: board.id,
+        isDeleted: null,
+      });
+      expect(await serverDB.select().from(trashItems)).toHaveLength(0);
+    });
+
+    it('purges a trashed dashboard when the bin is emptied', async () => {
+      const dashboardModel = new DashboardModel(serverDB, userId);
+      const board = await dashboardModel.create({ title: 'Ops' });
+      await dashboardModel.trash(board.id);
+
+      expect(await service.emptyTrash()).toEqual({ hasMore: false, purged: 1 });
+      expect(await serverDB.select().from(dashboards)).toHaveLength(0);
+      expect(await serverDB.select().from(trashItems)).toHaveLength(0);
     });
   });
 
