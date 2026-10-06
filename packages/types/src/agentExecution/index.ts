@@ -245,6 +245,52 @@ export interface ExecAgentLlmExecutor {
   providers: string[];
 }
 
+/**
+ * `ClientLlmExecutorUnavailable` reasons a client can still fix by showing up:
+ * the server parks the run in `waiting_for_client` for them instead of failing
+ * it (U4c), and owns what its assistant row shows.
+ */
+export const CLIENT_LLM_WAITABLE_REASONS: readonly string[] = [
+  'claim_timeout',
+  'no_executor',
+  'not_delivered',
+];
+
+/** Whether a (stream or persisted) error is one the server parks the run on. */
+export const isClientLlmWaitableError = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') return false;
+  const { body, type } = error as { body?: { reason?: unknown }; type?: unknown };
+  return (
+    type === 'ClientLlmExecutorUnavailable' &&
+    typeof body?.reason === 'string' &&
+    CLIENT_LLM_WAITABLE_REASONS.includes(body.reason)
+  );
+};
+
+/**
+ * A run parked in `waiting_for_client`: its next LLM call needs the user's
+ * device and no client took it. What a client needs to pick it up.
+ */
+export interface ClientLlmWaitItem {
+  agentId?: string;
+  /** Assistant row the resumed call fills. */
+  assistantMessageId?: string;
+  /** When the run stops waiting and ends with an error. */
+  expiresAt: string;
+  operationId: string;
+  /** The provider the client must be able to reach. */
+  provider: string;
+  threadId?: string;
+  topicId?: string;
+}
+
+/** What `resumeClientLlmWait` did; `resumed: false` once the run is no longer parked. */
+export interface ResumeClientLlmWaitResult {
+  assistantMessageId?: string;
+  resumed: boolean;
+  topicId?: string;
+}
+
 export interface ExecAgentParams {
   /** The agent ID to run (either agentId or slug is required) */
   agentId?: string;

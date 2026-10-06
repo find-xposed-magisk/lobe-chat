@@ -1,5 +1,5 @@
 import { AgentRuntimeError } from '@lobechat/model-runtime';
-import { AgentRuntimeErrorType } from '@lobechat/types';
+import { AgentRuntimeErrorType, CLIENT_LLM_WAITABLE_REASONS } from '@lobechat/types';
 
 /**
  * Errors of a relayed LLM attempt, shaped like every other provider error
@@ -13,8 +13,19 @@ export type ClientLlmUnavailableReason =
   | 'no_executor'
   /** An executor was asked, but no batch arrived within `claimMs`. */
   | 'claim_timeout'
+  /** The gateway delivered `llm_execute` to no connected client. */
+  | 'not_delivered'
   /** The deployment cannot relay (no Redis / gateway). */
-  | 'relay_unsupported';
+  | 'relay_unsupported'
+  /** The run waited for a client (`waiting_for_client`) and none came in time. */
+  | 'wait_timeout';
+
+/**
+ * Reasons a client can still fix by showing up: the run parks in
+ * `waiting_for_client` for them instead of failing (U4c). `relay_unsupported`
+ * is a deployment gap no client can close.
+ */
+const CLIENT_WAITABLE_REASONS = new Set<string>(CLIENT_LLM_WAITABLE_REASONS);
 
 export type ClientLlmTimeoutStage = 'first_chunk' | 'total';
 
@@ -29,9 +40,10 @@ export type ClientLlmLostReason =
 export const createClientLlmExecutorUnavailableError = (
   provider: string,
   reason: ClientLlmUnavailableReason,
+  extra?: Record<string, unknown>,
 ) =>
   AgentRuntimeError.chat({
-    error: { reason, recoverable: true },
+    error: { reason, recoverable: true, ...extra },
     errorType: AgentRuntimeErrorType.ClientLlmExecutorUnavailable,
     provider,
   });
@@ -65,6 +77,29 @@ export const isClientLlmRelayError = (error: unknown) => {
     errorType === AgentRuntimeErrorType.ClientLlmExecutorLost ||
     errorType === AgentRuntimeErrorType.ClientLlmTimeout
   );
+};
+
+/**
+ * The reason of an unavailable-executor error a client can still fix, read off
+ * either the thrown error or its persisted form (`formatErrorForState` keeps the
+ * detail under `body`). `undefined` for anything else.
+ */
+export const getClientLlmWaitableReason = (
+  error: unknown,
+): ClientLlmUnavailableReason | undefined => {
+  if (!error || typeof error !== 'object') return;
+  const { body, errorType, type } = error as {
+    body?: { reason?: unknown };
+    errorType?: unknown;
+    type?: unknown;
+  };
+  if (
+    errorType !== AgentRuntimeErrorType.ClientLlmExecutorUnavailable &&
+    type !== AgentRuntimeErrorType.ClientLlmExecutorUnavailable
+  )
+    return;
+  const reason = (getErrorDetail(error).reason ?? body?.reason) as ClientLlmUnavailableReason;
+  return CLIENT_WAITABLE_REASONS.has(reason) ? reason : undefined;
 };
 
 /**

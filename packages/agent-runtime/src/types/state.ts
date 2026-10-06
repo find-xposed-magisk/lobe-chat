@@ -29,7 +29,7 @@ import type {
   UserInterventionConfig,
 } from '@lobechat/types';
 
-import type { AgentInstructionRequestHumanApprove } from './instruction';
+import type { AgentInstructionRequestHumanApprove, AgentRuntimeContext } from './instruction';
 import type { Cost, CostLimit, Usage } from './usage';
 
 /**
@@ -198,6 +198,31 @@ export interface AgentRunHostEnvelope {
   queue?: { retries?: number; retryDelay?: string };
 }
 
+/**
+ * A run parked because the LLM call of its next step can only run on the
+ * user's device, and no client was there to take it (U4c). The step is
+ * replayed from `resume` once a client that can execute `provider` asks to
+ * continue; past `expiresAt` the run ends with an actionable error instead.
+ */
+export interface AgentRunClientLlmWait {
+  /** The step's assistant row; the resumed call fills it instead of a new one. */
+  assistantMessageId?: string;
+  /**
+   * The context the parked step ran with (minus per-step data), replayed on
+   * resume so the call is rebuilt exactly — some phases add prompt content the
+   * state does not hold. Absent on parks recorded before it existed.
+   */
+  context?: Pick<AgentRuntimeContext, 'initialContext' | 'metadata' | 'payload' | 'phase'>;
+  expiresAt: string;
+  /** Parent of the parked call's assistant row, for the replayed step. */
+  parentMessageId?: string;
+  /** Identifies this park, so a stale expiry check of an earlier one is a no-op. */
+  parkedAt: string;
+  provider: string;
+  /** Why nobody executed the call (`no_executor`, `claim_timeout`, `not_delivered`). */
+  reason: string;
+}
+
 /** A client's declaration that it can run relayed LLM attempts. */
 export interface AgentRunLlmExecutor {
   /** Relay protocol versions the client speaks, e.g. `llm_relay@1`. */
@@ -326,6 +351,11 @@ export interface AgentState {
    * Current calculated cost for this session.
    * Updated after each billable operation.
    */
+  /**
+   * Set while the run is parked in `waiting_for_client`: the step's LLM call
+   * needs the user's device and no client was there to run it.
+   */
+  clientLlmWait?: AgentRunClientLlmWait;
   cost: Cost;
   /**
    * Optional cost limits configuration.
@@ -498,6 +528,7 @@ export interface AgentState {
     | 'running'
     | 'waiting_for_human'
     | 'waiting_for_async_tool'
+    | 'waiting_for_client'
     | 'done'
     | 'error'
     | 'interrupted';

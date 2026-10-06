@@ -6,6 +6,7 @@ import {
   type ConnectionStatus,
   createOperationClient,
   type GatewayMuxClient,
+  isSessionTerminalEvent,
   type MuxOpLifecycleMessage,
   type OperationClient,
   type OperationClientOptions,
@@ -43,7 +44,7 @@ import {
   type ResumeToolResultParam,
 } from '@/services/aiAgent';
 import { gatewayConnectionService } from '@/services/electron/gatewayConnection';
-import { getLlmRelayClientId } from '@/services/llmRelay';
+import { getLlmExecutorDeclarationFor, getLlmRelayClientId } from '@/services/llmRelay';
 import { messageService } from '@/services/message';
 import { shareChatService } from '@/services/shareChat';
 import { topicService } from '@/services/topic';
@@ -323,6 +324,38 @@ const isSuccessfulGatewayCompletion = (params: {
 
 // ─── Action Implementation ───
 
+interface ReconnectToGatewayOperationParams {
+  /**
+   * Agent that owns the rendered conversation. Callers outside the agent route
+   * (task detail / home run drawer) MUST pass it: `activeAgentId` is whatever
+   * the last agent page left behind — `undefined` on the home surface — and the
+   * streamed messages would land in a `main_undefined_<topicId>` bucket nobody
+   * renders, leaving a connected-but-frozen panel.
+   */
+  agentId?: string;
+  /**
+   * Present on the agent-share visitor surface. Routes the token refresh and
+   * cancellation through the share-authorized `shareChat` procedures instead
+   * of the owner-scoped ones: a visitor has no owner-scoped access to the
+   * creator's topic/operation rows, and the Gateway channel is registered
+   * under the VISITOR's id, so only a visitor-signed token can reconnect it
+   * — see `shareChat.refreshGatewayToken`'s JSDoc.
+   */
+  agentShareId?: string;
+  assistantMessageId: string;
+  heteroType?: string | null;
+  operationId: string;
+  scope?: string;
+  /**
+   * Server-written ISO timestamp of when the run claimed the topic — carried
+   * on the topic's `runningOperation` marker so elapsed-time anchors survive
+   * a page refresh even when the messages list hasn't loaded yet.
+   */
+  startedAt?: string;
+  threadId?: string | null;
+  topicId: string;
+}
+
 export class GatewayActionImpl {
   readonly #get: () => ChatStore;
   readonly #set: Setter;
@@ -357,6 +390,9 @@ export class GatewayActionImpl {
    * only the failing one's operations move.
    */
   readonly #muxFallbacks = new Map<string, { mux: GatewayMuxClient; redial: () => void }>();
+
+  /** Reconnects still being established, by server operation id. */
+  readonly #reconnectsInFlight = new Map<string, Promise<void>>();
 
   constructor(set: Setter, get: () => ChatStore, _api?: unknown) {
     void _api;
@@ -580,7 +616,9 @@ export class GatewayActionImpl {
     // treat as this op's to preserve prior behavior).
     client.on('agent_event', (event) => {
       const isOwnOp = !event.operationId || event.operationId === operationId;
-      if (isOwnOp && (event.type === 'agent_runtime_end' || event.type === 'error')) {
+      // Same rule the transport ends the session by: a parked LLM call's error
+      // is not the run's end.
+      if (isOwnOp && isSessionTerminalEvent(event)) {
         receivedTerminalEvent = true;
       }
       // Only a clean completion counts as success — a cancel ('interrupted') or
@@ -1520,41 +1558,85 @@ export class GatewayActionImpl {
   };
 
   /**
+   * Pick up a run parked in `waiting_for_client` on this client: its next LLM
+   * call needs a provider only the user's device can reach, and no client was
+   * there to run it. The replayed call is delivered only to clients subscribed
+   * to the run's stream, so subscribe first (unless this tab already is), then
+   * ask the server to continue with this client as the executor.
+   *
+   * Resolves `false` when this client cannot run the provider or the run is no
+   * longer parked (another client already took it, it expired or was stopped).
+   */
+  continueClientLlmWait = async (params: {
+    agentId?: string;
+    assistantMessageId?: string;
+    operationId: string;
+    provider: string;
+    threadId?: string | null;
+    topicId?: string;
+  }): Promise<boolean> => {
+    const { agentId, assistantMessageId, operationId, provider, threadId, topicId } = params;
+    const llmExecutor = getLlmExecutorDeclarationFor(provider);
+    if (!llmExecutor) return false;
+
+    const isConnected = () => {
+      const status = this.#get().gatewayConnections[operationId]?.status;
+      return !!status && status !== 'disconnected';
+    };
+    if (!isConnected() && assistantMessageId && topicId) {
+      await this.reconnectToGatewayOperation({
+        agentId,
+        assistantMessageId,
+        operationId,
+        threadId,
+        topicId,
+      });
+    }
+    // A socket still handshaking when the call goes out is not counted as a
+    // recipient: claiming the wait then only re-parks the run. Leave it parked
+    // for a later attempt (or another client) instead.
+    const connected = await waitForGatewayConnected(
+      () => this.#get().gatewayConnections[operationId]?.status,
+    );
+    if (!connected) return false;
+
+    const { resumed } = await aiAgentService.resumeClientLlmWait({ llmExecutor, operationId });
+    // Whichever caller won (the conversation's card or the app-level pick-up),
+    // drop the waiting notice locally: the resumed step streams into this row
+    // and the server already cleared it.
+    if (resumed && assistantMessageId && agentId && topicId) {
+      this.#get().internal_dispatchMessage(
+        { id: assistantMessageId, type: 'updateMessage', value: { error: null } },
+        { conversationContext: { agentId, threadId, topicId } },
+      );
+    }
+    return resumed;
+  };
+
+  /**
    * Reconnect to an existing Gateway operation after page reload.
    * Reads runningOperation from topic metadata, refreshes the JWT token,
    * and establishes a new WebSocket connection with event replay.
    */
-  reconnectToGatewayOperation = async (params: {
-    /**
-     * Agent that owns the rendered conversation. Callers outside the agent route
-     * (task detail / home run drawer) MUST pass it: `activeAgentId` is whatever
-     * the last agent page left behind — `undefined` on the home surface — and the
-     * streamed messages would land in a `main_undefined_<topicId>` bucket nobody
-     * renders, leaving a connected-but-frozen panel.
-     */
-    agentId?: string;
-    /**
-     * Present on the agent-share visitor surface. Routes the token refresh and
-     * cancellation through the share-authorized `shareChat` procedures instead
-     * of the owner-scoped ones: a visitor has no owner-scoped access to the
-     * creator's topic/operation rows, and the Gateway channel is registered
-     * under the VISITOR's id, so only a visitor-signed token can reconnect it
-     * — see `shareChat.refreshGatewayToken`'s JSDoc.
-     */
-    agentShareId?: string;
-    assistantMessageId: string;
-    heteroType?: string | null;
-    operationId: string;
-    scope?: string;
-    /**
-     * Server-written ISO timestamp of when the run claimed the topic — carried
-     * on the topic's `runningOperation` marker so elapsed-time anchors survive
-     * a page refresh even when the messages list hasn't loaded yet.
-     */
-    startedAt?: string;
-    threadId?: string | null;
-    topicId: string;
-  }): Promise<void> => {
+  reconnectToGatewayOperation = (params: ReconnectToGatewayOperationParams): Promise<void> => {
+    // Several surfaces ask for the same run's stream at once (the topic's own
+    // reconnect, a `waiting_for_client` card, the app-level wait pick-up). The
+    // connection guard below only sees a connection once the token refresh is
+    // done, so concurrent callers would each start a local operation and only
+    // the last connection would ever see the run end. Share one attempt.
+    const inFlight = this.#reconnectsInFlight.get(params.operationId);
+    if (inFlight) return inFlight;
+
+    const attempt = this.#reconnectToGatewayOperation(params).finally(() => {
+      this.#reconnectsInFlight.delete(params.operationId);
+    });
+    this.#reconnectsInFlight.set(params.operationId, attempt);
+    return attempt;
+  };
+
+  #reconnectToGatewayOperation = async (
+    params: ReconnectToGatewayOperationParams,
+  ): Promise<void> => {
     const { agentShareId, assistantMessageId, heteroType, operationId, topicId, scope, threadId } =
       params;
 
@@ -2084,3 +2166,16 @@ export class GatewayActionImpl {
 }
 
 export type GatewayAction = Pick<GatewayActionImpl, keyof GatewayActionImpl>;
+
+const GATEWAY_CONNECT_WAIT_MS = 5000;
+
+/** Resolve once the connection reads `connected`, or after a bounded wait. */
+const waitForGatewayConnected = async (
+  readStatus: () => ConnectionStatus | undefined,
+): Promise<boolean> => {
+  const deadline = Date.now() + GATEWAY_CONNECT_WAIT_MS;
+  while (readStatus() !== 'connected' && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return readStatus() === 'connected';
+};
