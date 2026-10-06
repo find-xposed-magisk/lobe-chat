@@ -1145,6 +1145,7 @@
   "heteroAgent.cliModel.targetUnavailable": "目标设备不可用。",
   "heteroAgent.cliModel.timeout": "模型发现超时。",
   "heteroAgent.cliModel.unsupportedClient": "请更新目标设备客户端以发现 CLI 模型。",
+  "heteroAgent.cliModel.unsupportedConfiguration": "当前 CLI 配置不支持动态获取模型，仍可使用当前模型。",
   "heteroAgent.cloudNotConfigured.action": "立即配置",
   "heteroAgent.cloudNotConfigured.desc": "请在 Agent 资料中配置 Claude Code Token，以开始发送消息。",
   "heteroAgent.cloudNotConfigured.title": "需要配置云端凭证",
