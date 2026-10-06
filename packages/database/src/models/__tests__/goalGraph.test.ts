@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { getTestDB } from '../../core/getTestDB';
-import { agents, goalNodes, goals, topics, users, workspaces } from '../../schemas';
+import { agents, goalNodes, goals, tasks, topics, users, workspaces } from '../../schemas';
 import type { LobeChatDatabase } from '../../type';
 import { GoalModel } from '../goal';
 import { GoalGraphModel } from '../goalGraph';
@@ -176,6 +176,71 @@ describe('GoalGraphModel', () => {
     expect(bindings.filter(Boolean)).toHaveLength(1);
     expect(graph?.nodes[0].taskId).toBe(bindings.find(Boolean)!.taskId);
     expect(graph?.events.filter((event) => event.entityType === 'task')).toHaveLength(1);
+  });
+
+  it('finds the goal a task belongs to, as a node task, the carrier, or via an ancestor', async () => {
+    const taskModel = new TaskModel(serverDB, userId);
+    const [nodeTask, carrierTask, looseTask] = await Promise.all([
+      taskModel.create({ instruction: 'Node task' }),
+      taskModel.create({ instruction: 'Carrier task' }),
+      taskModel.create({ instruction: 'Loose task' }),
+    ]);
+    const goal = await goalModel.create({ subjectType: 'standalone', title: 'Owning goal' });
+    const node = await graphModel.createNode(goal.id, { kind: 'task', title: 'Do it' });
+    await graphModel.claimTaskNode(goal.id, node!.id, new Date(0));
+    await graphModel.bindTask(goal.id, node!.id, nodeTask.id);
+    const carrierGoal = await goalModel.create({
+      subjectId: carrierTask.id,
+      subjectType: 'task',
+      title: 'Carrier goal',
+    });
+
+    const child = await taskModel.create({ instruction: 'Child', parentTaskId: nodeTask.id });
+    const grandchild = await taskModel.create({
+      instruction: 'Grandchild',
+      parentTaskId: child.id,
+    });
+
+    expect(await graphModel.findGoalByTaskId(nodeTask.id)).toEqual({
+      id: goal.id,
+      title: 'Owning goal',
+    });
+    // Subtasks a goal task spawns belong to the same goal.
+    expect((await graphModel.findGoalByTaskId(grandchild.id))?.id).toBe(goal.id);
+    expect((await graphModel.findGoalByTaskId(carrierTask.id))?.id).toBe(carrierGoal.id);
+    // The nearest goal wins: a subtask carrying its own goal links to that one.
+    const nested = await taskModel.create({ instruction: 'Nested', parentTaskId: nodeTask.id });
+    const nestedGoal = await goalModel.create({
+      subjectId: nested.id,
+      subjectType: 'task',
+      title: 'Nested goal',
+    });
+    expect((await graphModel.findGoalByTaskId(nested.id))?.id).toBe(nestedGoal.id);
+    expect(await graphModel.findGoalByTaskId(looseTask.id)).toBeUndefined();
+    expect(
+      await new GoalGraphModel(serverDB, otherUserId).findGoalByTaskId(nodeTask.id),
+    ).toBeUndefined();
+  });
+
+  it('finds the goal through a task chain deeper than 32 levels and stops on a cycle', async () => {
+    const taskModel = new TaskModel(serverDB, userId);
+    const root = await taskModel.create({ instruction: 'Root' });
+    const goal = await goalModel.create({
+      subjectId: root.id,
+      subjectType: 'task',
+      title: 'Deep goal',
+    });
+    let leaf = root;
+    for (let i = 0; i < 40; i++) {
+      leaf = await taskModel.create({ instruction: `Level ${i}`, parentTaskId: leaf.id });
+    }
+    expect((await graphModel.findGoalByTaskId(leaf.id))?.id).toBe(goal.id);
+
+    // A corrupt cycle (a -> b -> a) must terminate instead of recursing forever.
+    const a = await taskModel.create({ instruction: 'Cycle A' });
+    const b = await taskModel.create({ instruction: 'Cycle B', parentTaskId: a.id });
+    await serverDB.update(tasks).set({ parentTaskId: b.id }).where(eq(tasks.id, a.id));
+    expect(await graphModel.findGoalByTaskId(b.id)).toBeUndefined();
   });
 
   it('refuses to bind a task to a node retired while the task was being created', async () => {

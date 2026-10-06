@@ -30,6 +30,15 @@ vi.mock('@/database/models/task', () => ({
   }),
 }));
 
+const { findGoalByTaskId } = vi.hoisted(() => ({
+  findGoalByTaskId: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('@/database/models/goalGraph', () => ({
+  GoalGraphModel: vi.fn().mockImplementation(function () {
+    return { findGoalByTaskId };
+  }),
+}));
+
 vi.mock('@/database/models/taskTopic', () => ({
   TaskTopicModel: vi.fn(),
 }));
@@ -259,6 +268,12 @@ describe('TaskService', () => {
       expect(result?.activities).toBeUndefined();
       expect(result?.workspace).toBeUndefined();
       expect(result?.parent).toBeNull();
+      expect(result?.goal).toBeNull();
+      expect(findGoalByTaskId).toHaveBeenCalledWith('task_001');
+
+      findGoalByTaskId.mockResolvedValueOnce({ id: 'goal_1', title: 'G' });
+      const withGoal = await service.getTaskDetail('TASK-1');
+      expect(withGoal?.goal).toEqual({ id: 'goal_1', title: 'G' });
     });
 
     it('surfaces the effective inherited Acceptance policy', async () => {

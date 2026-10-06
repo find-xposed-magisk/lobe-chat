@@ -20,6 +20,7 @@ import type {
 import { TRPCError } from '@trpc/server';
 
 import { AgentModel } from '@/database/models/agent';
+import { GoalGraphModel } from '@/database/models/goalGraph';
 import { ProjectModel } from '@/database/models/project';
 import { RbacModel } from '@/database/models/rbac';
 import {
@@ -982,6 +983,7 @@ export class TaskService {
       activityLogs,
       workspace,
       acceptance,
+      goal,
     ] = await Promise.all([
       this.taskModel.findAllDescendants(task.id),
       this.taskModel.getDependencies(task.id),
@@ -990,6 +992,10 @@ export class TaskService {
       this.taskModel.getActivities(task.id, TASK_DETAIL_ACTIVITY_LIMIT).catch(() => []),
       this.taskModel.getTreePinnedDocuments(task.id).catch(() => emptyWorkspace),
       resolveTaskAcceptance(this.db, this.userId, task.id, this.workspaceId).catch(() => undefined),
+      // The goal this task belongs to, so the page can link back to it
+      new GoalGraphModel(this.db, this.userId, this.workspaceId)
+        .findGoalByTaskId(task.id)
+        .catch(() => undefined),
     ]);
 
     // What the reader is shown, not what was written: a burst of edits to one
@@ -1378,6 +1384,7 @@ export class TaskService {
       description: task.description,
       editorData: task.editorData ?? undefined,
       error: task.error,
+      goal: goal ?? null,
       files: taskFiles.length > 0 ? taskFiles : undefined,
       heartbeat:
         task.heartbeatInterval || task.heartbeatTimeout || task.lastHeartbeatAt
