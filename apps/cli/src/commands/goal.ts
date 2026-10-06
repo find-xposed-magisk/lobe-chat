@@ -7,7 +7,7 @@ import type {
   GoalNodeKind,
   GoalTickResult,
 } from '@lobechat/types';
-import type { Command } from 'commander';
+import { type Command, Option } from 'commander';
 import pc from 'picocolors';
 
 import { getTrpcClient } from '../api/client';
@@ -335,9 +335,11 @@ export function registerGoalCommand(program: Command) {
       'Reclaim a Task operation after this idle time (minimum: 60000)',
     )
     .option(
-      '--conversation',
-      "Link the goal to the current conversation. Use it whenever you create a goal for the user from a chat, not only for /goal: without it the goal is standalone and never shows on this conversation's goal tray. This agent supervises the goal from this conversation; the output carries a turnToken, so submit the first plan with `lh goal plan <id> --token <turnToken> --file <plan.json>`",
+      '--topic',
+      "Link the goal to the current topic. Use it whenever you create a goal for the user from a chat, not only for /goal: without it the goal is standalone and never shows on this topic's goal tray. This agent supervises the goal from this topic; the output carries a turnToken, so submit the first plan with `lh goal plan <id> --token <turnToken> --file <plan.json>`",
     )
+    // Former name of --topic, kept so existing prompts and scripts keep working.
+    .addOption(new Option('--conversation').hideHelp())
     .option('--criterion <text...>', 'Acceptance criterion (repeatable)')
     .option('--json [fields]', 'Output JSON')
     .action(async (title: string, options) => {
@@ -345,10 +347,9 @@ export function registerGoalCommand(program: Command) {
         throw new Error('--max-experiments requires --explore');
       }
       const operationId = process.env.LOBEHUB_OPERATION_ID;
-      if (options.conversation && !operationId) {
-        throw new Error(
-          '--conversation must run inside an agent conversation (LOBEHUB_OPERATION_ID)',
-        );
+      const fromTopic = Boolean(options.topic || options.conversation);
+      if (fromTopic && !operationId) {
+        throw new Error('--topic must run inside an agent topic (LOBEHUB_OPERATION_ID)');
       }
       const client = await getTrpcClient();
       const buildUrl = await resolveAppUrlBuilder(client);
@@ -400,12 +401,12 @@ export function registerGoalCommand(program: Command) {
         title,
         tasks: options.task,
       };
-      // A conversation goal takes its agent and conversation from the running
+      // A topic goal takes its agent and topic from the running
       // operation on the server; the CLI only names the run. Device and gateway
       // runs hold an operation token, which only the operation endpoint accepts.
       // A local desktop run keeps its operation client-side, so it also names
-      // its conversation and agent for the server to check.
-      const result = options.conversation
+      // its topic and agent for the server to check.
+      const result = fromTopic
         ? hasOperationToken()
           ? await client.goal.createConversationGoal.mutate({
               ...goalInput,
@@ -711,6 +712,61 @@ export function registerGoalCommand(program: Command) {
       });
       log.info(result.message);
     });
+
+  goal
+    .command('bind-topic <id>')
+    .description(
+      'Attach an existing goal to the current topic run: this agent supervises it from this topic, as if it had been created here with create --topic',
+    )
+    .option('--force', 'Move a goal that is already bound to another topic or task')
+    .option(
+      '--goal-only',
+      'When the goal agent changes, leave existing tasks with their current agent',
+    )
+    .option('--json [fields]', 'Output JSON')
+    .action(
+      async (
+        id: string,
+        options: { force?: boolean; goalOnly?: boolean; json?: boolean | string },
+      ) => {
+        const operationId = process.env.LOBEHUB_OPERATION_ID;
+        if (!operationId)
+          throw new Error('bind-topic must run inside an agent topic (LOBEHUB_OPERATION_ID)');
+        const client = await getTrpcClient();
+        const buildUrl = await resolveAppUrlBuilder(client);
+        const input = { force: options.force, goalOnly: options.goalOnly, id, operationId };
+        // Same split as `create --topic`: the server takes the agent and
+        // topic from the run; a local desktop run, whose operation lives
+        // only on the client, also names them for the server to check.
+        const result = hasOperationToken()
+          ? await client.goal.bindOperationTopic.mutate(input)
+          : await client.goal.bindTopic.mutate({
+              ...input,
+              agentId: process.env.LOBEHUB_AGENT_ID,
+              topicId: process.env.LOBEHUB_TOPIC_ID,
+            });
+        const turnToken = result.turnToken;
+        const url = buildUrl(`/goal/${encodeURIComponent(result.data!.goal.id)}`);
+        if (options.json !== undefined)
+          return outputJson(
+            {
+              ...result.data,
+              previousSubject: result.previousSubject,
+              reassignedTaskIds: result.reassignedTaskIds,
+              turnToken,
+              url,
+            },
+            options.json,
+          );
+        log.info(result.message);
+        console.log(`${pc.bold('goal')}: ${url}`);
+        if (turnToken) {
+          console.log(
+            `${pc.bold('planning turn')}: lh goal plan ${result.data!.goal.id} --token ${turnToken} --file <plan.json>`,
+          );
+        }
+      },
+    );
 
   goal
     .command('restart <id>')

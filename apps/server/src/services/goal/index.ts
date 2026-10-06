@@ -262,37 +262,11 @@ export class GoalService {
      */
     localRun?: { agentId: string; topicId: string },
   ): Promise<{ graph: GoalGraphSnapshot; turnToken: string }> => {
-    const operation = await new AgentOperationModel(
-      this.db,
-      this.userId,
-      this.workspaceId,
-    ).findOwnOperationById(operationId);
-    let agentId: string;
-    let topicId: string;
-    if (operation) {
-      if (operation.status !== 'running')
-        throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'The conversation run has already ended',
-        });
-      if (!operation.agentId || !operation.topicId)
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Only a conversation run with an agent can create a goal it supervises',
-        });
-      agentId = operation.agentId;
-      topicId = operation.topicId;
-    } else {
-      const topic = localRun
-        ? await new TopicModel(this.db, this.userId, this.workspaceId).findOwnTopicById(
-            localRun.topicId,
-          )
-        : undefined;
-      if (!localRun || !topic || topic.agentId !== localRun.agentId)
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Conversation run not found' });
-      agentId = localRun.agentId;
-      topicId = topic.id;
-    }
+    const { agentId, topicId } = await this.resolveTopicRun(
+      operationId,
+      localRun,
+      'Only a run in a topic with an agent can create a goal it supervises',
+    );
 
     const created = await this.create({
       ...input,
@@ -314,6 +288,107 @@ export class GoalService {
       await this.goalModel.delete(created.goal.id).catch(() => {});
       throw error;
     }
+  };
+
+  /**
+   * The agent and topic of the run with this id, taken from the server's
+   * operation row; never from the caller while that row exists. A local desktop
+   * run has no row, so its env-provided topic and agent are accepted only when
+   * the topic is the caller's and belongs to that agent.
+   */
+  private resolveTopicRun = async (
+    operationId: string,
+    localRun: { agentId: string; topicId: string } | undefined,
+    noAgentMessage: string,
+  ): Promise<{ agentId: string; topicId: string }> => {
+    const operation = await new AgentOperationModel(
+      this.db,
+      this.userId,
+      this.workspaceId,
+    ).findOwnOperationById(operationId);
+    if (operation) {
+      if (operation.status !== 'running')
+        throw new TRPCError({
+          code: 'CONFLICT',
+          message: 'The conversation run has already ended',
+        });
+      if (!operation.agentId || !operation.topicId)
+        throw new TRPCError({ code: 'BAD_REQUEST', message: noAgentMessage });
+      return { agentId: operation.agentId, topicId: operation.topicId };
+    }
+    const topic = localRun
+      ? await new TopicModel(this.db, this.userId, this.workspaceId).findOwnTopicById(
+          localRun.topicId,
+        )
+      : undefined;
+    if (!localRun || !topic || topic.agentId !== localRun.agentId)
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Run not found' });
+    return { agentId: localRun.agentId, topicId: topic.id };
+  };
+
+  /**
+   * Attach an existing goal to the topic of the run with this id, so it
+   * is supervised from there exactly as if it had been created there with
+   * `/goal`: the topic's agent becomes the goal agent, the topic
+   * becomes its `topic` subject and management topic. Graph, Tasks,
+   * budgets and status are kept. A change of goal agent moves unfinished Tasks
+   * the way `setAgent` does (unless `goalOnly`, or the goal has a dedicated
+   * executor). Returns a `turnToken` when the binding run was adopted as a
+   * planning turn.
+   */
+  bindTopic = async (
+    goalId: string,
+    operationId: string,
+    options?: {
+      force?: boolean;
+      goalOnly?: boolean;
+      /** A local desktop run's topic; see `resolveTopicRun`. */
+      localRun?: { agentId: string; topicId: string };
+    },
+  ) => {
+    const { agentId, topicId } = await this.resolveTopicRun(
+      operationId,
+      options?.localRun,
+      'Only a run in a topic with an agent can supervise a goal',
+    );
+    // A run row names its topic, but the topic must still be the caller's and
+    // the run's agent's: the binding makes that agent plan into it.
+    const topic = await new TopicModel(this.db, this.userId, this.workspaceId).findOwnTopicById(
+      topicId,
+    );
+    if (!topic || topic.agentId !== agentId)
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Topic not found' });
+    await assertAgentUsableBy(this.db, agentId, {
+      userId: this.userId,
+      workspaceId: this.workspaceId,
+    });
+
+    // One transaction: the agent change and the Task moves it implies commit
+    // together. Committed apart, a failed move left the goal already on the new
+    // agent, and the retry — seeing no agent change — never moved the Tasks.
+    const { bound, reassignedTaskIds } = await this.db.transaction(async (tx) => {
+      const bound = await new GoalManagerService(tx, this.userId, this.workspaceId).bindTopic(
+        goalId,
+        { agentId, operationId, topicId },
+        { force: options?.force },
+      );
+      const reassignedTaskIds =
+        bound.previousAgentId === agentId
+          ? []
+          : await new GoalService(tx, this.userId, this.workspaceId).followGoalAgent(
+              bound.goal,
+              agentId,
+              options?.goalOnly,
+            );
+      return { bound, reassignedTaskIds };
+    });
+    return {
+      graph: await this.requireGraph(goalId),
+      previousSubject: bound.previousSubject,
+      reassignedTaskIds,
+      topicId,
+      turnToken: bound.turnToken,
+    };
   };
 
   create = async (input: CreateGoalGraphInput): Promise<GoalGraphSnapshot> => {
@@ -1211,15 +1286,23 @@ export class GoalService {
       this.workspaceId,
     ).moveConversationTo(goalId, agentId);
 
-    const reassignedTaskIds =
-      options?.goalOnly || goal.config?.taskAgentId
-        ? []
-        : await this.reassignUnfinishedTasks(goalId, agentId);
+    const reassignedTaskIds = await this.followGoalAgent(goal, agentId, options?.goalOnly);
     return {
       goal: migrated ? ((await this.goalModel.findById(goalId)) ?? goal) : goal,
       reassignedTaskIds,
     };
   };
+
+  /**
+   * After the goal agent changed: when that agent also does the goal's Tasks,
+   * unfinished ones follow it unless the caller keeps them (`goalOnly`). A goal
+   * with a dedicated executor keeps its Tasks there.
+   */
+  private followGoalAgent = async (
+    goal: Pick<GoalItem, 'config' | 'id'>,
+    agentId: string,
+    goalOnly?: boolean,
+  ) => (goalOnly || goal.config?.taskAgentId ? [] : this.reassignUnfinishedTasks(goal.id, agentId));
 
   /**
    * Route the goal's Tasks to a dedicated executor, or back to the goal agent

@@ -10,6 +10,8 @@ const { mockClient } = vi.hoisted(() => ({
   mockClient: {
     goal: {
       wake: { mutate: vi.fn() },
+      bindTopic: { mutate: vi.fn() },
+      bindOperationTopic: { mutate: vi.fn() },
       create: { mutate: vi.fn() },
       delete: { mutate: vi.fn() },
       submitPlan: { mutate: vi.fn() },
@@ -518,6 +520,44 @@ describe('goal create command', () => {
     expect(output).not.toContain('/goal/undefined');
   });
 
+  it.each(['--topic', '--conversation'])(
+    'creates the goal from the current topic run with %s',
+    async (flag) => {
+      vi.stubEnv('LOBEHUB_JWT', undefined);
+      vi.stubEnv('LOBEHUB_OPERATION_ID', 'op-1');
+      vi.stubEnv('LOBEHUB_TOPIC_ID', 'tpc-1');
+      vi.stubEnv('LOBEHUB_AGENT_ID', 'agent-1');
+      mockClient.goal.create.mutate.mockResolvedValue({ data: { goal: { id: 'goal-1' } } });
+
+      await createProgram().parseAsync([
+        'node',
+        'test',
+        'goal',
+        'create',
+        'Topic goal',
+        flag,
+        '--json',
+      ]);
+
+      expect(mockClient.goal.create.mutate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agentId: 'agent-1',
+          conversationOperationId: 'op-1',
+          conversationTopicId: 'tpc-1',
+        }),
+      );
+    },
+  );
+
+  it('refuses --topic outside an agent topic run', async () => {
+    vi.stubEnv('LOBEHUB_OPERATION_ID', undefined);
+
+    await expect(
+      createProgram().parseAsync(['node', 'test', 'goal', 'create', 'Topic goal', '--topic']),
+    ).rejects.toThrow('--topic must run inside an agent topic');
+    expect(mockClient.goal.create.mutate).not.toHaveBeenCalled();
+  });
+
   it('sends task seeds and the per-Task attempt budget with the primary flags', async () => {
     mockClient.goal.create.mutate.mockResolvedValue({
       data: {
@@ -578,6 +618,104 @@ describe('goal create command', () => {
         config: expect.objectContaining({ supervision: { enabled: true } }),
       }),
     );
+  });
+});
+
+describe('goal bind-topic command', () => {
+  const operationJwt = `header.${Buffer.from(JSON.stringify({ purpose: 'hetero-operation' })).toString('base64url')}.signature`;
+  const bound = (turnToken?: string) => ({
+    data: { goal: { id: 'goal-1', subjectId: 'tpc-1', subjectType: 'topic' } },
+    message: 'Goal bound to topic tpc-1',
+    previousSubject: { id: null, type: 'standalone' },
+    reassignedTaskIds: [],
+    success: true,
+    turnToken,
+  });
+  const output = () =>
+    vi
+      .mocked(console.log)
+      .mock.calls.map(([value]) => String(value))
+      .join('\n');
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(log, 'info').mockImplementation(() => {});
+    vi.stubEnv('LOBEHUB_OPERATION_ID', 'op-1');
+    vi.stubEnv('LOBEHUB_TOPIC_ID', 'tpc-1');
+    vi.stubEnv('LOBEHUB_AGENT_ID', 'agent-1');
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.mocked(console.log).mockRestore();
+  });
+
+  it('names the run, topic and agent on a desktop run signed in as the user', async () => {
+    vi.stubEnv('LOBEHUB_JWT', undefined);
+    mockClient.goal.bindTopic.mutate.mockResolvedValue(bound());
+
+    await createProgram().parseAsync(['node', 'test', 'goal', 'bind-topic', 'goal-1']);
+
+    expect(mockClient.goal.bindTopic.mutate).toHaveBeenCalledWith({
+      agentId: 'agent-1',
+      force: undefined,
+      goalOnly: undefined,
+      id: 'goal-1',
+      operationId: 'op-1',
+      topicId: 'tpc-1',
+    });
+    expect(mockClient.goal.bindOperationTopic.mutate).not.toHaveBeenCalled();
+    expect(output()).not.toContain('planning turn');
+  });
+
+  it('sends only the operation on a device run, never a client-named topic', async () => {
+    vi.stubEnv('LOBEHUB_JWT', operationJwt);
+    mockClient.goal.bindOperationTopic.mutate.mockResolvedValue(bound('turn-1'));
+
+    await createProgram().parseAsync([
+      'node',
+      'test',
+      'goal',
+      'bind-topic',
+      'goal-1',
+      '--force',
+      '--goal-only',
+    ]);
+
+    expect(mockClient.goal.bindOperationTopic.mutate).toHaveBeenCalledWith({
+      force: true,
+      goalOnly: true,
+      id: 'goal-1',
+      operationId: 'op-1',
+    });
+    expect(mockClient.goal.bindTopic.mutate).not.toHaveBeenCalled();
+    expect(output()).toContain('lh goal plan goal-1 --token turn-1 --file <plan.json>');
+    expect(output()).toContain('https://app.lobehub.com/goal/goal-1');
+  });
+
+  it('prints the turn token and subject in JSON output', async () => {
+    vi.stubEnv('LOBEHUB_JWT', undefined);
+    mockClient.goal.bindTopic.mutate.mockResolvedValue(bound('turn-1'));
+
+    await createProgram().parseAsync(['node', 'test', 'goal', 'bind-topic', 'goal-1', '--json']);
+
+    const json = JSON.parse(output());
+    expect(json).toMatchObject({
+      goal: { subjectId: 'tpc-1', subjectType: 'topic' },
+      previousSubject: { type: 'standalone' },
+      turnToken: 'turn-1',
+      url: 'https://app.lobehub.com/goal/goal-1',
+    });
+  });
+
+  it('refuses to run outside an agent topic', async () => {
+    vi.stubEnv('LOBEHUB_OPERATION_ID', undefined);
+
+    await expect(
+      createProgram().parseAsync(['node', 'test', 'goal', 'bind-topic', 'goal-1']),
+    ).rejects.toThrow(/LOBEHUB_OPERATION_ID/);
+    expect(mockClient.goal.bindTopic.mutate).not.toHaveBeenCalled();
+    expect(mockClient.goal.bindOperationTopic.mutate).not.toHaveBeenCalled();
   });
 });
 
