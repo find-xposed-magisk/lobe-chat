@@ -360,6 +360,12 @@ export class GoalModel {
           // A graph-less legacy goal has no frontier, so every sweep would
           // tick it only to report `no_progress`. Leave it alone.
           GoalModel.hasGraphSql,
+          // Quiet future waits must not crowd stranded Goals out of the scan.
+          // Unsettled owners still need recovery, even after submitting wait.
+          sql`(COALESCE(${goals.config} #>> '{managerState,consumed}', 'false') <> 'true'
+            OR COALESCE(${goals.config} #>> '{managerState,wait,until}', '') = ''
+            OR COALESCE(${goals.config} #>> '{managerState,wait,wake,at}', '') <> ''
+            OR (${goals.config} #>> '{managerState,wait,until}')::timestamptz <= NOW())`,
           sql`NOT EXISTS (
             SELECT 1 FROM ${goalNodes}
             WHERE ${goalNodes.goalId} = ${goals.id}
