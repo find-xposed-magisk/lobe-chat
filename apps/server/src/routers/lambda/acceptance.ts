@@ -20,6 +20,7 @@ import {
 import { AcceptanceFlowModel } from '@/database/models/acceptanceFlow';
 import { AgentOperationModel } from '@/database/models/agentOperation';
 import { ProjectModel } from '@/database/models/project';
+import { ScmChangeRequestModel } from '@/database/models/scm';
 import { VerifyReviewPredictionModel } from '@/database/models/verifyReviewPrediction';
 import { VerifyRunModel } from '@/database/models/verifyRun';
 import { WorkspaceMemberModel } from '@/database/models/workspaceMember';
@@ -31,6 +32,7 @@ import { isUuid } from '@/database/utils/uuid';
 import { publicProcedure, router } from '@/libs/trpc/lambda';
 import { serverDatabase } from '@/libs/trpc/lambda/middleware';
 import { FileService } from '@/server/services/file';
+import { parseChangeRequestUrl } from '@/server/services/scm/changeRequestUrl';
 import {
   AcceptanceService,
   buildAcceptanceCheckUnion,
@@ -45,6 +47,12 @@ import {
   shouldSurfaceProposal,
   VerifyReviewPredictorService,
 } from '@/server/services/verify';
+import {
+  addPullRequestLink,
+  listAcceptancePullRequests,
+  removePullRequestLink,
+  updateAcceptancePullRequests,
+} from '@/server/services/verify/acceptancePullRequests';
 import { after } from '@/server/utils/scheduleAfterResponse';
 
 import {
@@ -425,6 +433,58 @@ export const acceptanceRouter = router({
       }
     }),
 
+  /**
+   * Record that a pull request delivers this acceptance. The link lives on the
+   * acceptance, not on a round: the pull request usually opens after the
+   * rounds that verified it, and stacked pull requests share one acceptance.
+   *
+   * Stored on the acceptance rather than on the shared `scm_change_requests`
+   * row: that row is keyed globally and owned by whichever tenant the
+   * provider routes the PR to, so a pasted URL must not claim it. A hand
+   * link is display-only and never drives merge → accepted.
+   */
+  linkPullRequest: acceptanceWriteProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        title: z.string().trim().min(1).max(500).optional(),
+        url: z.string().max(2000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { acceptance } = await resolveAcceptanceForWrite(ctx, input.id);
+      const parsed = parseChangeRequestUrl(input.url);
+      if (!parsed) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message:
+            'Expected a GitHub pull request URL, e.g. https://github.com/owner/repo/pull/123',
+        });
+      }
+
+      await updateAcceptancePullRequests(ctx.serverDB, acceptance.id, (links) =>
+        addPullRequestLink(links, parsed, input.title),
+      );
+      return parsed;
+    }),
+
+  unlinkPullRequest: acceptanceWriteProcedure
+    .input(z.object({ id: z.string(), url: z.string().max(2000) }))
+    .mutation(async ({ ctx, input }) => {
+      const { acceptance } = await resolveAcceptanceForWrite(ctx, input.id);
+      const parsed = parseChangeRequestUrl(input.url);
+      const pullRequests = parsed
+        ? await updateAcceptancePullRequests(ctx.serverDB, acceptance.id, (links) =>
+            removePullRequestLink(links, parsed),
+          )
+        : null;
+      if (!pullRequests) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Linked pull request not found' });
+      }
+
+      return { success: true };
+    }),
+
   /** Get (or lazily create) the aggregate for a subject — the ingest entry point. */
   ensure: acceptanceWriteProcedure
     .input(
@@ -599,22 +659,26 @@ export const acceptanceRouter = router({
         acceptance.workspaceId ?? undefined,
       );
 
-      const [subject, { evidence, reports, results, runs }, authorRows] = await Promise.all([
-        ownerService.resolveSubject(acceptance),
-        ownerService.loadRounds(acceptance.id),
-        // Who delivered this, the way a pull request names its author. A
-        // shared link lands on someone else's record, and a record with no
-        // name on it reads as nobody's.
-        ctx.serverDB
-          .select({
-            avatar: users.avatar,
-            fullName: users.fullName,
-            id: users.id,
-            username: users.username,
-          })
-          .from(users)
-          .where(eq(users.id, acceptance.userId)),
-      ]);
+      const [subject, { evidence, reports, results, runs }, authorRows, changeRequests] =
+        await Promise.all([
+          ownerService.resolveSubject(acceptance),
+          ownerService.loadRounds(acceptance.id),
+          // Who delivered this, the way a pull request names its author. A
+          // shared link lands on someone else's record, and a record with no
+          // name on it reads as nobody's.
+          ctx.serverDB
+            .select({
+              avatar: users.avatar,
+              fullName: users.fullName,
+              id: users.id,
+              username: users.username,
+            })
+            .from(users)
+            .where(eq(users.id, acceptance.userId)),
+          // Provider-verified PRs that deliver it. Owned by the acceptance, not
+          // by a round, so one opened after the last round still shows.
+          ScmChangeRequestModel.listByAcceptance(ctx.serverDB, acceptance.id),
+        ]);
       const author = authorRows[0] ?? null;
 
       const flowData = await new AcceptanceFlowModel(ctx.serverDB, acceptance.userId).list(
@@ -793,6 +857,7 @@ export const acceptanceRouter = router({
 
       return {
         author,
+        pullRequests: listAcceptancePullRequests(changeRequests, acceptance.metadata?.pullRequests),
         flows: flowData.map((flow) => ({
           ...flow,
           versions: flow.versions.map((version) => ({
@@ -1290,9 +1355,7 @@ export const acceptanceRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { acceptance, service } = await resolveAcceptanceForWrite(ctx, input.id);
 
-      return service.acceptanceModel.update(acceptance.id, {
-        metadata: { ...acceptance.metadata, title: input.title },
-      });
+      return service.acceptanceModel.patchMetadata(acceptance.id, { title: input.title });
     }),
 
   /**
