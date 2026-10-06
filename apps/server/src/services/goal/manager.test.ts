@@ -855,6 +855,9 @@ describe('CLI main Agent planning', () => {
     expect(next.token).not.toBe(state.token);
     expect(next.turns).toBe(state.turns + 1);
     expect(vi.mocked(AiAgentService.prototype.execAgent)).toHaveBeenCalledTimes(2);
+    // The replacement's message must not claim the refused turn ran and exited.
+    const prompt = vi.mocked(AiAgentService.prototype.execAgent).mock.calls.at(-1)![0].prompt;
+    expect(prompt).toContain('<previousTurn outcome="never_started" />');
   });
 
   it('keeps pausing when the planning message is deleted after a dispatch that had started', async () => {
@@ -1135,6 +1138,13 @@ describe('CLI main Agent planning', () => {
     await service().tick(id);
     const prompt = vi.mocked(AiAgentService.prototype.execAgent).mock.calls.at(-1)![0].prompt;
     expect(prompt).toContain('The recommendation baseline is not a training majority');
+    // Written after the previous turn started, so this turn shows it as new.
+    expect(prompt).toMatch(
+      /<feedback author="user" new="true"[^>]*><!\[CDATA\[\nThe recommendation baseline is not a training majority/,
+    );
+    // The card names the task by title; the agent keeps the id.
+    expect(prompt).toContain(`taskId="${taskId}" taskTitle="Audit"`);
+    expect(prompt).toContain('<previousTurn action="tasks" outcome="submitted">');
     const next = (await model().findById(id))!.config!.managerState!;
     await taskModel.addComment({
       taskId,
@@ -1146,6 +1156,59 @@ describe('CLI main Agent planning', () => {
       manager().submit(id, next.token, next.operationId!, { action: 'verify', reason: 'Ready' }),
     ).rejects.toThrow('feedback');
     expect((await model().findById(id))!.config!.managerState!.readyForAcceptance).not.toBe(true);
+  });
+
+  /**
+   * Regression: the next turn's cutoff was taken after the comments were read,
+   * so a comment committed in between was dated before a turn that never saw it
+   * and the retry showed it only as a 200-character "earlier" excerpt.
+   */
+  it('shows a comment committed while the claim read feedback as new on the next turn', async () => {
+    const { id, state, op } = await start();
+    await manager().submit(id, state.token, op.id, taskPlan);
+    await ops().recordCompletion(op.id, { status: 'done' });
+    await service().tick(id);
+    const taskId = (await service().tick(id)).taskId!;
+    const node = (await service().graph(id)).nodes.find((n) => n.taskId === taskId)!;
+    await db.update(goalNodes).set({ status: 'resolved' }).where(eq(goalNodes.id, node.id));
+
+    const original = TaskModel.prototype.getComments;
+    const late = 'Late review: the baseline must exclude future cases.';
+    const read = vi
+      .spyOn(TaskModel.prototype, 'getComments')
+      .mockImplementationOnce(async function (this: TaskModel, commentTaskId) {
+        const seen = await original.call(this, commentTaskId);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        const now = new Date();
+        await this.addComment({
+          taskId: commentTaskId,
+          userId,
+          authorUserId: userId,
+          content: late,
+          createdAt: now,
+          updatedAt: now,
+        });
+        return seen;
+      });
+    await service().tick(id);
+    read.mockRestore();
+    const missed = vi.mocked(AiAgentService.prototype.execAgent).mock.calls.at(-1)![0].prompt;
+    expect(missed).not.toContain(late);
+
+    const turn = (await model().findById(id))!.config!.managerState!;
+    await manager()
+      .submit(id, turn.token, turn.operationId!, {
+        action: 'escalate',
+        reason: 'stale',
+      })
+      .catch(() => undefined);
+    await ops().recordCompletion(turn.operationId!, { status: 'done' });
+    await service().tick(id);
+    await service().tick(id);
+    const prompt = vi.mocked(AiAgentService.prototype.execAgent).mock.calls.at(-1)![0].prompt;
+    expect(prompt).toMatch(
+      new RegExp(String.raw`<feedback author="user" new="true"[^>]*><!\[CDATA\[\n${late}`),
+    );
   });
 
   it('accepts a main Agent alongside the system planner', async () => {
