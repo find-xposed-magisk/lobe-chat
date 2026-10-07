@@ -271,6 +271,23 @@ export interface GoalManagerState {
    * owner can edit.
    */
   dispatchNeverStarted?: boolean;
+  /**
+   * Consecutive turns that ended in an error without committing a plan. Reset by
+   * a turn that commits a plan or ends without an error. Reaching the limit
+   * pauses the Goal on the last error instead of re-dispatching an Agent that
+   * keeps failing the same way.
+   */
+  failedTurns?: number;
+  /**
+   * The device the last turn could not reach, when it failed as unavailable.
+   * Seeing it online again ends the `retryAfter` wait early.
+   */
+  offlineDevice?: { deviceId: string; userId: string; workspaceId?: string };
+  /**
+   * Consecutive turns that never reached their device. They are not charged to
+   * the turn budget and follow the Task offline retry schedule instead.
+   */
+  offlineTurns?: number;
   operationId?: string;
   /**
    * Management conversations this Goal planned in before a handoff moved it to
@@ -292,6 +309,13 @@ export interface GoalManagerState {
   problemTaskId?: string;
   readyForAcceptance?: boolean;
   replanReason?: string;
+  /**
+   * Earliest time the next turn may be dispatched after one failed without a
+   * plan: the provider's quota reset when the error carries one, otherwise an
+   * exponential backoff. Without it a failing Agent was re-dispatched on every
+   * tick and spent the whole turn budget in minutes.
+   */
+  retryAfter?: string;
   reviewSnapshot?: string;
   snapshot: string;
   startedAt: string;
@@ -358,6 +382,11 @@ export interface GoalConfig {
   planningCheckpoint?: { expiresAt: string; token: string };
   /** Retained after release to distinguish lease-aware retries from legacy planners. */
   planningProtocol?: 'lease-v1';
+  /**
+   * Coordinator-owned: when the queued wake for a Task waiting on a usage-window
+   * reset fires. One wake per Goal, so ticks before the reset do not queue more.
+   */
+  quotaRetryWakeAt?: string;
   recovery?: GoalRecoveryPolicy;
   /** Coordinator-owned receipt of the latest wrap-up report dispatch. */
   report?: GoalReportDispatch;

@@ -24,10 +24,19 @@ import { TopicModel } from '@/database/models/topic';
 import { goals } from '@/database/schemas/goal';
 import type { LobeChatDatabase } from '@/database/type';
 import { AiAgentService } from '@/server/services/aiAgent';
+import { readDeviceDispatchRoute } from '@/server/services/aiAgent/helpers/heteroErrors';
 import { TopicStartReservationError } from '@/server/services/aiAgent/topicStartReservation';
+import { deviceGateway } from '@/server/services/deviceGateway';
 
 import { TERMINAL_GOAL_STATUSES as finishedGoalStatuses } from './goalTraceRecorder';
-import { countDeviceOfflineRuns, DEFAULT_MANAGER_MAX_TURNS } from './recoveryPolicy';
+import {
+  classifyRunFailure,
+  countDeviceOfflineRuns,
+  DEFAULT_MANAGER_MAX_TURNS,
+  nextDeviceOfflineRetryAt,
+  QUOTA_RESET_MARGIN_MS,
+  type RunFailure,
+} from './recoveryPolicy';
 import { scheduleGoalAdvance } from './scheduler';
 import { recoveryEligibility } from './supervisor/policy';
 import { goalWaitSchema, GoalWaitService } from './wait';
@@ -80,6 +89,99 @@ const TIMEOUT_MS = 20 * 60_000;
 const FEEDBACK_NOTE_LIMIT = 20;
 /** Source message id prefix of a dispatched planning turn; the suffix is its token. */
 const MANAGER_SOURCE_MESSAGE_PREFIX = 'msg_goal_manager_';
+/** Consecutive charged turns that errored without a plan before the Goal pauses. */
+export const MAX_FAILED_MANAGER_TURNS = 5;
+const FAILED_TURN_BASE_BACKOFF_MS = 60_000;
+const FAILED_TURN_MAX_BACKOFF_MS = 30 * 60_000;
+
+export type FailedTurnDecision =
+  | { action: 'pause'; failure: RunFailure; reason: string }
+  | {
+      action: 'retry';
+      /** Whether the failed turn counts toward the manager turn budget. */
+      charged: boolean;
+      failure: RunFailure;
+      failedTurns: number;
+      offlineTurns: number;
+      retryAfter: string;
+    };
+
+/**
+ * What to do after a planning turn ended in an error without committing a plan.
+ *
+ * It follows the same classification as Task recovery (`classifyRunFailure`):
+ * - A usage window that reports its reset waits for that reset. The refused
+ *   turn did no work, so it is not charged.
+ * - A device that is not reachable follows the Task offline schedule
+ *   (30 min, doubling to 8 h, six retries). It is not charged, and the Goal
+ *   pauses once the device stays away.
+ * - Credentials, spend or permission pause at once, because no retry fixes them.
+ * - Anything else backs off exponentially from 1 min to 30 min and is charged.
+ *   `MAX_FAILED_MANAGER_TURNS` in a row pause the Goal.
+ *
+ * Before this, every failure re-dispatched on the next tick. That is how one Goal
+ * spent its whole 100-turn budget on a session limit in 20 minutes.
+ */
+export const decideFailedTurn = (
+  error: unknown,
+  streak: { failedTurns?: number; offlineTurns?: number },
+  now = Date.now(),
+): FailedTurnDecision => {
+  const failure = classifyRunFailure(error);
+  const failedTurns = streak.failedTurns ?? 0;
+  // `offlineTurns` counts turns that never reached their device back to back. Any
+  // other ending reached it, so only a device failure carries the streak forward.
+  const offlineTurns = failure.kind === 'device_unavailable' ? (streak.offlineTurns ?? 0) : 0;
+  const message = (error as { message?: unknown } | undefined)?.message;
+  const detail = typeof message === 'string' && message ? `: ${message}` : '';
+
+  if (failure.kind === 'quota_reset' && failure.resetsAt! + QUOTA_RESET_MARGIN_MS > now)
+    return {
+      action: 'retry',
+      charged: false,
+      failedTurns,
+      failure,
+      offlineTurns,
+      retryAfter: new Date(failure.resetsAt! + QUOTA_RESET_MARGIN_MS).toISOString(),
+    };
+  if (failure.kind === 'device_unavailable') {
+    const retryAt = nextDeviceOfflineRetryAt(offlineTurns + 1, new Date(now));
+    if (!retryAt)
+      return { action: 'pause', failure, reason: `Main Agent device stayed offline${detail}` };
+    return {
+      action: 'retry',
+      charged: false,
+      failedTurns,
+      failure,
+      offlineTurns: offlineTurns + 1,
+      retryAfter: retryAt.toISOString(),
+    };
+  }
+  if (failure.kind === 'needs_user')
+    return {
+      action: 'pause',
+      failure,
+      reason: `Main Agent needs credentials, spend or permission fixed${detail}`,
+    };
+  if (failedTurns + 1 >= MAX_FAILED_MANAGER_TURNS)
+    return {
+      action: 'pause',
+      failure,
+      reason: `Main Agent failed ${failedTurns + 1} turns in a row without a plan${detail}`,
+    };
+  const backoff = Math.min(
+    FAILED_TURN_MAX_BACKOFF_MS,
+    FAILED_TURN_BASE_BACKOFF_MS * 2 ** failedTurns,
+  );
+  return {
+    action: 'retry',
+    charged: true,
+    failedTurns: failedTurns + 1,
+    failure,
+    offlineTurns,
+    retryAfter: new Date(now + backoff).toISOString(),
+  };
+};
 
 /**
  * The token a planning turn is keyed by, carrying the Goal it belongs to.
@@ -94,7 +196,9 @@ const managerTurnToken = (goalId: string) => `${goalId}_${randomUUID()}`;
 
 /** Excludes only the manager's own receipt. Concurrent policy/graph changes invalidate its plan. */
 export const managerSnapshot = (graph: GoalGraphSnapshot) => {
-  const { managerState: _state, ...config } = graph.goal.config ?? {};
+  // Coordinator receipts are not planning input: arming a Task's quota wake while a
+  // turn runs must not make that turn's plan stale.
+  const { managerState: _state, quotaRetryWakeAt: _quotaWake, ...config } = graph.goal.config ?? {};
   return createHash('sha256')
     .update(
       JSON.stringify({
@@ -528,6 +632,14 @@ export class GoalManagerService {
     return { goalId, outcome: 'waiting_external', message };
   };
 
+  /** Whether the device the last turn could not reach is connected again. */
+  private offlineDeviceIsBack = async (state: GoalManagerState) => {
+    const route = state.offlineDevice;
+    if (!route || !deviceGateway.isConfigured) return false;
+    const devices = await deviceGateway.queryDeviceList(route.userId, route.workspaceId);
+    return devices.some((device) => device.deviceId === route.deviceId);
+  };
+
   private pause = async (goalId: string, message: string): Promise<GoalTickResult> => {
     await this.db.transaction(async (db) => {
       const model = new GoalModel(db, this.userId, this.workspaceId);
@@ -709,19 +821,69 @@ export class GoalManagerService {
         }
         return this.wait(goal.id, 'Waiting for main Agent CLI planning turn');
       }
-      await this.db.transaction(async (db) => {
+      const failed = await this.db.transaction(async (db) => {
         const fresh = await new GoalModel(db, this.userId, this.workspaceId).lockById(goal.id);
-        if (
-          fresh?.config?.managerState?.token === state.token &&
-          !fresh.config.managerState.consumed
-        ) {
-          await this.save(db, goal.id, {
-            ...fresh.config.managerState,
-            operationId: operation?.id ?? state.operationId,
-            consumed: true,
-          });
+        const current = fresh?.config?.managerState;
+        if (current?.token !== state.token || current.consumed) return;
+        const settled: GoalManagerState = {
+          ...current,
+          operationId: operation?.id ?? state.operationId,
+          consumed: true,
+        };
+        const cleared = {
+          failedTurns: undefined,
+          offlineDevice: undefined,
+          offlineTurns: undefined,
+          retryAfter: undefined,
+        };
+        // A committed plan is progress whatever the run's ending; only an errored
+        // turn that committed nothing gates the next dispatch.
+        if (current.submitted || operation?.status !== 'error') {
+          await this.save(db, goal.id, { ...settled, ...cleared });
+          return;
         }
+        const decision = decideFailedTurn(operation.error, current);
+        if (decision.action === 'pause') {
+          // The person who resumes the Goal gets a fresh retry schedule. Pause in
+          // this same transaction: committing the consumed receipt first would
+          // let a concurrent tick claim and dispatch a replacement turn before
+          // the pause took the row lock.
+          await this.save(db, goal.id, { ...settled, ...cleared });
+          const message = `${decision.reason}. Resume with: lh goal resume ${goal.id}`;
+          if (activeStatuses.has(fresh!.status)) {
+            await new GoalModel(db, this.userId, this.workspaceId).updateStatus(goal.id, 'paused');
+            await this.graph(db).recordGoalStatus(goal.id, fresh!.status, 'paused', message);
+          }
+          return { ...decision, reason: message };
+        }
+        await this.save(db, goal.id, {
+          ...settled,
+          failedTurns: decision.failedTurns || undefined,
+          offlineDevice:
+            decision.failure.kind === 'device_unavailable'
+              ? readDeviceDispatchRoute(operation.error)
+              : undefined,
+          offlineTurns: decision.offlineTurns || undefined,
+          retryAfter: decision.retryAfter,
+          turns: decision.charged ? current.turns : Math.max(0, current.turns - 1),
+        });
+        return decision;
       });
+      if (failed?.action === 'pause')
+        return { goalId: goal.id, outcome: 'no_progress', message: failed.reason };
+      if (failed) {
+        await scheduleGoalAdvance({
+          goalId: goal.id,
+          userId: this.userId,
+          workspaceId: this.workspaceId,
+          delay: GoalWaitService.arm(failed.retryAfter).delay,
+        });
+        return {
+          goalId: goal.id,
+          outcome: 'waiting_external',
+          message: `Main Agent turn failed without a plan (${failed.failure.kind}); the next turn starts after ${failed.retryAfter}`,
+        };
+      }
       return {
         goalId: goal.id,
         outcome: 'advanced',
@@ -802,6 +964,21 @@ export class GoalManagerService {
       if (problem) return null;
       return this.pause(goal.id, 'Goal or main Agent turn budget exhausted');
     }
+    // The previous turn failed without a plan. Its settlement already queued the
+    // wakeup for this time, so a tick arriving earlier (the sweep, a Task event)
+    // only reports the wait instead of queueing another one. An invited turn
+    // waits too: it would fail the same way, and the problem is still there later.
+    // A device seen back online ends the wait early, as it does for Tasks.
+    if (
+      state?.retryAfter &&
+      Date.parse(state.retryAfter) > Date.now() &&
+      !(await this.offlineDeviceIsBack(state))
+    )
+      return {
+        goalId: goal.id,
+        outcome: 'waiting_external',
+        message: `Main Agent turn deferred until ${state.retryAfter} after a failed turn`,
+      };
     const claimed = await this.db.transaction(async (db) => {
       const model = new GoalModel(db, this.userId, this.workspaceId);
       const fresh = await model.lockById(goal.id);
@@ -871,6 +1048,9 @@ export class GoalManagerService {
           : {}),
         ...(state?.adoptedOperationId && { adoptedOperationId: state.adoptedOperationId }),
         ...(previousTopicIds.length > 0 && { previousTopicIds }),
+        // Failure streaks span turns; settling a turn that did not error resets them.
+        ...(freshState?.failedTurns && { failedTurns: freshState.failedTurns }),
+        ...(freshState?.offlineTurns && { offlineTurns: freshState.offlineTurns }),
         reviewSnapshot: reviews.hash,
         topicId,
         turns: (state?.turns ?? 0) + 1,

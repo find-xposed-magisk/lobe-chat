@@ -143,6 +143,36 @@ export class GoalModel {
   };
 
   /**
+   * Claim the queued wake for a Task waiting on a usage-window reset, so that
+   * repeated ticks before the reset (the sweep, Task events, manual advances)
+   * queue one callback instead of one each. Succeeds only when no wake is armed,
+   * the armed one already fired, or this one fires earlier; the caller queues the
+   * callback only then. Patches `config.quotaRetryWakeAt` alone, like
+   * `updatePauseReason`, in one conditional statement so concurrent ticks cannot
+   * both claim it.
+   */
+  armQuotaRetryWake = async (id: string, at: string): Promise<boolean> => {
+    const armed = sql`(${goals.config} #>> '{quotaRetryWakeAt}')::timestamptz`;
+    const rows = await this.db
+      .update(goals)
+      .set({
+        config: sql`jsonb_set(COALESCE(${goals.config}, '{}'::jsonb), '{quotaRetryWakeAt}', ${JSON.stringify(at)}::jsonb)`,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(goals.id, id),
+          this.ownership(),
+          sql`(NOT (COALESCE(${goals.config}, '{}'::jsonb) ? 'quotaRetryWakeAt')
+            OR ${armed} <= NOW()
+            OR ${armed} > ${at}::timestamptz)`,
+        ),
+      )
+      .returning({ id: goals.id });
+    return rows.length > 0;
+  };
+
+  /**
    * Patch only `config.understanding`, for the same reason as
    * `updatePauseReason`: decomposition writes it while the user may be editing
    * budget or acceptance on the same column.
@@ -191,13 +221,14 @@ export class GoalModel {
         // policy edits cannot replace the concurrently written incident ledger.
         ...(value.config !== undefined
           ? {
-              config: sql`(COALESCE(${JSON.stringify(value.config ?? {})}::jsonb, '{}'::jsonb) - 'planningCheckpoint' - 'planningProtocol' - 'supervisorState' - 'managerState' - 'understanding')
+              config: sql`(COALESCE(${JSON.stringify(value.config ?? {})}::jsonb, '{}'::jsonb) - 'planningCheckpoint' - 'planningProtocol' - 'supervisorState' - 'managerState' - 'understanding' - 'quotaRetryWakeAt')
                 || jsonb_strip_nulls(jsonb_build_object(
                   'planningCheckpoint', ${goals.config}->'planningCheckpoint',
                   'planningProtocol', ${goals.config}->'planningProtocol',
                   'supervisorState', ${goals.config}->'supervisorState',
                   'managerState', ${goals.config}->'managerState',
-                  'understanding', ${goals.config}->'understanding'
+                  'understanding', ${goals.config}->'understanding',
+                  'quotaRetryWakeAt', ${goals.config}->'quotaRetryWakeAt'
                 ))`,
             }
           : {}),

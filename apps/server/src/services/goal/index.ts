@@ -69,12 +69,14 @@ import {
 import { experimentResults, exploreGraph } from './exploreGraph';
 import { answeredProblem, GoalManagerService, problemKey } from './manager';
 import {
+  classifyRunFailure,
   countConsecutiveDeviceOfflineRuns,
   DEFAULT_MANAGER_MAX_TURNS,
   DEVICE_OFFLINE_GATE_REASON,
   isDeviceUnavailableFailure,
   managerTurnsSpent,
   nextDeviceOfflineRetryAt,
+  QUOTA_RESET_MARGIN_MS,
   resolveMaxConcurrentTasks,
   resolveOperationLeaseTimeout,
   resolveTaskMaxSteps,
@@ -2344,7 +2346,9 @@ export class GoalService {
           }
 
           case 'failure_decision': {
-            const waiting = await this.waitForDevice(graph, acting!.id, task, effects);
+            const waiting =
+              (await this.waitForDevice(graph, acting!.id, task, effects)) ??
+              (await this.waitForQuotaReset(graph, acting!.id, task, effects));
             if (waiting) return observe(waiting);
             const supervision = await new GoalSupervisorService(
               this.db,
@@ -3084,6 +3088,70 @@ export class GoalService {
     const held = await this.holdForOfflineDevice(graph, nodeId, task, effects);
     if (held) return held;
     return this.resumeAbandonedTaskRecovery(graph, nodeId, task, effects);
+  };
+
+  /**
+   * Hold a Task whose run a usage window refused until that window reopens.
+   *
+   * An external Agent past its session limit refuses every run until the reset
+   * its error reports. The supervisor used to read that as "spending requires
+   * user action" and open a gate, which then waited on a person to press Retry
+   * long after the window had reset. The coordinator now waits out the reset
+   * itself and retries through the ordinary recovery path, which charges the
+   * attempt as before. That bounds a window that keeps refusing.
+   */
+  private waitForQuotaReset = async (
+    graph: GoalGraphSnapshot,
+    nodeId: string,
+    task: TaskItem,
+    effects: GoalAdvanceEffect[],
+  ): Promise<GoalTickResult | undefined> => {
+    if (task.status !== 'paused') return;
+    const [latest] = await this.taskTopicModel.findWithHandoff(task.id, 1);
+    if (!latest?.operationId) return;
+    const operation = await new AgentOperationModel(
+      this.db,
+      this.userId,
+      this.workspaceId,
+    ).findById(latest.operationId);
+    const failure = classifyRunFailure(operation?.error, task.error ?? '');
+    if (failure.kind !== 'quota_reset') return;
+    const retryAt = failure.resetsAt! + QUOTA_RESET_MARGIN_MS;
+    if (retryAt <= Date.now()) {
+      // The retry is a paid run, and recovery only checks the Task's own attempts
+      // and cost. Past the Goal's deadline, rounds or spend it is not this path's
+      // to start: ordinary failure handling takes it, and that gates it.
+      const budget = await this.evaluateBudget(graph.goal, graph);
+      if (budget.costLimitReached || budget.roundLimitReached || budget.deadlinePassed) return;
+      return this.resumeAbandonedTaskRecovery(graph, nodeId, task, effects);
+    }
+    // The sweep would get here too, but only on its own cadence; the reset is a
+    // known time, so ask for that tick directly. One wake per Goal: the claim
+    // fails while an earlier-or-equal wake is still pending. A reset further out
+    // than the queue's longest delay is re-armed when the capped wake fires.
+    const target = new Date(retryAt).toISOString();
+    const armed = GoalWaitService.arm(target);
+    // Claim on the reset itself, not on `armedUntil`: that rounds the delay up to
+    // whole seconds from each tick's own clock, so two ticks before the same reset
+    // would read as different wakes. Only a capped wake stores its earlier fire time.
+    const capped = Date.parse(armed.armedUntil) < retryAt;
+    if (
+      await new GoalModel(this.db, this.userId, this.workspaceId).armQuotaRetryWake(
+        graph.goal.id,
+        capped ? armed.armedUntil : target,
+      )
+    )
+      await new GoalWaitService(this.db, this.userId, this.workspaceId).schedule(
+        graph.goal.id,
+        armed.delay,
+      );
+    return {
+      goalId: graph.goal.id,
+      message: `Task ${task.identifier} is waiting for its usage window to reset at ${new Date(retryAt).toISOString()}`,
+      nodeId,
+      outcome: 'waiting_external',
+      taskId: task.id,
+    };
   };
 
   /**
