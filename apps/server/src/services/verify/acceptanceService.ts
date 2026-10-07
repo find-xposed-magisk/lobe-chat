@@ -18,7 +18,12 @@ import type {
 } from '@lobechat/types';
 import debug from 'debug';
 
-import { AcceptanceModel } from '@/database/models/acceptance';
+import {
+  type AcceptanceListProject,
+  type AcceptanceListScope,
+  type AcceptanceListSource,
+  AcceptanceModel,
+} from '@/database/models/acceptance';
 import { AgentModel } from '@/database/models/agent';
 import { DocumentModel } from '@/database/models/document';
 import { ProjectModel } from '@/database/models/project';
@@ -36,6 +41,7 @@ import type {
   VerifyRunItem,
 } from '@/database/schemas/verify';
 import type { LobeChatDatabase } from '@/database/type';
+import { notTrashed } from '@/database/utils/softDelete';
 import { ExpertiseRejectionWorkflow } from '@/server/workflows/expertiseRejection';
 
 import { type AcceptanceMergeSummary, mergeAcceptanceRounds } from './acceptanceMerge';
@@ -450,6 +456,15 @@ export interface AcceptanceSubjectSummary {
 
 /** The list filter as a status set — one definition for the flat and paged reads. */
 export type AcceptanceListFilter = 'active' | 'all' | 'completed';
+
+/** Every narrowing the list panel can apply, shared by the flat and paged reads. */
+export interface AcceptanceListOptions {
+  filter?: AcceptanceListFilter;
+  /** A project id, or `null` for acceptances filed under no project. */
+  projectId?: AcceptanceListProject;
+  scope?: AcceptanceListScope;
+  source?: AcceptanceListSource;
+}
 
 const statusesForFilter = (filter: AcceptanceListFilter): AcceptanceStatus[] | undefined => {
   if (filter === 'active')
@@ -1355,7 +1370,18 @@ export class AcceptanceService {
       if (!cur || round > cur.round) latest.set(run.acceptanceId, { id: run.id, round });
     }
 
-    const reports = await this.reportModel.findByRuns([...latest.values()].map((v) => v.id));
+    // Unscoped on purpose, like the run read above: the run ids derive from
+    // acceptance ids the caller's list query already authorized, and a
+    // participated row's report belongs to its owner — an owner-scoped read
+    // would need one query per owner.
+    const runIds = [...latest.values()].map((v) => v.id);
+    const reports =
+      runIds.length > 0
+        ? await this.db.query.verifyReports.findMany({
+            columns: { totalChecks: true, verifyRunId: true },
+            where: (report, { inArray }) => inArray(report.verifyRunId, runIds),
+          })
+        : [];
     const totalByRun = new Map(reports.map((report) => [report.verifyRunId, report.totalChecks]));
     for (const [acceptanceId, { id: runId }] of latest) {
       const total = totalByRun.get(runId);
@@ -1371,15 +1397,12 @@ export class AcceptanceService {
    * carries the latest round's check count for the panel's at-a-glance line.
    */
   listWithSubjects = async (
-    options: {
-      filter?: 'active' | 'all' | 'completed';
+    options: AcceptanceListOptions & {
       limit?: number;
-      projectId?: string;
       q?: string;
     } = {},
   ) => {
     const { filter = 'all', limit = 50, q } = options;
-    const statuses = statusesForFilter(filter);
     const normalizedQuery = q?.trim().toLocaleLowerCase();
 
     // A title search must span the complete owned set. Subject titles live in
@@ -1387,74 +1410,155 @@ export class AcceptanceService {
     // applying the result cap instead of searching only the latest page.
     const candidates = await this.acceptanceModel.query({
       limit: normalizedQuery ? undefined : limit,
-      statuses,
+      projectId: options.projectId,
+      scope: options.scope,
+      source: options.source,
+      statuses: statusesForFilter(filter),
       unbounded: Boolean(normalizedQuery),
-      ...(options.projectId ? { projectId: options.projectId } : {}),
     });
-    const subjects = await this.resolveSubjects(candidates);
-    const withSubjects = candidates.map((row) => ({
-      row,
-      subject: subjects.get(row.id)!,
-    }));
+    const subjects = await this.resolveSubjectsForList(candidates);
     const matched = normalizedQuery
-      ? withSubjects
-          .filter(({ row, subject }) =>
-            (subject.title || row.subjectId).toLocaleLowerCase().includes(normalizedQuery),
+      ? candidates
+          .filter((row) =>
+            (subjects.get(row.id)?.title || row.subjectId)
+              .toLocaleLowerCase()
+              .includes(normalizedQuery),
           )
           .slice(0, limit)
-      : withSubjects;
-    const rows = matched.map(({ row }) => row);
-    const [checkCounts, projects] = await Promise.all([
-      this.latestCheckCounts(rows.map((row) => row.id)),
-      this.resolveProjects(rows),
-    ]);
+      : candidates;
 
-    return matched.map(({ row, subject }) => ({
-      ...row,
-      checkCount: checkCounts.get(row.id) ?? null,
-      project: projects.get(row.id) ?? null,
-      subject,
-    }));
+    return this.decorateListRows(matched, subjects);
   };
 
   /**
    * The paged twin of {@link listWithSubjects} — one scroll page of the list
    * panel, newest first.
    *
-   * Takes the same `filter` vocabulary, applied in the QUERY: a page of
+   * Takes the same filter vocabulary, applied in the QUERY: a page of
    * "in progress" is thirty in-progress rows, not thirty rows of which some
    * happen to be in progress. Search deliberately has no paged form — a title
    * search must span the whole owned set, which is what `listWithSubjects`
    * already does; the panel asks that one when a query is active.
    */
-  listPageWithSubjects = async (options: {
-    cursor?: string;
-    filter?: AcceptanceListFilter;
-    limit?: number;
-    projectId?: string;
-  }) => {
+  listPageWithSubjects = async (
+    options: AcceptanceListOptions & {
+      cursor?: string;
+      limit?: number;
+    },
+  ) => {
     const { items, nextCursor } = await this.acceptanceModel.queryPage({
       cursor: options.cursor,
       limit: options.limit,
+      projectId: options.projectId,
+      scope: options.scope,
+      source: options.source,
       statuses: statusesForFilter(options.filter ?? 'all'),
-      ...(options.projectId ? { projectId: options.projectId } : {}),
     });
 
-    const subjects = await this.resolveSubjects(items);
-    const [checkCounts, projects] = await Promise.all([
-      this.latestCheckCounts(items.map((row) => row.id)),
-      this.resolveProjects(items),
-    ]);
-
     return {
-      items: items.map((row) => ({
-        ...row,
-        checkCount: checkCounts.get(row.id) ?? null,
-        project: projects.get(row.id) ?? null,
-        subject: subjects.get(row.id)!,
-      })),
+      items: await this.decorateListRows(items, await this.resolveSubjectsForList(items)),
       nextCursor,
     };
+  };
+
+  private isInOwnScope = (row: AcceptanceItem) =>
+    row.workspaceId
+      ? row.workspaceId === this.workspaceId
+      : !this.workspaceId && row.userId === this.userId;
+
+  /**
+   * Subject headers for a mixed list. Rows in the caller's own scope go through
+   * the scoped models as before. A participated row may belong to any number of
+   * other owners, whose task/topic/document the caller's models cannot see —
+   * those resolve in ONE unscoped read per subject type, so the cost stays
+   * fixed however many owners a page spans. Safe because the list query has
+   * already applied the read rule to these rows, and the bundle shows the same
+   * title to anyone who can open them.
+   */
+  private resolveSubjectsForList = async (
+    rows: AcceptanceItem[],
+  ): Promise<Map<string, AcceptanceSubjectSummary>> => {
+    const own = rows.filter(this.isInOwnScope);
+    const foreign = rows.filter((row) => !this.isInOwnScope(row));
+    const [ownSubjects, foreignSubjects] = await Promise.all([
+      own.length > 0 ? this.resolveSubjects(own) : new Map<string, AcceptanceSubjectSummary>(),
+      this.resolveForeignSubjects(foreign),
+    ]);
+    return new Map([...ownSubjects, ...foreignSubjects]);
+  };
+
+  private resolveForeignSubjects = async (
+    rows: AcceptanceItem[],
+  ): Promise<Map<string, AcceptanceSubjectSummary>> => {
+    const result = new Map<string, AcceptanceSubjectSummary>();
+    if (rows.length === 0) return result;
+
+    const idsOf = (type: AcceptanceSubjectType) =>
+      rows.filter((row) => row.subjectType === type).map((row) => row.subjectId);
+    const titles = new Map<string, string | null>();
+    try {
+      const [taskIds, topicIds, documentIds] = [idsOf('task'), idsOf('topic'), idsOf('document')];
+      const [taskRows, topicRows, documentRows] = await Promise.all([
+        taskIds.length > 0
+          ? this.db.query.tasks.findMany({
+              columns: { id: true, identifier: true, name: true },
+              where: (task, { and, inArray }) =>
+                and(inArray(task.id, taskIds), notTrashed(task.isDeleted)),
+            })
+          : [],
+        topicIds.length > 0
+          ? this.db.query.topics.findMany({
+              columns: { id: true, title: true },
+              where: (topic, { and, inArray }) =>
+                and(inArray(topic.id, topicIds), notTrashed(topic.isDeleted)),
+            })
+          : [],
+        documentIds.length > 0
+          ? this.db.query.documents.findMany({
+              columns: { id: true, title: true },
+              where: (document, { and, inArray }) =>
+                and(inArray(document.id, documentIds), notTrashed(document.isDeleted)),
+            })
+          : [],
+      ]);
+      for (const task of taskRows) titles.set(`task:${task.id}`, task.name ?? task.identifier);
+      for (const topic of topicRows) titles.set(`topic:${topic.id}`, topic.title ?? null);
+      for (const document of documentRows)
+        titles.set(`document:${document.id}`, document.title ?? null);
+    } catch (error) {
+      log('resolveForeignSubjects failed (non-fatal): %O', error);
+    }
+
+    for (const row of rows) {
+      const override = row.metadata?.title;
+      const overrideTitle =
+        typeof override === 'string' && override.trim() ? override.trim() : null;
+      result.set(row.id, {
+        id: row.subjectId,
+        title: overrideTitle ?? titles.get(`${row.subjectType}:${row.subjectId}`) ?? null,
+        type: row.subjectType as AcceptanceSubjectType,
+      });
+    }
+    return result;
+  };
+
+  private decorateListRows = async (
+    rows: AcceptanceItem[],
+    subjects: Map<string, AcceptanceSubjectSummary>,
+  ) => {
+    const [checkCounts, projects] = await Promise.all([
+      this.latestCheckCounts(rows.map((row) => row.id)),
+      // Projects stay in the caller's scope: another owner's project name is
+      // theirs, and a row filed under it simply reads as unfiled here.
+      this.resolveProjects(rows),
+    ]);
+
+    return rows.map((row) => ({
+      ...row,
+      checkCount: checkCounts.get(row.id) ?? null,
+      project: projects.get(row.id) ?? null,
+      subject: subjects.get(row.id)!,
+    }));
   };
 
   /**
