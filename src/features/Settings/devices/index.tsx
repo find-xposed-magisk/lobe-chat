@@ -1,8 +1,10 @@
 'use client';
 
 import { isDesktop } from '@lobechat/const';
-import { Flexbox, Form, Icon } from '@lobehub/ui';
+import { Flexbox, Icon } from '@lobehub/ui';
 import { ActionIcon, Button, Text } from '@lobehub/ui/base-ui';
+import { Form, useForm } from '@lobehub/ui/base-ui/form';
+import { createStaticStyles } from 'antd-style';
 import { MonitorUpIcon, RefreshCwIcon } from 'lucide-react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +21,18 @@ import RightPanel from '@/features/RightPanel';
 import SettingContainer from '@/features/Setting/SettingContainer';
 import { useElectronStore } from '@/store/electron';
 
+import KeepAwake from './KeepAwake';
+
+const styles = createStaticStyles(({ css }) => ({
+  // The device rows carry their own padding and hover fill; a thin, even inset
+  // keeps that fill the same distance from every edge of the card.
+  listGroup: css`
+    [data-form-group-body] {
+      padding: 4px;
+    }
+  `,
+}));
+
 interface PageProps {
   mobile?: boolean;
 }
@@ -28,6 +42,7 @@ const Page = memo<PageProps>(({ mobile }) => {
   const [open, setOpen] = useState(false);
   const [initialTab, setInitialTab] = useState<'cli' | 'desktop'>();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>();
+  const form = useForm();
   // Shares DeviceManager's SWR entry, so the header actions drive the list it
   // renders — the same wiring the workspace devices page uses.
   const { data, isValidating, mutate } = useDeviceList();
@@ -50,49 +65,54 @@ const Page = memo<PageProps>(({ mobile }) => {
   const externalDetail = !mobile;
 
   const list = (
-    <Form
-      collapsible={false}
-      itemsType={'group'}
-      variant={'filled'}
-      items={[
-        {
-          children: (
-            <DeviceManager
-              inlineDetail={!externalDetail}
-              scope={'personal'}
-              selectedDeviceId={selectedDeviceId}
-              onConnect={handleConnect}
-              onSelectedDeviceChange={setSelectedDeviceId}
-            />
-          ),
-          extra: (
-            <Flexbox horizontal align={'center'} gap={8}>
-              {devices.length > 0 && (
-                <Text fontSize={12} type={'secondary'} weight={500}>
-                  {t('devices.selection.total', { count: devices.length })}
-                </Text>
-              )}
-              <Button
-                icon={<Icon icon={MonitorUpIcon} />}
-                size={'small'}
-                onClick={() => handleConnect()}
-              >
-                {t('devices.connectWizard.button')}
-              </Button>
-              <ActionIcon
-                icon={RefreshCwIcon}
-                loading={isValidating}
-                size={'small'}
-                title={t('devices.actions.refresh')}
-                onClick={() => mutate()}
+    <Flexbox gap={24}>
+      <Form
+        classNames={{ group: styles.listGroup }}
+        collapsible={false}
+        form={form}
+        itemsType={'group'}
+        variant={'filled'}
+        items={[
+          {
+            children: (
+              <DeviceManager
+                inlineDetail={!externalDetail}
+                scope={'personal'}
+                selectedDeviceId={selectedDeviceId}
+                onConnect={handleConnect}
+                onSelectedDeviceChange={setSelectedDeviceId}
               />
-            </Flexbox>
-          ),
-          title: t('devices.title'),
-        },
-      ]}
-      {...FORM_STYLE}
-    />
+            ),
+            extra: (
+              <Flexbox horizontal align={'center'} gap={8}>
+                {devices.length > 0 && (
+                  <Text fontSize={12} type={'secondary'} weight={500}>
+                    {t('devices.selection.total', { count: devices.length })}
+                  </Text>
+                )}
+                <Button
+                  icon={<Icon icon={MonitorUpIcon} />}
+                  size={'small'}
+                  onClick={() => handleConnect()}
+                >
+                  {t('devices.connectWizard.button')}
+                </Button>
+                <ActionIcon
+                  icon={RefreshCwIcon}
+                  loading={isValidating}
+                  size={'small'}
+                  title={t('devices.actions.refresh')}
+                  onClick={() => mutate()}
+                />
+              </Flexbox>
+            ),
+            title: t('devices.title'),
+          },
+        ]}
+        {...FORM_STYLE}
+      />
+      {isDesktop && <KeepAwake />}
+    </Flexbox>
   );
 
   const connectModal = (

@@ -37,7 +37,12 @@ import {
 } from './heteroSelectorCapabilities';
 
 export type HeterogeneousAgentModelCatalogErrorCode =
-  'cli_not_found' | 'command_failed' | 'device_unavailable' | 'timeout' | 'unsupported_client';
+  | 'cli_not_found'
+  | 'command_failed'
+  | 'device_unavailable'
+  | 'timeout'
+  | 'unsupported_client'
+  | 'unsupported_configuration';
 
 /** One model reported by a heterogeneous CLI's device-local model catalog. */
 export interface HeterogeneousAgentModel {
@@ -58,10 +63,12 @@ export interface ListHeterogeneousAgentModelsParams {
   env?: Record<string, string>;
   type:
     | 'codebuddy'
+    | 'codex'
     | 'cursor'
     | 'devin'
     | 'droid'
     | 'grok-build'
+    | 'kimi-code'
     | 'opencode'
     | 'pi'
     | 'qoder'
@@ -450,7 +457,7 @@ interface QoderSelectionSource {
 const HETERO_EXEC_AGENT_ARG_FLAG = '--agent-arg';
 
 const modelFlagsOf = (
-  type: 'codex' | 'grok-build' | 'opencode' | 'pi' | 'qoder',
+  type: 'codex' | 'grok-build' | 'kimi-code' | 'opencode' | 'pi' | 'qoder',
 ): readonly string[] =>
   HETERO_SELECTOR_CAPABILITIES[type].model.encodings.flatMap((encoding: HeteroCliEncoding) =>
     encoding.kind === 'flag' ? encoding.flags : [],
@@ -459,6 +466,7 @@ const modelFlagsOf = (
 const CODEX_MODEL_FLAGS = modelFlagsOf('codex');
 const CURSOR_MODEL_FLAGS = ['--model'] as const;
 const GROK_BUILD_MODEL_FLAGS = modelFlagsOf('grok-build');
+const KIMI_CODE_MODEL_FLAGS = modelFlagsOf('kimi-code');
 const OPENCODE_MODEL_FLAGS = modelFlagsOf('opencode');
 const PI_MODEL_FLAGS = modelFlagsOf('pi');
 const QODER_MODEL_FLAGS = modelFlagsOf('qoder');
@@ -620,12 +628,23 @@ export const buildHeteroSpawnArgs = (
     }
   }
 
-  if (provider.type === 'cursor' || provider.type === 'devin' || provider.type === 'kimi-code') {
+  if (provider.type === 'cursor' || provider.type === 'devin') {
     const model = provider.model?.trim();
     if (
       model &&
       model !== HETEROGENEOUS_AGENT_DEFAULT_SELECTION &&
       !hasAnyCliFlag(baseArgs, CURSOR_MODEL_FLAGS)
+    ) {
+      extraArgs.push('--model', model);
+    }
+  }
+
+  if (provider.type === 'kimi-code') {
+    const model = provider.model?.trim();
+    if (
+      model &&
+      model !== HETEROGENEOUS_AGENT_DEFAULT_SELECTION &&
+      !hasAnyCliFlag(baseArgs, KIMI_CODE_MODEL_FLAGS)
     ) {
       extraArgs.push('--model', model);
     }
@@ -777,12 +796,23 @@ export const buildHeteroExecArgs = (
     }
   }
 
-  if (provider.type === 'cursor' || provider.type === 'devin' || provider.type === 'kimi-code') {
+  if (provider.type === 'cursor' || provider.type === 'devin') {
     const model = provider.model?.trim();
     if (
       model &&
       model !== HETEROGENEOUS_AGENT_DEFAULT_SELECTION &&
       !hasAnyCliFlag(baseArgs, CURSOR_MODEL_FLAGS)
+    ) {
+      selectorArgs.push('--model', model);
+    }
+  }
+
+  if (provider.type === 'kimi-code') {
+    const model = provider.model?.trim();
+    if (
+      model &&
+      model !== HETEROGENEOUS_AGENT_DEFAULT_SELECTION &&
+      !hasAnyCliFlag(baseArgs, KIMI_CODE_MODEL_FLAGS)
     ) {
       selectorArgs.push('--model', model);
     }

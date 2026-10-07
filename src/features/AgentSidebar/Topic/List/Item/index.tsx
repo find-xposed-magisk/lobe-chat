@@ -112,6 +112,23 @@ const styles = createStaticStyles(({ css }) => ({
 // fire — each racing to write activeTopicId (see ).
 let pendingSingleClickTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * The mobile surface renders its topic list in a modal and never mounts the
+ * working sidebar — the desktop host of a topic's thread list. Without nesting
+ * the rows under the topic row, mobile users can't reach an existing subtopic
+ * at all, so the nesting lives here on that surface only.
+ *
+ * Scoped to the route's topic (`showThreadList`): opening a thread under an
+ * inactive topic would call `openThreadInPortal` while `activeTopicId` still
+ * points at another topic, so the thread would resolve against the wrong topic's
+ * context — and every mounted list would fetch its own threads.
+ *
+ * Read per call rather than once at module load so a test can stub `__MOBILE__`.
+ */
+const isMobileSurface = () => typeof __MOBILE__ !== 'undefined' && __MOBILE__;
+// Nesting cue: keeps the rows visually under their topic row.
+const NESTED_THREAD_LIST_INDENT = 32;
+
 const cancelPendingSingleClick = () => {
   if (pendingSingleClickTimer) {
     clearTimeout(pendingSingleClickTimer);
@@ -141,15 +158,32 @@ const getWorkingDirectoryDisplay = (metadata: ChatTopicMetadata | undefined) => 
 
 interface RunningElapsedTimeProps {
   agentId?: string;
+  /**
+   * Server-side start of the topic's current run (list query's
+   * `runStartedAt`). Fallback for topics that are running on the server but
+   * have no local operation — after a page refresh only the ACTIVE topic is
+   * reconnected into the in-memory store, so every other running row would
+   * otherwise render no timer at all.
+   */
+  runStartedAt?: Date | string | number | null;
   topicId: string;
 }
 
-const RunningElapsedTime = memo<RunningElapsedTimeProps>(({ agentId, topicId }) => {
-  const startTime = useChatStore(
+const RunningElapsedTime = memo<RunningElapsedTimeProps>(({ agentId, runStartedAt, topicId }) => {
+  const localStartTime = useChatStore(
     agentId
       ? operationSelectors.getVisibleAgentRuntimeStartTimeByContext({ agentId, topicId })
       : () => undefined,
   );
+
+  // Prefer the in-memory operation: it tracks the local run precisely and
+  // updates the moment a run starts/stops. The server stamp only covers the
+  // refresh case above. Normalize like the server fallback does — the value
+  // crosses the wire as an ISO string.
+  const serverStartTimeMs = runStartedAt == null ? undefined : new Date(runStartedAt).getTime();
+  const startTime =
+    localStartTime ?? (Number.isFinite(serverStartTimeMs) ? serverStartTimeMs : undefined);
+
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -175,7 +209,13 @@ interface TopicItemProps {
   id?: string;
   metadata?: ChatTopicMetadata;
   /**
-   * Show the topic's project directory as a second line under the title. Used by
+   * Server-side start of the topic's current run (list query's
+   * `runStartedAt`). Lets running topics that have no local operation
+   * (refreshed, non-active) still show an elapsed timer — see
+   * `RunningElapsedTime`.
+   */
+  runStartedAt?: Date | string | number | null;
+  /** Show the topic's project directory as a second line under the title. Used by
    * the by-status grouping, where the row otherwise carries no project context
    * (by-project mode already puts the directory in the group header).
    */
@@ -195,6 +235,7 @@ interface TopicItemRowProps extends TopicItemProps {
   defaultTopicActive: boolean;
   isTopicActive: boolean;
   navRef: RefObject<TopicNavigationActions>;
+  /** Route's topic — only its row may carry its thread list (see the mobile mount). */
   showThreadList: boolean;
 }
 
@@ -204,6 +245,7 @@ const TopicItemRow = memo<TopicItemRowProps>(
     title,
     fav,
     metadata,
+    runStartedAt,
     status,
     showWorkingDirectory,
     userId,
@@ -514,7 +556,20 @@ const TopicItemRow = memo<TopicItemRowProps>(
           extra={
             <>
               <TopicMigrationIndicator agentId={activeAgentId} topicId={id} />
-              <RunningElapsedTime agentId={activeAgentId} topicId={id} />
+              {/* Gated on the SAME boolean that draws the running ring: both say
+                  "this row is visibly running", and a row that stopped spinning
+                  must not keep counting. The server `runStartedAt` fallback only
+                  knows the persisted `running` status, which outlives the answer
+                  — it stays set through the post-visible-output tail where the
+                  ring is deliberately masked (#16518) and the terminal
+                  bookkeeping can run for tens of seconds. */}
+              {shouldShowRunningIcon && (
+                <RunningElapsedTime
+                  agentId={activeAgentId}
+                  runStartedAt={runStartedAt}
+                  topicId={id}
+                />
+              )}
             </>
           }
           onClick={handleClick}
@@ -540,7 +595,7 @@ const TopicItemRow = memo<TopicItemRowProps>(
         ) : (
           navItem
         )}
-        {showThreadList && (
+        {isMobileSurface() && showThreadList && id && (
           <Suspense
             fallback={
               <Flexbox gap={8} paddingBlock={8} paddingInline={24} width={'100%'}>
@@ -549,7 +604,9 @@ const TopicItemRow = memo<TopicItemRowProps>(
               </Flexbox>
             }
           >
-            <ThreadList topicId={id} />
+            <Flexbox style={{ paddingInlineStart: NESTED_THREAD_LIST_INDENT }} width={'100%'}>
+              <ThreadList topicId={id} />
+            </Flexbox>
           </Suspense>
         )}
       </Flexbox>

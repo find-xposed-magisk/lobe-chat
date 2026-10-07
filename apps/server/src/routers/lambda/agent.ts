@@ -53,6 +53,7 @@ import {
   buildResourcePermissionState,
 } from '@/server/services/resourcePermission';
 import { assertTransferRecipientValid } from '@/server/services/resourceTransferRequest';
+import { TrashService } from '@/server/services/trash';
 import {
   hasWorkspaceScopedPermission,
   isWorkspacePrimaryOwner,
@@ -800,7 +801,13 @@ export const agentRouter = router({
       }
       let result;
       try {
-        result = await ctx.agentModel.delete(input.agentId);
+        // Recycle bin: the agent, its session shells and every topic under it
+        // are stamped, not dropped — the FK cascade only runs at purge time.
+        result = await new TrashService(
+          ctx.serverDB,
+          ctx.userId,
+          ctx.workspaceId ?? undefined,
+        ).trashAgent(input.agentId);
       } catch (error) {
         if (error instanceof Error && error.message === AGENT_COPY_IN_PROGRESS) {
           throw new TRPCError({
@@ -820,12 +827,12 @@ export const agentRouter = router({
         }
         throw error;
       }
+      // Sharing grants are left in place while the agent sits in the bin (the
+      // row is invisible anyway) so a restore brings them back; the purge
+      // handler removes them for good. A pending handover is different: the
+      // agent is invisible to the recipient too, so an acceptance would move
+      // ownership of trashed content — void it now, as the hard delete did.
       if (ctx.workspaceId) {
-        await new ResourcePermissionModel(ctx.serverDB, ctx.workspaceId).removeAll(
-          'agent',
-          input.agentId,
-        );
-        // A deleted agent can no longer be handed over — void any live request.
         await new ResourceTransferRequestModel(
           ctx.serverDB,
           ctx.workspaceId,
@@ -1135,7 +1142,9 @@ export const agentRouter = router({
           input.targetWorkspaceId,
           ctx.userId,
           input.targetVisibility,
-          { rejectForeignTopicCommentAuthors: isWorkspaceNonOwner(ctx) },
+          {
+            rejectForeignTopicCommentAuthors: isWorkspaceNonOwner(ctx),
+          },
         );
       } catch (error) {
         if (
@@ -1175,7 +1184,8 @@ export const agentRouter = router({
           throw new TRPCError({
             cause: { data: { code: TransferErrorCode.SharedTransferBlocked } },
             code: 'PRECONDITION_FAILED',
-            message: 'This agent has a share link, so its owner cannot be changed.',
+            message:
+              'This agent cannot be transferred while a share link exists, including paused links.',
           });
         }
         throw error;
@@ -1319,7 +1329,9 @@ export const agentRouter = router({
           input.targetWorkspaceId,
           ctx.userId,
           input.targetVisibility,
-          { rejectForeignTopicCommentAuthors: isWorkspaceNonOwner(ctx) },
+          {
+            rejectForeignTopicCommentAuthors: isWorkspaceNonOwner(ctx),
+          },
         );
       } catch (error) {
         if (
@@ -1357,7 +1369,8 @@ export const agentRouter = router({
           throw new TRPCError({
             cause: { data: { code: TransferErrorCode.SharedTransferBlocked } },
             code: 'PRECONDITION_FAILED',
-            message: 'One of these agents has a share link, so its owner cannot be changed.',
+            message:
+              'These agents cannot be transferred while a share link exists, including paused links.',
           });
         }
         throw error;
