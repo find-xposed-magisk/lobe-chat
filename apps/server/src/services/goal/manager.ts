@@ -1,6 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-import { GOAL_ACCEPTANCE_TASK_TITLE } from '@lobechat/const/goal';
+import {
+  GOAL_ACCEPTANCE_TASK_TITLE,
+  GOAL_CLARIFICATION_OPTION,
+  GOAL_COORDINATOR_ACTOR_ID,
+  GOAL_MANAGER_QUESTION_TITLE,
+} from '@lobechat/const/goal';
 import { buildGoalManagerPrompt } from '@lobechat/prompts';
 import type {
   GoalGraphSnapshot,
@@ -28,10 +33,11 @@ import { readDeviceDispatchRoute } from '@/server/services/aiAgent/helpers/heter
 import { TopicStartReservationError } from '@/server/services/aiAgent/topicStartReservation';
 import { deviceGateway } from '@/server/services/deviceGateway';
 
+import { GoalBriefService } from './goalBriefs';
 import { TERMINAL_GOAL_STATUSES as finishedGoalStatuses } from './goalTraceRecorder';
 import {
   classifyRunFailure,
-  countDeviceOfflineRuns,
+  countUnchargedRuns,
   DEFAULT_MANAGER_MAX_TURNS,
   nextDeviceOfflineRetryAt,
   QUOTA_RESET_MARGIN_MS,
@@ -42,6 +48,58 @@ import { recoveryEligibility } from './supervisor/policy';
 import { goalWaitSchema, GoalWaitService } from './wait';
 
 const reason = z.string().trim().min(1).max(8000);
+/**
+ * The question an escalation puts to the owner. A bare reason left the gate
+ * asking "retry or retire?" while the decision that actually blocked the goal —
+ * waive a criterion, restore a closed PR — was buried in its text with no
+ * button to answer it.
+ */
+/**
+ * Option ids the coordinator and the planner own. Their gates are labelled by
+ * id on the goal page and in the inbox, so an authored answer reusing one would
+ * show the coordinator's label ("Retry task") over a different consequence.
+ */
+const RESERVED_ASK_OPTION_IDS = new Set<string>([
+  'fail',
+  'retire',
+  'retry',
+  ...Object.values(GOAL_CLARIFICATION_OPTION),
+]);
+
+const goalAskSchema = z
+  .object({
+    question: z.string().trim().min(1).max(2000),
+    options: z
+      .array(
+        z
+          .object({
+            id: z
+              .string()
+              .trim()
+              .regex(/^[\w-]{1,40}$/),
+            label: z.string().trim().min(1).max(120),
+            description: z.string().trim().max(600).optional(),
+            effect: z.enum(['retry', 'retire']).optional(),
+          })
+          .strict(),
+      )
+      .min(2)
+      .max(4),
+    recommendedOptionId: z.string().trim().optional(),
+  })
+  .strict()
+  .refine((ask) => new Set(ask.options.map((option) => option.id)).size === ask.options.length, {
+    message: 'Option ids must be unique',
+  })
+  .refine((ask) => ask.options.every((option) => !RESERVED_ASK_OPTION_IDS.has(option.id)), {
+    message: `Option ids ${[...RESERVED_ASK_OPTION_IDS].join(', ')} are reserved; name the answer itself (e.g. "waive")`,
+  })
+  .refine(
+    (ask) =>
+      !ask.recommendedOptionId ||
+      ask.options.some((option) => option.id === ask.recommendedOptionId),
+    { message: 'recommendedOptionId must name one of the options' },
+  );
 export const goalPlanSchema = z.discriminatedUnion('action', [
   z
     .object({
@@ -78,7 +136,7 @@ export const goalPlanSchema = z.discriminatedUnion('action', [
       failedOperationId: z.string().min(1),
     })
     .strict(),
-  z.object({ action: z.literal('escalate'), reason }).strict(),
+  z.object({ action: z.literal('escalate'), reason, ask: goalAskSchema.optional() }).strict(),
 ]);
 type GoalPlan = z.infer<typeof goalPlanSchema>;
 const activeStatuses = new Set(['planning', 'running']);
@@ -238,7 +296,7 @@ export const problemKey = (problem: { reason: string; taskId?: string }) =>
  */
 export const answeredProblem = (state?: GoalManagerState) =>
   state?.consumed && state.problem && state.submitted
-    ? { key: state.problem, reason: state.submitted.reason }
+    ? { ask: state.submitted.ask, key: state.problem, reason: state.submitted.reason }
     : undefined;
 
 export class GoalManagerService {
@@ -567,6 +625,11 @@ export class GoalManagerService {
   };
 
   private graph = (db = this.db) => new GoalGraphModel(db, this.userId, this.workspaceId);
+  private coordinatorGraph = (db = this.db) =>
+    new GoalGraphModel(db, this.userId, this.workspaceId, {
+      id: GOAL_COORDINATOR_ACTOR_ID,
+      type: 'system',
+    });
 
   private reviews = async (graph: GoalGraphSnapshot, db = this.db) => {
     const tasks = new TaskModel(db, this.userId, this.workspaceId);
@@ -646,7 +709,9 @@ export class GoalManagerService {
       const goal = await model.lockById(goalId);
       if (goal && activeStatuses.has(goal.status)) {
         await model.updateStatus(goalId, 'paused');
-        await this.graph(db).recordGoalStatus(goalId, goal.status, 'paused', message);
+        // The system paused it (a spent turn budget, an unconfirmed main Agent
+        // turn), so the timeline must not file it as the owner's pause.
+        await this.coordinatorGraph(db).recordGoalStatus(goalId, goal.status, 'paused', message);
       }
     });
     return { goalId, outcome: 'no_progress', message };
@@ -923,7 +988,7 @@ export class GoalManagerService {
           runs[0].operationId,
         )
       : undefined;
-    return !recoveryEligibility(graph, failed, op, false, countDeviceOfflineRuns(runs)).eligible;
+    return !recoveryEligibility(graph, failed, op, false, countUnchargedRuns(runs)).eligible;
   };
 
   private startTurn = async (
@@ -1366,7 +1431,7 @@ export class GoalManagerService {
         if (
           !task ||
           runs[0]?.operationId !== plan.failedOperationId ||
-          !recoveryEligibility(graph, task, failure, false, countDeviceOfflineRuns(runs)).eligible
+          !recoveryEligibility(graph, task, failure, false, countUnchargedRuns(runs)).eligible
         )
           throw new TRPCError({
             code: 'CONFLICT',
@@ -1381,6 +1446,44 @@ export class GoalManagerService {
           ))
         )
           throw new TRPCError({ code: 'CONFLICT', message: 'Task changed before retry' });
+      } else if (plan.action === 'escalate' && state.problem && plan.ask) {
+        // A takeover question is answered on the failed Task's gate, so every
+        // answer has to say what happens to that Task — an answer that leaves it
+        // failed would only reopen the same gate on the next tick.
+        if (plan.ask.options.some((option) => !option.effect))
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Every option of a takeover question needs an effect (retry or retire) for the blocked Task',
+          });
+      } else if (plan.action === 'escalate' && !state.problem && plan.ask) {
+        // A question with answers is asked, not parked: it opens a gate the
+        // owner can answer from anywhere, and the answer wakes the next turn.
+        const node = await authored.createNode(goalId, {
+          description: plan.reason,
+          kind: 'decision',
+          status: 'waiting',
+          title: GOAL_MANAGER_QUESTION_TITLE,
+        });
+        if (!node) throw new TRPCError({ code: 'NOT_FOUND', message: 'Goal not found' });
+        const problemNode = graph.nodes.find((n) => n.kind === 'problem');
+        if (problemNode) await authored.createEdge(goalId, problemNode.id, node.id, 'leads_to');
+        const decision = await authored.createDecision(goalId, node.id, {
+          authority: 'user',
+          options: plan.ask.options,
+          question: plan.ask.question,
+          recommendedOptionId: plan.ask.recommendedOptionId,
+          requestedUserId: this.userId,
+        });
+        await model.updateStatus(goalId, 'review');
+        await authored.recordGoalStatus(goalId, goal.status, 'review', plan.reason);
+        if (decision)
+          await new GoalBriefService(db, this.userId, this.workspaceId).openDecision(goal, {
+            decisionId: decision.id,
+            options: decision.options,
+            question: decision.question,
+            recommendedOptionId: decision.recommendedOptionId,
+          });
       } else if (plan.action === 'escalate' && !state.problem) {
         // Only an ORDINARY planning turn pauses the Goal here. A takeover turn has
         // a gate waiting behind it for this exact problem, and the coordinator
@@ -1396,6 +1499,7 @@ export class GoalManagerService {
           action: plan.action,
           reason: plan.reason,
           ...(plan.action === 'retry' ? { taskId: plan.taskId } : {}),
+          ...(plan.action === 'escalate' && plan.ask ? { ask: plan.ask } : {}),
         },
         readyForAcceptance: plan.action === 'verify',
         replanReason: undefined,
