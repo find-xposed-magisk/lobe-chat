@@ -8,8 +8,9 @@ import { toast } from '@lobehub/ui/base-ui';
 import isEqual from 'fast-deep-equal';
 import { t } from 'i18next';
 
-import { mutate, useClientDataSWR } from '@/libs/swr';
-import { goalKeys, taskKeys } from '@/libs/swr/keys';
+import { createReplicaSlice, recordLens } from '@/libs/replica';
+import { mutate } from '@/libs/swr';
+import { goalKeys } from '@/libs/swr/keys';
 import { taskService } from '@/services/task';
 import { workService } from '@/services/work';
 import type { StoreSetter } from '@/store/types';
@@ -27,6 +28,7 @@ import {
   buildOptimisticCommentActivity,
   buildOptimisticPropertyActivity,
 } from './optimisticActivity';
+import { taskDetailResource } from './projection';
 import type { TaskDetailDispatch } from './reducer';
 import { findSubtaskParentId, taskDetailReducer } from './reducer';
 
@@ -119,11 +121,24 @@ export const createTaskDetailSlice = (set: Setter, get: () => TaskStore, _api?: 
 export class TaskDetailSliceActionImpl {
   readonly #get: () => TaskStore;
   readonly #set: Setter;
+  readonly #detail;
 
   constructor(set: Setter, get: () => TaskStore, _api?: unknown) {
     void _api;
     this.#set = set;
     this.#get = get;
+    this.#detail = createReplicaSlice(taskDetailResource, {
+      actionPrefix: 'taskDetail',
+      // Writes the entry (and its identifier alias) through
+      // `internal_dispatchTaskDetail`, which also tracks instruction revisions;
+      // the sync then confirms and persists the same value.
+      fetcher: (id) => this.fetchTaskDetail(id),
+      get,
+      merge: (incoming, confirmed) => (isEqual(incoming, confirmed) ? undefined : incoming),
+      set,
+      stateKey: 'taskDetailReplica',
+      view: recordLens<TaskStore, TaskDetailData>('taskDetailMap'),
+    });
   }
 
   // ── Public Actions ──
@@ -320,13 +335,9 @@ export class TaskDetailSliceActionImpl {
       }
       return result.data ?? null;
     } catch (error) {
-      if (snapshot) {
-        this.internal_dispatchTaskDetail({
-          id: identifier,
-          type: 'setTaskDetail',
-          value: snapshot,
-        });
-      }
+      // The optimistic delete also dropped the persisted row; restore the
+      // confirmed snapshot through `replace` so it is persisted again.
+      if (snapshot) this.#detail.replace(identifier, snapshot);
       throw error;
     } finally {
       this.#set({ isDeletingTask: false }, false, 'deleteTask/end');
@@ -556,6 +567,11 @@ export class TaskDetailSliceActionImpl {
       setStatus: (status) => this.#get().internal_setTaskSaveStatus(id, status),
     });
 
+    // Saved: the edited detail is now the server's value, so a reload must
+    // paint it rather than the pre-edit snapshot.
+    this.internal_persistTaskDetail(id);
+    if (patchedParentId) this.internal_persistTaskDetail(patchedParentId);
+
     if (
       assigneeAgentId !== undefined ||
       assigneeUserId !== undefined ||
@@ -586,11 +602,17 @@ export class TaskDetailSliceActionImpl {
       return hasInFlightActivity(detail);
     });
 
-    return useClientDataSWR(
-      taskId ? taskKeys.detail(taskId) : null,
-      async ([, id]: [string, string]) => this.fetchTaskDetail(id),
-      { refreshInterval: shouldPoll ? TASK_DETAIL_POLL_INTERVAL : 0 },
-    );
+    const sync = this.#detail.useSync(taskId, {
+      // A resolved not-found is definitive (the task was deleted elsewhere):
+      // drop the cached copy so the page can settle on its 404. Transient
+      // failures keep the cached detail on screen.
+      onError: (error) => {
+        if (taskId && (error as { code?: string } | undefined)?.code === 'TASK_NOT_FOUND')
+          this.internal_dispatchTaskDetail({ id: taskId, type: 'deleteTaskDetail' });
+      },
+      refreshInterval: shouldPoll ? TASK_DETAIL_POLL_INTERVAL : 0,
+    });
+    return { ...sync, mutate: sync.revalidate };
   };
 
   // ── Internal Actions ──
@@ -606,6 +628,11 @@ export class TaskDetailSliceActionImpl {
     );
   };
 
+  /**
+   * Apply a detail change (subtasks are patched inside their parent's entry
+   * too) and write every changed entry through the replica. In memory only:
+   * the confirmed server value is persisted by the detail sync.
+   */
   internal_dispatchTaskDetail = (
     payload: TaskDetailDispatch,
     options?: { instructionSource?: 'external' },
@@ -620,18 +647,18 @@ export class TaskDetailSliceActionImpl {
       payload.type === 'deleteTaskDetail' &&
       state.taskInstructionRevisionMap[payload.id] !== undefined;
 
-    if (
-      isEqual(nextMap, currentMap) &&
-      !shouldIncrementInstructionRevision &&
-      !shouldDeleteInstructionRevision
-    ) {
-      return;
+    if (payload.type === 'deleteTaskDetail') {
+      if (currentMap[payload.id]) this.#detail.remove(payload.id);
+    } else {
+      for (const id of new Set([...Object.keys(currentMap), ...Object.keys(nextMap)])) {
+        if (currentMap[id] === nextMap[id] || isEqual(currentMap[id], nextMap[id])) continue;
+        this.#detail.update(id, () => nextMap[id], { persist: false });
+      }
     }
 
     if (shouldIncrementInstructionRevision) {
       this.#set(
         {
-          taskDetailMap: nextMap,
           taskInstructionRevisionMap: {
             ...state.taskInstructionRevisionMap,
             [payload.id]: (state.taskInstructionRevisionMap[payload.id] ?? 0) + 1,
@@ -640,25 +667,27 @@ export class TaskDetailSliceActionImpl {
         false,
         `internal_dispatchTaskDetail/${payload.type}`,
       );
-      return;
-    }
-
-    if (shouldDeleteInstructionRevision) {
+    } else if (shouldDeleteInstructionRevision) {
       const taskInstructionRevisionMap = { ...state.taskInstructionRevisionMap };
       delete taskInstructionRevisionMap[payload.id];
       this.#set(
-        { taskDetailMap: nextMap, taskInstructionRevisionMap },
+        { taskInstructionRevisionMap },
         false,
         `internal_dispatchTaskDetail/${payload.type}`,
       );
-      return;
     }
+  };
 
-    this.#set({ taskDetailMap: nextMap }, false, `internal_dispatchTaskDetail/${payload.type}`);
+  /**
+   * Persist a task's detail as it is shown now — called once a save settles
+   * (committed, or rolled back), since edits stay in memory while in flight.
+   */
+  internal_persistTaskDetail = (id: string): void => {
+    this.#detail.update(id, (detail) => detail && { ...detail });
   };
 
   internal_refreshTaskDetail = async (id: string): Promise<void> => {
-    await mutate(taskKeys.detail(id));
+    await this.#detail.revalidate(id);
   };
 }
 
